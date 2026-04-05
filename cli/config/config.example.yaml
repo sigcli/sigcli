@@ -1,0 +1,102 @@
+# Signet unified configuration
+# Copy this to ~/.signet/config.yaml and customize for your services.
+#
+# All configuration lives in this single file — no env vars, no cascade.
+
+# Browser settings (required)
+browser:
+  browserDataDir: ~/.signet/browser-data # Persistent browser profile directory
+  channel: chrome                        # Browser channel (chrome, msedge, chromium)
+  headlessTimeout: 30000                 # Timeout for headless auth attempt (ms)
+  visibleTimeout: 120000                 # Timeout for visible/user-assisted auth (ms)
+  waitUntil: load # Default page load condition (load, networkidle, domcontentloaded, commit)
+
+# Storage settings (required)
+storage:
+  credentialsDir: ~/.signet/credentials # Per-provider credential files directory
+
+# Remote credential stores (optional)
+# remotes:
+#   dev-server:
+#     type: ssh
+#     host: dev.example.com
+#     user: deploy
+#     path: ~/.signet/credentials
+#     sshKey: ~/.ssh/id_ed25519
+
+# Provider configurations
+# Cookie-based providers (most SSO systems) don't need config at all —
+# just call `sig login https://jira.example.com` and it auto-provisions.
+# Only create entries here for OAuth2, API tokens, or advanced settings.
+providers:
+  # Cookie-based authentication — only needed for custom TTL or options
+  # (otherwise, auto-provisioning handles it)
+  # my-jira:
+  #   domains: ["jira.example.com"]
+  #   strategy: cookie
+  #   config:
+  #     ttl: "12h"
+
+  # OAuth2 with refresh tokens
+  # azure-graph:
+  #   name: Microsoft Graph
+  #   domains: ["graph.microsoft.com"]
+  #   entryUrl: https://login.microsoftonline.com/
+  #   strategy: oauth2
+  #   config:
+  #     tokenEndpoint: https://login.microsoftonline.com/common/oauth2/v2.0/token
+  #     clientId: your-app-id
+  #     scopes: ["openid", "profile", "User.Read"]
+
+  # Static API token (no browser needed)
+  # github:
+  #   name: GitHub
+  #   domains: ["github.com", "api.github.com"]
+  #   strategy: api-token
+  #   config:
+  #     headerName: Authorization
+  #     headerPrefix: Bearer
+  #     setupInstructions: |
+  #       Create a Personal Access Token at:
+  #       https://github.com/settings/tokens
+
+  # Microsoft Teams — requires TWO providers (one per API audience).
+  # ms-teams:
+  #   name: Microsoft Teams
+  #   domains: ["teams.cloud.microsoft"]
+  #   entryUrl: https://teams.cloud.microsoft/v2/
+  #   strategy: oauth2
+  #   config:
+  #     audiences: ["https://ic3.teams.office.com"]
+  #
+  # ms-graph:
+  #   domains: ["graph.microsoft.com"]
+  #   entryUrl: https://teams.cloud.microsoft/v2/
+  #   strategy: oauth2
+  #   config:
+  #     audiences: ["https://graph.microsoft.com"]
+
+  # Basic authentication (username + password)
+  # legacy-api:
+  #   name: Legacy Internal API
+  #   domains: ["api.internal.corp"]
+  #   strategy: basic
+
+  # Cookie auth with x-headers (anti-bot / dynamic signature headers)
+  # xiaohongshu:
+  #   name: Xiaohongshu
+  #   domains: ["www.xiaohongshu.com", "edith.xiaohongshu.com"]
+  #   entryUrl: https://www.xiaohongshu.com/
+  #   strategy: cookie
+  #   forceVisible: true                       # Skip headless, go straight to visible browser
+  #   config:
+  #     ttl: "12h"
+  #     requiredCookies: ["id_token"]
+  #   xHeaders:
+  #     - name: x-csrf-token
+  #       source: request
+  #       urlPattern: edith.xiaohongshu.com/api
+  #     - name: origin
+  #       staticValue: https://www.xiaohongshu.com
+  #     - name: referer
+  #       staticValue: https://www.xiaohongshu.com/

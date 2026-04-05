@@ -1,0 +1,71 @@
+import type { AuthDeps } from '../../deps.js';
+import { getRemote, getRemotes } from '../../sync/remote-config.js';
+import { SyncEngine } from '../../sync/sync-engine.js';
+import { formatJson } from '../formatters.js';
+
+export async function runSync(positionals: string[], flags: Record<string, string | boolean>, deps: AuthDeps): Promise<void> {
+  const subcommand = positionals[0];
+
+  if (subcommand !== 'push' && subcommand !== 'pull') {
+    process.stderr.write('Usage: sig sync <push|pull> [remote] [--provider <id>] [--force]\n');
+    process.exitCode = 1;
+    return;
+  }
+
+  // Resolve remote: explicit name or default (if only one configured)
+  const remoteName = positionals[1];
+  let remote;
+
+  if (remoteName) {
+    remote = await getRemote(remoteName);
+    if (!remote) {
+      process.stderr.write(`Remote "${remoteName}" not found. Run "sig remote list" to see configured remotes.\n`);
+      process.exitCode = 4;
+      return;
+    }
+  } else {
+    const remotes = await getRemotes();
+    if (remotes.length === 0) {
+      process.stderr.write('No remotes configured. Run "sig remote add <name> <host>" first.\n');
+      process.exitCode = 4;
+      return;
+    }
+    if (remotes.length > 1) {
+      process.stderr.write('Multiple remotes configured. Specify which one:\n');
+      for (const r of remotes) {
+        process.stderr.write(`  ${r.name} (${r.host})\n`);
+      }
+      process.exitCode = 1;
+      return;
+    }
+    remote = remotes[0];
+  }
+
+  const engine = new SyncEngine(deps.storage, remote);
+  const force = flags.force === true;
+  const provider = typeof flags.provider === 'string' ? [flags.provider] : undefined;
+
+  process.stderr.write(`${subcommand === 'push' ? 'Pushing' : 'Pulling'} credentials ${subcommand === 'push' ? 'to' : 'from'} "${remote.name}" (${remote.host})...\n`);
+
+  const result = subcommand === 'push'
+    ? await engine.push(provider, force)
+    : await engine.pull(provider, force);
+
+  // Report results
+  const synced = subcommand === 'push' ? result.pushed : result.pulled;
+  if (synced.length > 0) {
+    process.stderr.write(`Synced: ${synced.join(', ')}\n`);
+  }
+  if (result.skipped.length > 0) {
+    process.stderr.write(`Skipped (conflict): ${result.skipped.join(', ')} — use --force to overwrite\n`);
+  }
+  if (result.errors.length > 0) {
+    for (const e of result.errors) {
+      process.stderr.write(`Error (${e.providerId}): ${e.error}\n`);
+    }
+    process.exitCode = 4;
+  }
+
+  // JSON output to stdout
+  process.stdout.write(formatJson(result) + '\n');
+}

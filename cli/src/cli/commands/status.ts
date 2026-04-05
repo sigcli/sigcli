@@ -1,0 +1,48 @@
+import type { AuthDeps } from '../../deps.js';
+import { formatJson, formatTable } from '../formatters.js';
+
+export async function runStatus(
+  positionals: string[],
+  flags: Record<string, string | boolean>,
+  deps: AuthDeps,
+): Promise<void> {
+  const providerId = (flags.provider as string) ?? positionals[0];
+  const format = (flags.format as string) ?? (process.stdout.isTTY ? 'table' : 'json');
+
+  if (providerId) {
+    const status = await deps.authManager.getStatus(providerId);
+    if (format === 'json') {
+      process.stdout.write(formatJson(status) + '\n');
+    } else {
+      process.stdout.write(formatTable([{
+        id: status.id,
+        name: status.name,
+        strategy: status.strategy,
+        valid: status.valid ? 'yes' : 'no',
+        type: status.credentialType ?? '-',
+        expires: status.expiresInMinutes !== undefined ? `${status.expiresInMinutes}m` : '-',
+      }]) + '\n');
+    }
+    return;
+  }
+
+  const statuses = await deps.authManager.getAllStatus();
+
+  if (format === 'json') {
+    process.stdout.write(formatJson(statuses) + '\n');
+  } else {
+    if (statuses.length === 0) {
+      process.stderr.write('No providers configured.\n');
+      return;
+    }
+    const rows = statuses.map(s => ({
+      id: s.id,
+      name: s.name,
+      strategy: s.strategy,
+      valid: s.valid ? 'yes' : 'no',
+      type: s.credentialType ?? '-',
+      expires: s.expiresInMinutes !== undefined ? `${s.expiresInMinutes}m` : '-',
+    }));
+    process.stdout.write(formatTable(rows) + '\n');
+  }
+}

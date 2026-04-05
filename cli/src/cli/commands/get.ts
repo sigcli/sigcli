@@ -1,0 +1,96 @@
+import type { AuthDeps } from '../../deps.js';
+import { isOk } from '../../core/result.js';
+import { formatJson, formatCredentialHeaders } from '../formatters.js';
+
+const PRIMARY_HEADERS = ['cookie', 'authorization'];
+
+export async function runGet(
+  positionals: string[],
+  flags: Record<string, string | boolean>,
+  deps: AuthDeps,
+): Promise<void> {
+  const target = positionals[0];
+  if (!target) {
+    process.stderr.write('Usage: sig get <provider|url>\n');
+    process.exitCode = 1;
+    return;
+  }
+
+  const isUrl = target.startsWith('http://') || target.startsWith('https://');
+  let providerId: string;
+  let credential;
+
+  if (isUrl) {
+    const result = await deps.authManager.getCredentialsByUrl(target);
+    if (!isOk(result)) {
+      process.stderr.write(`Error: ${result.error.message}\n`);
+      process.exitCode = result.error.code === 'PROVIDER_NOT_FOUND' ? 2 : 3;
+      return;
+    }
+    providerId = result.value.provider.id;
+    credential = result.value.credential;
+  } else {
+    const provider = deps.authManager.providerRegistry.get(target);
+    if (!provider) {
+      process.stderr.write(`Error: No provider found with ID "${target}".\n`);
+      process.exitCode = 2;
+      return;
+    }
+    providerId = provider.id;
+    const result = await deps.authManager.getCredentials(providerId);
+    if (!isOk(result)) {
+      process.stderr.write(`Error: ${result.error.message}\n`);
+      process.exitCode = result.error.code === 'CREDENTIAL_NOT_FOUND' ? 3 : 1;
+      return;
+    }
+    credential = result.value;
+  }
+
+  const headers = deps.authManager.applyToRequest(providerId, credential);
+  const entries = Object.entries(headers);
+
+  if (entries.length === 0) {
+    process.stderr.write(`Error: No credential headers produced for "${providerId}".\n`);
+    process.exitCode = 3;
+    return;
+  }
+
+  const primaryEntry = entries.find(([name]) => PRIMARY_HEADERS.includes(name.toLowerCase()))
+    ?? entries[0];
+  const [primaryHeaderName, primaryHeaderValue] = primaryEntry;
+
+  const xHeaders: Record<string, string> = {};
+  for (const [name, value] of entries) {
+    if (name !== primaryHeaderName) {
+      xHeaders[name] = value;
+    }
+  }
+
+  const format = (flags.format as string) ?? 'json';
+
+  switch (format) {
+    case 'json': {
+      const output: Record<string, unknown> = {
+        provider: providerId,
+        credential: primaryHeaderValue,
+        headerName: primaryHeaderName,
+        type: credential.type,
+      };
+      if (Object.keys(xHeaders).length > 0) output.xHeaders = xHeaders;
+      process.stdout.write(formatJson(output) + '\n');
+      break;
+    }
+    case 'header': {
+      process.stdout.write(formatCredentialHeaders(headers) + '\n');
+      break;
+    }
+    case 'value': {
+      process.stdout.write(primaryHeaderValue + '\n');
+      break;
+    }
+    default: {
+      process.stderr.write(`Unknown format: ${format}\n`);
+      process.exitCode = 1;
+    }
+  }
+}
