@@ -1,0 +1,301 @@
+/**
+ * sig doctor — Environment diagnostics.
+ * Runs a series of checks and reports pass/fail for each.
+ * Does NOT take deps (can run before config is fully wired).
+ */
+
+import fs from 'node:fs';
+import fsp from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { execSync } from 'node:child_process';
+import { getConfigPath, loadConfig } from '../../config/loader.js';
+import { isOk } from '../../core/result.js';
+import type { SignetConfig } from '../../config/schema.js';
+
+interface CheckResult {
+  label: string;
+  ok: boolean;
+  detail?: string;
+  hint?: string;
+}
+
+const PASS = '\u2713';  // ✓
+const FAIL = '\u2717';  // ✗
+
+function printResults(results: CheckResult[]): void {
+  let failures = 0;
+
+  for (const r of results) {
+    if (r.ok) {
+      const detail = r.detail ? ` (${r.detail})` : '';
+      console.log(`  ${PASS} ${r.label}${detail}`);
+    } else {
+      failures++;
+      console.log(`  ${FAIL} ${r.label}`);
+      if (r.hint) {
+        console.log(`    \u2192 ${r.hint}`);
+      }
+    }
+  }
+
+  console.log('');
+  if (failures === 0) {
+    console.log('All checks passed.');
+  } else {
+    console.log(`${failures} issue${failures > 1 ? 's' : ''} found.`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Individual checks
+// ---------------------------------------------------------------------------
+
+function checkConfigExists(): CheckResult {
+  const configPath = getConfigPath();
+  const exists = fs.existsSync(configPath);
+  return {
+    label: 'Config file exists',
+    ok: exists,
+    detail: exists ? configPath.replace(os.homedir(), '~') : undefined,
+    hint: exists ? undefined : 'Run "sig init" to create ~/.signet/config.yaml',
+  };
+}
+
+async function checkConfigValid(): Promise<CheckResult & { config?: SignetConfig }> {
+  const configResult = await loadConfig();
+  if (!isOk(configResult)) {
+    return {
+      label: 'Config is valid',
+      ok: false,
+      hint: configResult.error.message,
+    };
+  }
+  return {
+    label: 'Config is valid',
+    ok: true,
+    config: configResult.value,
+  };
+}
+
+async function checkCredentialsDir(config: SignetConfig | undefined): Promise<CheckResult> {
+  if (!config) {
+    return {
+      label: 'Credentials directory exists',
+      ok: false,
+      hint: 'Fix config first',
+    };
+  }
+
+  const dir = config.storage.credentialsDir.replace(/^~/, os.homedir());
+  try {
+    await fsp.access(dir, fs.constants.R_OK | fs.constants.W_OK);
+    return {
+      label: 'Credentials directory exists',
+      ok: true,
+      detail: config.storage.credentialsDir,
+    };
+  } catch {
+    return {
+      label: 'Credentials directory exists',
+      ok: false,
+      hint: `Directory not found or not writable: ${config.storage.credentialsDir}`,
+    };
+  }
+}
+
+async function checkBrowserDataDir(config: SignetConfig | undefined): Promise<CheckResult> {
+  if (!config) {
+    return {
+      label: 'Browser data directory exists',
+      ok: false,
+      hint: 'Fix config first',
+    };
+  }
+
+  const dir = config.browser.browserDataDir.replace(/^~/, os.homedir());
+  const exists = fs.existsSync(dir);
+  return {
+    label: 'Browser data directory exists',
+    ok: exists,
+    detail: exists ? config.browser.browserDataDir : undefined,
+    hint: exists ? undefined : `Directory not found: ${config.browser.browserDataDir}`,
+  };
+}
+
+function findChannelBrowser(channel: string): boolean {
+  const platform = process.platform;
+
+  // Check common browser locations based on channel and platform
+  if (platform === 'darwin') {
+    const apps: Record<string, string> = {
+      chrome: '/Applications/Google Chrome.app',
+      msedge: '/Applications/Microsoft Edge.app',
+      chromium: '/Applications/Chromium.app',
+    };
+    if (apps[channel]) return fs.existsSync(apps[channel]);
+  }
+
+  if (platform === 'linux') {
+    const bins: Record<string, string> = {
+      chrome: 'google-chrome',
+      msedge: 'microsoft-edge',
+      chromium: 'chromium',
+    };
+    if (bins[channel]) {
+      try {
+        execSync(`which ${bins[channel]}`, { stdio: 'ignore' });
+        return true;
+      } catch {
+        return false;
+      }
+    }
+  }
+
+  return false;
+}
+
+async function checkBrowserAvailable(config: SignetConfig | undefined): Promise<CheckResult> {
+  if (!config) {
+    return {
+      label: 'Browser available',
+      ok: false,
+      hint: 'Fix config first',
+    };
+  }
+
+  const channel = config.browser.channel;
+  try {
+    // Verify playwright-core is importable
+    await import('playwright-core');
+
+    // Check if the channel browser is installed on the system
+    const found = findChannelBrowser(channel);
+    if (found) {
+      return {
+        label: 'Browser available',
+        ok: true,
+        detail: channel,
+      };
+    }
+
+    // Fallback: if we can't detect by channel but playwright-core is available, report cautiously
+    return {
+      label: 'Browser available',
+      ok: true,
+      detail: `${channel} (playwright-core loaded, browser not verified)`,
+    };
+  } catch {
+    return {
+      label: 'Browser available',
+      ok: false,
+      hint: 'playwright-core not installed. Run "npm install playwright-core".',
+    };
+  }
+}
+
+function checkNodeVersion(): CheckResult {
+  const version = process.version;
+  const match = version.match(/^v(\d+)/);
+  const major = match ? parseInt(match[1], 10) : 0;
+  return {
+    label: 'Node.js version',
+    ok: major >= 18,
+    detail: version,
+    hint: major < 18 ? `Node.js >= 18 is required. Current: ${version}` : undefined,
+  };
+}
+
+async function checkStoredCredentials(config: SignetConfig | undefined): Promise<CheckResult> {
+  if (!config) {
+    return {
+      label: 'Stored credentials',
+      ok: true,
+      detail: 'skipped (no config)',
+    };
+  }
+
+  const dir = config.storage.credentialsDir.replace(/^~/, os.homedir());
+  try {
+    const files = await fsp.readdir(dir);
+    const jsonFiles = files.filter(f => f.endsWith('.json') && !f.endsWith('.lock'));
+    const total = jsonFiles.length;
+
+    // Check for expired credentials by reading each file
+    let expired = 0;
+    for (const file of jsonFiles) {
+      try {
+        const content = await fsp.readFile(path.join(dir, file), 'utf-8');
+        const data = JSON.parse(content);
+        const cred = data?.credential;
+        if (cred?.type === 'bearer' && cred?.token) {
+          try {
+            const { isJwtExpired } = await import('../../utils/jwt.js');
+            if (isJwtExpired(cred.token)) expired++;
+          } catch {
+            // JWT decode failed, skip
+          }
+        }
+      } catch {
+        // Skip unreadable files
+      }
+    }
+
+    const detail = expired > 0
+      ? `${total} stored credential${total !== 1 ? 's' : ''} (${expired} expired)`
+      : `${total} stored credential${total !== 1 ? 's' : ''}`;
+
+    return {
+      label: 'Stored credentials',
+      ok: true,
+      detail,
+    };
+  } catch {
+    return {
+      label: 'Stored credentials',
+      ok: true,
+      detail: '0 stored credentials',
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Main command
+// ---------------------------------------------------------------------------
+
+export async function runDoctor(
+  positionals: string[],
+  flags: Record<string, string | boolean>,
+): Promise<void> {
+  const results: CheckResult[] = [];
+
+  // a. Config file exists
+  results.push(checkConfigExists());
+
+  // b. Config is valid
+  const configCheck = await checkConfigValid();
+  results.push(configCheck);
+  const config = configCheck.config;
+
+  // c. Credentials directory
+  results.push(await checkCredentialsDir(config));
+
+  // d. Browser data directory
+  results.push(await checkBrowserDataDir(config));
+
+  // e. Browser available
+  results.push(await checkBrowserAvailable(config));
+
+  // f. Node.js version
+  results.push(checkNodeVersion());
+
+  // g. Stored credentials
+  results.push(await checkStoredCredentials(config));
+
+  printResults(results);
+
+  const hasFailures = results.some(r => !r.ok);
+  if (hasFailures) {
+    process.exitCode = 1;
+  }
+}

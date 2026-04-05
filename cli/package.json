@@ -1,0 +1,52 @@
+{
+  "name": "signet-auth",
+  "version": "1.0.0",
+  "description": "General-purpose authentication CLI with pluggable strategies and browser adapters",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "sig": "./bin/sig.js"
+  },
+  "files": [
+    "dist/",
+    "bin/",
+    "src/",
+    "tsconfig.json"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepack": "npm run build",
+    "start": "node bin/sig.js",
+    "dev": "tsc && node bin/sig.js",
+    "test": "node --experimental-vm-modules node_modules/.bin/vitest run",
+    "test:watch": "node --experimental-vm-modules node_modules/.bin/vitest"
+  },
+  "dependencies": {
+    "playwright-core": "^1.50.0",
+    "yaml": "^2.7.0",
+    "proper-lockfile": "^4.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/proper-lockfile": "^4.1.4",
+    "typescript": "^5.3.0",
+    "vitest": "^3.0.0"
+  },
+  "keywords": [
+    "cli",
+    "auth",
+    "authentication",
+    "oauth2",
+    "browser",
+    "playwright-core"
+  ],
+  "author": "pylon <pylon.peng@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pylon/signet.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
