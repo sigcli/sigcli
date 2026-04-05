@@ -27,10 +27,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: rm -f package-lock.json && npm install
 
       - name: Type check
         run: npx tsc --noEmit
