@@ -52,17 +52,21 @@ jobs:
           BASE_VERSION=$(node -p "require('./package.json').version")
 
           # Query npm registry for existing beta versions and compute next number
-          EXISTING=$(npm view "signet-auth" versions --json 2>/dev/null || echo "[]")
           NEXT_BETA=$(node -e "
-            const versions = JSON.parse(process.argv[1]);
-            const arr = Array.isArray(versions) ? versions : [versions];
+            const { execSync } = require('child_process');
+            let versions = [];
+            try {
+              const out = execSync('npm view signet-auth versions --json', { encoding: 'utf8' });
+              const parsed = JSON.parse(out);
+              versions = Array.isArray(parsed) ? parsed : [parsed];
+            } catch {}
             const base = '${BASE_VERSION}'.replace(/-.*/, '');
-            const betas = arr
+            const betas = versions
               .filter(v => v.startsWith(base + '-beta.'))
               .map(v => parseInt(v.split('-beta.')[1], 10))
               .filter(n => !isNaN(n));
             console.log(betas.length ? Math.max(...betas) + 1 : 0);
-          " "$EXISTING")
+          ")
 
           BETA_VERSION="${BASE_VERSION%-*}-beta.${NEXT_BETA}"
           npm version "${BETA_VERSION}" --no-git-tag-version
