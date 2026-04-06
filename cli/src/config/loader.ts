@@ -56,10 +56,19 @@ export async function loadConfig(): Promise<Result<SignetConfig, AuthError>> {
 /**
  * Save the full config back to ~/.signet/config.yaml.
  * Used by remote add/remove commands to persist changes.
+ * Auto-provisioned providers are filtered out — they should not be persisted.
  */
 export async function saveConfig(config: SignetConfig): Promise<void> {
+  const filtered = {
+    ...config,
+    providers: Object.fromEntries(
+      Object.entries(config.providers).filter(
+        ([, p]) => !(p as unknown as { autoProvisioned?: boolean }).autoProvisioned,
+      ),
+    ),
+  };
   await fs.mkdir(path.dirname(CONFIG_PATH), { recursive: true });
-  await fs.writeFile(CONFIG_PATH, YAML.stringify(config), 'utf-8');
+  await fs.writeFile(CONFIG_PATH, YAML.stringify(filtered), 'utf-8');
 }
 
 /**

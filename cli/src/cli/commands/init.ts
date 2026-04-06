@@ -17,41 +17,32 @@ import { validateConfig } from '../../config/validator.js';
 import { isOk } from '../../core/result.js';
 
 // ---------------------------------------------------------------------------
-// Provider templates
+// Strategy templates — one per built-in strategy
 // ---------------------------------------------------------------------------
 
-interface ProviderTemplate {
-  name: string;
-  domains: string[];
-  strategy: string;
-  config?: Record<string, unknown>;
-  needsDomain?: boolean;
+interface StrategyTemplate {
+  description: string;
+  needsEntryUrl: boolean;
+  defaultConfig?: Record<string, unknown>;
 }
 
-const PROVIDER_TEMPLATES: Record<string, ProviderTemplate> = {
-  github: {
-    name: 'GitHub',
-    domains: ['github.com', 'api.github.com'],
-    strategy: 'api-token',
-    config: { headerName: 'Authorization', headerPrefix: 'Bearer' },
+const STRATEGY_TEMPLATES: Record<string, StrategyTemplate> = {
+  cookie: {
+    description: 'Browser-based SSO (Jira, Confluence, internal portals)',
+    needsEntryUrl: true,
   },
-  gitlab: {
-    name: 'GitLab',
-    domains: ['gitlab.com'],
-    strategy: 'api-token',
-    config: { headerName: 'PRIVATE-TOKEN', headerPrefix: '' },
+  oauth2: {
+    description: 'OAuth2 with token refresh',
+    needsEntryUrl: true,
   },
-  jira: {
-    name: 'Jira (Cloud)',
-    domains: [],
-    strategy: 'cookie',
-    needsDomain: true,
+  'api-token': {
+    description: 'Static API token (GitHub, GitLab)',
+    needsEntryUrl: false,
+    defaultConfig: { headerName: 'Authorization', headerPrefix: 'Bearer' },
   },
-  confluence: {
-    name: 'Confluence',
-    domains: [],
-    strategy: 'cookie',
-    needsDomain: true,
+  basic: {
+    description: 'Username + password (HTTP Basic)',
+    needsEntryUrl: false,
   },
 };
 
@@ -103,64 +94,58 @@ async function promptProviders(rl: ReturnType<typeof createInterface>): Promise<
 
   let keepAdding = true;
   while (keepAdding) {
-    const templateNames = Object.keys(PROVIDER_TEMPLATES);
-    console.log('\nProvider templates:');
-    for (let i = 0; i < templateNames.length; i++) {
-      const key = templateNames[i];
-      const tmpl = PROVIDER_TEMPLATES[key];
-      console.log(`  ${i + 1}. ${tmpl.name} (${key})`);
+    const strategyNames = Object.keys(STRATEGY_TEMPLATES);
+    console.log('\nStrategy templates:');
+    for (let i = 0; i < strategyNames.length; i++) {
+      const key = strategyNames[i];
+      const tmpl = STRATEGY_TEMPLATES[key];
+      console.log(`  ${i + 1}. ${key} — ${tmpl.description}`);
     }
-    console.log(`  ${templateNames.length + 1}. Custom`);
 
-    const choice = await rl.question(`\nSelect template (1-${templateNames.length + 1}): `);
+    const choice = await rl.question(`\nSelect strategy (1-${strategyNames.length}): `);
     const choiceNum = parseInt(choice, 10);
 
-    if (choiceNum >= 1 && choiceNum <= templateNames.length) {
-      const templateKey = templateNames[choiceNum - 1];
-      const template = PROVIDER_TEMPLATES[templateKey];
-
-      let domains = template.domains;
-      if (template.needsDomain) {
-        const domain = await rl.question(`Enter your ${template.name} domain (e.g., ${templateKey}.example.com): `);
-        if (domain.trim()) {
-          domains = [domain.trim()];
-        } else {
-          console.log('  Skipping — domain is required.');
-          const again = await rl.question('\nAdd another provider? (y/N) ');
-          keepAdding = again.toLowerCase() === 'y';
-          continue;
-        }
-      }
-
-      providers.push({
-        id: templateKey,
-        domains,
-        strategy: template.strategy,
-        ...(template.config ? { config: template.config } : {}),
-      });
-      console.log(`  Added ${template.name}.`);
-    } else if (choiceNum === templateNames.length + 1) {
-      const id = await rl.question('Provider id (e.g., my-api): ');
-      if (!id.trim()) {
-        console.log('  Skipping — id is required.');
-        const again = await rl.question('\nAdd another provider? (y/N) ');
-        keepAdding = again.toLowerCase() === 'y';
-        continue;
-      }
-      const domain = await rl.question('Domain(s) (comma-separated): ');
-      const domains = domain.split(',').map(d => d.trim()).filter(Boolean);
-      if (domains.length === 0) {
-        console.log('  Skipping — at least one domain is required.');
-        const again = await rl.question('\nAdd another provider? (y/N) ');
-        keepAdding = again.toLowerCase() === 'y';
-        continue;
-      }
-      const strategy = await rl.question('Strategy (cookie, oauth2, api-token, basic) [cookie]: ') || 'cookie';
-      providers.push({ id: id.trim(), domains, strategy });
-      console.log(`  Added custom provider "${id.trim()}".`);
-    } else {
+    if (choiceNum < 1 || choiceNum > strategyNames.length) {
       console.log('  Invalid selection.');
+      const again = await rl.question('\nAdd another provider? (y/N) ');
+      keepAdding = again.toLowerCase() === 'y';
+      continue;
     }
+
+    const strategyKey = strategyNames[choiceNum - 1];
+    const template = STRATEGY_TEMPLATES[strategyKey];
+
+    const id = await rl.question('Provider id (e.g., my-jira): ');
+    if (!id.trim()) {
+      console.log('  Skipping — id is required.');
+      const again = await rl.question('\nAdd another provider? (y/N) ');
+      keepAdding = again.toLowerCase() === 'y';
+      continue;
+    }
+
+    const domain = await rl.question('Domain(s) (comma-separated): ');
+    const domains = domain.split(',').map(d => d.trim()).filter(Boolean);
+    if (domains.length === 0) {
+      console.log('  Skipping — at least one domain is required.');
+      const again = await rl.question('\nAdd another provider? (y/N) ');
+      keepAdding = again.toLowerCase() === 'y';
+      continue;
+    }
+
+    let entryUrl: string | undefined;
+    if (template.needsEntryUrl) {
+      const url = await rl.question(`Entry URL (e.g., https://${domains[0]}/): `);
+      if (url.trim()) entryUrl = url.trim();
+    }
+
+    providers.push({
+      id: id.trim(),
+      domains,
+      strategy: strategyKey,
+      ...(entryUrl ? { entryUrl } : {}),
+      ...(template.defaultConfig ? { config: template.defaultConfig } : {}),
+    });
+    console.log(`  Added "${id.trim()}" (${strategyKey}).`);
 
     const again = await rl.question('\nAdd another provider? (y/N) ');
     keepAdding = again.toLowerCase() === 'y';
