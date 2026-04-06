@@ -456,6 +456,144 @@ sig login https://api.example.com --token ghp_xxxxxxxxxxxxx
 
 Cookie-based auth is the default -- just `sig login <url>` and complete SSO in the browser window.
 
+## AI Agent Integration
+
+Signet works as an auth layer for AI coding agents (Claude Code, Cursor, Windsurf, etc.) that need to interact with authenticated web services. The agent shells out to `sig` via bash -- no SDK or MCP server needed.
+
+### How it works
+
+1. **Human authenticates once** via browser SSO: `sig login <url>`
+2. **Agent reuses stored credentials** via CLI: `sig get`, `sig request`
+3. **On auth failure**, agent re-triggers login: `sig login <url>` (opens browser for human)
+
+The human handles the browser SSO flow; the agent handles everything else.
+
+### Pattern 1: Direct authenticated requests
+
+For APIs where the agent makes HTTP calls directly. Signet injects credentials automatically.
+
+```bash
+# GET — read data
+sig request "https://jira.example.com/rest/api/2/issue/PROJ-123" --format body
+
+# POST — create/update (add CSRF headers for cookie-based APIs)
+sig request "https://jira.example.com/rest/api/2/issue" \
+  --method POST \
+  --header "Content-Type: application/json" \
+  --header "X-Requested-With: XMLHttpRequest" \
+  --body '{"fields": {"summary": "New issue"}}' \
+  --format body
+```
+
+Best for: REST APIs where the agent constructs requests directly (Jira, Confluence, etc.)
+
+### Pattern 2: Credential pass-through to scripts
+
+For agents that call helper scripts (Python, Node, etc.) which handle HTTP internally. The agent extracts the credential and passes it as a CLI argument.
+
+```bash
+# Cookie-based services
+CRED=$(sig get https://wiki.example.com/ --format value)
+python scripts/wiki_search.py --cookie "$CRED" --keyword "deployment guide"
+
+# Bearer token services
+TOKEN=$(sig get https://graph.microsoft.com/ --format value | sed 's/^Bearer //')
+python scripts/calendar.py --token "$TOKEN" --range today
+```
+
+**Note on bearer tokens:** `sig get` returns `Bearer eyJ...` (with prefix). If your scripts add the `Bearer` prefix themselves, strip it with `sed 's/^Bearer //'`.
+
+Best for: Complex workflows wrapped in Python/Node scripts that accept credentials via CLI args.
+
+### Pattern 3: Curl with sig credentials
+
+For multipart uploads or requests that `sig request` can't handle (e.g., file attachments).
+
+```bash
+CRED=$(sig get https://jira.example.com/ --format value)
+curl -X POST "https://jira.example.com/rest/api/2/issue/PROJ-123/attachments" \
+  -H "Cookie: $CRED" \
+  -H "X-Atlassian-Token: no-check" \
+  -F "file=@/path/to/file.png"
+```
+
+### Error handling for agents
+
+Teach agents to detect auth failures and re-authenticate:
+
+| Signal | Meaning | Agent action |
+|--------|---------|-------------|
+| HTTP 401/403 | Session expired | Run `sig login <url>`, retry |
+| HTML login page in response | SSO redirect | Run `sig login <url>`, retry |
+| `sig get` returns empty | No stored credential | Run `sig login <url>` |
+
+### Skill-based setup (Claude Code)
+
+For [Claude Code](https://docs.anthropic.com/en/docs/claude-code), create a [skill](https://docs.anthropic.com/en/docs/claude-code/skills) with a `SKILL.md` that documents the auth pattern and API endpoints. The skill triggers automatically based on its description.
+
+Example `SKILL.md` structure:
+
+```markdown
+---
+name: my-api
+description: "Interact with My API. Trigger on: my-api, tickets, issues..."
+---
+# My API
+
+## Authentication
+Get credential: `CRED=$(sig get https://api.example.com/ --format value)`
+Re-auth: `sig login https://api.example.com/`
+
+## Endpoints
+| Operation | Command |
+|-----------|---------|
+| List items | `sig request "https://api.example.com/items" --format body` |
+| Create item | `sig request "https://api.example.com/items" --method POST --body '...' --format body` |
+```
+
+### Multi-service configuration
+
+Agents often need access to multiple services. Configure all providers in a single `~/.signet/config.yaml`:
+
+```yaml
+providers:
+  jira:
+    domains: ["jira.example.com"]
+    strategy: cookie
+    config:
+      ttl: "10d"
+
+  wiki:
+    domains: ["wiki.example.com"]
+    strategy: cookie
+    config:
+      ttl: "12h"
+
+  ms-teams:
+    domains: ["teams.cloud.microsoft"]
+    entryUrl: https://teams.cloud.microsoft/v2/
+    strategy: oauth2
+    config:
+      audiences: ["https://ic3.teams.office.com"]
+
+  ms-graph:
+    domains: ["graph.microsoft.com"]
+    entryUrl: https://teams.cloud.microsoft/v2/
+    strategy: oauth2
+    config:
+      audiences: ["https://graph.microsoft.com"]
+```
+
+Then authenticate all at once:
+
+```bash
+sig login https://jira.example.com/
+sig login https://wiki.example.com/
+sig login https://teams.cloud.microsoft/v2/
+```
+
+The agent resolves providers by URL automatically -- no provider IDs needed in agent code.
+
 ## License
 
 [MIT](LICENSE)

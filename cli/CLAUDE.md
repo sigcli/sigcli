@@ -91,6 +91,8 @@ sig sync push|pull [remote]# Sync credentials with remote
 
 Use the `/auth` skill to interact with Signet from Claude Code. The skill shells out to the CLI — no MCP server needed.
 
+See the **AI Agent Integration** section in `README.md` for usage patterns (direct requests, credential pass-through, curl fallback) and skill-based setup.
+
 ## Agent Team
 
 This project uses a Claude Code agent team. Use `/feature`, `/fix`, `/adapter`, `/strategy` commands to orchestrate the agents: **architect** (design), **dev** (implement), **tester** (test), **reviewer** (review).
