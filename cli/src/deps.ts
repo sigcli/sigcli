@@ -67,10 +67,10 @@ export function createAuthDeps(config: SignetConfig): AuthDeps {
 
   // 4. Build browser adapter factory using config.browser
   const browserConfig = config.browser;
-  const browserAvailable = browserConfig.enabled;
+  const browserAvailable = config.mode !== 'browserless';
   const browserAdapterFactory = browserAvailable
     ? () => new PlaywrightAdapter(browserConfig)
-    : () => new NullBrowserAdapter('Browser is disabled in config (browser.enabled: false)');
+    : () => new NullBrowserAdapter('Running in browserless mode (mode: browserless)');
 
   // 5. Build AuthManager
   const authManager = new AuthManager({

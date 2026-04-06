@@ -38,11 +38,14 @@ sig doctor                            # Check your setup
 ```bash
 sig init                # Interactive setup (detects browser, offers provider templates)
 sig init --yes          # Accept all defaults (non-interactive)
+sig init --remote       # Headless/remote machine setup (browser disabled)
 sig init --force        # Overwrite existing config
 sig init --channel msedge --yes   # Use Edge instead of Chrome
 ```
 
 Creates `~/.signet/config.yaml`, `~/.signet/credentials/`, and `~/.signet/browser-data/`. Detects your installed browser and generates a commented config file.
+
+Use `--remote` on machines without a browser (e.g., remote Linux dev servers). This sets `mode: browserless` and guides you to get credentials via `sig sync pull` or manual `--cookie`/`--token` flags.
 
 ### `doctor` -- Check your setup
 
@@ -69,11 +72,12 @@ All checks passed.
 ```bash
 sig login <url>
 sig login <url> --token <value>
+sig login <url> --cookie "name=value; name2=value2"
 sig login <url> --username <user> --password <pass>
 sig login <url> --strategy <cookie|oauth2|api-token|basic>
 ```
 
-Opens a browser for SSO login by default. Use `--token` to store an API key or `--username`/`--password` for basic auth without a browser.
+Opens a browser for SSO login by default. Use `--token` to store an API key, `--cookie` to set cookies from browser DevTools, or `--username`/`--password` for basic auth -- all without a browser.
 
 ### `get` -- Retrieve credentials
 
@@ -144,17 +148,29 @@ All configuration lives in a single file: `~/.signet/config.yaml`. No env vars, 
 
 Run `sig init` to generate a config interactively, or copy `config/config.example.yaml` to `~/.signet/config.yaml`.
 
+### `mode`
+
+Controls whether browser automation is available. Values: `browser` (default), `browserless`.
+
+Use `sig init --remote` to generate a config with `mode: browserless`.
+
+```yaml
+mode: browserless # remote/headless machine — no browser available
+```
+
+When `browserless`, browser-based strategies (cookie, oauth2) will not attempt to launch a browser. Use `sig sync pull`, `--cookie`, or `--token` to get credentials instead.
+
 ### `browser` (required)
 
 Controls the browser used for SSO authentication.
 
-| Field | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `browserDataDir` | **yes** | -- | Directory for persistent browser profile (cookies, localStorage). Example: `~/.signet/browser-data` |
-| `channel` | **yes** | -- | Browser channel. Values: `chrome`, `msedge`, `chromium` |
-| `headlessTimeout` | **yes** | -- | Timeout in ms for headless auth attempt. Headless is tried first; if it times out, falls back to visible mode. Recommended: `15000`-`30000` |
-| `visibleTimeout` | **yes** | -- | Timeout in ms for visible (user-assisted) auth. Must be long enough for the user to complete SSO manually. Recommended: `60000`-`120000` |
-| `waitUntil` | **yes** | -- | Page load condition before checking auth status. Values: `load` (DOM loaded), `networkidle` (no network activity for 500ms), `domcontentloaded` (HTML parsed), `commit` (first byte received) |
+| Field             | Required | Default | Description                                                                                                                                                                                   |
+| ----------------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `browserDataDir`  | **yes**  | --      | Directory for persistent browser profile (cookies, localStorage). Example: `~/.signet/browser-data`                                                                                           |
+| `channel`         | **yes**  | --      | Browser channel. Values: `chrome`, `msedge`, `chromium`                                                                                                                                       |
+| `headlessTimeout` | **yes**  | --      | Timeout in ms for headless auth attempt. Headless is tried first; if it times out, falls back to visible mode. Recommended: `15000`-`30000`                                                   |
+| `visibleTimeout`  | **yes**  | --      | Timeout in ms for visible (user-assisted) auth. Must be long enough for the user to complete SSO manually. Recommended: `60000`-`120000`                                                      |
+| `waitUntil`       | **yes**  | --      | Page load condition before checking auth status. Values: `load` (DOM loaded), `networkidle` (no network activity for 500ms), `domcontentloaded` (HTML parsed), `commit` (first byte received) |
 
 ```yaml
 browser:
@@ -169,9 +185,9 @@ browser:
 
 Where credentials are stored on disk.
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `credentialsDir` | **yes** | Directory for per-provider credential JSON files. Example: `~/.signet/credentials` |
+| Field            | Required | Description                                                                        |
+| ---------------- | -------- | ---------------------------------------------------------------------------------- |
+| `credentialsDir` | **yes**  | Directory for per-provider credential JSON files. Example: `~/.signet/credentials` |
 
 ```yaml
 storage:
@@ -182,13 +198,13 @@ storage:
 
 SSH remotes for syncing credentials to other machines.
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `type` | **yes** | Transport type. Only `ssh` is supported |
-| `host` | **yes** | Remote hostname or IP |
-| `user` | no | SSH username. Defaults to current user |
-| `path` | no | Remote credentials directory. Defaults to `~/.signet/credentials` |
-| `sshKey` | no | Path to SSH private key. Defaults to system SSH config |
+| Field    | Required | Description                                                       |
+| -------- | -------- | ----------------------------------------------------------------- |
+| `type`   | **yes**  | Transport type. Only `ssh` is supported                           |
+| `host`   | **yes**  | Remote hostname or IP                                             |
+| `user`   | no       | SSH username. Defaults to current user                            |
+| `path`   | no       | Remote credentials directory. Defaults to `~/.signet/credentials` |
+| `sshKey` | no       | Path to SSH private key. Defaults to system SSH config            |
 
 ```yaml
 remotes:
@@ -206,24 +222,24 @@ Most services work with zero config -- just run `sig login <url>` and it auto-pr
 
 #### Common provider fields
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `domains` | **yes** | Array of domains this provider handles. Used for URL-to-provider resolution. Example: `["jira.example.com"]` |
-| `strategy` | **yes** | Authentication strategy. Values: `cookie`, `oauth2`, `api-token`, `basic` |
-| `name` | no | Display name. Defaults to the provider ID |
-| `entryUrl` | no | URL to navigate to for browser-based auth. Required for `cookie` and `oauth2` strategies |
-| `forceVisible` | no | `true` to skip headless attempt and open visible browser immediately. Use for sites requiring CAPTCHAs, QR codes, or interactive auth. Default: `false` |
-| `config` | no | Strategy-specific settings (see below) |
-| `xHeaders` | no | Extra HTTP headers to capture during browser auth (see [xHeaders](#xheaders)) |
+| Field          | Required | Description                                                                                                                                             |
+| -------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `domains`      | **yes**  | Array of domains this provider handles. Used for URL-to-provider resolution. Example: `["jira.example.com"]`                                            |
+| `strategy`     | **yes**  | Authentication strategy. Values: `cookie`, `oauth2`, `api-token`, `basic`                                                                               |
+| `name`         | no       | Display name. Defaults to the provider ID                                                                                                               |
+| `entryUrl`     | no       | URL to navigate to for browser-based auth. Required for `cookie` and `oauth2` strategies                                                                |
+| `forceVisible` | no       | `true` to skip headless attempt and open visible browser immediately. Use for sites requiring CAPTCHAs, QR codes, or interactive auth. Default: `false` |
+| `config`       | no       | Strategy-specific settings (see below)                                                                                                                  |
+| `xHeaders`     | no       | Extra HTTP headers to capture during browser auth (see [xHeaders](#xheaders))                                                                           |
 
 #### Strategy: `cookie`
 
 For SSO-protected web apps. Opens a browser, waits for login, extracts cookies. This is the default strategy -- most sites need no config at all.
 
-| Config field | Required | Default | Description |
-|--------------|----------|---------|-------------|
-| `ttl` | no | `24h` | How long cookies are considered valid before re-authentication. Duration string: `ms`, `s`, `m`, `h`, `d`. Examples: `30m`, `12h`, `7d` |
-| `requiredCookies` | no | -- | Cookie names that must exist before auth is considered complete. Use for sites where the entry page isn't a login page (e.g. QR code login). Example: `["session_id", "id_token"]` |
+| Config field      | Required | Default | Description                                                                                                                                                                        |
+| ----------------- | -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ttl`             | no       | `24h`   | How long cookies are considered valid before re-authentication. Duration string: `ms`, `s`, `m`, `h`, `d`. Examples: `30m`, `12h`, `7d`                                            |
+| `requiredCookies` | no       | --      | Cookie names that must exist before auth is considered complete. Use for sites where the entry page isn't a login page (e.g. QR code login). Example: `["session_id", "id_token"]` |
 
 ```yaml
 providers:
@@ -235,6 +251,7 @@ providers:
 ```
 
 Minimal (uses all defaults):
+
 ```yaml
 providers:
   jira:
@@ -246,12 +263,12 @@ providers:
 
 For APIs using OAuth2/JWT tokens. Opens a browser for the OAuth consent flow, extracts tokens from browser localStorage.
 
-| Config field | Required | Default | Description |
-|--------------|----------|---------|-------------|
-| `audiences` | no | -- | Filter tokens by audience claim. Only tokens matching these audiences are extracted. Example: `["https://graph.microsoft.com"]` |
-| `tokenEndpoint` | no | -- | Token endpoint URL for refresh_token grant. Required if you want automatic token refresh |
-| `clientId` | no | -- | OAuth2 client ID for refresh_token grant. Required with `tokenEndpoint` |
-| `scopes` | no | -- | OAuth2 scopes for refresh_token grant. Example: `["openid", "profile", "User.Read"]` |
+| Config field    | Required | Default | Description                                                                                                                     |
+| --------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `audiences`     | no       | --      | Filter tokens by audience claim. Only tokens matching these audiences are extracted. Example: `["https://graph.microsoft.com"]` |
+| `tokenEndpoint` | no       | --      | Token endpoint URL for refresh_token grant. Required if you want automatic token refresh                                        |
+| `clientId`      | no       | --      | OAuth2 client ID for refresh_token grant. Required with `tokenEndpoint`                                                         |
+| `scopes`        | no       | --      | OAuth2 scopes for refresh_token grant. Example: `["openid", "profile", "User.Read"]`                                            |
 
 ```yaml
 providers:
@@ -268,11 +285,11 @@ providers:
 
 For static API keys or personal access tokens. No browser needed -- prompts the user to enter a token.
 
-| Config field | Required | Default | Description |
-|--------------|----------|---------|-------------|
-| `headerName` | no | `Authorization` | HTTP header name to place the token in |
-| `headerPrefix` | no | `Bearer` | Prefix before the token value. Set to empty string for no prefix |
-| `setupInstructions` | no | -- | Instructions shown to the user when a token is needed. Supports multi-line |
+| Config field        | Required | Default         | Description                                                                |
+| ------------------- | -------- | --------------- | -------------------------------------------------------------------------- |
+| `headerName`        | no       | `Authorization` | HTTP header name to place the token in                                     |
+| `headerPrefix`      | no       | `Bearer`        | Prefix before the token value. Set to empty string for no prefix           |
+| `setupInstructions` | no       | --              | Instructions shown to the user when a token is needed. Supports multi-line |
 
 ```yaml
 providers:
@@ -292,9 +309,9 @@ providers:
 
 For username/password authentication. No browser needed -- prompts the user for credentials.
 
-| Config field | Required | Default | Description |
-|--------------|----------|---------|-------------|
-| `setupInstructions` | no | -- | Instructions shown to the user when credentials are needed |
+| Config field        | Required | Default | Description                                                |
+| ------------------- | -------- | ------- | ---------------------------------------------------------- |
+| `setupInstructions` | no       | --      | Instructions shown to the user when credentials are needed |
 
 ```yaml
 providers:
@@ -311,12 +328,12 @@ Capture extra HTTP headers during browser authentication. Useful for APIs that r
 
 Captured headers are stored alongside the credential and applied automatically on `sig get` and `sig request`.
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | **yes** | HTTP header name to capture (case-insensitive match) |
-| `source` | no | Where to capture from: `request` or `response`. Default: both |
-| `urlPattern` | no | Only capture from URLs matching this substring |
-| `staticValue` | no | Use a fixed value instead of capturing dynamically. When set, `source` and `urlPattern` are ignored |
+| Field         | Required | Description                                                                                         |
+| ------------- | -------- | --------------------------------------------------------------------------------------------------- |
+| `name`        | **yes**  | HTTP header name to capture (case-insensitive match)                                                |
+| `source`      | no       | Where to capture from: `request` or `response`. Default: both                                       |
+| `urlPattern`  | no       | Only capture from URLs matching this substring                                                      |
+| `staticValue` | no       | Use a fixed value instead of capturing dynamically. When set, `source` and `urlPattern` are ignored |
 
 ```yaml
 providers:
@@ -377,14 +394,46 @@ providers:
       audiences: ["https://ic3.teams.office.com"]
 ```
 
+## Remote / Headless Setup
+
+On machines without a browser (remote Linux servers, CI, containers), use `--remote` during init:
+
+**Local machine (has browser):**
+
+```bash
+sig init                              # Detects browser, interactive setup
+sig login https://jira.example.com    # Opens browser for SSO
+sig get jira                          # Credentials ready
+```
+
+**Remote machine (no browser):**
+
+```bash
+sig init --remote                     # Sets browser.enabled: false
+```
+
+Then get credentials using one of:
+
+```bash
+# Option 1: Sync from a machine with a browser
+sig remote add laptop laptop.local    # Point to machine where you logged in
+sig sync pull laptop                  # Pull credentials over SSH
+
+# Option 2: Set cookies manually (copy from browser DevTools)
+sig login https://jira.example.com --cookie "session=abc123; token=xyz"
+
+# Option 3: Set an API token
+sig login https://api.example.com --token ghp_xxxxxxxxxxxxx
+```
+
 ## Authentication Strategies
 
-| Strategy | When to use | Browser needed |
-|----------|-------------|----------------|
-| **cookie** | SSO-protected web apps (default) | Yes |
-| **oauth2** | APIs with OAuth2/JWT tokens | Yes |
-| **api-token** | Static API keys or PATs | No |
-| **basic** | Username/password auth | No |
+| Strategy      | When to use                      | Browser needed |
+| ------------- | -------------------------------- | -------------- |
+| **cookie**    | SSO-protected web apps (default) | Yes            |
+| **oauth2**    | APIs with OAuth2/JWT tokens      | Yes            |
+| **api-token** | Static API keys or PATs          | No             |
+| **basic**     | Username/password auth           | No             |
 
 Cookie-based auth is the default -- just `sig login <url>` and complete SSO in the browser window.
 
