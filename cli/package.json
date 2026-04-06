@@ -1,6 +1,6 @@
 {
   "name": "signet-auth",
-  "version": "1.0.0",
+  "version": "1.0.0-beta.1",
   "description": "General-purpose authentication CLI with pluggable strategies and browser adapters",
   "main": "dist/index.js",
   "type": "module",
@@ -9,9 +9,7 @@
   },
   "files": [
     "dist/",
-    "bin/",
-    "src/",
-    "tsconfig.json"
+    "bin/"
   ],
   "scripts": {
     "build": "tsc",
