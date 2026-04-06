@@ -68,6 +68,12 @@ export async function runLogin(
   }
 
   if (typeof flags.token === 'string') {
+    // Align strategy with credential type for auto-provisioned providers
+    if (provider.autoProvisioned && provider.strategy !== 'api-token') {
+      provider.strategy = 'api-token';
+      provider.strategyConfig = buildStrategyConfig('api-token');
+    }
+
     // Read headerName/headerPrefix from the typed strategy config if api-token
     const headerName = provider.strategyConfig.strategy === 'api-token'
       ? provider.strategyConfig.headerName ?? 'Authorization'
@@ -131,6 +137,12 @@ export async function runLogin(
   }
 
   if (typeof flags.username === 'string' && typeof flags.password === 'string') {
+    // Align strategy with credential type for auto-provisioned providers
+    if (provider.autoProvisioned && provider.strategy !== 'basic') {
+      provider.strategy = 'basic';
+      provider.strategyConfig = buildStrategyConfig('basic');
+    }
+
     const credential: BasicCredential = {
       type: 'basic',
       username: flags.username,
