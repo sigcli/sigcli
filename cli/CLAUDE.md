@@ -3,6 +3,8 @@
 General-purpose authentication CLI with pluggable strategies and browser adapters.
 TypeScript, ES2022, strict mode, ESM (`"type": "module"`), Node >= 18.
 
+When you make this project, do not add you as an author in commit. e.g. DO NOT add this in commit message "Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+
 ## Architecture
 
 ```
