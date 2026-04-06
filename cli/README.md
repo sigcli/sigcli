@@ -6,20 +6,39 @@ General-purpose authentication CLI. Manages credentials for any web service -- a
 
 ```bash
 npm install -g signet-auth
-sig init
 ```
 
-That's it. `sig init` auto-detects your browser and creates `~/.signet/config.yaml` with sensible defaults.
+### Local machine (has a browser)
+
+```bash
+sig init                # Auto-detects your browser, creates ~/.signet/config.yaml
+sig login <url>         # Opens browser for SSO — done
+```
+
+### Remote / headless machine (no browser)
+
+```bash
+sig init --remote       # Sets up browserless mode
+```
+
+Then get credentials from your local machine or set them manually:
+
+```bash
+# On your local machine (has browser):
+sig remote add <name> <remote-host>             # Point to the remote machine
+sig sync push <name>                            # Push credentials over SSH
+
+# Or set credentials manually on the remote:
+sig login <url> --cookie "session=abc; id=xyz"  # Paste from browser DevTools
+sig login <url> --token <token>                 # API key or PAT
+```
 
 ### From source
 
 ```bash
-git clone <repo-url> && cd signet
-npm install
-npm run build
+git clone https://github.com/signet-auth/signet.git && cd signet
+npm install && npm run build
 ```
-
-The CLI is available as `sig` (or `./bin/sig.js`).
 
 ## Quick Start
 
