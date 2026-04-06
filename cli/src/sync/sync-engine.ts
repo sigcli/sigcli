@@ -1,4 +1,8 @@
+import fs from 'node:fs/promises';
+import YAML from 'yaml';
 import type { IStorage } from '../core/interfaces/storage.js';
+import type { SignetConfig } from '../config/schema.js';
+import { getConfigPath } from '../config/loader.js';
 import type { RemoteConfig, SyncResult } from './types.js';
 import { SshTransport } from './transports/ssh.js';
 
@@ -12,12 +16,13 @@ export class SyncEngine {
   constructor(
     private readonly storage: IStorage,
     private readonly remote: RemoteConfig,
+    private readonly config: SignetConfig,
   ) {
     this.transport = new SshTransport();
   }
 
   async push(providerIds?: string[], force = false): Promise<SyncResult> {
-    const result: SyncResult = { pushed: [], pulled: [], skipped: [], errors: [] };
+    const result: SyncResult = { pushed: [], pulled: [], skipped: [], errors: [], configSynced: { providers: [] } };
 
     // Get local entries
     const localEntries = await this.storage.list();
@@ -26,6 +31,8 @@ export class SyncEngine {
       : localEntries;
 
     if (toPush.length === 0) {
+      // Still sync config even if no credentials to push
+      result.configSynced = await this.syncConfigPush(providerIds);
       return result;
     }
 
@@ -61,11 +68,14 @@ export class SyncEngine {
       }
     }
 
+    // Sync config alongside credentials
+    result.configSynced = await this.syncConfigPush(providerIds);
+
     return result;
   }
 
   async pull(providerIds?: string[], force = false): Promise<SyncResult> {
-    const result: SyncResult = { pushed: [], pulled: [], skipped: [], errors: [] };
+    const result: SyncResult = { pushed: [], pulled: [], skipped: [], errors: [], configSynced: { providers: [] } };
 
     // Get remote entries
     const remoteEntries = await this.transport.listRemote(this.remote);
@@ -74,6 +84,8 @@ export class SyncEngine {
       : remoteEntries;
 
     if (toPull.length === 0) {
+      // Still sync config even if no credentials to pull
+      result.configSynced = await this.syncConfigPull(providerIds);
       return result;
     }
 
@@ -108,6 +120,83 @@ export class SyncEngine {
       }
     }
 
+    // Sync config alongside credentials
+    result.configSynced = await this.syncConfigPull(providerIds);
+
     return result;
+  }
+
+  /** Push local provider definitions to remote config.yaml */
+  private async syncConfigPush(providerIds?: string[]): Promise<{ providers: string[]; error?: string }> {
+    try {
+      const allProviders = this.config.providers;
+      const localProviders = providerIds
+        ? Object.fromEntries(Object.entries(allProviders).filter(([id]) => providerIds.includes(id)))
+        : { ...allProviders };
+
+      if (Object.keys(localProviders).length === 0) {
+        return { providers: [] };
+      }
+
+      // Read remote config (may not exist)
+      const remoteYaml = await this.transport.readRemoteConfig(this.remote);
+
+      let doc: YAML.Document;
+      if (remoteYaml === null) {
+        // Create a minimal config with only providers
+        doc = new YAML.Document({ providers: localProviders });
+      } else {
+        // Parse with Document to preserve comments
+        doc = YAML.parseDocument(remoteYaml);
+        const remoteProviders = (doc.getIn(['providers']) as YAML.YAMLMap)?.toJSON() ?? {};
+        // Merge: local wins on push
+        const merged = { ...remoteProviders, ...localProviders };
+        doc.setIn(['providers'], doc.createNode(merged));
+      }
+
+      await this.transport.writeRemoteConfig(this.remote, doc.toString());
+      return { providers: Object.keys(localProviders) };
+    } catch (e: unknown) {
+      return { providers: [], error: (e as Error).message };
+    }
+  }
+
+  /** Pull remote provider definitions into local config.yaml */
+  private async syncConfigPull(providerIds?: string[]): Promise<{ providers: string[]; error?: string }> {
+    try {
+      // Read remote config
+      const remoteYaml = await this.transport.readRemoteConfig(this.remote);
+      if (remoteYaml === null) {
+        return { providers: [], error: 'Remote has no config.yaml — run "sig init" on remote first' };
+      }
+
+      // Parse remote and extract providers
+      const remoteDoc = YAML.parseDocument(remoteYaml);
+      const allRemoteProviders: Record<string, unknown> = (remoteDoc.getIn(['providers']) as YAML.YAMLMap)?.toJSON() ?? {};
+
+      // Filter by providerIds if specified
+      const remoteProviders = providerIds
+        ? Object.fromEntries(Object.entries(allRemoteProviders).filter(([id]) => providerIds.includes(id)))
+        : { ...allRemoteProviders };
+
+      if (Object.keys(remoteProviders).length === 0) {
+        return { providers: [] };
+      }
+
+      // Read local config preserving comments
+      const configPath = getConfigPath();
+      const localYaml = await fs.readFile(configPath, 'utf-8');
+      const doc = YAML.parseDocument(localYaml);
+      const localProviders: Record<string, unknown> = (doc.getIn(['providers']) as YAML.YAMLMap)?.toJSON() ?? {};
+
+      // Merge: remote wins on pull
+      const merged = { ...localProviders, ...remoteProviders };
+      doc.setIn(['providers'], doc.createNode(merged));
+
+      await fs.writeFile(configPath, doc.toString(), 'utf-8');
+      return { providers: Object.keys(remoteProviders) };
+    } catch (e: unknown) {
+      return { providers: [], error: (e as Error).message };
+    }
   }
 }

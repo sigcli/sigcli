@@ -3,7 +3,7 @@ export interface RemoteConfig {
   type: 'ssh';
   host: string;
   user?: string;
-  path?: string;       // defaults to ~/.signet/credentials
+  path?: string;       // defaults to ~/.signet (base dir)
   sshKey?: string;     // path to SSH key
 }
 
@@ -12,4 +12,5 @@ export interface SyncResult {
   pulled: string[];
   skipped: string[];   // conflicts (skipped unless --force)
   errors: { providerId: string; error: string }[];
+  configSynced: { providers: string[]; error?: string };
 }

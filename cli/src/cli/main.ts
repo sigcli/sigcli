@@ -108,7 +108,8 @@ export async function run(args: string[]): Promise<void> {
       process.exitCode = 1;
       return;
     }
-    deps = createAuthDeps(configResult.value);
+    const config = configResult.value;
+    deps = createAuthDeps(config);
   }
 
   switch (command) {

@@ -18,6 +18,9 @@ export async function runRequest(
   const result = await deps.authManager.getCredentialsByUrl(url);
   if (!isOk(result)) {
     process.stderr.write(`Auth error: ${result.error.message}\n`);
+    if (result.error.code === 'BROWSER_UNAVAILABLE') {
+      process.stderr.write(`Hint: Run "sig login ${url} --token <token>" or "sig sync pull" to get credentials.\n`);
+    }
     process.exitCode = 1;
     return;
   }

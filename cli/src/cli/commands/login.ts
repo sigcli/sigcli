@@ -1,9 +1,42 @@
 import type { AuthDeps } from '../../deps.js';
-import type { ApiKeyCredential, BasicCredential } from '../../core/types.js';
-import type { StrategyName } from '../../config/schema.js';
+import type { ApiKeyCredential, BasicCredential, Cookie, CookieCredential, ProviderConfig } from '../../core/types.js';
+import type { ProviderEntry, StrategyName } from '../../config/schema.js';
 import { buildStrategyConfig } from '../../config/validator.js';
+import { addProviderToConfig } from '../../config/loader.js';
 import { isOk } from '../../core/result.js';
 import { formatJson } from '../formatters.js';
+
+/** Convert runtime ProviderConfig to the YAML ProviderEntry format. */
+function toProviderEntry(pc: ProviderConfig): ProviderEntry {
+  const { strategy: _s, ...strategyRest } = pc.strategyConfig;
+  return {
+    ...(pc.name !== pc.id ? { name: pc.name } : {}),
+    domains: pc.domains,
+    ...(pc.entryUrl ? { entryUrl: pc.entryUrl } : {}),
+    strategy: pc.strategy as StrategyName,
+    ...(Object.keys(strategyRest).length > 0 ? { config: strategyRest } : {}),
+    ...(pc.acceptedCredentialTypes ? { acceptedCredentialTypes: pc.acceptedCredentialTypes } : {}),
+    ...(pc.xHeaders ? { xHeaders: pc.xHeaders } : {}),
+    ...(pc.forceVisible !== undefined ? { forceVisible: pc.forceVisible } : {}),
+  };
+}
+
+function parseCookieString(raw: string, domain: string): Cookie[] {
+  return raw.split(';').map((pair) => {
+    const idx = pair.indexOf('=');
+    const name = (idx > -1 ? pair.slice(0, idx) : pair).trim();
+    const value = idx > -1 ? pair.slice(idx + 1).trim() : '';
+    return {
+      name,
+      value,
+      domain,
+      path: '/',
+      expires: -1,
+      httpOnly: false,
+      secure: true,
+    };
+  }).filter((c) => c.name.length > 0);
+}
 
 export async function runLogin(
   positionals: string[],
@@ -55,8 +88,45 @@ export async function runLogin(
       process.exitCode = 1;
       return;
     }
+    if (provider.autoProvisioned) {
+      await addProviderToConfig(provider.id, toProviderEntry(provider));
+    }
     process.stderr.write(`Token stored for "${provider.name}" (${provider.id}).\n`);
     process.stdout.write(formatJson({ provider: provider.id, type: 'api-key' }) + '\n');
+    return;
+  }
+
+  if (typeof flags.cookie === 'string') {
+    let domain: string;
+    try {
+      domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
+    } catch {
+      process.stderr.write(`Error: Invalid URL "${url}"\n`);
+      process.exitCode = 1;
+      return;
+    }
+    const cookies = parseCookieString(flags.cookie, domain);
+    if (cookies.length === 0) {
+      process.stderr.write('Error: No valid cookies found in the provided string.\n');
+      process.exitCode = 1;
+      return;
+    }
+    const credential: CookieCredential = {
+      type: 'cookie',
+      cookies,
+      obtainedAt: new Date().toISOString(),
+    };
+    const result = await deps.authManager.setCredential(provider.id, credential);
+    if (!isOk(result)) {
+      process.stderr.write(`Error: ${result.error.message}\n`);
+      process.exitCode = 1;
+      return;
+    }
+    if (provider.autoProvisioned) {
+      await addProviderToConfig(provider.id, toProviderEntry(provider));
+    }
+    process.stderr.write(`Cookie stored for "${provider.name}" (${provider.id}) — ${cookies.length} cookie(s).\n`);
+    process.stdout.write(formatJson({ provider: provider.id, type: 'cookie', count: cookies.length }) + '\n');
     return;
   }
 
@@ -72,8 +142,30 @@ export async function runLogin(
       process.exitCode = 1;
       return;
     }
+    if (provider.autoProvisioned) {
+      await addProviderToConfig(provider.id, toProviderEntry(provider));
+    }
     process.stderr.write(`Basic auth credentials stored for "${provider.name}" (${provider.id}).\n`);
     process.stdout.write(formatJson({ provider: provider.id, type: 'basic' }) + '\n');
+    return;
+  }
+
+  // Check if browser is available for strategies that require it
+  const browserStrategies = new Set(['cookie', 'oauth2']);
+  if (!deps.browserAvailable && browserStrategies.has(provider.strategy)) {
+    process.stderr.write(
+      `Browser is not available on this machine.\n` +
+      `Provider "${provider.name}" uses "${provider.strategy}" strategy which requires a browser.\n\n` +
+      `Alternatives:\n` +
+      `  sig login <url> --cookie <string>  Provide cookies manually\n` +
+      `  sig login <url> --token <token>    Provide a token directly\n` +
+      `  sig sync pull                       Pull credentials from a machine with a browser\n\n` +
+      `To set up sync:\n` +
+      `  1. On a machine with a browser: sig login <url>\n` +
+      `  2. Then: sig remote add <name> <this-host>\n` +
+      `  3. Then: sig sync push <name>\n`,
+    );
+    process.exitCode = 1;
     return;
   }
 
@@ -81,7 +173,13 @@ export async function runLogin(
   const result = await deps.authManager.forceReauth(provider.id);
   if (!isOk(result)) {
     process.stderr.write(`Authentication failed: ${result.error.message}\n`);
-    process.exit(1);
+    process.exitCode = 1;
+    return;
+  }
+
+  // Persist auto-provisioned provider to config.yaml after successful auth
+  if (provider.autoProvisioned) {
+    await addProviderToConfig(provider.id, toProviderEntry(provider));
   }
 
   const status = await deps.authManager.getStatus(provider.id);

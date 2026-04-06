@@ -63,6 +63,7 @@ export {
   ManualSetupRequired,
   SyncError,
   RemoteNotFoundError,
+  BrowserUnavailableError,
   SyncConflictError,
 } from './core/errors.js';
 
@@ -93,6 +94,10 @@ export { createDefaultProvider } from './providers/auto-provision.js';
 
 // Browser adapters
 export { PlaywrightAdapter } from './browser/adapters/playwright.adapter.js';
+export { NullBrowserAdapter } from './browser/adapters/null.adapter.js';
+
+// Browser detection
+export { findChannelBrowser } from './browser/detect.js';
 
 // CLI
 export { run as runCli, parseArgs } from './cli/main.js';

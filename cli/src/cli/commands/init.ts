@@ -8,13 +8,13 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import { execSync } from 'node:child_process';
 import { createInterface } from 'node:readline/promises';
 import YAML from 'yaml';
 import { getConfigPath } from '../../config/loader.js';
 import { generateConfigYaml } from '../../config/generator.js';
 import { validateConfig } from '../../config/validator.js';
 import { isOk } from '../../core/result.js';
+import { findChannelBrowser } from '../../browser/detect.js';
 
 // ---------------------------------------------------------------------------
 // Strategy templates — one per built-in strategy
@@ -51,22 +51,10 @@ const STRATEGY_TEMPLATES: Record<string, StrategyTemplate> = {
 // ---------------------------------------------------------------------------
 
 function detectBrowserChannel(): string {
-  const platform = process.platform;
-
-  if (platform === 'darwin') {
-    if (fs.existsSync('/Applications/Google Chrome.app')) return 'chrome';
-    if (fs.existsSync('/Applications/Microsoft Edge.app')) return 'msedge';
-    return 'chrome';
+  const channels = ['chrome', 'msedge', 'chromium'];
+  for (const ch of channels) {
+    if (findChannelBrowser(ch) !== null) return ch;
   }
-
-  if (platform === 'linux') {
-    try { execSync('which google-chrome', { stdio: 'ignore' }); return 'chrome'; } catch { /* not found */ }
-    try { execSync('which microsoft-edge', { stdio: 'ignore' }); return 'msedge'; } catch { /* not found */ }
-    try { execSync('which chromium', { stdio: 'ignore' }); return 'chromium'; } catch { /* not found */ }
-    return 'chrome';
-  }
-
-  // Windows or unknown
   return 'chrome';
 }
 

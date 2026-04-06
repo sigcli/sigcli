@@ -3,7 +3,7 @@ import type { BrowserLaunchOptions, XHeaderConfig } from '../../core/types.js';
 import type { BrowserConfig } from '../../config/schema.js';
 import type { Result } from '../../core/result.js';
 import { ok, err } from '../../core/result.js';
-import { BrowserError, BrowserTimeoutError, type AuthError } from '../../core/errors.js';
+import { AuthError, BrowserError, BrowserTimeoutError } from '../../core/errors.js';
 import { startHeaderCapture } from './header-capture.js';
 
 export interface HybridFlowOptions {
@@ -135,7 +135,7 @@ async function attemptAuth<T>(
     const result = await options.extractCredentials(page, xHeaders, { immediateAuth: false });
     return result as Result<T, AuthError>;
   } catch (e: unknown) {
-    if (e instanceof BrowserTimeoutError) {
+    if (e instanceof AuthError) {
       return err(e);
     }
     return err(new BrowserError((e as Error).message));
