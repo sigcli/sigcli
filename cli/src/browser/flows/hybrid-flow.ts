@@ -44,6 +44,7 @@ export async function runHybridFlow<T>(
 
   // Phase 1: Try headless (unless forceVisible)
   if (!options.forceVisible) {
+    console.error('[signet] Trying silent authentication...');
     const headlessResult = await attemptAuth<T>(adapter, {
       ...options,
       headless: true,
@@ -52,12 +53,12 @@ export async function runHybridFlow<T>(
     if (headlessResult.ok) return headlessResult;
 
     console.error(
-      `[signet] Headless auth failed: ${headlessResult.error.message}. Switching to visible mode...`,
+      `[signet] Silent auth failed: ${headlessResult.error.message}. Switching to visible mode...`,
     );
   }
 
   // Phase 2: Visible mode (user-assisted)
-  console.error('[signet] Please complete login in the browser window...');
+  console.error('[signet] Opening browser — please complete login in the browser window...');
   return await attemptAuth<T>(adapter, {
     ...options,
     headless: false,
@@ -107,11 +108,15 @@ async function attemptAuth<T>(
 
     // Check if already authenticated (cached session/cookies)
     if (await options.isAuthenticated(page)) {
+      console.error('[signet] Cached session found, extracting credentials...');
       const result = await options.extractCredentials(page, xHeaders, { immediateAuth: true });
       return result as Result<T, AuthError>;
     }
 
     // Wait for authentication to complete (polling)
+    if (!options.headless) {
+      console.error('[signet] Waiting for login to complete...');
+    }
     const authenticated = await pollForAuth(
       page,
       options.isAuthenticated,
@@ -150,14 +155,27 @@ async function pollForAuth(
   timeoutMs: number,
 ): Promise<boolean> {
   const pollInterval = 2_000;
+  const statusInterval = 30_000;
   const deadline = Date.now() + timeoutMs;
+  let lastStatus = Date.now();
 
   while (Date.now() < deadline) {
     try {
-      if (await isAuthenticated(page)) return true;
+      if (await isAuthenticated(page)) {
+        console.error('[signet] Authentication detected, extracting credentials...');
+        return true;
+      }
     } catch {
       // Page might be navigating — ignore and retry
     }
+
+    const now = Date.now();
+    if (now - lastStatus >= statusInterval) {
+      const elapsed = Math.round((now - (deadline - timeoutMs)) / 1000);
+      console.error(`[signet] Still waiting for login... (${elapsed}s elapsed)`);
+      lastStatus = now;
+    }
+
     await new Promise(resolve => setTimeout(resolve, pollInterval));
   }
 
