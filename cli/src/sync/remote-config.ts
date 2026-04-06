@@ -10,32 +10,43 @@ import type { RemoteConfig } from './types.js';
 
 const CONFIG_PATH = path.join(os.homedir(), '.signet', 'config.yaml');
 
-interface ConfigFile {
-  browser?: Record<string, unknown>;
-  storage?: Record<string, unknown>;
-  providers?: Record<string, unknown>;
-  remotes?: Record<string, Omit<RemoteConfig, 'name'>>;
-}
-
-async function loadRawConfig(): Promise<ConfigFile> {
+/**
+ * Load the raw YAML content from disk.
+ * Returns empty string if the file doesn't exist.
+ */
+async function loadRawContent(): Promise<string> {
   try {
-    const content = await fs.readFile(CONFIG_PATH, 'utf-8');
-    return YAML.parse(content) ?? {};
+    return await fs.readFile(CONFIG_PATH, 'utf-8');
   } catch (e: unknown) {
-    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return {};
+    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return '';
     throw e;
   }
 }
 
-async function saveRawConfig(config: ConfigFile): Promise<void> {
+/**
+ * Load a YAML Document (preserves comments and formatting).
+ */
+async function loadDocument(): Promise<YAML.Document> {
+  const content = await loadRawContent();
+  if (!content) return new YAML.Document({});
+  return YAML.parseDocument(content);
+}
+
+/**
+ * Save the YAML Document back to disk, preserving comments.
+ */
+async function saveDocument(doc: YAML.Document): Promise<void> {
   await fs.mkdir(path.dirname(CONFIG_PATH), { recursive: true });
-  await fs.writeFile(CONFIG_PATH, YAML.stringify(config), 'utf-8');
+  await fs.writeFile(CONFIG_PATH, doc.toString(), 'utf-8');
 }
 
 export async function getRemotes(): Promise<RemoteConfig[]> {
-  const config = await loadRawConfig();
-  if (!config.remotes) return [];
-  return Object.entries(config.remotes).map(([name, r]) => ({ name, ...r }));
+  const doc = await loadDocument();
+  const remotesNode = doc.getIn(['remotes']);
+  if (!remotesNode) return [];
+  const remotes = (YAML.isMap(remotesNode) ? remotesNode.toJSON() : remotesNode) as Record<string, Omit<RemoteConfig, 'name'>>;
+  if (!remotes || typeof remotes !== 'object') return [];
+  return Object.entries(remotes).map(([name, r]) => ({ name, ...r }));
 }
 
 export async function getRemote(name: string): Promise<RemoteConfig | null> {
@@ -44,17 +55,28 @@ export async function getRemote(name: string): Promise<RemoteConfig | null> {
 }
 
 export async function addRemote(remote: RemoteConfig): Promise<void> {
-  const config = await loadRawConfig();
-  if (!config.remotes) config.remotes = {};
+  const doc = await loadDocument();
   const { name, ...rest } = remote;
-  config.remotes[name] = rest;
-  await saveRawConfig(config);
+
+  if (!doc.getIn(['remotes'])) {
+    doc.setIn(['remotes'], doc.createNode({}));
+  }
+  const remotesNode = doc.getIn(['remotes'], true);
+  if (YAML.isMap(remotesNode)) {
+    remotesNode.set(name, doc.createNode(rest));
+  }
+
+  await saveDocument(doc);
 }
 
 export async function removeRemote(name: string): Promise<boolean> {
-  const config = await loadRawConfig();
-  if (!config.remotes || !config.remotes[name]) return false;
-  delete config.remotes[name];
-  await saveRawConfig(config);
+  const doc = await loadDocument();
+  const remotesNode = doc.getIn(['remotes']);
+  if (!remotesNode) return false;
+
+  if (!doc.getIn(['remotes', name])) return false;
+  doc.deleteIn(['remotes', name]);
+
+  await saveDocument(doc);
   return true;
 }
