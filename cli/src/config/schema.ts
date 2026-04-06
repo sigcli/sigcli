@@ -27,6 +27,7 @@ export type {
 // ============================================================================
 
 export interface BrowserConfig {
+  enabled: boolean;
   browserDataDir: string;
   channel: string;
   headlessTimeout: number;

@@ -105,6 +105,7 @@ export function validateConfig(raw: Record<string, unknown>): Result<SignetConfi
   // Build the validated config
   const browserRaw = raw.browser as Record<string, unknown>;
   const browser: BrowserConfig = {
+    enabled: browserRaw.enabled !== false,
     browserDataDir: browserRaw.browserDataDir as string,
     channel: browserRaw.channel as string,
     headlessTimeout: typeof browserRaw.headlessTimeout === 'number' ? browserRaw.headlessTimeout : 30_000,

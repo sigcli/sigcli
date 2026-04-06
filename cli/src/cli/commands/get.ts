@@ -24,6 +24,9 @@ export async function runGet(
     const result = await deps.authManager.getCredentialsByUrl(target);
     if (!isOk(result)) {
       process.stderr.write(`Error: ${result.error.message}\n`);
+      if (result.error.code === 'BROWSER_UNAVAILABLE') {
+        process.stderr.write(`Hint: Run "sig login ${target} --token <token>" or "sig sync pull" to get credentials.\n`);
+      }
       process.exitCode = result.error.code === 'PROVIDER_NOT_FOUND' ? 2 : 3;
       return;
     }
@@ -40,6 +43,9 @@ export async function runGet(
     const result = await deps.authManager.getCredentials(providerId);
     if (!isOk(result)) {
       process.stderr.write(`Error: ${result.error.message}\n`);
+      if (result.error.code === 'BROWSER_UNAVAILABLE') {
+        process.stderr.write(`Hint: Run "sig login ${target} --token <token>" or "sig sync pull" to get credentials.\n`);
+      }
       process.exitCode = result.error.code === 'CREDENTIAL_NOT_FOUND' ? 3 : 1;
       return;
     }

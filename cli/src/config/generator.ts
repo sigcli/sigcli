@@ -91,6 +91,7 @@ export function generateConfigYaml(options: InitOptions): string {
 # Browser settings (required)
 # Controls browser automation for cookie and OAuth2 authentication.
 browser:
+  enabled: true                                      # Set to false on headless/remote machines without a browser
   browserDataDir: ${options.browserDataDir}   # Persistent browser profile directory
   channel: ${options.channel}                        # Browser channel (chrome, msedge, chromium)
   headlessTimeout: ${options.headlessTimeout}                 # Timeout for headless auth attempt (ms)
@@ -109,7 +110,7 @@ storage:
 #     type: ssh
 #     host: dev.example.com
 #     user: deploy
-#     path: ~/.signet/credentials
+#     path: ~/.signet
 #     sshKey: ~/.ssh/id_ed25519
 
 # Provider configurations

@@ -10,7 +10,7 @@ import YAML from 'yaml';
 import type { Result } from '../core/result.js';
 import { ok, err } from '../core/result.js';
 import { ConfigError, type AuthError } from '../core/errors.js';
-import type { SignetConfig } from './schema.js';
+import type { SignetConfig, ProviderEntry } from './schema.js';
 import { validateConfig } from './validator.js';
 
 const CONFIG_PATH = path.join(os.homedir(), '.signet', 'config.yaml');
@@ -69,6 +69,25 @@ export async function saveConfig(config: SignetConfig): Promise<void> {
   };
   await fs.mkdir(path.dirname(CONFIG_PATH), { recursive: true });
   await fs.writeFile(CONFIG_PATH, YAML.stringify(filtered), 'utf-8');
+}
+
+/**
+ * Add a provider entry to config.yaml, preserving comments and formatting.
+ * Used to persist auto-provisioned providers after successful login.
+ */
+export async function addProviderToConfig(id: string, entry: ProviderEntry): Promise<void> {
+  let content: string;
+  try {
+    content = await fs.readFile(CONFIG_PATH, 'utf-8');
+  } catch {
+    return; // No config file — nothing to update
+  }
+  const doc = YAML.parseDocument(content);
+  if (!doc.getIn(['providers'])) {
+    doc.setIn(['providers'], doc.createNode({}));
+  }
+  doc.setIn(['providers', id], doc.createNode(entry));
+  await fs.writeFile(CONFIG_PATH, doc.toString(), 'utf-8');
 }
 
 /**

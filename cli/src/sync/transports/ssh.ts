@@ -7,7 +7,7 @@ import type { StoredCredential } from '../../core/types.js';
 
 const execFileAsync = promisify(execFile);
 
-const DEFAULT_REMOTE_PATH = '~/.signet/credentials';
+const DEFAULT_REMOTE_PATH = '~/.signet';
 
 export class SshTransport {
 
@@ -27,10 +27,14 @@ export class SshTransport {
     return remote.path ?? DEFAULT_REMOTE_PATH;
   }
 
+  private remoteCredentialsPath(remote: RemoteConfig): string {
+    return `${this.remotePath(remote)}/credentials`;
+  }
+
   /** List provider files on the remote */
   async listRemote(remote: RemoteConfig): Promise<{ providerId: string; updatedAt: string; filename: string }[]> {
     const target = this.remoteTarget(remote);
-    const rpath = this.remotePath(remote);
+    const rpath = this.remoteCredentialsPath(remote);
 
     try {
       const { stdout } = await execFileAsync('ssh', [
@@ -70,7 +74,7 @@ export class SshTransport {
   /** Read a single credential from remote */
   async readRemote(remote: RemoteConfig, filename: string): Promise<StoredCredential | null> {
     const target = this.remoteTarget(remote);
-    const rpath = this.remotePath(remote);
+    const rpath = this.remoteCredentialsPath(remote);
 
     try {
       const { stdout } = await execFileAsync('ssh', [
@@ -93,7 +97,7 @@ export class SshTransport {
 
   /** Write a credential file to remote via ssh pipe (avoids scp tilde issues) */
   async writeRemote(remote: RemoteConfig, filename: string, stored: StoredCredential): Promise<void> {
-    const rpath = this.remotePath(remote);
+    const rpath = this.remoteCredentialsPath(remote);
 
     const data = {
       version: 1,
@@ -109,6 +113,29 @@ export class SshTransport {
     // Write via ssh stdin pipe — avoids scp's tilde expansion issues
     // The remote shell handles ~ expansion in mkdir and cat redirect
     await this.sshWrite(remote, `mkdir -p ${rpath} && cat > ${rpath}/"${filename}"`, content);
+  }
+
+  /** Read config.yaml from the remote base directory */
+  async readRemoteConfig(remote: RemoteConfig): Promise<string | null> {
+    const target = this.remoteTarget(remote);
+    const rpath = this.remotePath(remote);
+
+    try {
+      const { stdout } = await execFileAsync('ssh', [
+        ...this.sshArgs(remote),
+        target,
+        `cat ${rpath}/config.yaml`,
+      ]);
+      return stdout;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Write config.yaml to the remote base directory */
+  async writeRemoteConfig(remote: RemoteConfig, content: string): Promise<void> {
+    const rpath = this.remotePath(remote);
+    await this.sshWrite(remote, `mkdir -p ${rpath} && cat > ${rpath}/config.yaml`, content);
   }
 
   private sshWrite(remote: RemoteConfig, command: string, stdin: string): Promise<void> {

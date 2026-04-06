@@ -41,7 +41,7 @@ export async function runSync(positionals: string[], flags: Record<string, strin
     remote = remotes[0];
   }
 
-  const engine = new SyncEngine(deps.storage, remote);
+  const engine = new SyncEngine(deps.storage, remote, deps.config);
   const force = flags.force === true;
   const provider = typeof flags.provider === 'string' ? [flags.provider] : undefined;
 
@@ -64,6 +64,14 @@ export async function runSync(positionals: string[], flags: Record<string, strin
       process.stderr.write(`Error (${e.providerId}): ${e.error}\n`);
     }
     process.exitCode = 4;
+  }
+
+  // Report config sync results
+  if (result.configSynced.providers.length > 0) {
+    process.stderr.write(`Config: ${result.configSynced.providers.join(', ')}\n`);
+  }
+  if (result.configSynced.error) {
+    process.stderr.write(`Config warning: ${result.configSynced.error}\n`);
   }
 
   // JSON output to stdout

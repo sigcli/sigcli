@@ -8,9 +8,9 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { execSync } from 'node:child_process';
 import { getConfigPath, loadConfig } from '../../config/loader.js';
 import { isOk } from '../../core/result.js';
+import { findChannelBrowser } from '../../browser/detect.js';
 import type { SignetConfig } from '../../config/schema.js';
 
 interface CheckResult {
@@ -123,38 +123,6 @@ async function checkBrowserDataDir(config: SignetConfig | undefined): Promise<Ch
   };
 }
 
-function findChannelBrowser(channel: string): boolean {
-  const platform = process.platform;
-
-  // Check common browser locations based on channel and platform
-  if (platform === 'darwin') {
-    const apps: Record<string, string> = {
-      chrome: '/Applications/Google Chrome.app',
-      msedge: '/Applications/Microsoft Edge.app',
-      chromium: '/Applications/Chromium.app',
-    };
-    if (apps[channel]) return fs.existsSync(apps[channel]);
-  }
-
-  if (platform === 'linux') {
-    const bins: Record<string, string> = {
-      chrome: 'google-chrome',
-      msedge: 'microsoft-edge',
-      chromium: 'chromium',
-    };
-    if (bins[channel]) {
-      try {
-        execSync(`which ${bins[channel]}`, { stdio: 'ignore' });
-        return true;
-      } catch {
-        return false;
-      }
-    }
-  }
-
-  return false;
-}
-
 async function checkBrowserAvailable(config: SignetConfig | undefined): Promise<CheckResult> {
   if (!config) {
     return {
@@ -170,7 +138,7 @@ async function checkBrowserAvailable(config: SignetConfig | undefined): Promise<
     await import('playwright-core');
 
     // Check if the channel browser is installed on the system
-    const found = findChannelBrowser(channel);
+    const found = findChannelBrowser(channel) !== null;
     if (found) {
       return {
         label: 'Browser available',
@@ -259,6 +227,45 @@ async function checkStoredCredentials(config: SignetConfig | undefined): Promise
   }
 }
 
+function checkBrowserRequired(config: SignetConfig | undefined, browserAvailable: boolean): CheckResult {
+  if (!config) {
+    return {
+      label: 'Browser needed for configured providers',
+      ok: true,
+      detail: 'skipped (no config)',
+    };
+  }
+
+  const browserStrategies = new Set(['cookie', 'oauth2']);
+  const browserProviders = Object.entries(config.providers)
+    .filter(([, entry]) => browserStrategies.has(entry.strategy))
+    .map(([id]) => id);
+
+  if (browserProviders.length === 0) {
+    return {
+      label: 'Browser needed for configured providers',
+      ok: true,
+      detail: 'no browser-based providers configured',
+    };
+  }
+
+  if (browserAvailable) {
+    return {
+      label: 'Browser needed for configured providers',
+      ok: true,
+      detail: `${browserProviders.join(', ')} (browser available)`,
+    };
+  }
+
+  return {
+    label: 'Browser needed for configured providers',
+    ok: false,
+    hint:
+      `Providers requiring a browser: ${browserProviders.join(', ')}. ` +
+      'Use "sig login --token <token>" or "sig sync pull" to get credentials on this machine.',
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Main command
 // ---------------------------------------------------------------------------
@@ -284,12 +291,16 @@ export async function runDoctor(
   results.push(await checkBrowserDataDir(config));
 
   // e. Browser available
-  results.push(await checkBrowserAvailable(config));
+  const browserCheck = await checkBrowserAvailable(config);
+  results.push(browserCheck);
 
-  // f. Node.js version
+  // f. Browser needed for configured providers
+  results.push(checkBrowserRequired(config, browserCheck.ok));
+
+  // g. Node.js version
   results.push(checkNodeVersion());
 
-  // g. Stored credentials
+  // h. Stored credentials
   results.push(await checkStoredCredentials(config));
 
   printResults(results);

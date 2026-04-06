@@ -3,18 +3,38 @@ import { SyncEngine } from '../../../src/sync/sync-engine.js';
 import { MemoryStorage } from '../../../src/storage/memory-storage.js';
 import type { StoredCredential } from '../../../src/core/types.js';
 import type { RemoteConfig } from '../../../src/sync/types.js';
+import type { SignetConfig } from '../../../src/config/schema.js';
 
 // Mock SshTransport
 const mockListRemote = vi.fn();
 const mockReadRemote = vi.fn();
 const mockWriteRemote = vi.fn();
+const mockReadRemoteConfig = vi.fn();
+const mockWriteRemoteConfig = vi.fn();
 
 vi.mock('../../../src/sync/transports/ssh.js', () => ({
   SshTransport: vi.fn().mockImplementation(() => ({
     listRemote: mockListRemote,
     readRemote: mockReadRemote,
     writeRemote: mockWriteRemote,
+    readRemoteConfig: mockReadRemoteConfig,
+    writeRemoteConfig: mockWriteRemoteConfig,
   })),
+}));
+
+// Mock fs for config pull (local config read/write)
+const mockReadFile = vi.fn();
+const mockWriteFile = vi.fn();
+vi.mock('node:fs/promises', () => ({
+  default: {
+    readFile: (...args: unknown[]) => mockReadFile(...args),
+    writeFile: (...args: unknown[]) => mockWriteFile(...args),
+  },
+}));
+
+// Mock getConfigPath
+vi.mock('../../../src/config/loader.js', () => ({
+  getConfigPath: () => '/home/testuser/.signet/config.yaml',
 }));
 
 function makeCredential(providerId: string, updatedAt: string): StoredCredential {
@@ -33,6 +53,63 @@ const testRemote: RemoteConfig = {
   user: 'testuser',
 };
 
+const testConfig: SignetConfig = {
+  browser: {
+    browserDataDir: '~/.signet/browser-data',
+    channel: 'chrome',
+    headlessTimeout: 30000,
+    visibleTimeout: 120000,
+    waitUntil: 'load',
+  },
+  storage: {
+    credentialsDir: '~/.signet/credentials',
+  },
+  providers: {
+    jira: {
+      domains: ['jira.example.com'],
+      strategy: 'cookie',
+      config: { ttl: '12h' },
+    },
+    github: {
+      domains: ['github.com', 'api.github.com'],
+      strategy: 'api-token',
+      config: { headerName: 'Authorization', headerPrefix: 'Bearer' },
+    },
+  },
+};
+
+const remoteConfigYaml = `# Signet config
+browser:
+  browserDataDir: ~/.signet/browser-data
+  channel: chrome
+  headlessTimeout: 30000
+  visibleTimeout: 120000
+  waitUntil: load
+storage:
+  credentialsDir: ~/.signet/credentials
+providers:
+  existing-remote:
+    domains:
+      - remote.example.com
+    strategy: cookie
+`;
+
+const localConfigYaml = `# Signet config
+browser:
+  browserDataDir: ~/.signet/browser-data
+  channel: chrome
+  headlessTimeout: 30000
+  visibleTimeout: 120000
+  waitUntil: load
+storage:
+  credentialsDir: ~/.signet/credentials
+providers:
+  local-only:
+    domains:
+      - local.example.com
+    strategy: cookie
+`;
+
 describe('SyncEngine', () => {
   let storage: MemoryStorage;
   let engine: SyncEngine;
@@ -40,7 +117,12 @@ describe('SyncEngine', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     storage = new MemoryStorage();
-    engine = new SyncEngine(storage, testRemote);
+    engine = new SyncEngine(storage, testRemote, testConfig);
+    // Default: config methods return null (no remote config)
+    mockReadRemoteConfig.mockResolvedValue(null);
+    mockWriteRemoteConfig.mockResolvedValue(undefined);
+    mockReadFile.mockResolvedValue(localConfigYaml);
+    mockWriteFile.mockResolvedValue(undefined);
   });
 
   describe('push', () => {
@@ -53,6 +135,7 @@ describe('SyncEngine', () => {
       expect(result.pulled).toEqual([]);
       expect(result.skipped).toEqual([]);
       expect(result.errors).toEqual([]);
+      expect(result.configSynced).toBeDefined();
     });
 
     it('pushes single provider to empty remote', async () => {
@@ -60,6 +143,7 @@ describe('SyncEngine', () => {
       await storage.set('jira', cred);
       mockListRemote.mockResolvedValue([]);
       mockWriteRemote.mockResolvedValue(undefined);
+      mockReadRemoteConfig.mockResolvedValue(remoteConfigYaml);
 
       const result = await engine.push();
 
@@ -91,6 +175,7 @@ describe('SyncEngine', () => {
         { providerId: 'jira', updatedAt: '2026-04-02T00:00:00Z', filename: 'jira.json' },
       ]);
       mockWriteRemote.mockResolvedValue(undefined);
+      mockReadRemoteConfig.mockResolvedValue(remoteConfigYaml);
 
       const result = await engine.push(undefined, true);
 
@@ -104,6 +189,7 @@ describe('SyncEngine', () => {
       await storage.set('github', makeCredential('github', '2026-04-01T00:00:00Z'));
       mockListRemote.mockResolvedValue([]);
       mockWriteRemote.mockResolvedValue(undefined);
+      mockReadRemoteConfig.mockResolvedValue(remoteConfigYaml);
 
       const result = await engine.push(['jira']);
 
@@ -119,6 +205,7 @@ describe('SyncEngine', () => {
         { providerId: 'jira', updatedAt: '2026-04-01T00:00:00Z', filename: 'jira.json' },
       ]);
       mockWriteRemote.mockResolvedValue(undefined);
+      mockReadRemoteConfig.mockResolvedValue(remoteConfigYaml);
 
       const result = await engine.push();
 
@@ -143,6 +230,7 @@ describe('SyncEngine', () => {
       await storage.set('github', makeCredential('github', '2026-04-01T00:00:00Z'));
       mockListRemote.mockResolvedValue([]);
       mockWriteRemote.mockResolvedValue(undefined);
+      mockReadRemoteConfig.mockResolvedValue(remoteConfigYaml);
 
       const result = await engine.push();
 
@@ -162,6 +250,7 @@ describe('SyncEngine', () => {
       expect(result.pushed).toEqual([]);
       expect(result.skipped).toEqual([]);
       expect(result.errors).toEqual([]);
+      expect(result.configSynced).toBeDefined();
     });
 
     it('pulls single provider from remote and stores locally', async () => {
@@ -265,6 +354,138 @@ describe('SyncEngine', () => {
       expect(result.pulled).toEqual(['new-provider']);
       const stored = await storage.get('new-provider');
       expect(stored).toEqual(remoteCred);
+    });
+  });
+
+  describe('config sync - push', () => {
+    it('syncs provider definitions to remote config', async () => {
+      const cred = makeCredential('jira', '2026-04-01T00:00:00Z');
+      await storage.set('jira', cred);
+      mockListRemote.mockResolvedValue([]);
+      mockWriteRemote.mockResolvedValue(undefined);
+      mockReadRemoteConfig.mockResolvedValue(remoteConfigYaml);
+
+      const result = await engine.push();
+
+      expect(result.configSynced.providers).toContain('jira');
+      expect(result.configSynced.providers).toContain('github');
+      expect(mockWriteRemoteConfig).toHaveBeenCalledTimes(1);
+
+      // Verify the written YAML contains both local and remote providers
+      const writtenYaml = mockWriteRemoteConfig.mock.calls[0][1];
+      expect(writtenYaml).toContain('jira');
+      expect(writtenYaml).toContain('github');
+      expect(writtenYaml).toContain('existing-remote');
+    });
+
+    it('creates config on remote when none exists', async () => {
+      const cred = makeCredential('jira', '2026-04-01T00:00:00Z');
+      await storage.set('jira', cred);
+      mockListRemote.mockResolvedValue([]);
+      mockWriteRemote.mockResolvedValue(undefined);
+      mockReadRemoteConfig.mockResolvedValue(null);
+
+      const result = await engine.push();
+
+      expect(result.configSynced.providers).toContain('jira');
+      expect(result.configSynced.providers).toContain('github');
+      expect(result.configSynced.error).toBeUndefined();
+      expect(mockWriteRemoteConfig).toHaveBeenCalledTimes(1);
+      const writtenYaml = mockWriteRemoteConfig.mock.calls[0][1];
+      expect(writtenYaml).toContain('jira');
+      expect(writtenYaml).toContain('github');
+    });
+
+    it('applies provider filter to config sync on push', async () => {
+      await storage.set('jira', makeCredential('jira', '2026-04-01T00:00:00Z'));
+      mockListRemote.mockResolvedValue([]);
+      mockWriteRemote.mockResolvedValue(undefined);
+      mockReadRemoteConfig.mockResolvedValue(remoteConfigYaml);
+
+      const result = await engine.push(['jira']);
+
+      expect(result.configSynced.providers).toEqual(['jira']);
+      expect(result.configSynced.providers).not.toContain('github');
+    });
+
+    it('merges local and remote providers (local wins on push)', async () => {
+      // Remote has existing-remote, local has jira + github
+      const cred = makeCredential('jira', '2026-04-01T00:00:00Z');
+      await storage.set('jira', cred);
+      mockListRemote.mockResolvedValue([]);
+      mockWriteRemote.mockResolvedValue(undefined);
+      mockReadRemoteConfig.mockResolvedValue(remoteConfigYaml);
+
+      const result = await engine.push();
+
+      expect(mockWriteRemoteConfig).toHaveBeenCalledTimes(1);
+      const writtenYaml = mockWriteRemoteConfig.mock.calls[0][1];
+      // All three providers should be in the merged result
+      expect(writtenYaml).toContain('existing-remote');
+      expect(writtenYaml).toContain('jira');
+      expect(writtenYaml).toContain('github');
+      expect(result.configSynced.error).toBeUndefined();
+    });
+  });
+
+  describe('config sync - pull', () => {
+    it('merges remote providers into local config', async () => {
+      const remoteCred = makeCredential('jira', '2026-04-01T00:00:00Z');
+      mockListRemote.mockResolvedValue([
+        { providerId: 'jira', updatedAt: '2026-04-01T00:00:00Z', filename: 'jira.json' },
+      ]);
+      mockReadRemote.mockResolvedValue(remoteCred);
+      mockReadRemoteConfig.mockResolvedValue(remoteConfigYaml);
+
+      const result = await engine.pull();
+
+      expect(result.configSynced.providers).toContain('existing-remote');
+      expect(mockWriteFile).toHaveBeenCalledTimes(1);
+
+      // Verify written YAML contains both local and remote providers
+      const writtenYaml = mockWriteFile.mock.calls[0][1];
+      expect(writtenYaml).toContain('local-only');
+      expect(writtenYaml).toContain('existing-remote');
+    });
+
+    it('returns warning when remote has no config.yaml', async () => {
+      mockListRemote.mockResolvedValue([]);
+      mockReadRemoteConfig.mockResolvedValue(null);
+
+      const result = await engine.pull();
+
+      expect(result.configSynced.providers).toEqual([]);
+      expect(result.configSynced.error).toContain('no config.yaml');
+      expect(mockWriteFile).not.toHaveBeenCalled();
+    });
+
+    it('applies provider filter to config sync on pull', async () => {
+      mockListRemote.mockResolvedValue([
+        { providerId: 'jira', updatedAt: '2026-04-01T00:00:00Z', filename: 'jira.json' },
+      ]);
+      const jiraCred = makeCredential('jira', '2026-04-01T00:00:00Z');
+      mockReadRemote.mockResolvedValue(jiraCred);
+
+      // Remote config has existing-remote provider
+      mockReadRemoteConfig.mockResolvedValue(remoteConfigYaml);
+
+      // Pull only jira — existing-remote should not be synced since it's not in filter
+      const result = await engine.pull(['jira']);
+
+      // existing-remote is in the remote config but not in the filter
+      // jira is in the filter but not in the remote config YAML
+      // So nothing should be pulled for config
+      expect(result.configSynced.providers).toEqual([]);
+    });
+
+    it('pulls remote providers when no filter specified', async () => {
+      mockListRemote.mockResolvedValue([]);
+      mockReadRemoteConfig.mockResolvedValue(remoteConfigYaml);
+
+      const result = await engine.pull();
+
+      expect(result.configSynced.providers).toContain('existing-remote');
+      expect(mockWriteFile).toHaveBeenCalledTimes(1);
     });
   });
 });

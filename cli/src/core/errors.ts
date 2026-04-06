@@ -19,6 +19,7 @@ export type AuthErrorCode =
   | 'MANUAL_SETUP_REQUIRED'
   | 'SYNC_ERROR'
   | 'REMOTE_NOT_FOUND'
+  | 'BROWSER_UNAVAILABLE'
   | 'SYNC_CONFLICT';
 
 export class AuthError extends Error {
@@ -119,6 +120,17 @@ export class BrowserNavigationError extends AuthError {
       providerId,
     );
     this.name = 'BrowserNavigationError';
+  }
+}
+
+export class BrowserUnavailableError extends AuthError {
+  constructor(reason: string) {
+    super(
+      `Browser is not available: ${reason}. ` +
+      'On headless machines, use "sig login --token <token>" or "sig sync pull" to get credentials.',
+      'BROWSER_UNAVAILABLE',
+    );
+    this.name = 'BrowserUnavailableError';
   }
 }
 

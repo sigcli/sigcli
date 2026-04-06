@@ -61,7 +61,7 @@ export async function runRemote(positionals: string[], flags: Record<string, str
           type: r.type,
           host: r.host,
           user: r.user ?? '-',
-          path: r.path ?? '~/.signet/credentials',
+          path: r.path ?? '~/.signet',
         }));
         process.stdout.write(formatTable(rows) + '\n');
       }

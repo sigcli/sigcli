@@ -12,6 +12,7 @@ import { ProviderRegistry } from './providers/provider-registry.js';
 import { DirectoryStorage } from './storage/directory-storage.js';
 import { CachedStorage } from './storage/cached-storage.js';
 import { PlaywrightAdapter } from './browser/adapters/playwright.adapter.js';
+import { NullBrowserAdapter } from './browser/adapters/null.adapter.js';
 import { buildStrategyConfig } from './config/validator.js';
 
 /**
@@ -23,6 +24,7 @@ export interface AuthDeps {
   providerRegistry: ProviderRegistry;
   strategyRegistry: StrategyRegistry;
   config: SignetConfig;
+  browserAvailable: boolean;
 }
 
 /**
@@ -65,7 +67,10 @@ export function createAuthDeps(config: SignetConfig): AuthDeps {
 
   // 4. Build browser adapter factory using config.browser
   const browserConfig = config.browser;
-  const browserAdapterFactory = () => new PlaywrightAdapter(browserConfig);
+  const browserAvailable = browserConfig.enabled;
+  const browserAdapterFactory = browserAvailable
+    ? () => new PlaywrightAdapter(browserConfig)
+    : () => new NullBrowserAdapter('Browser is disabled in config (browser.enabled: false)');
 
   // 5. Build AuthManager
   const authManager = new AuthManager({
@@ -76,5 +81,5 @@ export function createAuthDeps(config: SignetConfig): AuthDeps {
     browserConfig,
   });
 
-  return { authManager, storage, providerRegistry, strategyRegistry, config };
+  return { authManager, storage, providerRegistry, strategyRegistry, config, browserAvailable };
 }
