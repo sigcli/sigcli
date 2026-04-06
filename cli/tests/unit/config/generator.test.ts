@@ -10,6 +10,7 @@ import { isOk } from '../../../src/core/result.js';
  */
 function defaultOptions(overrides: Partial<InitOptions> = {}): InitOptions {
   return {
+    mode: 'browser',
     channel: 'chrome',
     browserDataDir: '~/.signet/browser-data',
     credentialsDir: '~/.signet/credentials',
@@ -352,5 +353,19 @@ describe('generateConfigYaml', () => {
   it('includes providers section comment', () => {
     const yaml = generateConfigYaml(defaultOptions());
     expect(yaml).toContain('# Provider configurations');
+  });
+
+  // ---- mode option ----
+
+  it('generates mode: browser by default', () => {
+    const yaml = generateConfigYaml(defaultOptions());
+    const parsed = YAML.parse(yaml);
+    expect(parsed.mode).toBe('browser');
+  });
+
+  it('generates mode: browserless when mode is browserless', () => {
+    const yaml = generateConfigYaml(defaultOptions({ mode: 'browserless' }));
+    const parsed = YAML.parse(yaml);
+    expect(parsed.mode).toBe('browserless');
   });
 });

@@ -301,4 +301,71 @@ describe('runInit', () => {
     expect(mockWriteFile).toHaveBeenCalledTimes(1);
     expect(process.exitCode).not.toBe(1);
   });
+
+  // ---- --remote flag ----
+
+  it('--remote generates config with mode: browserless', async () => {
+    await runInit([], { remote: true });
+
+    expect(mockWriteFile).toHaveBeenCalledTimes(1);
+    const [, writtenContent] = mockWriteFile.mock.calls[0] as [string, string, string];
+    const YAML = await import('yaml');
+    const parsed = YAML.parse(writtenContent);
+    expect(parsed.mode).toBe('browserless');
+  });
+
+  it('--remote shows remote-specific guidance', async () => {
+    await runInit([], { remote: true });
+
+    const output = stdoutLogs.join('\n');
+    expect(output).toContain('Remote setup complete');
+    expect(output).toContain('browser disabled');
+    expect(output).toContain('sig sync pull');
+    expect(output).toContain('sig login');
+    expect(output).toContain('--cookie');
+    expect(output).toContain('--token');
+  });
+
+  it('--remote shows "Browser: disabled" in success message', async () => {
+    await runInit([], { remote: true });
+
+    const output = stdoutLogs.join('\n');
+    expect(output).toContain('Browser:        disabled');
+    // Should NOT show browser data dir or channel
+    expect(output).not.toContain('Browser data:');
+  });
+
+  it('--remote implies --yes (skips interactive prompts)', async () => {
+    // Force TTY to true — --remote should still skip interactive
+    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+    Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });
+
+    await runInit([], { remote: true });
+
+    expect(mockWriteFile).toHaveBeenCalledTimes(1);
+    expect(process.exitCode).not.toBe(1);
+  });
+
+  it('--remote and --force can be used together', async () => {
+    mockExistsSync.mockReturnValue(true);
+
+    await runInit([], { remote: true, force: true });
+
+    expect(mockWriteFile).toHaveBeenCalledTimes(1);
+    expect(process.exitCode).not.toBe(1);
+    const [, writtenContent] = mockWriteFile.mock.calls[0] as [string, string, string];
+    const YAML = await import('yaml');
+    const parsed = YAML.parse(writtenContent);
+    expect(parsed.mode).toBe('browserless');
+  });
+
+  it('without --remote generates config with mode: browser', async () => {
+    await runInit([], { yes: true });
+
+    expect(mockWriteFile).toHaveBeenCalledTimes(1);
+    const [, writtenContent] = mockWriteFile.mock.calls[0] as [string, string, string];
+    const YAML = await import('yaml');
+    const parsed = YAML.parse(writtenContent);
+    expect(parsed.mode).toBe('browser');
+  });
 });

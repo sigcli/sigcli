@@ -27,7 +27,6 @@ export type {
 // ============================================================================
 
 export interface BrowserConfig {
-  enabled: boolean;
   browserDataDir: string;
   channel: string;
   headlessTimeout: number;
@@ -51,7 +50,10 @@ export interface RemoteEntry {
 // Root Config
 // ============================================================================
 
+export type SignetMode = 'browser' | 'browserless';
+
 export interface SignetConfig {
+  mode: SignetMode;
   browser: BrowserConfig;
   storage: StorageConfig;
   remotes?: Record<string, RemoteEntry>;

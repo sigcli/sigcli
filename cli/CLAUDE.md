@@ -52,6 +52,7 @@ core/ (types, interfaces, Result, errors) ── zero external deps, imported by
 10. **Exports**: Public API through `src/index.ts`. New public types/classes must be added here.
 11. **x-headers**: Provider-level `xHeaders` config in `config.yaml` (`XHeaderConfig[]`). Captured during browser auth via network interception, stored on the credential as `xHeaders: Record<string, string>`, applied automatically in `applyToRequest`. See `config/config.example.yaml` for usage.
 12. **Cookie strategy config**: `ttl` (duration), `forceVisible` (bool), `waitUntil` (`load`|`networkidle`|`domcontentloaded`|`commit`), `requiredCookies` (string[] — cookie names that must exist before auth is considered complete; use for sites where the entry page isn't a login page, e.g. QR code login).
+13. **Mode**: `mode: browser | browserless` config field (default `browser`). Set via `sig init --remote` on headless/remote machines. In `browserless` mode, `NullBrowserAdapter` is used and browser-dependent commands guide users to `sig sync pull`, `--cookie`, or `--token`.
 
 ## Commands
 
@@ -67,6 +68,7 @@ npx tsx tests/e2e/test-e2e.ts   # E2E with real systems
 
 ```bash
 sig init                   # Set up config (interactive)
+sig init --remote          # Set up for headless/remote machine (browser disabled)
 sig doctor                 # Check environment and config
 sig get <provider|url>     # Get credential headers
 sig login <url>            # Authenticate (browser or token)

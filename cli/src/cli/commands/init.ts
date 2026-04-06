@@ -153,7 +153,8 @@ export async function runInit(
   const configPath = getConfigPath();
   const signetDir = path.dirname(configPath);
   const force = flags.force === true;
-  const yes = flags.yes === true;
+  const remote = flags.remote === true;
+  const yes = flags.yes === true || remote;
 
   // Check if config already exists
   if (fs.existsSync(configPath) && !force) {
@@ -166,7 +167,7 @@ export async function runInit(
   }
 
   // Detect defaults
-  const detectedChannel = detectBrowserChannel();
+  const detectedChannel = remote ? 'chrome' : detectBrowserChannel();
   const defaultChannel = typeof flags.channel === 'string' ? flags.channel : detectedChannel;
   const defaultBrowserDataDir = typeof flags['browser-data-dir'] === 'string'
     ? flags['browser-data-dir']
@@ -212,6 +213,7 @@ export async function runInit(
 
   // Generate config YAML
   const yaml = generateConfigYaml({
+    mode: remote ? 'browserless' : 'browser',
     channel,
     browserDataDir: displayBrowserDataDir,
     credentialsDir: displayCredentialsDir,
@@ -248,15 +250,30 @@ export async function runInit(
 
   // Success message
   console.log(`\n  Config written to ${configPath}`);
-  console.log(`  Browser data:   ${browserDataDir}`);
   console.log(`  Credentials:    ${credentialsDir}`);
-  console.log(`  Browser:        ${channel}`);
+  if (!remote) {
+    console.log(`  Browser data:   ${browserDataDir}`);
+    console.log(`  Browser:        ${channel}`);
+  } else {
+    console.log(`  Browser:        disabled`);
+  }
   if (providers.length > 0) {
     console.log(`  Providers:      ${providers.map(p => p.id).join(', ')}`);
   }
-  console.log('\nNext steps:');
-  console.log('  sig login <url>       Authenticate with a service');
-  console.log('  sig providers         List configured providers');
-  console.log('  sig doctor            Check your setup');
+  if (remote) {
+    console.log('\nRemote setup complete (browser disabled).\n');
+    console.log('Get credentials from a machine with a browser:');
+    console.log('  sig remote add <name> <host>    Add a remote with browser access');
+    console.log('  sig sync pull <name>            Pull credentials from that remote');
+    console.log('\nOr set credentials manually:');
+    console.log('  sig login <url> --cookie "..."   Set cookies from browser DevTools');
+    console.log('  sig login <url> --token <token>  Set an API token');
+    console.log('\n  sig doctor                      Check your setup');
+  } else {
+    console.log('\nNext steps:');
+    console.log('  sig login <url>       Authenticate with a service');
+    console.log('  sig providers         List configured providers');
+    console.log('  sig doctor            Check your setup');
+  }
   console.log('');
 }

@@ -25,6 +25,12 @@ const VALID_WAIT_UNTIL = ['load', 'networkidle', 'domcontentloaded', 'commit'];
 export function validateConfig(raw: Record<string, unknown>): Result<SignetConfig, AuthError> {
   const errors: string[] = [];
 
+  // --- mode ---
+  const VALID_MODES = ['browser', 'browserless'];
+  if (raw.mode !== undefined && !VALID_MODES.includes(raw.mode as string)) {
+    errors.push(`mode must be one of: ${VALID_MODES.join(', ')}`);
+  }
+
   // --- browser section ---
   if (!raw.browser || typeof raw.browser !== 'object') {
     errors.push('Missing required section: "browser"');
@@ -104,8 +110,9 @@ export function validateConfig(raw: Record<string, unknown>): Result<SignetConfi
 
   // Build the validated config
   const browserRaw = raw.browser as Record<string, unknown>;
+  const mode = raw.mode === 'browserless' ? 'browserless' as const : 'browser' as const;
+
   const browser: BrowserConfig = {
-    enabled: browserRaw.enabled !== false,
     browserDataDir: browserRaw.browserDataDir as string,
     channel: browserRaw.channel as string,
     headlessTimeout: typeof browserRaw.headlessTimeout === 'number' ? browserRaw.headlessTimeout : 30_000,
@@ -141,6 +148,7 @@ export function validateConfig(raw: Record<string, unknown>): Result<SignetConfi
   }
 
   const config: SignetConfig = {
+    mode,
     browser,
     storage,
     providers,

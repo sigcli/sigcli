@@ -3,6 +3,10 @@
 #
 # All configuration lives in this single file — no env vars, no cascade.
 
+# Mode: "browser" (default) or "browserless" (remote/headless machines)
+# Use "sig init --remote" to set up browserless mode.
+mode: browser
+
 # Browser settings (required)
 browser:
   browserDataDir: ~/.signet/browser-data # Persistent browser profile directory
