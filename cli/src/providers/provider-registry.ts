@@ -60,6 +60,23 @@ export class ProviderRegistry implements IProviderRegistry {
   register(provider: ProviderConfig): void {
     this.providers.set(provider.id, provider);
   }
+
+  resolveFlexible(input: string): ProviderConfig | null {
+    // 1. Exact ID match
+    const byId = this.providers.get(input);
+    if (byId) return byId;
+
+    // 2. Case-insensitive name match
+    const inputLower = input.toLowerCase();
+    for (const provider of this.providers.values()) {
+      if (provider.name.toLowerCase() === inputLower) {
+        return provider;
+      }
+    }
+
+    // 3. URL/domain match (existing behavior)
+    return this.resolve(input);
+  }
 }
 
 /**

@@ -80,4 +80,85 @@ describe('ProviderRegistry', () => {
     registry.register({ ...jiraProvider, name: 'Updated Jira' });
     expect(registry.get('jira')?.name).toBe('Updated Jira');
   });
+
+  describe('resolveFlexible', () => {
+    it('resolves by exact provider ID', () => {
+      const registry = new ProviderRegistry([jiraProvider, githubProvider]);
+      expect(registry.resolveFlexible('jira')?.id).toBe('jira');
+      expect(registry.resolveFlexible('github')?.id).toBe('github');
+    });
+
+    it('resolves by name (case-insensitive)', () => {
+      const registry = new ProviderRegistry([jiraProvider, githubProvider]);
+      expect(registry.resolveFlexible('My Jira')?.id).toBe('jira');
+      expect(registry.resolveFlexible('my jira')?.id).toBe('jira');
+      expect(registry.resolveFlexible('MY JIRA')?.id).toBe('jira');
+      expect(registry.resolveFlexible('GitHub')?.id).toBe('github');
+      expect(registry.resolveFlexible('github')?.id).toBe('github'); // matches ID first, same result
+    });
+
+    it('resolves by full URL (existing behavior preserved)', () => {
+      const registry = new ProviderRegistry([jiraProvider, githubProvider]);
+      expect(registry.resolveFlexible('https://jira.example.com/browse/PROJ-1')?.id).toBe('jira');
+      expect(registry.resolveFlexible('https://api.github.com/repos')?.id).toBe('github');
+    });
+
+    it('resolves by bare hostname', () => {
+      const registry = new ProviderRegistry([jiraProvider]);
+      expect(registry.resolveFlexible('jira.example.com')?.id).toBe('jira');
+    });
+
+    it('ID takes priority over name', () => {
+      // Create a provider whose ID is the same string as another provider's name
+      const providerA: ProviderConfig = {
+        id: 'GitHub',
+        name: 'Provider A',
+        domains: ['a.example.com'],
+        strategy: 'cookie',
+        strategyConfig: {},
+      };
+      const providerB: ProviderConfig = {
+        id: 'provider-b',
+        name: 'GitHub',
+        domains: ['b.example.com'],
+        strategy: 'cookie',
+        strategyConfig: {},
+      };
+      const registry = new ProviderRegistry([providerA, providerB]);
+      // "GitHub" should match providerA by ID, not providerB by name
+      expect(registry.resolveFlexible('GitHub')?.id).toBe('GitHub');
+    });
+
+    it('ID takes priority over domain', () => {
+      // Create a provider whose ID matches a hostname that another provider's domain covers
+      const domainProvider: ProviderConfig = {
+        id: 'corp-jira',
+        name: 'Corp Jira',
+        domains: ['myapp'],
+        strategy: 'cookie',
+        strategyConfig: {},
+      };
+      const idProvider: ProviderConfig = {
+        id: 'myapp',
+        name: 'My App',
+        domains: ['myapp.example.com'],
+        strategy: 'cookie',
+        strategyConfig: {},
+      };
+      const registry = new ProviderRegistry([domainProvider, idProvider]);
+      // "myapp" should match idProvider by ID, not domainProvider by domain
+      expect(registry.resolveFlexible('myapp')?.id).toBe('myapp');
+    });
+
+    it('returns null for no match', () => {
+      const registry = new ProviderRegistry([jiraProvider, githubProvider]);
+      expect(registry.resolveFlexible('nonexistent')).toBeNull();
+      expect(registry.resolveFlexible('some-random-thing')).toBeNull();
+    });
+
+    it('empty string returns null', () => {
+      const registry = new ProviderRegistry([jiraProvider, githubProvider]);
+      expect(registry.resolveFlexible('')).toBeNull();
+    });
+  });
 });

@@ -10,7 +10,8 @@ export async function runStatus(
   const format = (flags.format as string) ?? (process.stdout.isTTY ? 'table' : 'json');
 
   if (providerId) {
-    const status = await deps.authManager.getStatus(providerId);
+    const resolved = deps.authManager.providerRegistry.resolveFlexible(providerId);
+    const status = await deps.authManager.getStatus(resolved?.id ?? providerId);
     if (format === 'json') {
       process.stdout.write(formatJson(status) + '\n');
     } else {

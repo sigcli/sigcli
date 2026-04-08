@@ -8,8 +8,10 @@ export async function runLogout(
   const providerId = positionals[0];
 
   if (providerId) {
-    await deps.authManager.clearCredentials(providerId);
-    process.stderr.write(`Credentials cleared for "${providerId}".\n`);
+    const resolved = deps.authManager.providerRegistry.resolveFlexible(providerId);
+    const resolvedId = resolved?.id ?? providerId;
+    await deps.authManager.clearCredentials(resolvedId);
+    process.stderr.write(`Credentials cleared for "${resolvedId}".\n`);
   } else {
     await deps.authManager.clearAll();
     process.stderr.write('All credentials cleared.\n');
