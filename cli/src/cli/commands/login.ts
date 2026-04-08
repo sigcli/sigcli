@@ -5,6 +5,7 @@ import { buildStrategyConfig } from '../../config/validator.js';
 import { addProviderToConfig } from '../../config/loader.js';
 import { isOk } from '../../core/result.js';
 import { formatJson } from '../formatters.js';
+import { ProviderNotFoundError } from '../../core/errors.js';
 
 /** Convert runtime ProviderConfig to the YAML ProviderEntry format. */
 function toProviderEntry(pc: ProviderConfig): ProviderEntry {
@@ -45,12 +46,22 @@ export async function runLogin(
 ): Promise<void> {
   const url = positionals[0];
   if (!url) {
-    process.stderr.write('Usage: sig login <url>\n');
+    process.stderr.write('Usage: sig login <provider|url>\n');
     process.exitCode = 1;
     return;
   }
 
-  const baseProvider = deps.authManager.resolveProvider(url);
+  let baseProvider;
+  try {
+    baseProvider = deps.authManager.resolveProvider(url);
+  } catch (e) {
+    if (e instanceof ProviderNotFoundError) {
+      process.stderr.write(`Error: No provider found matching "${url}". Run "sig providers" to see configured providers.\n`);
+      process.exitCode = 1;
+      return;
+    }
+    throw e;
+  }
 
   const hasOverrides = flags.strategy !== undefined;
   const provider = hasOverrides

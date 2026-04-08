@@ -101,16 +101,25 @@ export class AuthManager {
   }
 
   /**
-   * Resolve a provider by URL, auto-provisioning a default cookie provider if none matches.
+   * Resolve a provider by ID, name, URL, or domain.
+   * Auto-provisions a default cookie provider only for URL-like inputs that don't match.
    */
-  resolveProvider(url: string): ProviderConfig {
-    const existing = this.providers.resolve(url);
+  resolveProvider(input: string): ProviderConfig {
+    const existing = this.providers.resolveFlexible(input);
     if (existing) return existing;
 
-    const provider = createDefaultProvider(url);
-    this.providers.register(provider);
-    this.logger?.info(`Auto-provisioned provider "${provider.id}" for ${url}`);
-    return provider;
+    // Only auto-provision for URL-like inputs (contains '.' or starts with 'http')
+    const isUrlLike = input.startsWith('http://') || input.startsWith('https://') || input.includes('.');
+    if (isUrlLike) {
+      const provider = createDefaultProvider(input);
+      this.providers.register(provider);
+      this.logger?.info(`Auto-provisioned provider "${provider.id}" for ${input}`);
+      return provider;
+    }
+
+    // For non-URL inputs that don't resolve, return a not-found error via a sentinel
+    // that will be caught by callers. We throw here since the method returns ProviderConfig.
+    throw new ProviderNotFoundError(input);
   }
 
   /**
