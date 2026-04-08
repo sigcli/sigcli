@@ -16,11 +16,31 @@ export async function runGet(
     return;
   }
 
-  const isUrl = target.startsWith('http://') || target.startsWith('https://');
+  // Unified resolution: try ID → name → URL/domain
+  const resolved = deps.authManager.providerRegistry.resolveFlexible(target);
   let providerId: string;
   let credential;
 
-  if (isUrl) {
+  if (resolved) {
+    providerId = resolved.id;
+    const result = await deps.authManager.getCredentials(providerId);
+    if (!isOk(result)) {
+      process.stderr.write(`Error: ${result.error.message}\n`);
+      if (result.error.code === 'BROWSER_UNAVAILABLE') {
+        process.stderr.write(`Hint: Run "sig login ${target} --token <token>" or "sig sync pull" to get credentials.\n`);
+      }
+      process.exitCode = result.error.code === 'CREDENTIAL_NOT_FOUND' ? 3 : 1;
+      return;
+    }
+    credential = result.value;
+  } else {
+    // Fall through to URL-based resolution (with auto-provisioning) for URL-like inputs
+    const isUrl = target.includes('.') || target.startsWith('http');
+    if (!isUrl) {
+      process.stderr.write(`Error: No provider found matching "${target}".\n`);
+      process.exitCode = 2;
+      return;
+    }
     const result = await deps.authManager.getCredentialsByUrl(target);
     if (!isOk(result)) {
       process.stderr.write(`Error: ${result.error.message}\n`);
@@ -32,24 +52,6 @@ export async function runGet(
     }
     providerId = result.value.provider.id;
     credential = result.value.credential;
-  } else {
-    const provider = deps.authManager.providerRegistry.get(target);
-    if (!provider) {
-      process.stderr.write(`Error: No provider found with ID "${target}".\n`);
-      process.exitCode = 2;
-      return;
-    }
-    providerId = provider.id;
-    const result = await deps.authManager.getCredentials(providerId);
-    if (!isOk(result)) {
-      process.stderr.write(`Error: ${result.error.message}\n`);
-      if (result.error.code === 'BROWSER_UNAVAILABLE') {
-        process.stderr.write(`Hint: Run "sig login ${target} --token <token>" or "sig sync pull" to get credentials.\n`);
-      }
-      process.exitCode = result.error.code === 'CREDENTIAL_NOT_FOUND' ? 3 : 1;
-      return;
-    }
-    credential = result.value;
   }
 
   const headers = deps.authManager.applyToRequest(providerId, credential);

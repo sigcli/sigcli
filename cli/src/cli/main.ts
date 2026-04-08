@@ -54,7 +54,7 @@ const HELP = `Usage: sig <command> [options]
 Commands:
   init                   Set up Signet configuration (interactive)
   get <provider|url>     Get credential headers for a provider or URL
-  login <url>            Authenticate with a system (browser or token)
+  login <provider|url>   Authenticate with a system (browser or token)
   request <url>          Make an authenticated HTTP request
   status [provider]      Show authentication status
   logout [provider]      Clear stored credentials

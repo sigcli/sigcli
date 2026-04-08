@@ -9,6 +9,7 @@ import type { ProviderConfig, ApiKeyCredential } from '../../src/core/types.js';
 import type { IBrowserAdapter } from '../../src/core/interfaces/browser-adapter.js';
 import type { BrowserConfig } from '../../src/config/schema.js';
 import { isOk, isErr } from '../../src/core/result.js';
+import { ProviderNotFoundError } from '../../src/core/errors.js';
 
 const githubProvider: ProviderConfig = {
   id: 'github',
@@ -339,6 +340,52 @@ describe('AuthManager', () => {
       expect(result.isLoginRedirect).toBe(false);
 
       vi.unstubAllGlobals();
+    });
+  });
+
+  describe('resolveProvider', () => {
+    it('resolves by provider ID without auto-provisioning', () => {
+      const provider = authManager.resolveProvider('github');
+      expect(provider.id).toBe('github');
+      expect(provider.name).toBe('GitHub');
+      expect(provider.autoProvisioned).toBeUndefined();
+    });
+
+    it('resolves by provider name (case-insensitive)', () => {
+      const provider = authManager.resolveProvider('Internal API');
+      expect(provider.id).toBe('internal');
+      expect(provider.name).toBe('Internal API');
+
+      const providerLower = authManager.resolveProvider('internal api');
+      expect(providerLower.id).toBe('internal');
+    });
+
+    it('auto-provisions for unknown URLs (contains dot)', () => {
+      const provider = authManager.resolveProvider('https://new-service.example.com/api');
+      expect(provider.id).toBe('new-service.example.com');
+      expect(provider.strategy).toBe('cookie');
+      expect(provider.autoProvisioned).toBe(true);
+      expect(provider.domains).toEqual(['new-service.example.com']);
+
+      // Should be registered and findable after auto-provisioning
+      expect(authManager.providerRegistry.get('new-service.example.com')).toBe(provider);
+    });
+
+    it('auto-provisions for bare hostname with dot', () => {
+      const provider = authManager.resolveProvider('bare.hostname.com');
+      expect(provider.id).toBe('bare.hostname.com');
+      expect(provider.autoProvisioned).toBe(true);
+    });
+
+    it('throws ProviderNotFoundError for non-URL unknown input', () => {
+      expect(() => authManager.resolveProvider('typo-name')).toThrow(ProviderNotFoundError);
+      expect(() => authManager.resolveProvider('nonexistent')).toThrow(ProviderNotFoundError);
+    });
+
+    it('does not auto-provision when input matches a provider name', () => {
+      const provider = authManager.resolveProvider('GitHub');
+      expect(provider.id).toBe('github');
+      expect(provider.autoProvisioned).toBeUndefined();
     });
   });
 });
