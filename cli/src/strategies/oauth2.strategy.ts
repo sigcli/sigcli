@@ -70,7 +70,7 @@ class OAuth2Strategy implements IAuthStrategy {
         const result = await extractOAuthTokens(page, {
           audiences: this.strategyConfig.audiences,
           extractRefreshToken: true,
-          maxRetries: 8, // Up to 16s of waiting for MSAL to store tokens
+          maxRetries: 6, // ~5.1s worst case with exponential backoff
         });
         // Attach captured headers to the bearer credential
         if (result.ok && xHeaders && Object.keys(xHeaders).length > 0) {
