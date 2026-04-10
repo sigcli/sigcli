@@ -196,10 +196,10 @@ async function checkStoredCredentials(config: SignetConfig | undefined): Promise
         const content = await fsp.readFile(path.join(dir, file), 'utf-8');
         const data = JSON.parse(content);
         const cred = data?.credential;
-        if (cred?.type === 'bearer' && cred?.token) {
+        if (cred?.type === 'bearer' && cred?.accessToken) {
           try {
             const { isJwtExpired } = await import('../../utils/jwt.js');
-            if (isJwtExpired(cred.token)) expired++;
+            if (isJwtExpired(cred.accessToken)) expired++;
           } catch {
             // JWT decode failed, skip
           }
