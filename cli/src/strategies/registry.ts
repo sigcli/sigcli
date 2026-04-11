@@ -7,28 +7,28 @@ import { ConfigError } from '../core/errors.js';
  * Built-in strategies are registered at startup; users can add custom ones.
  */
 export class StrategyRegistry {
-  private factories = new Map<string, IAuthStrategyFactory>();
+    private factories = new Map<string, IAuthStrategyFactory>();
 
-  register(factory: IAuthStrategyFactory): void {
-    this.factories.set(factory.name, factory);
-  }
-
-  get(name: string, config: StrategyConfig): IAuthStrategy {
-    const factory = this.factories.get(name);
-    if (!factory) {
-      const available = Array.from(this.factories.keys()).join(', ');
-      throw new ConfigError(
-        `Unknown strategy "${name}". Available strategies: ${available || 'none'}`,
-      );
+    register(factory: IAuthStrategyFactory): void {
+        this.factories.set(factory.name, factory);
     }
-    return factory.create(config);
-  }
 
-  has(name: string): boolean {
-    return this.factories.has(name);
-  }
+    get(name: string, config: StrategyConfig): IAuthStrategy {
+        const factory = this.factories.get(name);
+        if (!factory) {
+            const available = Array.from(this.factories.keys()).join(', ');
+            throw new ConfigError(
+                `Unknown strategy "${name}". Available strategies: ${available || 'none'}`,
+            );
+        }
+        return factory.create(config);
+    }
 
-  list(): string[] {
-    return Array.from(this.factories.keys());
-  }
+    has(name: string): boolean {
+        return this.factories.has(name);
+    }
+
+    list(): string[] {
+        return Array.from(this.factories.keys());
+    }
 }

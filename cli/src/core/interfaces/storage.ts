@@ -9,18 +9,18 @@ import type { StoredCredential, StoredEntry } from '../types.js';
  * - MemoryStorage: in-memory (testing)
  */
 export interface IStorage {
-  /** Get stored credential for a provider. Returns null if not found. */
-  get(providerId: string): Promise<StoredCredential | null>;
+    /** Get stored credential for a provider. Returns null if not found. */
+    get(providerId: string): Promise<StoredCredential | null>;
 
-  /** Store (or overwrite) credential for a provider. */
-  set(providerId: string, credential: StoredCredential): Promise<void>;
+    /** Store (or overwrite) credential for a provider. */
+    set(providerId: string, credential: StoredCredential): Promise<void>;
 
-  /** Delete stored credential for a provider. No-op if not found. */
-  delete(providerId: string): Promise<void>;
+    /** Delete stored credential for a provider. No-op if not found. */
+    delete(providerId: string): Promise<void>;
 
-  /** List all stored entries (summary, not full credentials). */
-  list(): Promise<StoredEntry[]>;
+    /** List all stored entries (summary, not full credentials). */
+    list(): Promise<StoredEntry[]>;
 
-  /** Delete all stored credentials. */
-  clear(): Promise<void>;
+    /** Delete all stored credentials. */
+    clear(): Promise<void>;
 }

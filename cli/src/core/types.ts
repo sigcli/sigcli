@@ -9,36 +9,36 @@
 // ============================================================================
 
 export interface CookieStrategyConfig {
-  strategy: 'cookie';
-  ttl?: string;
-  requiredCookies?: string[];
+    strategy: 'cookie';
+    ttl?: string;
+    requiredCookies?: string[];
 }
 
 export interface OAuth2StrategyConfig {
-  strategy: 'oauth2';
-  audiences?: string[];
-  tokenEndpoint?: string;
-  clientId?: string;
-  scopes?: string[];
+    strategy: 'oauth2';
+    audiences?: string[];
+    tokenEndpoint?: string;
+    clientId?: string;
+    scopes?: string[];
 }
 
 export interface ApiTokenStrategyConfig {
-  strategy: 'api-token';
-  headerName?: string;
-  headerPrefix?: string;
-  setupInstructions?: string;
+    strategy: 'api-token';
+    headerName?: string;
+    headerPrefix?: string;
+    setupInstructions?: string;
 }
 
 export interface BasicStrategyConfig {
-  strategy: 'basic';
-  setupInstructions?: string;
+    strategy: 'basic';
+    setupInstructions?: string;
 }
 
 export type StrategyConfig =
-  | CookieStrategyConfig
-  | OAuth2StrategyConfig
-  | ApiTokenStrategyConfig
-  | BasicStrategyConfig;
+    | CookieStrategyConfig
+    | OAuth2StrategyConfig
+    | ApiTokenStrategyConfig
+    | BasicStrategyConfig;
 
 export type StrategyName = StrategyConfig['strategy'];
 
@@ -49,44 +49,44 @@ export type StrategyName = StrategyConfig['strategy'];
 export type CredentialType = 'cookie' | 'bearer' | 'api-key' | 'basic';
 
 export interface Cookie {
-  name: string;
-  value: string;
-  domain: string;
-  path: string;
-  expires: number; // Unix timestamp in seconds (-1 = session cookie)
-  httpOnly: boolean;
-  secure: boolean;
-  sameSite?: 'Strict' | 'Lax' | 'None';
+    name: string;
+    value: string;
+    domain: string;
+    path: string;
+    expires: number; // Unix timestamp in seconds (-1 = session cookie)
+    httpOnly: boolean;
+    secure: boolean;
+    sameSite?: 'Strict' | 'Lax' | 'None';
 }
 
 export interface CookieCredential {
-  type: 'cookie';
-  cookies: Cookie[];
-  obtainedAt: string; // ISO timestamp
-  xHeaders?: Record<string, string>; // Extra captured HTTP headers (e.g. x-s, x-t)
+    type: 'cookie';
+    cookies: Cookie[];
+    obtainedAt: string; // ISO timestamp
+    xHeaders?: Record<string, string>; // Extra captured HTTP headers (e.g. x-s, x-t)
 }
 
 export interface BearerCredential {
-  type: 'bearer';
-  accessToken: string;
-  refreshToken?: string;
-  expiresAt?: string; // ISO timestamp
-  scopes?: string[];
-  tokenEndpoint?: string; // For refresh
-  xHeaders?: Record<string, string>; // Extra captured HTTP headers (e.g. x-s, x-t)
+    type: 'bearer';
+    accessToken: string;
+    refreshToken?: string;
+    expiresAt?: string; // ISO timestamp
+    scopes?: string[];
+    tokenEndpoint?: string; // For refresh
+    xHeaders?: Record<string, string>; // Extra captured HTTP headers (e.g. x-s, x-t)
 }
 
 export interface ApiKeyCredential {
-  type: 'api-key';
-  key: string;
-  headerName: string; // e.g. "Authorization", "X-API-Key"
-  headerPrefix?: string; // e.g. "Bearer", "Token"
+    type: 'api-key';
+    key: string;
+    headerName: string; // e.g. "Authorization", "X-API-Key"
+    headerPrefix?: string; // e.g. "Bearer", "Token"
 }
 
 export interface BasicCredential {
-  type: 'basic';
-  username: string;
-  password: string;
+    type: 'basic';
+    username: string;
+    password: string;
 }
 
 export type Credential = CookieCredential | BearerCredential | ApiKeyCredential | BasicCredential;
@@ -96,10 +96,10 @@ export type Credential = CookieCredential | BearerCredential | ApiKeyCredential 
 // ============================================================================
 
 export interface XHeaderConfig {
-  name: string; // Header name to capture (case-insensitive match)
-  source?: 'request' | 'response'; // Where to capture from (default: both)
-  urlPattern?: string; // Only capture from URLs matching this pattern
-  staticValue?: string; // Use a fixed value instead of capturing dynamically
+    name: string; // Header name to capture (case-insensitive match)
+    source?: 'request' | 'response'; // Where to capture from (default: both)
+    urlPattern?: string; // Only capture from URLs matching this pattern
+    staticValue?: string; // Use a fixed value instead of capturing dynamically
 }
 
 // ============================================================================
@@ -107,17 +107,17 @@ export interface XHeaderConfig {
 // ============================================================================
 
 export interface ProviderConfig {
-  id: string;
-  name: string;
-  domains: string[]; // Exact or glob: ["*.example.com", "api.example.com"]
-  entryUrl?: string; // Starting URL for browser auth
-  strategy: string; // Strategy name: "cookie", "oauth2", "api-token", "basic"
-  strategyConfig: StrategyConfig; // Discriminated union strategy config
-  acceptedCredentialTypes?: CredentialType[]; // Enforce which credential types are valid
-  setupInstructions?: string; // Shown when manual setup is needed
-  xHeaders?: XHeaderConfig[]; // Extra HTTP headers to capture during browser auth
-  autoProvisioned?: boolean; // True if created by auto-provision (not from config file)
-  forceVisible?: boolean; // Skip headless, go straight to visible browser mode
+    id: string;
+    name: string;
+    domains: string[]; // Exact or glob: ["*.example.com", "api.example.com"]
+    entryUrl?: string; // Starting URL for browser auth
+    strategy: string; // Strategy name: "cookie", "oauth2", "api-token", "basic"
+    strategyConfig: StrategyConfig; // Discriminated union strategy config
+    acceptedCredentialTypes?: CredentialType[]; // Enforce which credential types are valid
+    setupInstructions?: string; // Shown when manual setup is needed
+    xHeaders?: XHeaderConfig[]; // Extra HTTP headers to capture during browser auth
+    autoProvisioned?: boolean; // True if created by auto-provision (not from config file)
+    forceVisible?: boolean; // Skip headless, go straight to visible browser mode
 }
 
 // ============================================================================
@@ -125,18 +125,18 @@ export interface ProviderConfig {
 // ============================================================================
 
 export interface StoredCredential {
-  credential: Credential;
-  providerId: string;
-  strategy: string; // Strategy name that produced this credential
-  updatedAt: string; // ISO timestamp
-  metadata?: Record<string, unknown>;
+    credential: Credential;
+    providerId: string;
+    strategy: string; // Strategy name that produced this credential
+    updatedAt: string; // ISO timestamp
+    metadata?: Record<string, unknown>;
 }
 
 export interface StoredEntry {
-  providerId: string;
-  strategy: string;
-  updatedAt: string;
-  credentialType: CredentialType;
+    providerId: string;
+    strategy: string;
+    updatedAt: string;
+    credentialType: CredentialType;
 }
 
 // ============================================================================
@@ -144,9 +144,9 @@ export interface StoredEntry {
 // ============================================================================
 
 export interface BrowserLaunchOptions {
-  headless?: boolean;
-  timeout?: number;
-  args?: string[];
+    headless?: boolean;
+    timeout?: number;
+    args?: string[];
 }
 
 // ============================================================================
@@ -154,14 +154,14 @@ export interface BrowserLaunchOptions {
 // ============================================================================
 
 export interface ProviderStatus {
-  id: string;
-  name: string;
-  configured: boolean;
-  valid: boolean;
-  credentialType?: CredentialType;
-  strategy: string;
-  expiresAt?: string;
-  expiresInMinutes?: number;
+    id: string;
+    name: string;
+    configured: boolean;
+    valid: boolean;
+    credentialType?: CredentialType;
+    strategy: string;
+    expiresAt?: string;
+    expiresInMinutes?: number;
 }
 
 // ============================================================================
@@ -169,10 +169,10 @@ export interface ProviderStatus {
 // ============================================================================
 
 export interface ILogger {
-  debug(message: string, ...args: unknown[]): void;
-  info(message: string, ...args: unknown[]): void;
-  warn(message: string, ...args: unknown[]): void;
-  error(message: string, ...args: unknown[]): void;
+    debug(message: string, ...args: unknown[]): void;
+    info(message: string, ...args: unknown[]): void;
+    warn(message: string, ...args: unknown[]): void;
+    error(message: string, ...args: unknown[]): void;
 }
 
 // ============================================================================
@@ -180,16 +180,16 @@ export interface ILogger {
 // ============================================================================
 
 export interface AuthDiagnostics {
-  authDetectedImmediately?: boolean; // isAuthenticated returned true on first check
-  oauthTokensDetected?: boolean; // OAuth JWTs found in localStorage (even in cookie strategy)
-  cookiesExtracted?: number; // Number of cookies found
-  testRequestStatus?: number; // HTTP status of validation request
-  suggestions?: string[]; // Human-readable fix suggestions
-  hint?: string;
-  entryUrl?: string;
-  finalUrl?: string;
-  authDuration?: number;
-  [key: string]: unknown;
+    authDetectedImmediately?: boolean; // isAuthenticated returned true on first check
+    oauthTokensDetected?: boolean; // OAuth JWTs found in localStorage (even in cookie strategy)
+    cookiesExtracted?: number; // Number of cookies found
+    testRequestStatus?: number; // HTTP status of validation request
+    suggestions?: string[]; // Human-readable fix suggestions
+    hint?: string;
+    entryUrl?: string;
+    finalUrl?: string;
+    authDuration?: number;
+    [key: string]: unknown;
 }
 
 /**
@@ -198,6 +198,6 @@ export interface AuthDiagnostics {
  * are stripped before persisting to storage.
  */
 export interface CredentialResult {
-  credential: Credential;
-  diagnostics?: AuthDiagnostics;
+    credential: Credential;
+    diagnostics?: AuthDiagnostics;
 }

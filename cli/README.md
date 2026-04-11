@@ -7,26 +7,26 @@ General-purpose authentication CLI. Authenticate via browser SSO, store tokens, 
 - [Install](#install)
 - [Quick Start](#quick-start)
 - [Commands](#commands)
-  - [Setup](#setup)
-  - [Authentication](#authentication)
-  - [Credentials](#credentials)
-  - [Provider Management](#provider-management)
-  - [Remote & Sync](#remote--sync)
-  - [Watch](#watch)
-  - [Global Flags](#global-flags)
+    - [Setup](#setup)
+    - [Authentication](#authentication)
+    - [Credentials](#credentials)
+    - [Provider Management](#provider-management)
+    - [Remote & Sync](#remote--sync)
+    - [Watch](#watch)
+    - [Global Flags](#global-flags)
 - [Configuration](#configuration)
-  - [mode](#mode)
-  - [browser](#browser)
-  - [storage](#storage)
-  - [providers](#providers)
-  - [remotes](#remotes)
-  - [watch](#watch-1)
-  - [Full Example](#full-example)
+    - [mode](#mode)
+    - [browser](#browser)
+    - [storage](#storage)
+    - [providers](#providers)
+    - [remotes](#remotes)
+    - [watch](#watch-1)
+    - [Full Example](#full-example)
 - [Strategies](#strategies)
-  - [cookie](#strategy-cookie)
-  - [oauth2](#strategy-oauth2)
-  - [api-token](#strategy-api-token)
-  - [basic](#strategy-basic)
+    - [cookie](#strategy-cookie)
+    - [oauth2](#strategy-oauth2)
+    - [api-token](#strategy-api-token)
+    - [basic](#strategy-basic)
 - [xHeaders](#xheaders)
 - [Remote / Headless Setup](#remote--headless-setup)
 - [AI Agent Integration](#ai-agent-integration)
@@ -159,11 +159,11 @@ Browser automation settings for cookie and OAuth2 authentication.
 
 ```yaml
 browser:
-  browserDataDir: ~/.signet/browser-data
-  channel: chrome
-  headlessTimeout: 30000
-  visibleTimeout: 120000
-  waitUntil: load
+    browserDataDir: ~/.signet/browser-data
+    channel: chrome
+    headlessTimeout: 30000
+    visibleTimeout: 120000
+    waitUntil: load
 ```
 
 ### `storage`
@@ -174,7 +174,7 @@ browser:
 
 ```yaml
 storage:
-  credentialsDir: ~/.signet/credentials
+    credentialsDir: ~/.signet/credentials
 ```
 
 ### `providers`
@@ -197,12 +197,12 @@ Define providers explicitly for OAuth2, API tokens, custom settings, or xHeaders
 
 ```yaml
 providers:
-  jira:
-    domains: ['jira.example.com']
-    entryUrl: https://jira.example.com/
-    strategy: cookie
-    config:
-      ttl: '10d'
+    jira:
+        domains: ['jira.example.com']
+        entryUrl: https://jira.example.com/
+        strategy: cookie
+        config:
+            ttl: '10d'
 ```
 
 ### `remotes`
@@ -219,10 +219,10 @@ SSH remotes for syncing credentials to other machines.
 
 ```yaml
 remotes:
-  dev-server:
-    type: ssh
-    host: dev.example.com
-    user: deploy
+    dev-server:
+        type: ssh
+        host: dev.example.com
+        user: deploy
 ```
 
 ### `watch`
@@ -237,12 +237,12 @@ Managed by `sig watch add/remove/set-interval`. Defines which providers are moni
 
 ```yaml
 watch:
-  interval: '5m'
-  providers:
-    jira:
-      autoSync:
-        - dev-server
-    wiki: # watch + refresh only, no auto-sync
+    interval: '5m'
+    providers:
+        jira:
+            autoSync:
+                - dev-server
+        wiki: # watch + refresh only, no auto-sync
 ```
 
 ### Full Example
@@ -251,50 +251,50 @@ watch:
 mode: browser
 
 browser:
-  browserDataDir: ~/.signet/browser-data
-  channel: chrome
-  headlessTimeout: 30000
-  visibleTimeout: 120000
-  waitUntil: load
+    browserDataDir: ~/.signet/browser-data
+    channel: chrome
+    headlessTimeout: 30000
+    visibleTimeout: 120000
+    waitUntil: load
 
 storage:
-  credentialsDir: ~/.signet/credentials
+    credentialsDir: ~/.signet/credentials
 
 remotes:
-  dev-server:
-    type: ssh
-    host: dev.example.com
-    user: deploy
+    dev-server:
+        type: ssh
+        host: dev.example.com
+        user: deploy
 
 watch:
-  interval: '5m'
-  providers:
-    jira:
-      autoSync:
-        - dev-server
-    ms-teams:
+    interval: '5m'
+    providers:
+        jira:
+            autoSync:
+                - dev-server
+        ms-teams:
 
 providers:
-  jira:
-    domains: ['jira.example.com']
-    entryUrl: https://jira.example.com/
-    strategy: cookie
-    config:
-      ttl: '10d'
+    jira:
+        domains: ['jira.example.com']
+        entryUrl: https://jira.example.com/
+        strategy: cookie
+        config:
+            ttl: '10d'
 
-  github:
-    domains: ['github.com', 'api.github.com']
-    entryUrl: https://github.com/
-    strategy: api-token
-    config:
-      setupInstructions: 'Create a PAT at https://github.com/settings/tokens'
+    github:
+        domains: ['github.com', 'api.github.com']
+        entryUrl: https://github.com/
+        strategy: api-token
+        config:
+            setupInstructions: 'Create a PAT at https://github.com/settings/tokens'
 
-  ms-teams:
-    domains: ['teams.cloud.microsoft']
-    entryUrl: https://teams.cloud.microsoft/v2/
-    strategy: oauth2
-    config:
-      audiences: ['https://ic3.teams.office.com']
+    ms-teams:
+        domains: ['teams.cloud.microsoft']
+        entryUrl: https://teams.cloud.microsoft/v2/
+        strategy: oauth2
+        config:
+            audiences: ['https://ic3.teams.office.com']
 ```
 
 ## Strategies
@@ -352,11 +352,11 @@ Captured headers are stored on the credential and applied automatically by `sig 
 
 ```yaml
 xHeaders:
-  - name: x-csrf-token
-    source: request
-    urlPattern: app.example.com/api
-  - name: origin
-    staticValue: https://app.example.com
+    - name: x-csrf-token
+      source: request
+      urlPattern: app.example.com/api
+    - name: origin
+      staticValue: https://app.example.com
 ```
 
 ## Remote / Headless Setup
