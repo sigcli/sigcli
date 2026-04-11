@@ -1,6 +1,6 @@
 import type { AuthDeps } from '../../deps.js';
 import type { FormatTableOptions } from '../formatters.js';
-import { formatJson, formatTable, formatExpiry } from '../formatters.js';
+import { formatJson, formatTable, formatExpiry, formatStatusIndicator } from '../formatters.js';
 import type { ProviderStatus } from '../../core/types.js';
 
 function buildRows(statuses: ProviderStatus[]): Record<string, string>[] {
@@ -9,7 +9,7 @@ function buildRows(statuses: ProviderStatus[]): Record<string, string>[] {
     const row: Record<string, string> = { id: s.id };
     if (showName) row.name = s.name;
     row.strategy = s.strategy;
-    row.valid = s.valid ? 'yes' : 'no';
+    row.status = formatStatusIndicator(s.valid, s.credentialType !== undefined);
     row.type = s.credentialType ?? '-';
     row.expires = s.expiresInMinutes !== undefined ? formatExpiry(s.expiresInMinutes) : '-';
     return row;
