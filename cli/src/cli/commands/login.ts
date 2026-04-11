@@ -63,10 +63,19 @@ export async function runLogin(
     throw e;
   }
 
-  const hasOverrides = flags.strategy !== undefined;
+  const hasOverrides = flags.strategy !== undefined || typeof flags.as === 'string';
   const provider = hasOverrides
     ? { ...baseProvider }
     : baseProvider;
+
+  // --as <id>: override the provider ID (useful for auto-provisioned providers)
+  if (typeof flags.as === 'string') {
+    const oldId = provider.id;
+    provider.id = flags.as;
+    if (provider.name === oldId) {
+      provider.name = flags.as;
+    }
+  }
 
   if (typeof flags.strategy === 'string') {
     const strategyName = flags.strategy as StrategyName;

@@ -81,6 +81,18 @@ describe('ProviderRegistry', () => {
     expect(registry.get('jira')?.name).toBe('Updated Jira');
   });
 
+  it('unregisters a provider by ID', () => {
+    const registry = new ProviderRegistry([jiraProvider, githubProvider]);
+    expect(registry.unregister('jira')).toBe(true);
+    expect(registry.get('jira')).toBeNull();
+    expect(registry.list()).toHaveLength(1);
+  });
+
+  it('unregister returns false for non-existent ID', () => {
+    const registry = new ProviderRegistry([jiraProvider]);
+    expect(registry.unregister('nonexistent')).toBe(false);
+  });
+
   describe('resolveFlexible', () => {
     it('resolves by exact provider ID', () => {
       const registry = new ProviderRegistry([jiraProvider, githubProvider]);
