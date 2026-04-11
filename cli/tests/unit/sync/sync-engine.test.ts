@@ -4,23 +4,24 @@ import { MemoryStorage } from '../../../src/storage/memory-storage.js';
 import type { StoredCredential } from '../../../src/core/types.js';
 import type { RemoteConfig } from '../../../src/sync/types.js';
 import type { SignetConfig } from '../../../src/config/schema.js';
+import type { ISyncTransport } from '../../../src/sync/interfaces/transport.js';
 
-// Mock SshTransport
+// Mock transport
 const mockListRemote = vi.fn();
 const mockReadRemote = vi.fn();
 const mockWriteRemote = vi.fn();
 const mockReadRemoteConfig = vi.fn();
 const mockWriteRemoteConfig = vi.fn();
 
-vi.mock('../../../src/sync/transports/ssh.js', () => ({
-  SshTransport: vi.fn().mockImplementation(() => ({
+function createMockTransport(): ISyncTransport {
+  return {
     listRemote: mockListRemote,
     readRemote: mockReadRemote,
     writeRemote: mockWriteRemote,
     readRemoteConfig: mockReadRemoteConfig,
     writeRemoteConfig: mockWriteRemoteConfig,
-  })),
-}));
+  };
+}
 
 // Mock fs for config pull (local config read/write)
 const mockReadFile = vi.fn();
@@ -117,7 +118,7 @@ describe('SyncEngine', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     storage = new MemoryStorage();
-    engine = new SyncEngine(storage, testRemote, testConfig);
+    engine = new SyncEngine(storage, testRemote, testConfig, createMockTransport());
     // Default: config methods return null (no remote config)
     mockReadRemoteConfig.mockResolvedValue(null);
     mockWriteRemoteConfig.mockResolvedValue(undefined);
