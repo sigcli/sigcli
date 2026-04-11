@@ -3,7 +3,8 @@ import type { BearerCredential } from '../../core/types.js';
 import type { Result } from '../../core/result.js';
 import { ok, err } from '../../core/result.js';
 import { BrowserError, type AuthError } from '../../core/errors.js';
-import { decodeJwt, getJwtExpiresAt } from '../../utils/jwt.js';
+import { decodeJwt } from '../../utils/jwt.js';
+import { CredentialTypeName } from '../../core/constants.js';
 
 const EXPIRY_BUFFER_MS = 60_000; // 1 minute buffer
 
@@ -184,7 +185,7 @@ async function tryExtractTokens(
       : undefined;
 
     const credential: BearerCredential = {
-      type: 'bearer',
+      type: CredentialTypeName.BEARER,
       accessToken: bestToken,
       refreshToken,
       expiresAt,
