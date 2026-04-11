@@ -4,21 +4,19 @@ import type { IStorage } from '../core/interfaces/storage.js';
 import type { SignetConfig } from '../config/schema.js';
 import { getConfigPath } from '../config/loader.js';
 import type { RemoteConfig, SyncResult } from './types.js';
-import { SshTransport } from './transports/ssh.js';
-
-function sanitizeId(providerId: string): string {
-  return providerId.replace(/[^a-zA-Z0-9._-]/g, '_');
-}
+import type { ISyncTransport } from './interfaces/transport.js';
+import { sanitizeId } from '../utils/sanitize.js';
 
 export class SyncEngine {
-  private readonly transport: SshTransport;
+  private readonly transport: ISyncTransport;
 
   constructor(
     private readonly storage: IStorage,
     private readonly remote: RemoteConfig,
     private readonly config: SignetConfig,
+    transport: ISyncTransport,
   ) {
-    this.transport = new SshTransport();
+    this.transport = transport;
   }
 
   async push(providerIds?: string[], force = false): Promise<SyncResult> {
