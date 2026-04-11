@@ -2,6 +2,8 @@ import type { AuthDeps } from '../../deps.js';
 import { isOk } from '../../core/result.js';
 import { buildUserAgent } from '../../utils/http.js';
 import { formatJson } from '../formatters.js';
+import { HttpHeader } from '../../core/constants.js';
+import { ExitCode } from '../exit-codes.js';
 
 export async function runRequest(
   positionals: string[],
@@ -11,7 +13,7 @@ export async function runRequest(
   const url = positionals[0];
   if (!url) {
     process.stderr.write('Usage: sig request <url> [--method GET] [--header "Name: Value"] [--body \'{}\']\n');
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
@@ -21,7 +23,7 @@ export async function runRequest(
     if (result.error.code === 'BROWSER_UNAVAILABLE') {
       process.stderr.write(`Hint: Run "sig login ${url} --token <token>" or "sig sync pull" to get credentials.\n`);
     }
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
@@ -29,7 +31,7 @@ export async function runRequest(
   const authHeaders = deps.authManager.applyToRequest(provider.id, credential);
 
   const requestHeaders: Record<string, string> = {
-    'User-Agent': buildUserAgent(),
+    [HttpHeader.USER_AGENT]: buildUserAgent(),
     ...authHeaders,
   };
 
@@ -53,8 +55,8 @@ export async function runRequest(
   const body = flags.body as string | undefined;
   if (body && ['POST', 'PUT', 'PATCH'].includes(httpMethod)) {
     fetchOptions.body = body;
-    if (!requestHeaders['Content-Type']) {
-      requestHeaders['Content-Type'] = 'application/json';
+    if (!requestHeaders[HttpHeader.CONTENT_TYPE]) {
+      requestHeaders[HttpHeader.CONTENT_TYPE] = 'application/json';
     }
   }
 
@@ -97,10 +99,10 @@ export async function runRequest(
     }
 
     if (!response.ok) {
-      process.exitCode = 1;
+      process.exitCode = ExitCode.GENERAL_ERROR;
     }
   } catch (e: unknown) {
     process.stderr.write(`Request failed: ${(e as Error).message}\n`);
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
   }
 }

@@ -1,12 +1,13 @@
 import type { IAuthStrategy, IAuthStrategyFactory, AuthContext } from '../core/interfaces/auth-strategy.js';
-import type { Credential, BearerCredential, ProviderConfig } from '../core/types.js';
+import type { Credential, BearerCredential, CredentialResult, ProviderConfig, AuthDiagnostics } from '../core/types.js';
 import type { StrategyConfig, OAuth2StrategyConfig } from '../config/schema.js';
 import type { Result } from '../core/result.js';
 import { ok, err } from '../core/result.js';
 import { BrowserError, RefreshError, type AuthError } from '../core/errors.js';
-import { runHybridFlow } from '../browser/flows/hybrid-flow.js';
+import { runHybridFlow, stderrLogger } from '../browser/flows/hybrid-flow.js';
 import { extractOAuthTokens, hasOAuthTokens } from '../browser/flows/oauth-consent.flow.js';
 import { isLoginPage } from '../browser/flows/form-login.flow.js';
+import { HttpHeader, AuthScheme, StrategyName, CredentialTypeName } from '../core/constants.js';
 
 const EXPIRY_BUFFER_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -23,7 +24,7 @@ class OAuth2Strategy implements IAuthStrategy {
   }
 
   validate(credential: Credential): Result<boolean, AuthError> {
-    if (credential.type !== 'bearer') return ok(false);
+    if (credential.type !== CredentialTypeName.BEARER) return ok(false);
 
     if (!credential.accessToken || credential.accessToken.trim() === '') {
       return ok(false);
@@ -43,7 +44,7 @@ class OAuth2Strategy implements IAuthStrategy {
   async authenticate(
     provider: ProviderConfig,
     context: AuthContext,
-  ): Promise<Result<Credential, AuthError>> {
+  ): Promise<Result<CredentialResult, AuthError>> {
     const adapter = context.browserAdapter;
 
     if (!provider.entryUrl) {
@@ -53,12 +54,13 @@ class OAuth2Strategy implements IAuthStrategy {
       ));
     }
 
-    return await runHybridFlow<Credential>(adapter, {
+    return await runHybridFlow<CredentialResult>(adapter, {
       entryUrl: provider.entryUrl,
       browserConfig: context.browserConfig,
       forceVisible: provider.forceVisible ?? false,
       xHeaders: provider.xHeaders,
       providerDomains: provider.domains,
+      logger: context.logger ?? stderrLogger,
 
       isAuthenticated: async (page) => {
         const onLogin = await isLoginPage(page);
@@ -72,20 +74,21 @@ class OAuth2Strategy implements IAuthStrategy {
           extractRefreshToken: true,
           maxRetries: 8, // Up to 16s of waiting for MSAL to store tokens
         });
+        if (!result.ok) return result;
+
+        const credential = result.value as BearerCredential;
         // Attach captured headers to the bearer credential
-        if (result.ok && xHeaders && Object.keys(xHeaders).length > 0) {
-          const cred = result.value as BearerCredential;
-          cred.xHeaders = xHeaders;
+        if (xHeaders && Object.keys(xHeaders).length > 0) {
+          credential.xHeaders = xHeaders;
         }
-        // Attach diagnostics metadata for post-auth validation
-        if (result.ok) {
-          (result.value as any).__diagnostics = {
-            authDetectedImmediately: meta?.immediateAuth ?? false,
-            oauthTokensDetected: true,
-            cookiesExtracted: 0,
-          };
-        }
-        return result;
+        // Build typed diagnostics metadata for post-auth validation
+        const diagnostics: AuthDiagnostics = {
+          authDetectedImmediately: meta?.immediateAuth ?? false,
+          oauthTokensDetected: true,
+          cookiesExtracted: 0,
+        };
+
+        return ok({ credential, diagnostics });
       },
     });
   }
@@ -93,7 +96,7 @@ class OAuth2Strategy implements IAuthStrategy {
   async refresh(
     credential: Credential,
   ): Promise<Result<Credential | null, AuthError>> {
-    if (credential.type !== 'bearer') return ok(null);
+    if (credential.type !== CredentialTypeName.BEARER) return ok(null);
     if (!credential.refreshToken) return ok(null);
 
     if (!this.strategyConfig.tokenEndpoint || !this.strategyConfig.clientId) {
@@ -113,7 +116,7 @@ class OAuth2Strategy implements IAuthStrategy {
 
       const response = await fetch(this.strategyConfig.tokenEndpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: { [HttpHeader.CONTENT_TYPE]: 'application/x-www-form-urlencoded' },
         body: body.toString(),
       });
 
@@ -137,7 +140,7 @@ class OAuth2Strategy implements IAuthStrategy {
         : undefined;
 
       const refreshed: BearerCredential = {
-        type: 'bearer',
+        type: CredentialTypeName.BEARER,
         accessToken: tokenResponse.access_token,
         refreshToken: tokenResponse.refresh_token ?? credential.refreshToken,
         expiresAt,
@@ -156,21 +159,21 @@ class OAuth2Strategy implements IAuthStrategy {
   }
 
   applyToRequest(credential: Credential): Record<string, string> {
-    if (credential.type !== 'bearer') return {};
+    if (credential.type !== CredentialTypeName.BEARER) return {};
 
     // Apply x-headers first, then set Authorization so it always wins
     const headers: Record<string, string> = { ...credential.xHeaders };
-    headers['Authorization'] = `Bearer ${credential.accessToken}`;
+    headers[HttpHeader.AUTHORIZATION] = `${AuthScheme.BEARER} ${credential.accessToken}`;
 
     return headers;
   }
 }
 
 export class OAuth2StrategyFactory implements IAuthStrategyFactory {
-  readonly name = 'oauth2';
+  readonly name = StrategyName.OAUTH2;
 
   create(config: StrategyConfig): IAuthStrategy {
-    if (config.strategy !== 'oauth2') {
+    if (config.strategy !== StrategyName.OAUTH2) {
       throw new Error(`OAuth2StrategyFactory received wrong config type: ${config.strategy}`);
     }
     return new OAuth2Strategy(config);

@@ -1,4 +1,4 @@
-import type { IAuthStrategy, AuthContext } from './core/interfaces/auth-strategy.js';
+import type { AuthContext } from './core/interfaces/auth-strategy.js';
 import type { IBrowserAdapter } from './core/interfaces/browser-adapter.js';
 import type { IStorage } from './core/interfaces/storage.js';
 import type { IProviderRegistry } from './core/interfaces/provider.js';
@@ -8,13 +8,13 @@ import { createDefaultProvider } from './providers/auto-provision.js';
 import type { Result } from './core/result.js';
 import { ok, err, isOk } from './core/result.js';
 import {
-  CredentialNotFoundError,
-  CredentialExpiredError,
   CredentialTypeError,
   ProviderNotFoundError,
   type AuthError,
 } from './core/errors.js';
 import { StrategyRegistry } from './strategies/registry.js';
+import { LOGIN_URL_PATTERNS, HttpHeader, CredentialTypeName } from './core/constants.js';
+import { buildUserAgent } from './utils/http.js';
 
 export interface AuthManagerDeps {
   storage: IStorage;
@@ -93,11 +93,12 @@ export class AuthManager {
     const authResult = await strategy.authenticate(provider, context);
     if (!isOk(authResult)) return authResult;
 
-    const typeCheck = this.checkCredentialType(provider, authResult.value);
+    const { credential: authedCredential } = authResult.value;
+    const typeCheck = this.checkCredentialType(provider, authedCredential);
     if (!isOk(typeCheck)) return typeCheck;
 
-    await this.store(key, provider.strategy, authResult.value);
-    return ok(authResult.value);
+    await this.store(key, provider.strategy, authedCredential);
+    return ok(authedCredential);
   }
 
   /**
@@ -262,17 +263,12 @@ export class AuthManager {
       const headers = strategy.applyToRequest(credential);
       const response = await fetch(provider.entryUrl, {
         method: 'GET',
-        headers: { ...headers, 'User-Agent': 'signet/1.0' },
+        headers: { ...headers, [HttpHeader.USER_AGENT]: buildUserAgent() },
         redirect: 'manual',
       });
       const location = response.headers.get('location') ?? '';
-      const loginPatterns = [
-        '/login', '/signin', '/sign-in', '/auth', '/sso', '/oauth',
-        '/adfs/', '/saml/', 'login.microsoftonline.com',
-        'accounts.google.com',
-      ];
       const isLoginRedirect = response.status >= 300 && response.status < 400
-        && loginPatterns.some(p => location.toLowerCase().includes(p));
+        && LOGIN_URL_PATTERNS.some(p => location.toLowerCase().includes(p));
       return { status: response.status, isLoginRedirect };
     } catch {
       return { status: null, isLoginRedirect: false };
@@ -312,10 +308,8 @@ export class AuthManager {
     strategy: string,
     credential: Credential,
   ): Promise<void> {
-    // Strip transient diagnostics metadata before persisting
-    const { __diagnostics, ...clean } = credential as any;
     const stored: StoredCredential = {
-      credential: clean,
+      credential,
       providerId,
       strategy,
       updatedAt: new Date().toISOString(),
@@ -325,9 +319,9 @@ export class AuthManager {
 
   private getExpiresAt(credential: Credential): Date | null {
     switch (credential.type) {
-      case 'bearer':
+      case CredentialTypeName.BEARER:
         return credential.expiresAt ? new Date(credential.expiresAt) : null;
-      case 'cookie': {
+      case CredentialTypeName.COOKIE: {
         // Earliest cookie expiry, or null if all session cookies
         const expiries = credential.cookies
           .filter(c => c.expires > 0)

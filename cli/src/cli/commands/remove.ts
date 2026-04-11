@@ -2,6 +2,7 @@ import { createInterface } from 'node:readline';
 import type { AuthDeps } from '../../deps.js';
 import type { ProviderConfig } from '../../core/types.js';
 import { removeProviderFromConfig } from '../../config/loader.js';
+import { ExitCode } from '../exit-codes.js';
 
 export async function runRemove(
   positionals: string[],
@@ -10,7 +11,7 @@ export async function runRemove(
 ): Promise<void> {
   if (positionals.length === 0) {
     process.stderr.write('Usage: sig remove <provider> [...providers] [--force] [--keep-config]\n');
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
@@ -29,7 +30,7 @@ export async function runRemove(
 
   if (unknown.length > 0) {
     process.stderr.write(`Unknown provider(s): ${unknown.join(', ')}\n`);
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
@@ -38,7 +39,7 @@ export async function runRemove(
   if (!force) {
     if (!process.stdin.isTTY) {
       process.stderr.write('Cannot confirm interactively. Use --force to skip confirmation.\n');
-      process.exitCode = 1;
+      process.exitCode = ExitCode.GENERAL_ERROR;
       return;
     }
 
@@ -80,6 +81,6 @@ export async function runRemove(
   }
   if (errors.length > 0) {
     process.stderr.write(`Failed to remove: ${errors.join('; ')}\n`);
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
   }
 }

@@ -10,6 +10,8 @@ import { startWatchLoop } from "../../watch/watch-loop.js";
 import { getRemote } from "../../sync/remote-config.js";
 import { parseDuration, formatDuration } from "../../utils/duration.js";
 import { formatJson, formatTable } from "../formatters.js";
+import { ExitCode } from "../exit-codes.js";
+import { WatchSubcommand } from "../../core/constants.js";
 
 const USAGE = `Usage: sig watch <subcommand>
 
@@ -29,29 +31,29 @@ export async function runWatch(
   const subcommand = positionals[0];
 
   switch (subcommand) {
-    case "add":
+    case WatchSubcommand.ADD:
       await handleAdd(positionals.slice(1), flags, deps);
       break;
-    case "remove":
+    case WatchSubcommand.REMOVE:
       await handleRemove(positionals.slice(1));
       break;
-    case "list":
+    case WatchSubcommand.LIST:
       await handleList(flags);
       break;
-    case "start":
+    case WatchSubcommand.START:
       if (!deps) {
         process.stderr.write('Error: Config required. Run "sig init" first.\n');
-        process.exitCode = 1;
+        process.exitCode = ExitCode.GENERAL_ERROR;
         return;
       }
       await handleStart(flags, deps);
       break;
-    case "set-interval":
+    case WatchSubcommand.SET_INTERVAL:
       await handleSetInterval(positionals.slice(1));
       break;
     default:
       process.stderr.write(USAGE);
-      process.exitCode = subcommand ? 1 : 0;
+      process.exitCode = subcommand ? ExitCode.GENERAL_ERROR : ExitCode.SUCCESS;
   }
 }
 
@@ -69,7 +71,7 @@ async function handleAdd(
     process.stderr.write(
       "Usage: sig watch add <provider> [--auto-sync <remote>]\n",
     );
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
@@ -80,7 +82,7 @@ async function handleAdd(
       process.stderr.write(
         `Error: Provider "${providerId}" not found in config.\n`,
       );
-      process.exitCode = 1;
+      process.exitCode = ExitCode.GENERAL_ERROR;
       return;
     }
   }
@@ -95,7 +97,7 @@ async function handleAdd(
       process.stderr.write(
         `Error: Remote "${autoSyncValue}" not found. Run "sig remote list" to see configured remotes.\n`,
       );
-      process.exitCode = 1;
+      process.exitCode = ExitCode.GENERAL_ERROR;
       return;
     }
     autoSync.push(autoSyncValue);
@@ -113,7 +115,7 @@ async function handleRemove(positionals: string[]): Promise<void> {
   const providerId = positionals[0];
   if (!providerId) {
     process.stderr.write("Usage: sig watch remove <provider>\n");
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
@@ -122,7 +124,7 @@ async function handleRemove(positionals: string[]): Promise<void> {
     process.stderr.write(
       `Provider "${providerId}" is not in the watch list.\n`,
     );
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
@@ -164,7 +166,7 @@ async function handleSetInterval(positionals: string[]): Promise<void> {
     process.stderr.write(
       "Usage: sig watch set-interval <duration>  (e.g. 5m, 1h)\n",
     );
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
@@ -174,7 +176,7 @@ async function handleSetInterval(positionals: string[]): Promise<void> {
     process.stderr.write(
       `Invalid interval: "${interval}". Use format like "30s", "5m", "1h".\n`,
     );
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
@@ -192,7 +194,7 @@ async function handleStart(
     process.stderr.write(
       'No providers in watch list. Use "sig watch add <provider>" first.\n',
     );
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
@@ -206,7 +208,7 @@ async function handleStart(
     process.stderr.write(
       `Invalid interval: "${intervalStr}". Use format like "30s", "5m", "1h".\n`,
     );
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
@@ -220,7 +222,7 @@ async function handleStart(
         process.stderr.write(
           `Error: Provider "${providerId}" has autoSync remote "${remoteName}" which does not exist.\n`,
         );
-        process.exitCode = 1;
+        process.exitCode = ExitCode.GENERAL_ERROR;
         return;
       }
     }

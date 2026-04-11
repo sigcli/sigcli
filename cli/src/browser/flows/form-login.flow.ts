@@ -1,4 +1,5 @@
 import type { IBrowserPage } from '../../core/interfaces/browser-adapter.js';
+import { LOGIN_URL_PATTERNS } from '../../core/constants.js';
 
 /**
  * Detect and check for common login form patterns.
@@ -7,12 +8,7 @@ import type { IBrowserPage } from '../../core/interfaces/browser-adapter.js';
 export async function isLoginPage(page: IBrowserPage): Promise<boolean> {
   try {
     const url = page.url().toLowerCase();
-    const loginUrlPatterns = [
-      '/login', '/signin', '/sign-in', '/auth', '/sso', '/oauth',
-      '/adfs/', '/saml/',
-      'login.microsoftonline.com', 'accounts.google.com',
-    ];
-    if (loginUrlPatterns.some(p => url.includes(p))) return true;
+    if (LOGIN_URL_PATTERNS.some(p => url.includes(p))) return true;
 
     // Check for common form elements
     const hasLoginForm = await page.evaluate(() => {

@@ -1,13 +1,11 @@
-import type { IAuthStrategy, IAuthStrategyFactory, AuthContext } from '../core/interfaces/auth-strategy.js';
-import type { Credential, ApiKeyCredential, ProviderConfig } from '../core/types.js';
+import type { IAuthStrategy, IAuthStrategyFactory } from '../core/interfaces/auth-strategy.js';
+import type { Credential, CredentialResult, ProviderConfig } from '../core/types.js';
 import type { StrategyConfig, ApiTokenStrategyConfig } from '../config/schema.js';
 import type { Result } from '../core/result.js';
 import { ok, err } from '../core/result.js';
 import { ManualSetupRequired, type AuthError } from '../core/errors.js';
 import { decodeJwt } from '../utils/jwt.js';
-
-const DEFAULT_HEADER_NAME = 'Authorization';
-const DEFAULT_HEADER_PREFIX = 'Bearer';
+import { HttpHeader, AuthScheme, StrategyName, CredentialTypeName } from '../core/constants.js';
 const DEFAULT_SETUP_INSTRUCTIONS = 'Please provide an API token or Personal Access Token.';
 
 /**
@@ -21,13 +19,13 @@ class ApiTokenStrategy implements IAuthStrategy {
   private readonly setupInstructions: string;
 
   constructor(config: ApiTokenStrategyConfig) {
-    this.headerName = config.headerName ?? DEFAULT_HEADER_NAME;
-    this.headerPrefix = config.headerPrefix ?? DEFAULT_HEADER_PREFIX;
+    this.headerName = config.headerName ?? HttpHeader.AUTHORIZATION;
+    this.headerPrefix = config.headerPrefix ?? AuthScheme.BEARER;
     this.setupInstructions = config.setupInstructions ?? DEFAULT_SETUP_INSTRUCTIONS;
   }
 
   validate(credential: Credential): Result<boolean, AuthError> {
-    if (credential.type !== 'api-key') {
+    if (credential.type !== CredentialTypeName.API_KEY) {
       return ok(false);
     }
 
@@ -49,7 +47,7 @@ class ApiTokenStrategy implements IAuthStrategy {
 
   async authenticate(
     provider: ProviderConfig,
-  ): Promise<Result<Credential, AuthError>> {
+  ): Promise<Result<CredentialResult, AuthError>> {
     // API tokens cannot be obtained automatically — user must provide them.
     return err(
       new ManualSetupRequired(
@@ -65,7 +63,7 @@ class ApiTokenStrategy implements IAuthStrategy {
   }
 
   applyToRequest(credential: Credential): Record<string, string> {
-    if (credential.type !== 'api-key') return {};
+    if (credential.type !== CredentialTypeName.API_KEY) return {};
 
     const value = this.headerPrefix
       ? `${this.headerPrefix} ${credential.key}`
@@ -76,10 +74,10 @@ class ApiTokenStrategy implements IAuthStrategy {
 }
 
 export class ApiTokenStrategyFactory implements IAuthStrategyFactory {
-  readonly name = 'api-token';
+  readonly name = StrategyName.API_TOKEN;
 
   create(config: StrategyConfig): IAuthStrategy {
-    if (config.strategy !== 'api-token') {
+    if (config.strategy !== StrategyName.API_TOKEN) {
       throw new Error(`ApiTokenStrategyFactory received wrong config type: ${config.strategy}`);
     }
     return new ApiTokenStrategy(config);

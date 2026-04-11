@@ -15,6 +15,8 @@ import { generateConfigYaml } from '../../config/generator.js';
 import { validateConfig } from '../../config/validator.js';
 import { isOk } from '../../core/result.js';
 import { findChannelBrowser } from '../../browser/detect.js';
+import { ExitCode } from '../exit-codes.js';
+import { WaitUntil, StrategyName, HttpHeader, AuthScheme } from '../../core/constants.js';
 
 // ---------------------------------------------------------------------------
 // Strategy templates — one per built-in strategy
@@ -27,20 +29,20 @@ interface StrategyTemplate {
 }
 
 const STRATEGY_TEMPLATES: Record<string, StrategyTemplate> = {
-  cookie: {
+  [StrategyName.COOKIE]: {
     description: 'Browser-based SSO (Jira, Confluence, internal portals)',
     needsEntryUrl: true,
   },
-  oauth2: {
+  [StrategyName.OAUTH2]: {
     description: 'OAuth2 with token refresh',
     needsEntryUrl: true,
   },
-  'api-token': {
+  [StrategyName.API_TOKEN]: {
     description: 'Static API token (GitHub, GitLab)',
     needsEntryUrl: false,
-    defaultConfig: { headerName: 'Authorization', headerPrefix: 'Bearer' },
+    defaultConfig: { headerName: HttpHeader.AUTHORIZATION, headerPrefix: AuthScheme.BEARER },
   },
-  basic: {
+  [StrategyName.BASIC]: {
     description: 'Username + password (HTTP Basic)',
     needsEntryUrl: false,
   },
@@ -83,18 +85,18 @@ async function promptProviders(rl: ReturnType<typeof createInterface>): Promise<
   let keepAdding = true;
   while (keepAdding) {
     const strategyNames = Object.keys(STRATEGY_TEMPLATES);
-    console.log('\nStrategy templates:');
+    process.stderr.write('\nStrategy templates:\n');
     for (let i = 0; i < strategyNames.length; i++) {
       const key = strategyNames[i];
       const tmpl = STRATEGY_TEMPLATES[key];
-      console.log(`  ${i + 1}. ${key} — ${tmpl.description}`);
+      process.stderr.write(`  ${i + 1}. ${key} — ${tmpl.description}\n`);
     }
 
     const choice = await rl.question(`\nSelect strategy (1-${strategyNames.length}): `);
     const choiceNum = parseInt(choice, 10);
 
     if (choiceNum < 1 || choiceNum > strategyNames.length) {
-      console.log('  Invalid selection.');
+      process.stderr.write('  Invalid selection.\n');
       const again = await rl.question('\nAdd another provider? (y/N) ');
       keepAdding = again.toLowerCase() === 'y';
       continue;
@@ -105,7 +107,7 @@ async function promptProviders(rl: ReturnType<typeof createInterface>): Promise<
 
     const id = await rl.question('Provider id (e.g., my-jira): ');
     if (!id.trim()) {
-      console.log('  Skipping — id is required.');
+      process.stderr.write('  Skipping — id is required.\n');
       const again = await rl.question('\nAdd another provider? (y/N) ');
       keepAdding = again.toLowerCase() === 'y';
       continue;
@@ -114,7 +116,7 @@ async function promptProviders(rl: ReturnType<typeof createInterface>): Promise<
     const domain = await rl.question('Domain(s) (comma-separated): ');
     const domains = domain.split(',').map(d => d.trim()).filter(Boolean);
     if (domains.length === 0) {
-      console.log('  Skipping — at least one domain is required.');
+      process.stderr.write('  Skipping — at least one domain is required.\n');
       const again = await rl.question('\nAdd another provider? (y/N) ');
       keepAdding = again.toLowerCase() === 'y';
       continue;
@@ -133,7 +135,7 @@ async function promptProviders(rl: ReturnType<typeof createInterface>): Promise<
       entryUrl: entryUrl ?? `https://${domains[0]}/`,
       ...(template.defaultConfig ? { config: template.defaultConfig } : {}),
     });
-    console.log(`  Added "${id.trim()}" (${strategyKey}).`);
+    process.stderr.write(`  Added "${id.trim()}" (${strategyKey}).\n`);
 
     const again = await rl.question('\nAdd another provider? (y/N) ');
     keepAdding = again.toLowerCase() === 'y';
@@ -162,7 +164,7 @@ export async function runInit(
       `Config file already exists: ${configPath}\n` +
       'Use --force to overwrite.\n',
     );
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
@@ -192,7 +194,7 @@ export async function runInit(
   if (isTTY && !yes) {
     const rl = createInterface({ input: process.stdin, output: process.stdout });
     try {
-      console.log('\nWelcome to Signet! Let\'s set up your configuration.\n');
+      process.stderr.write('\nWelcome to Signet! Let\'s set up your configuration.\n\n');
 
       const channelAnswer = await rl.question(`Browser channel [${defaultChannel}]: `);
       if (channelAnswer.trim()) channel = channelAnswer.trim();
@@ -219,7 +221,7 @@ export async function runInit(
     credentialsDir: displayCredentialsDir,
     headlessTimeout: 30_000,
     visibleTimeout: 120_000,
-    waitUntil: 'load',
+    waitUntil: WaitUntil.LOAD,
     providers: providers.length > 0 ? providers : undefined,
   });
 
@@ -229,14 +231,14 @@ export async function runInit(
     raw = YAML.parse(yaml);
   } catch (e: unknown) {
     process.stderr.write(`Bug: generated invalid YAML: ${(e as Error).message}\n`);
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
   const validationResult = validateConfig(raw as Record<string, unknown>);
   if (!isOk(validationResult)) {
     process.stderr.write(`Bug: generated config failed validation: ${validationResult.error.message}\n`);
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
@@ -249,31 +251,31 @@ export async function runInit(
   await fsp.writeFile(configPath, yaml, 'utf-8');
 
   // Success message
-  console.log(`\n  Config written to ${configPath}`);
-  console.log(`  Credentials:    ${credentialsDir}`);
+  process.stderr.write(`\n  Config written to ${configPath}\n`);
+  process.stderr.write(`  Credentials:    ${credentialsDir}\n`);
   if (!remote) {
-    console.log(`  Browser data:   ${browserDataDir}`);
-    console.log(`  Browser:        ${channel}`);
+    process.stderr.write(`  Browser data:   ${browserDataDir}\n`);
+    process.stderr.write(`  Browser:        ${channel}\n`);
   } else {
-    console.log(`  Browser:        disabled`);
+    process.stderr.write(`  Browser:        disabled\n`);
   }
   if (providers.length > 0) {
-    console.log(`  Providers:      ${providers.map(p => p.id).join(', ')}`);
+    process.stderr.write(`  Providers:      ${providers.map(p => p.id).join(', ')}\n`);
   }
   if (remote) {
-    console.log('\nRemote setup complete (browser disabled).\n');
-    console.log('Get credentials from a machine with a browser:');
-    console.log('  sig remote add <name> <host>    Add a remote with browser access');
-    console.log('  sig sync pull <name>            Pull credentials from that remote');
-    console.log('\nOr set credentials manually:');
-    console.log('  sig login <url> --cookie "..."   Set cookies from browser DevTools');
-    console.log('  sig login <url> --token <token>  Set an API token');
-    console.log('\n  sig doctor                      Check your setup');
+    process.stderr.write('\nRemote setup complete (browser disabled).\n\n');
+    process.stderr.write('Get credentials from a machine with a browser:\n');
+    process.stderr.write('  sig remote add <name> <host>    Add a remote with browser access\n');
+    process.stderr.write('  sig sync pull <name>            Pull credentials from that remote\n');
+    process.stderr.write('\nOr set credentials manually:\n');
+    process.stderr.write('  sig login <url> --cookie "..."   Set cookies from browser DevTools\n');
+    process.stderr.write('  sig login <url> --token <token>  Set an API token\n');
+    process.stderr.write('\n  sig doctor                      Check your setup\n');
   } else {
-    console.log('\nNext steps:');
-    console.log('  sig login <url>       Authenticate with a service');
-    console.log('  sig providers         List configured providers');
-    console.log('  sig doctor            Check your setup');
+    process.stderr.write('\nNext steps:\n');
+    process.stderr.write('  sig login <url>       Authenticate with a service\n');
+    process.stderr.write('  sig providers         List configured providers\n');
+    process.stderr.write('  sig doctor            Check your setup\n');
   }
-  console.log('');
+  process.stderr.write('\n');
 }

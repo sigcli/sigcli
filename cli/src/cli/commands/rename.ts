@@ -1,5 +1,6 @@
 import type { AuthDeps } from '../../deps.js';
 import { renameProviderInConfig } from '../../config/loader.js';
+import { ExitCode } from '../exit-codes.js';
 
 export async function runRename(
   positionals: string[],
@@ -11,7 +12,7 @@ export async function runRename(
 
   if (!oldId || !newId) {
     process.stderr.write('Usage: sig rename <old-id> <new-id>\n');
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
@@ -19,7 +20,7 @@ export async function runRename(
   const provider = deps.authManager.providerRegistry.resolveFlexible(oldId);
   if (!provider) {
     process.stderr.write(`Error: No provider found matching "${oldId}".\n`);
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
@@ -27,7 +28,7 @@ export async function runRename(
   const existing = deps.authManager.providerRegistry.get(newId);
   if (existing) {
     process.stderr.write(`Error: Provider "${newId}" already exists.\n`);
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 

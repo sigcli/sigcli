@@ -12,6 +12,9 @@ import { getConfigPath, loadConfig } from '../../config/loader.js';
 import { isOk } from '../../core/result.js';
 import { findChannelBrowser } from '../../browser/detect.js';
 import type { SignetConfig } from '../../config/schema.js';
+import { BROWSER_REQUIRED_STRATEGIES } from '../../core/constants.js';
+import { expandHome } from '../../utils/path.js';
+import { ExitCode } from '../exit-codes.js';
 
 interface CheckResult {
   label: string;
@@ -29,21 +32,21 @@ function printResults(results: CheckResult[]): void {
   for (const r of results) {
     if (r.ok) {
       const detail = r.detail ? ` (${r.detail})` : '';
-      console.log(`  ${PASS} ${r.label}${detail}`);
+      process.stderr.write(`  ${PASS} ${r.label}${detail}\n`);
     } else {
       failures++;
-      console.log(`  ${FAIL} ${r.label}`);
+      process.stderr.write(`  ${FAIL} ${r.label}\n`);
       if (r.hint) {
-        console.log(`    \u2192 ${r.hint}`);
+        process.stderr.write(`    \u2192 ${r.hint}\n`);
       }
     }
   }
 
-  console.log('');
+  process.stderr.write('\n');
   if (failures === 0) {
-    console.log('All checks passed.');
+    process.stderr.write('All checks passed.\n');
   } else {
-    console.log(`${failures} issue${failures > 1 ? 's' : ''} found.`);
+    process.stderr.write(`${failures} issue${failures > 1 ? 's' : ''} found.\n`);
   }
 }
 
@@ -87,7 +90,7 @@ async function checkCredentialsDir(config: SignetConfig | undefined): Promise<Ch
     };
   }
 
-  const dir = config.storage.credentialsDir.replace(/^~/, os.homedir());
+  const dir = expandHome(config.storage.credentialsDir);
   try {
     await fsp.access(dir, fs.constants.R_OK | fs.constants.W_OK);
     return {
@@ -113,7 +116,7 @@ async function checkBrowserDataDir(config: SignetConfig | undefined): Promise<Ch
     };
   }
 
-  const dir = config.browser.browserDataDir.replace(/^~/, os.homedir());
+  const dir = expandHome(config.browser.browserDataDir);
   const exists = fs.existsSync(dir);
   return {
     label: 'Browser data directory exists',
@@ -183,7 +186,7 @@ async function checkStoredCredentials(config: SignetConfig | undefined): Promise
     };
   }
 
-  const dir = config.storage.credentialsDir.replace(/^~/, os.homedir());
+  const dir = expandHome(config.storage.credentialsDir);
   try {
     const files = await fsp.readdir(dir);
     const jsonFiles = files.filter(f => f.endsWith('.json') && !f.endsWith('.lock'));
@@ -236,9 +239,8 @@ function checkBrowserRequired(config: SignetConfig | undefined, browserAvailable
     };
   }
 
-  const browserStrategies = new Set(['cookie', 'oauth2']);
   const browserProviders = Object.entries(config.providers)
-    .filter(([, entry]) => browserStrategies.has(entry.strategy))
+    .filter(([, entry]) => BROWSER_REQUIRED_STRATEGIES.has(entry.strategy))
     .map(([id]) => id);
 
   if (browserProviders.length === 0) {
@@ -307,6 +309,6 @@ export async function runDoctor(
 
   const hasFailures = results.some(r => !r.ok);
   if (hasFailures) {
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
   }
 }

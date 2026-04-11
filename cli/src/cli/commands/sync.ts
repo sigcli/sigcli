@@ -1,14 +1,17 @@
 import type { AuthDeps } from '../../deps.js';
 import { getRemote, getRemotes } from '../../sync/remote-config.js';
 import { SyncEngine } from '../../sync/sync-engine.js';
+import { SshTransport } from '../../sync/transports/ssh.js';
 import { formatJson } from '../formatters.js';
+import { ExitCode } from '../exit-codes.js';
+import { SyncSubcommand } from '../../core/constants.js';
 
 export async function runSync(positionals: string[], flags: Record<string, string | boolean | string[]>, deps: AuthDeps): Promise<void> {
   const subcommand = positionals[0];
 
-  if (subcommand !== 'push' && subcommand !== 'pull') {
+  if (subcommand !== SyncSubcommand.PUSH && subcommand !== SyncSubcommand.PULL) {
     process.stderr.write('Usage: sig sync <push|pull> [remote] [--provider <id>] [--force]\n');
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
@@ -20,14 +23,14 @@ export async function runSync(positionals: string[], flags: Record<string, strin
     remote = await getRemote(remoteName);
     if (!remote) {
       process.stderr.write(`Remote "${remoteName}" not found. Run "sig remote list" to see configured remotes.\n`);
-      process.exitCode = 4;
+      process.exitCode = ExitCode.REMOTE_NOT_FOUND;
       return;
     }
   } else {
     const remotes = await getRemotes();
     if (remotes.length === 0) {
       process.stderr.write('No remotes configured. Run "sig remote add <name> <host>" first.\n');
-      process.exitCode = 4;
+      process.exitCode = ExitCode.REMOTE_NOT_FOUND;
       return;
     }
     if (remotes.length > 1) {
@@ -35,24 +38,24 @@ export async function runSync(positionals: string[], flags: Record<string, strin
       for (const r of remotes) {
         process.stderr.write(`  ${r.name} (${r.host})\n`);
       }
-      process.exitCode = 1;
+      process.exitCode = ExitCode.GENERAL_ERROR;
       return;
     }
     remote = remotes[0];
   }
 
-  const engine = new SyncEngine(deps.storage, remote, deps.config);
+  const engine = new SyncEngine(deps.storage, remote, deps.config, new SshTransport());
   const force = flags.force === true;
   const provider = typeof flags.provider === 'string' ? [flags.provider] : undefined;
 
-  process.stderr.write(`${subcommand === 'push' ? 'Pushing' : 'Pulling'} credentials ${subcommand === 'push' ? 'to' : 'from'} "${remote.name}" (${remote.host})...\n`);
+  process.stderr.write(`${subcommand === SyncSubcommand.PUSH ? 'Pushing' : 'Pulling'} credentials ${subcommand === SyncSubcommand.PUSH ? 'to' : 'from'} "${remote.name}" (${remote.host})...\n`);
 
-  const result = subcommand === 'push'
+  const result = subcommand === SyncSubcommand.PUSH
     ? await engine.push(provider, force)
     : await engine.pull(provider, force);
 
   // Report results
-  const synced = subcommand === 'push' ? result.pushed : result.pulled;
+  const synced = subcommand === SyncSubcommand.PUSH ? result.pushed : result.pulled;
   if (synced.length > 0) {
     process.stderr.write(`Synced: ${synced.join(', ')}\n`);
   }
@@ -63,7 +66,7 @@ export async function runSync(positionals: string[], flags: Record<string, strin
     for (const e of result.errors) {
       process.stderr.write(`Error (${e.providerId}): ${e.error}\n`);
     }
-    process.exitCode = 4;
+    process.exitCode = ExitCode.REMOTE_NOT_FOUND;
   }
 
   // Report config sync results

@@ -6,6 +6,8 @@ import { addProviderToConfig } from '../../config/loader.js';
 import { isOk } from '../../core/result.js';
 import { formatJson } from '../formatters.js';
 import { ProviderNotFoundError } from '../../core/errors.js';
+import { BROWSER_REQUIRED_STRATEGIES, HttpHeader, AuthScheme, StrategyName as StrategyNameConst, CredentialTypeName } from '../../core/constants.js';
+import { ExitCode } from '../exit-codes.js';
 
 /** Convert runtime ProviderConfig to the YAML ProviderEntry format. */
 function toProviderEntry(pc: ProviderConfig): ProviderEntry {
@@ -47,7 +49,7 @@ export async function runLogin(
   const url = positionals[0];
   if (!url) {
     process.stderr.write('Usage: sig login <provider|url>\n');
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
@@ -57,7 +59,7 @@ export async function runLogin(
   } catch (e) {
     if (e instanceof ProviderNotFoundError) {
       process.stderr.write(`Error: No provider found matching "${url}". Run "sig providers" to see configured providers.\n`);
-      process.exitCode = 1;
+      process.exitCode = ExitCode.GENERAL_ERROR;
       return;
     }
     throw e;
@@ -89,21 +91,21 @@ export async function runLogin(
 
   if (typeof flags.token === 'string') {
     // Align strategy with credential type for auto-provisioned providers
-    if (provider.autoProvisioned && provider.strategy !== 'api-token') {
-      provider.strategy = 'api-token';
-      provider.strategyConfig = buildStrategyConfig('api-token');
+    if (provider.autoProvisioned && provider.strategy !== StrategyNameConst.API_TOKEN) {
+      provider.strategy = StrategyNameConst.API_TOKEN;
+      provider.strategyConfig = buildStrategyConfig(StrategyNameConst.API_TOKEN);
     }
 
     // Read headerName/headerPrefix from the typed strategy config if api-token
-    const headerName = provider.strategyConfig.strategy === 'api-token'
-      ? provider.strategyConfig.headerName ?? 'Authorization'
-      : 'Authorization';
-    const headerPrefix = provider.strategyConfig.strategy === 'api-token'
-      ? provider.strategyConfig.headerPrefix ?? 'Bearer'
-      : 'Bearer';
+    const headerName = provider.strategyConfig.strategy === StrategyNameConst.API_TOKEN
+      ? provider.strategyConfig.headerName ?? HttpHeader.AUTHORIZATION
+      : HttpHeader.AUTHORIZATION;
+    const headerPrefix = provider.strategyConfig.strategy === StrategyNameConst.API_TOKEN
+      ? provider.strategyConfig.headerPrefix ?? AuthScheme.BEARER
+      : AuthScheme.BEARER;
 
     const credential: ApiKeyCredential = {
-      type: 'api-key',
+      type: CredentialTypeName.API_KEY,
       key: flags.token,
       headerName,
       headerPrefix,
@@ -111,14 +113,14 @@ export async function runLogin(
     const result = await deps.authManager.setCredential(provider.id, credential);
     if (!isOk(result)) {
       process.stderr.write(`Error: ${result.error.message}\n`);
-      process.exitCode = 1;
+      process.exitCode = ExitCode.GENERAL_ERROR;
       return;
     }
     if (provider.autoProvisioned) {
       await addProviderToConfig(provider.id, toProviderEntry(provider));
     }
     process.stderr.write(`Token stored for "${provider.name}" (${provider.id}).\n`);
-    process.stdout.write(formatJson({ provider: provider.id, type: 'api-key' }) + '\n');
+    process.stdout.write(formatJson({ provider: provider.id, type: CredentialTypeName.API_KEY }) + '\n');
     return;
   }
 
@@ -128,63 +130,62 @@ export async function runLogin(
       domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
     } catch {
       process.stderr.write(`Error: Invalid URL "${url}"\n`);
-      process.exitCode = 1;
+      process.exitCode = ExitCode.GENERAL_ERROR;
       return;
     }
     const cookies = parseCookieString(flags.cookie, domain);
     if (cookies.length === 0) {
       process.stderr.write('Error: No valid cookies found in the provided string.\n');
-      process.exitCode = 1;
+      process.exitCode = ExitCode.GENERAL_ERROR;
       return;
     }
     const credential: CookieCredential = {
-      type: 'cookie',
+      type: CredentialTypeName.COOKIE,
       cookies,
       obtainedAt: new Date().toISOString(),
     };
     const result = await deps.authManager.setCredential(provider.id, credential);
     if (!isOk(result)) {
       process.stderr.write(`Error: ${result.error.message}\n`);
-      process.exitCode = 1;
+      process.exitCode = ExitCode.GENERAL_ERROR;
       return;
     }
     if (provider.autoProvisioned) {
       await addProviderToConfig(provider.id, toProviderEntry(provider));
     }
     process.stderr.write(`Cookie stored for "${provider.name}" (${provider.id}) — ${cookies.length} cookie(s).\n`);
-    process.stdout.write(formatJson({ provider: provider.id, type: 'cookie', count: cookies.length }) + '\n');
+    process.stdout.write(formatJson({ provider: provider.id, type: CredentialTypeName.COOKIE, count: cookies.length }) + '\n');
     return;
   }
 
   if (typeof flags.username === 'string' && typeof flags.password === 'string') {
     // Align strategy with credential type for auto-provisioned providers
-    if (provider.autoProvisioned && provider.strategy !== 'basic') {
-      provider.strategy = 'basic';
-      provider.strategyConfig = buildStrategyConfig('basic');
+    if (provider.autoProvisioned && provider.strategy !== StrategyNameConst.BASIC) {
+      provider.strategy = StrategyNameConst.BASIC;
+      provider.strategyConfig = buildStrategyConfig(StrategyNameConst.BASIC);
     }
 
     const credential: BasicCredential = {
-      type: 'basic',
+      type: CredentialTypeName.BASIC,
       username: flags.username,
       password: flags.password,
     };
     const result = await deps.authManager.setCredential(provider.id, credential);
     if (!isOk(result)) {
       process.stderr.write(`Error: ${result.error.message}\n`);
-      process.exitCode = 1;
+      process.exitCode = ExitCode.GENERAL_ERROR;
       return;
     }
     if (provider.autoProvisioned) {
       await addProviderToConfig(provider.id, toProviderEntry(provider));
     }
     process.stderr.write(`Basic auth credentials stored for "${provider.name}" (${provider.id}).\n`);
-    process.stdout.write(formatJson({ provider: provider.id, type: 'basic' }) + '\n');
+    process.stdout.write(formatJson({ provider: provider.id, type: CredentialTypeName.BASIC }) + '\n');
     return;
   }
 
   // Check if browser is available for strategies that require it
-  const browserStrategies = new Set(['cookie', 'oauth2']);
-  if (!deps.browserAvailable && browserStrategies.has(provider.strategy)) {
+  if (!deps.browserAvailable && BROWSER_REQUIRED_STRATEGIES.has(provider.strategy)) {
     process.stderr.write(
       `Browser is not available on this machine.\n` +
       `Provider "${provider.name}" uses "${provider.strategy}" strategy which requires a browser.\n\n` +
@@ -197,7 +198,7 @@ export async function runLogin(
       `  2. Then: sig remote add <name> <this-host>\n` +
       `  3. Then: sig sync push <name>\n`,
     );
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
@@ -205,7 +206,7 @@ export async function runLogin(
   const result = await deps.authManager.forceReauth(provider.id);
   if (!isOk(result)) {
     process.stderr.write(`Authentication failed: ${result.error.message}\n`);
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 

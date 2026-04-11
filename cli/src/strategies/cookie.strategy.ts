@@ -1,13 +1,14 @@
 import type { IAuthStrategy, IAuthStrategyFactory, AuthContext } from '../core/interfaces/auth-strategy.js';
-import type { Credential, CookieCredential, ProviderConfig } from '../core/types.js';
+import type { Credential, CookieCredential, CredentialResult, ProviderConfig, AuthDiagnostics } from '../core/types.js';
 import type { StrategyConfig, CookieStrategyConfig } from '../config/schema.js';
 import type { Result } from '../core/result.js';
 import { ok, err } from '../core/result.js';
 import { BrowserError, type AuthError } from '../core/errors.js';
 import { parseDuration } from '../utils/duration.js';
-import { runHybridFlow } from '../browser/flows/hybrid-flow.js';
+import { runHybridFlow, stderrLogger } from '../browser/flows/hybrid-flow.js';
 import { isLoginPage } from '../browser/flows/form-login.flow.js';
 import { hasOAuthTokens } from '../browser/flows/oauth-consent.flow.js';
+import { HttpHeader, WaitUntil, StrategyName, CredentialTypeName } from '../core/constants.js';
 
 const DEFAULT_TTL = '24h';
 
@@ -19,16 +20,14 @@ const DEFAULT_TTL = '24h';
 class CookieStrategy implements IAuthStrategy {
   private readonly ttlMs: number;
   private readonly requiredCookies: string[];
-  private readonly strategyConfig: CookieStrategyConfig;
 
   constructor(config: CookieStrategyConfig) {
-    this.strategyConfig = config;
     this.ttlMs = parseDuration(config.ttl ?? DEFAULT_TTL);
     this.requiredCookies = config.requiredCookies ?? [];
   }
 
   validate(credential: Credential): Result<boolean, AuthError> {
-    if (credential.type !== 'cookie') return ok(false);
+    if (credential.type !== CredentialTypeName.COOKIE) return ok(false);
 
     // Check TTL based on obtainedAt
     const obtainedAt = new Date(credential.obtainedAt).getTime();
@@ -52,7 +51,7 @@ class CookieStrategy implements IAuthStrategy {
   async authenticate(
     provider: ProviderConfig,
     context: AuthContext,
-  ): Promise<Result<Credential, AuthError>> {
+  ): Promise<Result<CredentialResult, AuthError>> {
     const adapter = context.browserAdapter;
 
     if (!provider.entryUrl) {
@@ -62,13 +61,14 @@ class CookieStrategy implements IAuthStrategy {
       ));
     }
 
-    return await runHybridFlow<Credential>(adapter, {
+    return await runHybridFlow<CredentialResult>(adapter, {
       entryUrl: provider.entryUrl,
       browserConfig: context.browserConfig,
       forceVisible: provider.forceVisible ?? false,
-      waitUntil: 'commit',
+      waitUntil: WaitUntil.COMMIT,
       xHeaders: provider.xHeaders,
       providerDomains: provider.domains,
+      logger: context.logger ?? stderrLogger,
 
       isAuthenticated: async (page) => {
         // If requiredCookies is set, auth is complete only when those cookies exist
@@ -104,21 +104,20 @@ class CookieStrategy implements IAuthStrategy {
         // Probe for OAuth tokens in browser storage (strategy mismatch detection)
         const oauthTokensDetected = await hasOAuthTokens(page).catch(() => false);
 
-        const credential: CookieCredential = {
-          type: 'cookie',
-          cookies,
-          obtainedAt: new Date().toISOString(),
-          ...(xHeaders && Object.keys(xHeaders).length > 0 ? { xHeaders } : {}),
-        };
-
-        // Attach diagnostics metadata for post-auth validation
-        (credential as any).__diagnostics = {
+        const diagnostics: AuthDiagnostics = {
           authDetectedImmediately: meta?.immediateAuth ?? false,
           oauthTokensDetected,
           cookiesExtracted: cookies.length,
         };
 
-        return ok(credential);
+        const credential: CookieCredential = {
+          type: CredentialTypeName.COOKIE,
+          cookies,
+          obtainedAt: new Date().toISOString(),
+          ...(xHeaders && Object.keys(xHeaders).length > 0 ? { xHeaders } : {}),
+        };
+
+        return ok({ credential, diagnostics });
       },
     });
   }
@@ -129,7 +128,7 @@ class CookieStrategy implements IAuthStrategy {
   }
 
   applyToRequest(credential: Credential): Record<string, string> {
-    if (credential.type !== 'cookie') return {};
+    if (credential.type !== CredentialTypeName.COOKIE) return {};
 
     const cookieStr = credential.cookies
       .map(c => `${c.name}=${c.value}`)
@@ -137,17 +136,17 @@ class CookieStrategy implements IAuthStrategy {
 
     // Apply x-headers first, then set Cookie so it always wins
     const headers: Record<string, string> = { ...credential.xHeaders };
-    headers['Cookie'] = cookieStr;
+    headers[HttpHeader.COOKIE] = cookieStr;
 
     return headers;
   }
 }
 
 export class CookieStrategyFactory implements IAuthStrategyFactory {
-  readonly name = 'cookie';
+  readonly name = StrategyName.COOKIE;
 
   create(config: StrategyConfig): IAuthStrategy {
-    if (config.strategy !== 'cookie') {
+    if (config.strategy !== StrategyName.COOKIE) {
       throw new Error(`CookieStrategyFactory received wrong config type: ${config.strategy}`);
     }
     return new CookieStrategy(config);

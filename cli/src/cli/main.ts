@@ -3,6 +3,7 @@ import { loadConfig, getConfigPath } from '../config/loader.js';
 import { createAuthDeps } from '../deps.js';
 import { isOk } from '../core/result.js';
 import type { AuthDeps } from '../deps.js';
+import { Command } from '../core/constants.js';
 
 import { runGet } from './commands/get.js';
 import { runLogin } from './commands/login.js';
@@ -17,6 +18,7 @@ import { runInit } from './commands/init.js';
 import { runDoctor } from './commands/doctor.js';
 import { runRename } from './commands/rename.js';
 import { runRemove } from './commands/remove.js';
+import { ExitCode } from './exit-codes.js';
 
 interface ParsedArgs {
   command: string;
@@ -89,22 +91,26 @@ Global options:
   --help                                    Show this help message
 `;
 
-const DEPS_COMMANDS = new Set(['get', 'login', 'status', 'logout', 'providers', 'request', 'sync', 'watch', 'rename', 'remove']);
+const DEPS_COMMANDS: ReadonlySet<string> = new Set([
+  Command.GET, Command.LOGIN, Command.STATUS, Command.LOGOUT,
+  Command.PROVIDERS, Command.REQUEST, Command.SYNC, Command.WATCH,
+  Command.RENAME, Command.REMOVE,
+]);
 
 export async function run(args: string[]): Promise<void> {
   const { command, positionals, flags } = parseArgs(args);
 
-  if (command === 'help' || flags.help === true) {
+  if (command === Command.HELP || flags.help === true) {
     process.stdout.write(HELP);
     return;
   }
 
   // Commands that don't need deps (run before config exists)
-  if (command === 'init') {
+  if (command === Command.INIT) {
     await runInit(positionals, flags);
     return;
   }
-  if (command === 'doctor') {
+  if (command === Command.DOCTOR) {
     await runDoctor(positionals, flags);
     return;
   }
@@ -119,14 +125,14 @@ export async function run(args: string[]): Promise<void> {
         `  No config file found at ${configPath}\n` +
         '  Run "sig init" to set up your configuration.\n\n',
       );
-      process.exitCode = 1;
+      process.exitCode = ExitCode.GENERAL_ERROR;
       return;
     }
 
     const configResult = await loadConfig();
     if (!isOk(configResult)) {
       process.stderr.write(`Config error: ${configResult.error.message}\n`);
-      process.exitCode = 1;
+      process.exitCode = ExitCode.GENERAL_ERROR;
       return;
     }
     const config = configResult.value;
@@ -135,42 +141,42 @@ export async function run(args: string[]): Promise<void> {
   }
 
   switch (command) {
-    case 'get':
+    case Command.GET:
       await runGet(positionals, flags, deps!);
       break;
-    case 'login':
+    case Command.LOGIN:
       await runLogin(positionals, flags, deps!);
       break;
-    case 'request':
+    case Command.REQUEST:
       await runRequest(positionals, flags, deps!);
       break;
-    case 'status':
+    case Command.STATUS:
       await runStatus(positionals, flags, deps!);
       break;
-    case 'logout':
+    case Command.LOGOUT:
       await runLogout(positionals, flags, deps!);
       break;
-    case 'providers':
+    case Command.PROVIDERS:
       await runProviders(positionals, flags, deps!);
       break;
-    case 'remote':
+    case Command.REMOTE:
       await runRemote(positionals, flags);
       break;
-    case 'sync':
+    case Command.SYNC:
       await runSync(positionals, flags, deps!);
       break;
-    case 'watch':
+    case Command.WATCH:
       await runWatch(positionals, flags, deps);
       break;
-    case 'rename':
+    case Command.RENAME:
       await runRename(positionals, flags, deps!);
       break;
-    case 'remove':
+    case Command.REMOVE:
       await runRemove(positionals, flags, deps!);
       break;
     default:
       process.stderr.write(`Unknown command: ${command}\n\n`);
       process.stdout.write(HELP);
-      process.exitCode = 1;
+      process.exitCode = ExitCode.GENERAL_ERROR;
   }
 }

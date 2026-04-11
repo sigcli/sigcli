@@ -14,12 +14,17 @@ import type {
   RemoteEntry,
   WatchEntry,
   WatchProviderEntry,
-  StrategyName,
+  StrategyName as StrategyNameType,
   StrategyConfig,
 } from './schema.js';
+import { StrategyName, WaitUntil } from '../core/constants.js';
 
-const VALID_STRATEGIES: readonly StrategyName[] = ['cookie', 'oauth2', 'api-token', 'basic'];
-const VALID_WAIT_UNTIL = ['load', 'networkidle', 'domcontentloaded', 'commit'];
+const VALID_STRATEGIES: readonly StrategyNameType[] = [
+  StrategyName.COOKIE, StrategyName.OAUTH2, StrategyName.API_TOKEN, StrategyName.BASIC,
+];
+const VALID_WAIT_UNTIL: readonly string[] = [
+  WaitUntil.LOAD, WaitUntil.NETWORK_IDLE, WaitUntil.DOM_CONTENT_LOADED, WaitUntil.COMMIT,
+];
 
 /**
  * Validate a raw config object parsed from YAML.
@@ -157,7 +162,7 @@ export function validateConfig(raw: Record<string, unknown>): Result<SignetConfi
     channel: browserRaw.channel as string,
     headlessTimeout: typeof browserRaw.headlessTimeout === 'number' ? browserRaw.headlessTimeout : 30_000,
     visibleTimeout: typeof browserRaw.visibleTimeout === 'number' ? browserRaw.visibleTimeout : 120_000,
-    waitUntil: typeof browserRaw.waitUntil === 'string' ? browserRaw.waitUntil as BrowserConfig['waitUntil'] : 'load',
+    waitUntil: typeof browserRaw.waitUntil === 'string' ? browserRaw.waitUntil as BrowserConfig['waitUntil'] : WaitUntil.LOAD,
   };
 
   const storageRaw = raw.storage as Record<string, unknown>;
@@ -247,7 +252,7 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
 
   if (typeof raw.strategy !== 'string') {
     errors.push(`Provider "${id}": missing required field "strategy"`);
-  } else if (!VALID_STRATEGIES.includes(raw.strategy as StrategyName)) {
+  } else if (!VALID_STRATEGIES.includes(raw.strategy as StrategyNameType)) {
     errors.push(
       `Provider "${id}": invalid strategy "${raw.strategy}". ` +
       `Valid strategies: ${VALID_STRATEGIES.join(', ')}`,
@@ -263,7 +268,7 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
   if (typeof raw.strategy === 'string' && raw.config && typeof raw.config === 'object') {
     const strategyErrors = validateStrategyConfig(
       id,
-      raw.strategy as StrategyName,
+      raw.strategy as StrategyNameType,
       raw.config as Record<string, unknown>,
     );
     errors.push(...strategyErrors);
@@ -274,29 +279,29 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
 
 function validateStrategyConfig(
   id: string,
-  strategy: StrategyName,
+  strategy: StrategyNameType,
   config: Record<string, unknown>,
 ): string[] {
   const errors: string[] = [];
 
   // Cross-strategy field checks: warn about fields that don't belong
-  if (strategy === 'cookie') {
+  if (strategy === StrategyName.COOKIE) {
     const oauthFields = ['audiences', 'tokenEndpoint', 'clientId', 'scopes'];
     for (const field of oauthFields) {
       if (config[field] !== undefined) {
         errors.push(
-          `Provider "${id}": config.${field} is not valid for strategy "cookie"`,
+          `Provider "${id}": config.${field} is not valid for strategy "${StrategyName.COOKIE}"`,
         );
       }
     }
   }
 
-  if (strategy === 'oauth2') {
+  if (strategy === StrategyName.OAUTH2) {
     const cookieFields = ['ttl', 'requiredCookies'];
     for (const field of cookieFields) {
       if (config[field] !== undefined) {
         errors.push(
-          `Provider "${id}": config.${field} is not valid for strategy "oauth2"`,
+          `Provider "${id}": config.${field} is not valid for strategy "${StrategyName.OAUTH2}"`,
         );
       }
     }
@@ -309,39 +314,39 @@ function validateStrategyConfig(
  * Merge a provider entry's strategy + config into a typed StrategyConfig.
  */
 export function buildStrategyConfig(
-  strategy: StrategyName,
+  strategy: StrategyNameType,
   config?: Record<string, unknown>,
 ): StrategyConfig {
   const c = config ?? {};
 
   switch (strategy) {
-    case 'cookie':
+    case StrategyName.COOKIE:
       return {
-        strategy: 'cookie',
+        strategy: StrategyName.COOKIE,
         ...(typeof c.ttl === 'string' ? { ttl: c.ttl } : {}),
         ...(Array.isArray(c.requiredCookies) ? { requiredCookies: c.requiredCookies as string[] } : {}),
       };
 
-    case 'oauth2':
+    case StrategyName.OAUTH2:
       return {
-        strategy: 'oauth2',
+        strategy: StrategyName.OAUTH2,
         ...(Array.isArray(c.audiences) ? { audiences: c.audiences as string[] } : {}),
         ...(typeof c.tokenEndpoint === 'string' ? { tokenEndpoint: c.tokenEndpoint } : {}),
         ...(typeof c.clientId === 'string' ? { clientId: c.clientId } : {}),
         ...(Array.isArray(c.scopes) ? { scopes: c.scopes as string[] } : {}),
       };
 
-    case 'api-token':
+    case StrategyName.API_TOKEN:
       return {
-        strategy: 'api-token',
+        strategy: StrategyName.API_TOKEN,
         ...(typeof c.headerName === 'string' ? { headerName: c.headerName } : {}),
         ...(typeof c.headerPrefix === 'string' ? { headerPrefix: c.headerPrefix } : {}),
         ...(typeof c.setupInstructions === 'string' ? { setupInstructions: c.setupInstructions } : {}),
       };
 
-    case 'basic':
+    case StrategyName.BASIC:
       return {
-        strategy: 'basic',
+        strategy: StrategyName.BASIC,
         ...(typeof c.setupInstructions === 'string' ? { setupInstructions: c.setupInstructions } : {}),
       };
   }
@@ -352,7 +357,7 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
     ...(typeof raw.name === 'string' ? { name: raw.name } : {}),
     domains: raw.domains as string[],
     entryUrl: raw.entryUrl as string,
-    strategy: raw.strategy as StrategyName,
+    strategy: raw.strategy as StrategyNameType,
     ...(raw.config && typeof raw.config === 'object' ? { config: raw.config as Record<string, unknown> } : {}),
     ...(Array.isArray(raw.acceptedCredentialTypes) ? { acceptedCredentialTypes: raw.acceptedCredentialTypes } : {}),
     ...(typeof raw.setupInstructions === 'string' ? { setupInstructions: raw.setupInstructions } : {}),
