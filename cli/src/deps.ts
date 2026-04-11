@@ -1,6 +1,6 @@
 import os from 'node:os';
 import type { IStorage } from './core/interfaces/storage.js';
-import type { ProviderConfig } from './core/types.js';
+import type { ILogger, ProviderConfig } from './core/types.js';
 import type { SignetConfig } from './config/schema.js';
 import { AuthManager } from './auth-manager.js';
 import { StrategyRegistry } from './strategies/registry.js';
@@ -28,10 +28,30 @@ export interface AuthDeps {
 }
 
 /**
+ * Create a logger that writes to stderr with level prefixes.
+ */
+export function createConsoleLogger(): ILogger {
+  return {
+    debug(message: string, ...args: unknown[]) {
+      process.stderr.write(`[DEBUG] ${message}${args.length ? ' ' + args.map(String).join(' ') : ''}\n`);
+    },
+    info(message: string, ...args: unknown[]) {
+      process.stderr.write(`[INFO] ${message}${args.length ? ' ' + args.map(String).join(' ') : ''}\n`);
+    },
+    warn(message: string, ...args: unknown[]) {
+      process.stderr.write(`[WARN] ${message}${args.length ? ' ' + args.map(String).join(' ') : ''}\n`);
+    },
+    error(message: string, ...args: unknown[]) {
+      process.stderr.write(`[ERROR] ${message}${args.length ? ' ' + args.map(String).join(' ') : ''}\n`);
+    },
+  };
+}
+
+/**
  * Create the auth dependency graph from a validated SignetConfig.
  * No env vars, no cascade — config is the single source of truth.
  */
-export function createAuthDeps(config: SignetConfig): AuthDeps {
+export function createAuthDeps(config: SignetConfig, options?: { verbose?: boolean }): AuthDeps {
   // 1. Convert config providers to ProviderConfig[]
   const providerConfigs: ProviderConfig[] = Object.entries(config.providers).map(
     ([id, entry]) => ({
@@ -73,12 +93,14 @@ export function createAuthDeps(config: SignetConfig): AuthDeps {
     : () => new NullBrowserAdapter('Running in browserless mode (mode: browserless)');
 
   // 5. Build AuthManager
+  const logger = options?.verbose ? createConsoleLogger() : undefined;
   const authManager = new AuthManager({
     storage,
     strategyRegistry,
     providerRegistry,
     browserAdapterFactory,
     browserConfig,
+    logger,
   });
 
   return { authManager, storage, providerRegistry, strategyRegistry, config, browserAvailable };
