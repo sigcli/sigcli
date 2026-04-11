@@ -25,6 +25,7 @@ vi.mock('node:fs/promises', () => ({
 
 vi.mock('node:child_process', () => ({
   execSync: vi.fn(),
+  execFile: vi.fn(),
 }));
 
 vi.mock('../../../src/config/loader.js', () => ({
@@ -40,11 +41,9 @@ vi.mock('playwright-core', () => ({
 // Import after mocking
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
-import { getConfigPath, loadConfig } from '../../../src/config/loader.js';
-import { ok, err } from '../../../src/core/result.js';
-import { ConfigError } from '../../../src/core/errors.js';
+import { ok, err, ConfigError, getConfigPath, loadConfig } from '../../../src';
 import { runDoctor } from '../../../src/cli/commands/doctor.js';
-import type { SignetConfig } from '../../../src/config/schema.js';
+import type { SignetConfig } from '../../../src';
 
 const mockExistsSync = vi.mocked(fs.existsSync);
 const mockAccess = vi.mocked(fsp.access);
@@ -56,7 +55,7 @@ const mockLoadConfig = vi.mocked(loadConfig);
 const EXPECTED_CONFIG_PATH = path.join(os.homedir(), '.signet', 'config.yaml');
 
 function validConfig(overrides: Partial<SignetConfig> = {}): SignetConfig {
-  return {
+  return <SignetConfig>{
     browser: {
       browserDataDir: '/tmp/test-browser-data',
       channel: 'chrome',
@@ -71,6 +70,7 @@ function validConfig(overrides: Partial<SignetConfig> = {}): SignetConfig {
       test: {
         domains: ['test.example.com'],
         strategy: 'cookie',
+        entryUrl: ''
       },
     },
     ...overrides,
@@ -79,7 +79,7 @@ function validConfig(overrides: Partial<SignetConfig> = {}): SignetConfig {
 
 describe('runDoctor', () => {
   let logs: string[];
-  let originalExitCode: number | undefined;
+  let originalExitCode: number | string | undefined;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -87,9 +87,10 @@ describe('runDoctor', () => {
     originalExitCode = process.exitCode;
     process.exitCode = undefined;
 
-    // Capture console.log output
-    vi.spyOn(console, 'log').mockImplementation((...args: unknown[]) => {
-      logs.push(args.join(' '));
+    // Capture process.stderr.write output (doctor uses stderr, not console.log)
+    vi.spyOn(process.stderr, 'write').mockImplementation((chunk: string | Uint8Array) => {
+      logs.push(String(chunk));
+      return true;
     });
 
     // Default config path
@@ -117,7 +118,7 @@ describe('runDoctor', () => {
 
     await runDoctor([], {});
 
-    const output = logs.join('\n');
+    const output = logs.join('');
     // Should report config file missing
     expect(output).toContain('Config file exists');
     expect(output).toContain('\u2717'); // FAIL mark
@@ -144,7 +145,7 @@ describe('runDoctor', () => {
 
     await runDoctor([], {});
 
-    const output = logs.join('\n');
+    const output = logs.join('');
     // Config exists check passes
     expect(output).toContain('\u2713'); // at least one PASS
     // But validation fails
@@ -173,7 +174,7 @@ describe('runDoctor', () => {
 
     await runDoctor([], {});
 
-    const output = logs.join('\n');
+    const output = logs.join('');
     // Config checks pass
     expect(output).toContain('Config file exists');
     expect(output).toContain('Config is valid');
@@ -196,7 +197,7 @@ describe('runDoctor', () => {
 
     await runDoctor([], {});
 
-    const output = logs.join('\n');
+    const output = logs.join('');
     expect(output).toContain('All checks passed');
     expect(process.exitCode).not.toBe(1);
   });
@@ -213,7 +214,7 @@ describe('runDoctor', () => {
 
     await runDoctor([], {});
 
-    const output = logs.join('\n');
+    const output = logs.join('');
     // Should show node version check passed
     expect(output).toContain('Node.js version');
     expect(output).toContain(process.version);
@@ -236,7 +237,7 @@ describe('runDoctor', () => {
 
     await runDoctor([], {});
 
-    const output = logs.join('\n');
+    const output = logs.join('');
     // Count the FAIL marks in output
     const failCount = logs.filter(l => l.includes('\u2717')).length;
     // The summary line should mention the count
@@ -275,7 +276,7 @@ describe('runDoctor', () => {
 
     await runDoctor([], {});
 
-    const output = logs.join('\n');
+    const output = logs.join('');
     expect(output).toContain('Stored credentials');
     // Should count only .json files (not .lock)
     expect(output).toContain('2 stored credentials');
@@ -291,7 +292,7 @@ describe('runDoctor', () => {
 
     await runDoctor([], {});
 
-    const output = logs.join('\n');
+    const output = logs.join('');
     expect(output).toContain('0 stored credentials');
   });
 
@@ -313,7 +314,7 @@ describe('runDoctor', () => {
 
     await runDoctor([], {});
 
-    const output = logs.join('\n');
+    const output = logs.join('');
     // Only browser data dir should fail (1 issue)
     // The summary should use singular
     const failLines = logs.filter(l => l.includes('\u2717'));

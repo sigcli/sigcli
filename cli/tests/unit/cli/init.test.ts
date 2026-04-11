@@ -245,7 +245,7 @@ describe('runInit', () => {
   it('prints success message after writing config', async () => {
     await runInit([], { yes: true });
 
-    const output = stdoutLogs.join('\n');
+    const output = stderrChunks.join('');
     expect(output).toContain('Config written to');
     expect(output).toContain('Browser data:');
     expect(output).toContain('Credentials:');
@@ -258,7 +258,7 @@ describe('runInit', () => {
   it('success message shows the selected channel', async () => {
     await runInit([], { yes: true, channel: 'msedge' });
 
-    const output = stdoutLogs.join('\n');
+    const output = stderrChunks.join('');
     expect(output).toContain('msedge');
   });
 
@@ -317,7 +317,7 @@ describe('runInit', () => {
   it('--remote shows remote-specific guidance', async () => {
     await runInit([], { remote: true });
 
-    const output = stdoutLogs.join('\n');
+    const output = stderrChunks.join('');
     expect(output).toContain('Remote setup complete');
     expect(output).toContain('browser disabled');
     expect(output).toContain('sig sync pull');
@@ -329,7 +329,7 @@ describe('runInit', () => {
   it('--remote shows "Browser: disabled" in success message', async () => {
     await runInit([], { remote: true });
 
-    const output = stdoutLogs.join('\n');
+    const output = stderrChunks.join('');
     expect(output).toContain('Browser:        disabled');
     // Should NOT show browser data dir or channel
     expect(output).not.toContain('Browser data:');
