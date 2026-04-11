@@ -143,7 +143,7 @@ export class DirectoryStorage implements IStorage {
   }
 
   private async ensureDir(): Promise<void> {
-    await fs.mkdir(this.dirPath, { recursive: true });
+    await fs.mkdir(this.dirPath, { recursive: true, mode: 0o700 });
   }
 
   private async readFile(filePath: string): Promise<ProviderFile> {
@@ -169,7 +169,7 @@ export class DirectoryStorage implements IStorage {
     try {
       const content = JSON.stringify(data, null, 2);
       const tmpPath = `${filePath}.tmp.${process.pid}`;
-      await fs.writeFile(tmpPath, content, 'utf-8');
+      await fs.writeFile(tmpPath, content, { encoding: 'utf-8', mode: 0o600 });
       await fs.rename(tmpPath, filePath);
     } catch (e: unknown) {
       throw new StorageError('write', (e as Error).message);
@@ -181,7 +181,7 @@ export class DirectoryStorage implements IStorage {
 
     // Use a separate .lock file so we never create dummy credential files
     const lockPath = `${filePath}.lock`;
-    await fs.writeFile(lockPath, '', { flag: 'a' });
+    await fs.writeFile(lockPath, '', { flag: 'a', mode: 0o600 });
 
     let release: (() => Promise<void>) | undefined;
     try {
