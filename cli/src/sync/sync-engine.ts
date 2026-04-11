@@ -165,7 +165,11 @@ export class SyncEngine {
             } else {
                 // Parse with Document to preserve comments
                 doc = YAML.parseDocument(remoteYaml);
-                const remoteProviders = (doc.getIn(['providers']) as YAML.YAMLMap)?.toJSON() ?? {};
+                const remoteProviders: Record<string, unknown> =
+                    ((doc.getIn(['providers']) as YAML.YAMLMap)?.toJSON() as Record<
+                        string,
+                        unknown
+                    >) ?? {};
                 // Merge: local wins on push
                 const merged = { ...remoteProviders, ...localProviders };
                 doc.setIn(['providers'], doc.createNode(merged));
@@ -195,7 +199,10 @@ export class SyncEngine {
             // Parse remote and extract providers
             const remoteDoc = YAML.parseDocument(remoteYaml);
             const allRemoteProviders: Record<string, unknown> =
-                (remoteDoc.getIn(['providers']) as YAML.YAMLMap)?.toJSON() ?? {};
+                ((remoteDoc.getIn(['providers']) as YAML.YAMLMap)?.toJSON() as Record<
+                    string,
+                    unknown
+                >) ?? {};
 
             // Filter by providerIds if specified
             const remoteProviders = providerIds
@@ -213,7 +220,8 @@ export class SyncEngine {
             const localYaml = await fs.readFile(configPath, 'utf-8');
             const doc = YAML.parseDocument(localYaml);
             const localProviders: Record<string, unknown> =
-                (doc.getIn(['providers']) as YAML.YAMLMap)?.toJSON() ?? {};
+                ((doc.getIn(['providers']) as YAML.YAMLMap)?.toJSON() as Record<string, unknown>) ??
+                {};
 
             // Merge: remote wins on pull
             const merged = { ...localProviders, ...remoteProviders };

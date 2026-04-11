@@ -187,37 +187,37 @@ export async function run(args: string[]): Promise<void> {
 
     switch (command) {
         case Command.GET:
-            await runGet(positionals, flags, deps!);
+            await runGet(positionals, flags, deps as AuthDeps);
             break;
         case Command.LOGIN:
-            await runLogin(positionals, flags, deps!);
+            await runLogin(positionals, flags, deps as AuthDeps);
             break;
         case Command.REQUEST:
-            await runRequest(positionals, flags, deps!);
+            await runRequest(positionals, flags, deps as AuthDeps);
             break;
         case Command.STATUS:
-            await runStatus(positionals, flags, deps!);
+            await runStatus(positionals, flags, deps as AuthDeps);
             break;
         case Command.LOGOUT:
-            await runLogout(positionals, flags, deps!);
+            await runLogout(positionals, flags, deps as AuthDeps);
             break;
         case Command.PROVIDERS:
-            await runProviders(positionals, flags, deps!);
+            await runProviders(positionals, flags, deps as AuthDeps);
             break;
         case Command.REMOTE:
             await runRemote(positionals, flags);
             break;
         case Command.SYNC:
-            await runSync(positionals, flags, deps!);
+            await runSync(positionals, flags, deps as AuthDeps);
             break;
         case Command.WATCH:
             await runWatch(positionals, flags, deps);
             break;
         case Command.RENAME:
-            await runRename(positionals, flags, deps!);
+            await runRename(positionals, flags, deps as AuthDeps);
             break;
         case Command.REMOVE:
-            await runRemove(positionals, flags, deps!);
+            await runRemove(positionals, flags, deps as AuthDeps);
             break;
         default:
             process.stderr.write(`Unknown command: ${command}\n\n`);

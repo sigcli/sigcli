@@ -53,12 +53,12 @@ export function formatTable(rows: Record<string, string>[], options?: FormatTabl
         return value + ' '.repeat(Math.max(0, width - visible));
     };
 
-    const header = columns.map((c) => c.toUpperCase().padEnd(widths.get(c)!)).join('  ');
-    const separator = columns.map((c) => '-'.repeat(widths.get(c)!)).join('  ');
+    const w = (col: string) => widths.get(col) ?? 0;
+
+    const header = columns.map((c) => c.toUpperCase().padEnd(w(c))).join('  ');
+    const separator = columns.map((c) => '-'.repeat(w(c))).join('  ');
     const body = rows.map((row) =>
-        columns
-            .map((c) => padEnd(truncate(row[c] ?? '', widths.get(c)!), widths.get(c)!))
-            .join('  '),
+        columns.map((c) => padEnd(truncate(row[c] ?? '', w(c)), w(c))).join('  '),
     );
 
     return [header, separator, ...body].join('\n');
