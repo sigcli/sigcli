@@ -15,18 +15,12 @@ Collected from real-world usage of `sig` with SAP systems (Jira, Wiki, Teams, Gr
 ```typescript
 function deriveShortId(hostname: string): string {
   const parts = hostname.split(".");
-  // Most SAP URLs: the first segment is already descriptive
-  //   bdc-cockpit-starkiller-hc-ga.starkiller.hanacloudservices.cloud.sap → bdc-cockpit-starkiller-hc-ga
-  //   hana-e2e-bdc.master.canary.eu10.projectorca.cloud → hana-e2e-bdc
-  //   jira.tools.sap → jira-tools-sap (too short, keep more)
   const firstSegment = parts[0];
 
-  // If the first segment is already unique enough (>= 8 chars), use it
   if (firstSegment.length >= 8) {
     return firstSegment;
   }
 
-  // Otherwise join first two segments
   if (parts.length >= 2) {
     return `${parts[0]}-${parts[1]}`;
   }
@@ -36,50 +30,6 @@ function deriveShortId(hostname: string): string {
 ```
 
 **Collision handling**: If the derived ID already exists in the provider registry, append `-2`, `-3`, etc.
-
----
-
-## 2. `sig login --as <id> <url>`
-
-**Problem**: No way to specify a custom provider ID at login time. Users must edit `config.yaml` after the fact to rename auto-provisioned entries.
-
-**Proposed**: Add `--as` flag to `sig login`:
-
-```bash
-sig login --as bdc-starkiller https://bdc-cockpit-starkiller-hc-ga.starkiller.hanacloudservices.cloud.sap/
-```
-
-**Where**: `src/cli/commands/login.ts` — after resolving the provider, override `provider.id` if `--as` is provided.
-
----
-
-## 3. `sig rename <old-id> <new-id>`
-
-**Problem**: Renaming a provider requires manually editing `config.yaml` AND renaming the credential file in `~/.signet/credentials/`. Error-prone.
-
-**Proposed**: New CLI command that atomically:
-
-1. Updates the provider key in `config.yaml`
-2. Renames `credentials/<old-id>.json` to `credentials/<new-id>.json`
-3. Updates the `providerId` field inside the credential JSON
-
----
-
-## ~~4. Truncated Table Output in `sig status`~~ DONE
-
-ID column capped at 30 chars with `…` truncation. Default view shows only `ID | STRATEGY | STATUS | EXPIRES` — dropped redundant `name` and `type` columns.
-
----
-
-## ~~5. Human-Readable Expiry in `sig status`~~ DONE
-
-`formatExpiry()` in `src/cli/formatters.ts`: `45m` / `5h` / `12d` / `2mo`.
-
----
-
-## ~~6. Color / Status Indicators~~ DONE
-
-Green `✓` (valid), red `✗` (expired), dim `—` (no credential). TTY-aware, ANSI-safe width calculation in `formatTable`.
 
 ---
 
@@ -96,12 +46,6 @@ Green `✓` (valid), red `✗` (expired), dim `—` (no credential). TTY-aware, 
 
 ---
 
-## ~~9. CLI Help & Command Documentation~~ DONE
-
-Help output grouped by resource (Provider / Remote / Setup), tagline added.
-
----
-
 ## 10. Shell Completions
 
 **Problem**: Provider IDs are hard to remember and type. No tab completion support.
@@ -113,30 +57,6 @@ Help output grouped by resource (Provider / Remote / Setup), tagline added.
 - `sig status <TAB>` → list provider IDs
 
 Implement via `sig completions bash|zsh|fish` that outputs the completion script.
-
----
-
-## ~~11. `sig remove <provider>` — Full Provider Deletion~~ DONE
-
-`sig remove` command with multi-provider support, `--force`, `--keep-config`, confirmation prompt. Uses `YAML.parseDocument()` to preserve comments when removing from config.
-
----
-
-## ~~12. Multiple `--header` Flags in `sig request`~~ DONE
-
-Arg parser accumulates repeated flags into arrays. `request.ts` iterates all `--header` values.
-
----
-
-## ~~13. Credential File Permissions (0o600)~~ DONE
-
-`DirectoryStorage` now uses `mode: 0o600` for credential files and lock files, `mode: 0o700` for directories.
-
----
-
-## ~~14. `--verbose` / `--debug` Global Flag~~ DONE
-
-`--verbose` global flag creates a console-based logger via `createConsoleLogger()` in `deps.ts`, piped through the dependency graph.
 
 ---
 
@@ -177,12 +97,6 @@ providers:
 
 ---
 
-## ~~17. `sig doctor` Bug Fix: `cred?.token` Check~~ DONE
-
-Fixed `cred?.token` → `cred?.accessToken` in `src/cli/commands/doctor.ts`.
-
----
-
 ## 18. Windows Browser Detection
 
 **Problem**: `src/browser/detect.ts` line 41: `// Windows or unknown -- cannot detect, assume null`. `sig doctor` and `sig init` cannot auto-detect browsers on Windows.
@@ -195,7 +109,7 @@ Fixed `cred?.token` → `cred?.accessToken` in `src/cli/commands/doctor.ts`.
 
 ## 19. Encrypted Credential Storage
 
-**Problem**: Credentials stored as plain JSON in `~/.signet/credentials/`. Even with 0o600 permissions (#13), root or backup processes can read them.
+**Problem**: Credentials stored as plain JSON in `~/.signet/credentials/`. Even with 0o600 permissions, root or backup processes can read them.
 
 **Proposed**: New `EncryptedStorage` decorator (wrapping `DirectoryStorage`, like `CachedStorage`) that AES-256-GCM encrypts credentials before writing to disk. Encryption key stored in OS keychain (via `keytar` or Node.js `crypto`).
 
@@ -236,20 +150,32 @@ sig import creds.enc                          # Decrypt and store
 
 ---
 
+## Completed
+
+| #   | Improvement                         |
+| --- | ----------------------------------- |
+| 2   | `--as` flag for login               |
+| 3   | `sig rename` command                |
+| 4   | Truncated table output              |
+| 5   | Human-readable expiry               |
+| 6   | Color / status indicators           |
+| 9   | CLI help & command docs             |
+| 11  | `sig remove` command                |
+| 12  | Multiple `--header` flags           |
+| 13  | Credential file permissions (0o600) |
+| 14  | `--verbose` / `--debug` flag        |
+| 17  | `sig doctor` bug fix                |
+
+---
+
 ## Priority
 
 ### Tier 1: Quick Wins (Small effort, High impact)
 
-| #   | Improvement                         | Impact | Effort | Status |
-| --- | ----------------------------------- | ------ | ------ | ------ |
-| 1   | Smarter auto-provisioned IDs        | High   | Small  |        |
-| 2   | `--as` flag for login               | High   | Small  | DONE   |
-| 11  | `sig remove` command                | High   | Small  | DONE   |
-| 12  | Multiple `--header` flags           | High   | Small  | DONE   |
-| 13  | Credential file permissions (0o600) | High   | Small  | DONE   |
-| 14  | `--verbose` / `--debug` flag        | High   | Small  | DONE   |
-| 15  | `sig renew` command                 | High   | Small  |        |
-| 9   | CLI help & command docs             | High   | Small  | DONE   |
+| #   | Improvement                  | Impact | Effort |
+| --- | ---------------------------- | ------ | ------ |
+| 1   | Smarter auto-provisioned IDs | High   | Small  |
+| 15  | `sig renew` command          | High   | Small  |
 
 ### Tier 2: Polish (Small effort, Medium impact)
 
@@ -262,7 +188,6 @@ sig import creds.enc                          # Decrypt and store
 
 | #   | Improvement                 | Impact | Effort |
 | --- | --------------------------- | ------ | ------ |
-| 3   | `sig rename` command        | High   | Medium |
 | 16  | Device Code OAuth2 strategy | High   | Medium |
 | 10  | Shell completions           | Medium | Medium |
 | 18  | Windows browser detection   | Medium | Small  |
