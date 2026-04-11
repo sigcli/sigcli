@@ -32,7 +32,6 @@ export async function runRename(
   }
 
   const resolvedOldId = provider.id;
-
   // Move credential in storage
   const stored = await deps.storage.get(resolvedOldId);
   if (stored) {

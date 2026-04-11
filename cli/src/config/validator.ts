@@ -190,6 +190,12 @@ export function validateConfig(raw: Record<string, unknown>): Result<SignetConfi
   let watch: WatchEntry | undefined;
   if (raw.watch && typeof raw.watch === 'object') {
     const w = raw.watch as Record<string, unknown>;
+    if (typeof w.interval !== 'string') {
+      errors.push('watch: missing required field "interval"');
+    }
+    if (!w.providers || typeof w.providers !== 'object') {
+      errors.push('watch: missing required field "providers"');
+    }
     const watchProviders: Record<string, WatchProviderEntry | null> = {};
     if (w.providers && typeof w.providers === 'object') {
       for (const [id, opts] of Object.entries(w.providers as Record<string, unknown>)) {
@@ -204,8 +210,8 @@ export function validateConfig(raw: Record<string, unknown>): Result<SignetConfi
       }
     }
     watch = {
-      ...(typeof w.interval === 'string' ? { interval: w.interval } : {}),
-      ...(Object.keys(watchProviders).length > 0 ? { providers: watchProviders } : {}),
+      interval: w.interval as string,
+      providers: watchProviders,
     };
   }
 
@@ -233,6 +239,10 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
         break;
       }
     }
+  }
+
+  if (typeof raw.entryUrl !== 'string' || raw.entryUrl.length === 0) {
+    errors.push(`Provider "${id}": missing required field "entryUrl"`);
   }
 
   if (typeof raw.strategy !== 'string') {
@@ -341,12 +351,11 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
   return {
     ...(typeof raw.name === 'string' ? { name: raw.name } : {}),
     domains: raw.domains as string[],
-    ...(typeof raw.entryUrl === 'string' ? { entryUrl: raw.entryUrl } : {}),
+    entryUrl: raw.entryUrl as string,
     strategy: raw.strategy as StrategyName,
     ...(raw.config && typeof raw.config === 'object' ? { config: raw.config as Record<string, unknown> } : {}),
     ...(Array.isArray(raw.acceptedCredentialTypes) ? { acceptedCredentialTypes: raw.acceptedCredentialTypes } : {}),
     ...(typeof raw.setupInstructions === 'string' ? { setupInstructions: raw.setupInstructions } : {}),
-    ...(typeof raw.credentialFile === 'string' ? { credentialFile: raw.credentialFile } : {}),
     ...(Array.isArray(raw.xHeaders) ? { xHeaders: raw.xHeaders } : {}),
     ...(typeof raw.forceVisible === 'boolean' ? { forceVisible: raw.forceVisible } : {}),
   };

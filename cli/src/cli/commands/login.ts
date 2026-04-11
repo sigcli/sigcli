@@ -13,7 +13,7 @@ function toProviderEntry(pc: ProviderConfig): ProviderEntry {
   return {
     ...(pc.name !== pc.id ? { name: pc.name } : {}),
     domains: pc.domains,
-    ...(pc.entryUrl ? { entryUrl: pc.entryUrl } : {}),
+    entryUrl: pc.entryUrl ?? `https://${pc.domains[0]}/`,
     strategy: pc.strategy as StrategyName,
     ...(Object.keys(strategyRest).length > 0 ? { config: strategyRest } : {}),
     ...(pc.acceptedCredentialTypes ? { acceptedCredentialTypes: pc.acceptedCredentialTypes } : {}),

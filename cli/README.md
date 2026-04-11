@@ -90,13 +90,14 @@ All checks passed.
 
 ```bash
 sig login <url>
+sig login <url> --as <custom-id>
 sig login <url> --token <value>
 sig login <url> --cookie "name=value; name2=value2"
 sig login <url> --username <user> --password <pass>
 sig login <url> --strategy <cookie|oauth2|api-token|basic>
 ```
 
-Opens a browser for SSO login by default. Use `--token` to store an API key, `--cookie` to set cookies from browser DevTools, or `--username`/`--password` for basic auth -- all without a browser.
+Opens a browser for SSO login by default. Use `--as` to assign a custom provider ID instead of auto-deriving one. Use `--token` to store an API key, `--cookie` to set cookies from browser DevTools, or `--username`/`--password` for basic auth -- all without a browser.
 
 ### `get` -- Retrieve credentials
 
@@ -112,10 +113,10 @@ Returns stored credentials as JSON (default), raw headers, or just the value.
 ```bash
 sig request <url>
 sig request <url> --method POST --body '{"key":"value"}'
-sig request <url> --header "X-Custom: value" --format body
+sig request <url> --header "Content-Type: application/json" --header "X-Requested-With: XMLHttpRequest" --format body
 ```
 
-Injects credentials automatically. Supports `GET`, `POST`, `PUT`, `PATCH`. Output as full JSON response (default), body only, or headers only.
+Injects credentials automatically. Supports `GET`, `POST`, `PUT`, `PATCH`. Multiple `--header` flags are supported. Output as full JSON response (default), body only, or headers only.
 
 ### `status` -- Check authentication status
 
@@ -134,6 +135,24 @@ sig logout [provider]
 ```
 
 Clears credentials for a specific provider, or all providers if none specified.
+
+### `rename` -- Rename a provider
+
+```bash
+sig rename <old-id> <new-id>
+```
+
+Atomically renames a provider: updates the key in `config.yaml`, renames the credential file, and updates the provider registry.
+
+### `remove` -- Remove a provider
+
+```bash
+sig remove <provider> [...providers]
+sig remove <provider> --keep-config    # Clear credentials only, keep config entry
+sig remove <provider> --force          # Skip confirmation
+```
+
+Fully removes a provider: deletes credentials and removes the entry from `config.yaml`. Use `--keep-config` to only clear credentials while keeping the config entry. Accepts multiple provider IDs.
 
 ### `providers` -- List configured providers
 
@@ -268,8 +287,8 @@ Managed by `sig watch add/remove/set-interval`. Defines which providers are moni
 
 | Field                    | Required | Default | Description                                        |
 | ------------------------ | -------- | ------- | -------------------------------------------------- |
-| `interval`               | no       | `5m`    | Check interval. Duration string: `30s`, `5m`, `1h` |
-| `providers.<id>`         | no       | --      | Provider to watch (key = provider ID)               |
+| `interval`               | **yes**  | --      | Check interval. Duration string: `30s`, `5m`, `1h` |
+| `providers`              | **yes**  | --      | Providers to watch (keys = provider IDs)            |
 | `providers.<id>.autoSync`| no       | --      | Remote names to sync to after refresh               |
 
 ```yaml
@@ -295,7 +314,7 @@ Most services work with zero config -- just run `sig login <url>` and it auto-pr
 | `domains`      | **yes**  | Array of domains this provider handles. Used for URL-to-provider resolution. Example: `["jira.example.com"]`                                            |
 | `strategy`     | **yes**  | Authentication strategy. Values: `cookie`, `oauth2`, `api-token`, `basic`                                                                               |
 | `name`         | no       | Display name. Defaults to the provider ID                                                                                                               |
-| `entryUrl`     | no       | URL to navigate to for browser-based auth. Required for `cookie` and `oauth2` strategies                                                                |
+| `entryUrl`     | **yes**  | URL to navigate to for browser-based auth. Auto-derived from the first domain if not specified during `sig login`                                        |
 | `forceVisible` | no       | `true` to skip headless attempt and open visible browser immediately. Use for sites requiring CAPTCHAs, QR codes, or interactive auth. Default: `false` |
 | `config`       | no       | Strategy-specific settings (see below)                                                                                                                  |
 | `xHeaders`     | no       | Extra HTTP headers to capture during browser auth (see [xHeaders](#xheaders))                                                                           |
@@ -313,6 +332,7 @@ For SSO-protected web apps. Opens a browser, waits for login, extracts cookies. 
 providers:
   jira:
     domains: ["jira.example.com"]
+    entryUrl: https://jira.example.com/
     strategy: cookie
     config:
       ttl: "10d"
@@ -324,6 +344,7 @@ Minimal (uses all defaults):
 providers:
   jira:
     domains: ["jira.example.com"]
+    entryUrl: https://jira.example.com/
     strategy: cookie
 ```
 
@@ -364,6 +385,7 @@ providers:
   github:
     name: GitHub
     domains: ["github.com", "api.github.com"]
+    entryUrl: https://github.com/
     strategy: api-token
     config:
       headerName: Authorization
@@ -385,6 +407,7 @@ For username/password authentication. No browser needed -- prompts the user for 
 providers:
   legacy-api:
     domains: ["api.internal.corp"]
+    entryUrl: https://api.internal.corp/
     strategy: basic
     config:
       setupInstructions: "Contact IT for credentials."
@@ -452,12 +475,14 @@ watch:
 providers:
   jira:
     domains: ["jira.example.com"]
+    entryUrl: https://jira.example.com/
     strategy: cookie
     config:
       ttl: "10d"
 
   github:
     domains: ["github.com", "api.github.com"]
+    entryUrl: https://github.com/
     strategy: api-token
     config:
       setupInstructions: "Create a PAT at https://github.com/settings/tokens"
@@ -469,6 +494,13 @@ providers:
     config:
       audiences: ["https://ic3.teams.office.com"]
 ```
+
+### Global flags
+
+| Flag        | Description                             |
+| ----------- | --------------------------------------- |
+| `--verbose` | Enable debug logging to stderr          |
+| `--help`    | Show help                               |
 
 ## Remote / Headless Setup
 
@@ -616,12 +648,14 @@ Agents often need access to multiple services. Configure all providers in a sing
 providers:
   jira:
     domains: ["jira.example.com"]
+    entryUrl: https://jira.example.com/
     strategy: cookie
     config:
       ttl: "10d"
 
   wiki:
     domains: ["wiki.example.com"]
+    entryUrl: https://wiki.example.com/
     strategy: cookie
     config:
       ttl: "12h"

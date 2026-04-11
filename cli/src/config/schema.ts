@@ -55,8 +55,8 @@ export interface WatchProviderEntry {
 }
 
 export interface WatchEntry {
-  interval?: string;                                          // e.g. "1m", "5m"
-  providers?: Record<string, WatchProviderEntry | null>;      // provider ID → options (null = watch only)
+  interval: string;                                           // e.g. "1m", "5m"
+  providers: Record<string, WatchProviderEntry | null>;       // provider ID → options (null = watch only)
 }
 
 // ============================================================================
@@ -81,12 +81,11 @@ export interface SignetConfig {
 export interface ProviderEntry {
   name?: string;
   domains: string[];
-  entryUrl?: string;
+  entryUrl: string;
   strategy: StrategyName;
   config?: Record<string, unknown>;
   acceptedCredentialTypes?: CredentialType[];
   setupInstructions?: string;
-  credentialFile?: string;
   xHeaders?: XHeaderConfig[];
   forceVisible?: boolean;
 }

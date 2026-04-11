@@ -30,6 +30,7 @@ providers:
   github:
     domains:
       - github.com
+    entryUrl: https://github.com/
     strategy: cookie
 `;
 
@@ -43,12 +44,14 @@ providers:
   github:
     domains:
       - github.com
+    entryUrl: https://github.com/
     strategy: cookie
     config:
       ttl: "24h"
   api:
     domains:
       - api.example.com
+    entryUrl: https://api.example.com/
     strategy: api-token
     config:
       headerName: X-API-Key
