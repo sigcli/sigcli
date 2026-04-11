@@ -17,6 +17,9 @@ export interface IProviderRegistry {
   /** Register a new provider at runtime. Overwrites if ID already exists. */
   register(provider: ProviderConfig): void;
 
+  /** Remove a provider by ID. Returns true if it existed. */
+  unregister(id: string): boolean;
+
   /** Resolve a provider by ID, name (case-insensitive), or URL/domain, in that order. */
   resolveFlexible(input: string): ProviderConfig | null;
 }

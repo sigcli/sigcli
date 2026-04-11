@@ -111,7 +111,8 @@ export class AuthManager {
     // Only auto-provision for URL-like inputs (contains '.' or starts with 'http')
     const isUrlLike = input.startsWith('http://') || input.startsWith('https://') || input.includes('.');
     if (isUrlLike) {
-      const provider = createDefaultProvider(input);
+      const existingIds = new Set(this.providers.list().map(p => p.id));
+      const provider = createDefaultProvider(input, existingIds);
       this.providers.register(provider);
       this.logger?.info(`Auto-provisioned provider "${provider.id}" for ${input}`);
       return provider;

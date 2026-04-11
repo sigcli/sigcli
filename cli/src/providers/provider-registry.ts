@@ -61,6 +61,10 @@ export class ProviderRegistry implements IProviderRegistry {
     this.providers.set(provider.id, provider);
   }
 
+  unregister(id: string): boolean {
+    return this.providers.delete(id);
+  }
+
   resolveFlexible(input: string): ProviderConfig | null {
     // 1. Exact ID match
     const byId = this.providers.get(input);

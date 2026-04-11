@@ -91,6 +91,41 @@ export async function addProviderToConfig(id: string, entry: ProviderEntry): Pro
 }
 
 /**
+ * Rename a provider in config.yaml, preserving comments and formatting.
+ * Copies the entry under the new key and deletes the old key.
+ */
+export async function renameProviderInConfig(oldId: string, newId: string): Promise<void> {
+  let content: string;
+  try {
+    content = await fs.readFile(CONFIG_PATH, 'utf-8');
+  } catch {
+    return; // No config file — nothing to update
+  }
+  const doc = YAML.parseDocument(content);
+  const entry = doc.getIn(['providers', oldId]);
+  if (entry === undefined) return;
+
+  doc.setIn(['providers', newId], entry);
+  doc.deleteIn(['providers', oldId]);
+  await fs.writeFile(CONFIG_PATH, doc.toString(), 'utf-8');
+}
+
+/**
+ * Remove a provider from config.yaml, preserving comments and formatting.
+ */
+export async function removeProviderFromConfig(id: string): Promise<void> {
+  let content: string;
+  try {
+    content = await fs.readFile(CONFIG_PATH, 'utf-8');
+  } catch {
+    return;
+  }
+  const doc = YAML.parseDocument(content);
+  doc.deleteIn(['providers', id]);
+  await fs.writeFile(CONFIG_PATH, doc.toString(), 'utf-8');
+}
+
+/**
  * Get the config file path (for error messages).
  */
 export function getConfigPath(): string {

@@ -92,14 +92,15 @@ describe('AuthManager', () => {
 
     it('auto-provisions a cookie provider for unmatched URL', () => {
       const provider = authManager.resolveProvider('https://unknown.example.com');
-      expect(provider.id).toBe('unknown.example.com');
+      // Short ID derived from hostname: "unknown" is 7 chars, so joins first two segments
+      expect(provider.id).toBe('unknown-example');
       expect(provider.strategy).toBe('cookie');
       expect(provider.domains).toEqual(['unknown.example.com']);
       expect(provider.entryUrl).toBe('https://unknown.example.com/');
       expect(provider.autoProvisioned).toBe(true);
 
       // Should be registered and findable by ID now
-      expect(authManager.providerRegistry.get('unknown.example.com')).toBe(provider);
+      expect(authManager.providerRegistry.get('unknown-example')).toBe(provider);
     });
   });
 
@@ -362,18 +363,20 @@ describe('AuthManager', () => {
 
     it('auto-provisions for unknown URLs (contains dot)', () => {
       const provider = authManager.resolveProvider('https://new-service.example.com/api');
-      expect(provider.id).toBe('new-service.example.com');
+      // "new-service" is 11 chars (>= 8), so first segment used as-is
+      expect(provider.id).toBe('new-service');
       expect(provider.strategy).toBe('cookie');
       expect(provider.autoProvisioned).toBe(true);
       expect(provider.domains).toEqual(['new-service.example.com']);
 
       // Should be registered and findable after auto-provisioning
-      expect(authManager.providerRegistry.get('new-service.example.com')).toBe(provider);
+      expect(authManager.providerRegistry.get('new-service')).toBe(provider);
     });
 
     it('auto-provisions for bare hostname with dot', () => {
       const provider = authManager.resolveProvider('bare.hostname.com');
-      expect(provider.id).toBe('bare.hostname.com');
+      // "bare" is 4 chars (< 8), so joins first two: "bare-hostname"
+      expect(provider.id).toBe('bare-hostname');
       expect(provider.autoProvisioned).toBe(true);
     });
 
