@@ -5,7 +5,8 @@ import { ProviderRegistry } from '../../src/providers/provider-registry.js';
 import { StrategyRegistry } from '../../src/strategies/registry.js';
 import { ApiTokenStrategyFactory } from '../../src/strategies/api-token.strategy.js';
 import { BasicAuthStrategyFactory } from '../../src/strategies/basic-auth.strategy.js';
-import type { ProviderConfig, ApiKeyCredential } from '../../src/core/types.js';
+import { CookieStrategyFactory } from '../../src/strategies/cookie.strategy.js';
+import type { ProviderConfig, ApiKeyCredential, Cookie, CookieCredential } from '../../src/core/types.js';
 import type { IBrowserAdapter } from '../../src/core/interfaces/browser-adapter.js';
 import type { BrowserConfig } from '../../src/config/schema.js';
 import { isOk, isErr } from '../../src/core/result.js';
@@ -390,5 +391,232 @@ describe('AuthManager', () => {
       expect(provider.id).toBe('github');
       expect(provider.autoProvisioned).toBeUndefined();
     });
+  });
+});
+
+// ============================================================================
+// Cookie Expiry Tests (getExpiresAt 3-tier filtering via getStatus)
+// ============================================================================
+
+function makeCookie(name: string, expiresInSeconds: number): Cookie {
+  return {
+    name,
+    value: 'v',
+    domain: '.example.com',
+    path: '/',
+    expires: expiresInSeconds > 0 ? Math.floor(Date.now() / 1000) + expiresInSeconds : -1,
+    httpOnly: true,
+    secure: true,
+    sameSite: 'Lax',
+  };
+}
+
+function makeCookieCredential(cookies: Cookie[]): CookieCredential {
+  return {
+    type: 'cookie',
+    cookies,
+    obtainedAt: new Date().toISOString(),
+  };
+}
+
+describe('AuthManager cookie expiry (getStatus)', () => {
+  let storage: MemoryStorage;
+
+  function buildAuthManager(provider: ProviderConfig): AuthManager {
+    const strategyRegistry = new StrategyRegistry();
+    strategyRegistry.register(new CookieStrategyFactory());
+    const providerRegistry = new ProviderRegistry([provider]);
+
+    return new AuthManager({
+      storage,
+      strategyRegistry,
+      providerRegistry,
+      browserAdapterFactory: () => ({} as IBrowserAdapter),
+      browserConfig: { browserDataDir: '/tmp/test-browser-data', channel: 'chrome', headlessTimeout: 30000, visibleTimeout: 120000, waitUntil: 'load' },
+    });
+  }
+
+  beforeEach(() => {
+    storage = new MemoryStorage();
+  });
+
+  it('returns undefined expiresInMinutes when all cookies are session cookies', async () => {
+    const provider: ProviderConfig = {
+      id: 'session-app',
+      name: 'Session App',
+      domains: ['session-app.example.com'],
+      strategy: 'cookie',
+      strategyConfig: { strategy: 'cookie' },
+    };
+    const authManager = buildAuthManager(provider);
+    const cred = makeCookieCredential([
+      makeCookie('sid', -1),
+      makeCookie('csrf_token', -1),
+    ]);
+    await authManager.setCredential('session-app', cred);
+
+    const status = await authManager.getStatus('session-app');
+    expect(status.configured).toBe(true);
+    expect(status.valid).toBe(true);
+    expect(status.expiresInMinutes).toBeUndefined();
+    expect(status.expiresAt).toBeUndefined();
+  });
+
+  it('picks real cookie expiry over tracker cookie expiry', async () => {
+    const provider: ProviderConfig = {
+      id: 'tracker-mix',
+      name: 'Tracker Mix',
+      domains: ['tracker-mix.example.com'],
+      strategy: 'cookie',
+      strategyConfig: { strategy: 'cookie' },
+    };
+    const authManager = buildAuthManager(provider);
+    const oneHour = 3600;
+    const farFuture = 365 * 24 * 3600; // 1 year
+    const cred = makeCookieCredential([
+      makeCookie('AMCV_X', farFuture),
+      makeCookie('auth_session', oneHour),
+    ]);
+    await authManager.setCredential('tracker-mix', cred);
+
+    const status = await authManager.getStatus('tracker-mix');
+    expect(status.expiresInMinutes).toBeDefined();
+    // auth_session expires in ~60 min, should be close to 60
+    expect(status.expiresInMinutes!).toBeGreaterThanOrEqual(58);
+    expect(status.expiresInMinutes!).toBeLessThanOrEqual(61);
+  });
+
+  it('returns undefined when only tracker cookies have expiry', async () => {
+    const provider: ProviderConfig = {
+      id: 'tracker-only-expiry',
+      name: 'Tracker Only Expiry',
+      domains: ['tracker-only.example.com'],
+      strategy: 'cookie',
+      strategyConfig: { strategy: 'cookie' },
+    };
+    const authManager = buildAuthManager(provider);
+    const cred = makeCookieCredential([
+      makeCookie('AMCV_X', 398 * 24 * 3600),
+      makeCookie('_ga', 2 * 365 * 24 * 3600),
+      makeCookie('session_cookie', -1),
+    ]);
+    await authManager.setCredential('tracker-only-expiry', cred);
+
+    const status = await authManager.getStatus('tracker-only-expiry');
+    expect(status.expiresInMinutes).toBeUndefined();
+    expect(status.expiresAt).toBeUndefined();
+  });
+
+  it('returns undefined when requiredCookies are session cookies', async () => {
+    const provider: ProviderConfig = {
+      id: 'required-session',
+      name: 'Required Session',
+      domains: ['required-session.example.com'],
+      strategy: 'cookie',
+      strategyConfig: { strategy: 'cookie', requiredCookies: ['id_token'] },
+    };
+    const authManager = buildAuthManager(provider);
+    const cred = makeCookieCredential([
+      makeCookie('id_token', -1),
+      makeCookie('_ga', 2 * 365 * 24 * 3600),
+    ]);
+    await authManager.setCredential('required-session', cred);
+
+    const status = await authManager.getStatus('required-session');
+    expect(status.expiresInMinutes).toBeUndefined();
+    expect(status.expiresAt).toBeUndefined();
+  });
+
+  it('uses earliest requiredCookie expiry when requiredCookies configured', async () => {
+    const provider: ProviderConfig = {
+      id: 'required-expiring',
+      name: 'Required Expiring',
+      domains: ['required-expiring.example.com'],
+      strategy: 'cookie',
+      strategyConfig: { strategy: 'cookie', requiredCookies: ['id_token', 'sid'] },
+    };
+    const authManager = buildAuthManager(provider);
+    const oneHour = 3600;
+    const twoHours = 7200;
+    const cred = makeCookieCredential([
+      makeCookie('id_token', oneHour),
+      makeCookie('sid', twoHours),
+      makeCookie('_ga', 2 * 365 * 24 * 3600),
+    ]);
+    await authManager.setCredential('required-expiring', cred);
+
+    const status = await authManager.getStatus('required-expiring');
+    expect(status.expiresInMinutes).toBeDefined();
+    // id_token expires first (~60 min), _ga should be ignored (Tier 1 filters to requiredCookies only)
+    expect(status.expiresInMinutes!).toBeGreaterThanOrEqual(58);
+    expect(status.expiresInMinutes!).toBeLessThanOrEqual(61);
+  });
+
+  it('filters out mixed tracker cookies and uses real cookie expiry', async () => {
+    const provider: ProviderConfig = {
+      id: 'mixed-trackers',
+      name: 'Mixed Trackers',
+      domains: ['mixed-trackers.example.com'],
+      strategy: 'cookie',
+      strategyConfig: { strategy: 'cookie' },
+    };
+    const authManager = buildAuthManager(provider);
+    const eightHours = 8 * 3600;
+    const cred = makeCookieCredential([
+      makeCookie('_fbp', 90 * 24 * 3600),
+      makeCookie('_hjid', 365 * 24 * 3600),
+      makeCookie('JSESSIONID', eightHours),
+    ]);
+    await authManager.setCredential('mixed-trackers', cred);
+
+    const status = await authManager.getStatus('mixed-trackers');
+    expect(status.expiresInMinutes).toBeDefined();
+    // JSESSIONID expires in ~480 min
+    expect(status.expiresInMinutes!).toBeGreaterThanOrEqual(478);
+    expect(status.expiresInMinutes!).toBeLessThanOrEqual(481);
+  });
+
+  it('returns undefined when all cookies are trackers', async () => {
+    const provider: ProviderConfig = {
+      id: 'all-trackers',
+      name: 'All Trackers',
+      domains: ['all-trackers.example.com'],
+      strategy: 'cookie',
+      strategyConfig: { strategy: 'cookie' },
+    };
+    const authManager = buildAuthManager(provider);
+    const cred = makeCookieCredential([
+      makeCookie('_ga', 2 * 365 * 24 * 3600),
+      makeCookie('_gid', 24 * 3600),
+      makeCookie('NID', 180 * 24 * 3600),
+    ]);
+    await authManager.setCredential('all-trackers', cred);
+
+    const status = await authManager.getStatus('all-trackers');
+    expect(status.expiresInMinutes).toBeUndefined();
+    expect(status.expiresAt).toBeUndefined();
+  });
+
+  it('falls through to Tier 2 when requiredCookies is empty array', async () => {
+    const provider: ProviderConfig = {
+      id: 'empty-required',
+      name: 'Empty Required',
+      domains: ['empty-required.example.com'],
+      strategy: 'cookie',
+      strategyConfig: { strategy: 'cookie', requiredCookies: [] },
+    };
+    const authManager = buildAuthManager(provider);
+    const oneHour = 3600;
+    const cred = makeCookieCredential([
+      makeCookie('_ga', 2 * 365 * 24 * 3600),
+      makeCookie('real_cookie', oneHour),
+    ]);
+    await authManager.setCredential('empty-required', cred);
+
+    const status = await authManager.getStatus('empty-required');
+    expect(status.expiresInMinutes).toBeDefined();
+    // real_cookie expires in ~60 min, _ga filtered out by Tier 2
+    expect(status.expiresInMinutes!).toBeGreaterThanOrEqual(58);
+    expect(status.expiresInMinutes!).toBeLessThanOrEqual(61);
   });
 });
