@@ -89,7 +89,11 @@ describe('ApiTokenStrategy', () => {
         headerName: 'Authorization',
         headerPrefix: 'Bearer',
       });
-      const cred: ApiKeyCredential = { ...validCred, headerName: 'Authorization', headerPrefix: 'Bearer' };
+      const cred: ApiKeyCredential = {
+        ...validCred,
+        headerName: 'Authorization',
+        headerPrefix: 'Bearer',
+      };
       const headers = strategyWithPrefix.applyToRequest(cred);
       expect(headers).toEqual({ Authorization: 'Bearer my-secret-key' });
     });

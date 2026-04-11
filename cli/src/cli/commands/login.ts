@@ -1,12 +1,24 @@
 import type { AuthDeps } from '../../deps.js';
-import type { ApiKeyCredential, BasicCredential, Cookie, CookieCredential, ProviderConfig } from '../../core/types.js';
+import type {
+  ApiKeyCredential,
+  BasicCredential,
+  Cookie,
+  CookieCredential,
+  ProviderConfig,
+} from '../../core/types.js';
 import type { ProviderEntry, StrategyName } from '../../config/schema.js';
 import { buildStrategyConfig } from '../../config/validator.js';
 import { addProviderToConfig } from '../../config/loader.js';
 import { isOk } from '../../core/result.js';
 import { formatJson } from '../formatters.js';
 import { ProviderNotFoundError } from '../../core/errors.js';
-import { BROWSER_REQUIRED_STRATEGIES, HttpHeader, AuthScheme, StrategyName as StrategyNameConst, CredentialTypeName } from '../../core/constants.js';
+import {
+  BROWSER_REQUIRED_STRATEGIES,
+  HttpHeader,
+  AuthScheme,
+  StrategyName as StrategyNameConst,
+  CredentialTypeName,
+} from '../../core/constants.js';
 import { ExitCode } from '../exit-codes.js';
 
 /** Convert runtime ProviderConfig to the YAML ProviderEntry format. */
@@ -25,20 +37,23 @@ function toProviderEntry(pc: ProviderConfig): ProviderEntry {
 }
 
 function parseCookieString(raw: string, domain: string): Cookie[] {
-  return raw.split(';').map((pair) => {
-    const idx = pair.indexOf('=');
-    const name = (idx > -1 ? pair.slice(0, idx) : pair).trim();
-    const value = idx > -1 ? pair.slice(idx + 1).trim() : '';
-    return {
-      name,
-      value,
-      domain,
-      path: '/',
-      expires: -1,
-      httpOnly: false,
-      secure: true,
-    };
-  }).filter((c) => c.name.length > 0);
+  return raw
+    .split(';')
+    .map((pair) => {
+      const idx = pair.indexOf('=');
+      const name = (idx > -1 ? pair.slice(0, idx) : pair).trim();
+      const value = idx > -1 ? pair.slice(idx + 1).trim() : '';
+      return {
+        name,
+        value,
+        domain,
+        path: '/',
+        expires: -1,
+        httpOnly: false,
+        secure: true,
+      };
+    })
+    .filter((c) => c.name.length > 0);
 }
 
 export async function runLogin(
@@ -58,7 +73,9 @@ export async function runLogin(
     baseProvider = deps.authManager.resolveProvider(url);
   } catch (e) {
     if (e instanceof ProviderNotFoundError) {
-      process.stderr.write(`Error: No provider found matching "${url}". Run "sig providers" to see configured providers.\n`);
+      process.stderr.write(
+        `Error: No provider found matching "${url}". Run "sig providers" to see configured providers.\n`,
+      );
       process.exitCode = ExitCode.GENERAL_ERROR;
       return;
     }
@@ -66,9 +83,7 @@ export async function runLogin(
   }
 
   const hasOverrides = flags.strategy !== undefined || typeof flags.as === 'string';
-  const provider = hasOverrides
-    ? { ...baseProvider }
-    : baseProvider;
+  const provider = hasOverrides ? { ...baseProvider } : baseProvider;
 
   // --as <id>: override the provider ID (useful for auto-provisioned providers)
   if (typeof flags.as === 'string') {
@@ -97,12 +112,14 @@ export async function runLogin(
     }
 
     // Read headerName/headerPrefix from the typed strategy config if api-token
-    const headerName = provider.strategyConfig.strategy === StrategyNameConst.API_TOKEN
-      ? provider.strategyConfig.headerName ?? HttpHeader.AUTHORIZATION
-      : HttpHeader.AUTHORIZATION;
-    const headerPrefix = provider.strategyConfig.strategy === StrategyNameConst.API_TOKEN
-      ? provider.strategyConfig.headerPrefix ?? AuthScheme.BEARER
-      : AuthScheme.BEARER;
+    const headerName =
+      provider.strategyConfig.strategy === StrategyNameConst.API_TOKEN
+        ? (provider.strategyConfig.headerName ?? HttpHeader.AUTHORIZATION)
+        : HttpHeader.AUTHORIZATION;
+    const headerPrefix =
+      provider.strategyConfig.strategy === StrategyNameConst.API_TOKEN
+        ? (provider.strategyConfig.headerPrefix ?? AuthScheme.BEARER)
+        : AuthScheme.BEARER;
 
     const credential: ApiKeyCredential = {
       type: CredentialTypeName.API_KEY,
@@ -120,7 +137,9 @@ export async function runLogin(
       await addProviderToConfig(provider.id, toProviderEntry(provider));
     }
     process.stderr.write(`Token stored for "${provider.name}" (${provider.id}).\n`);
-    process.stdout.write(formatJson({ provider: provider.id, type: CredentialTypeName.API_KEY }) + '\n');
+    process.stdout.write(
+      formatJson({ provider: provider.id, type: CredentialTypeName.API_KEY }) + '\n',
+    );
     return;
   }
 
@@ -153,8 +172,16 @@ export async function runLogin(
     if (provider.autoProvisioned) {
       await addProviderToConfig(provider.id, toProviderEntry(provider));
     }
-    process.stderr.write(`Cookie stored for "${provider.name}" (${provider.id}) — ${cookies.length} cookie(s).\n`);
-    process.stdout.write(formatJson({ provider: provider.id, type: CredentialTypeName.COOKIE, count: cookies.length }) + '\n');
+    process.stderr.write(
+      `Cookie stored for "${provider.name}" (${provider.id}) — ${cookies.length} cookie(s).\n`,
+    );
+    process.stdout.write(
+      formatJson({
+        provider: provider.id,
+        type: CredentialTypeName.COOKIE,
+        count: cookies.length,
+      }) + '\n',
+    );
     return;
   }
 
@@ -179,8 +206,12 @@ export async function runLogin(
     if (provider.autoProvisioned) {
       await addProviderToConfig(provider.id, toProviderEntry(provider));
     }
-    process.stderr.write(`Basic auth credentials stored for "${provider.name}" (${provider.id}).\n`);
-    process.stdout.write(formatJson({ provider: provider.id, type: CredentialTypeName.BASIC }) + '\n');
+    process.stderr.write(
+      `Basic auth credentials stored for "${provider.name}" (${provider.id}).\n`,
+    );
+    process.stdout.write(
+      formatJson({ provider: provider.id, type: CredentialTypeName.BASIC }) + '\n',
+    );
     return;
   }
 
@@ -188,15 +219,15 @@ export async function runLogin(
   if (!deps.browserAvailable && BROWSER_REQUIRED_STRATEGIES.has(provider.strategy)) {
     process.stderr.write(
       `Browser is not available on this machine.\n` +
-      `Provider "${provider.name}" uses "${provider.strategy}" strategy which requires a browser.\n\n` +
-      `Alternatives:\n` +
-      `  sig login <url> --cookie <string>  Provide cookies manually\n` +
-      `  sig login <url> --token <token>    Provide a token directly\n` +
-      `  sig sync pull                       Pull credentials from a machine with a browser\n\n` +
-      `To set up sync:\n` +
-      `  1. On a machine with a browser: sig login <url>\n` +
-      `  2. Then: sig remote add <name> <this-host>\n` +
-      `  3. Then: sig sync push <name>\n`,
+        `Provider "${provider.name}" uses "${provider.strategy}" strategy which requires a browser.\n\n` +
+        `Alternatives:\n` +
+        `  sig login <url> --cookie <string>  Provide cookies manually\n` +
+        `  sig login <url> --token <token>    Provide a token directly\n` +
+        `  sig sync pull                       Pull credentials from a machine with a browser\n\n` +
+        `To set up sync:\n` +
+        `  1. On a machine with a browser: sig login <url>\n` +
+        `  2. Then: sig remote add <name> <this-host>\n` +
+        `  3. Then: sig sync push <name>\n`,
     );
     process.exitCode = ExitCode.GENERAL_ERROR;
     return;
@@ -217,9 +248,11 @@ export async function runLogin(
 
   const status = await deps.authManager.getStatus(provider.id);
   process.stderr.write(`Authenticated with "${provider.name}".\n`);
-  process.stdout.write(formatJson({
-    provider: provider.id,
-    type: result.value.type,
-    ...(status.expiresAt ? { expiresAt: status.expiresAt } : {}),
-  }) + '\n');
+  process.stdout.write(
+    formatJson({
+      provider: provider.id,
+      type: result.value.type,
+      ...(status.expiresAt ? { expiresAt: status.expiresAt } : {}),
+    }) + '\n',
+  );
 }

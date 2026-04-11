@@ -17,7 +17,21 @@
     "start": "node bin/sig.js",
     "dev": "tsc && node bin/sig.js",
     "test": "node --experimental-vm-modules node_modules/.bin/vitest run",
-    "test:watch": "node --experimental-vm-modules node_modules/.bin/vitest"
+    "test:watch": "node --experimental-vm-modules node_modules/.bin/vitest",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,js}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "croner": "^10.0.1",
@@ -26,9 +40,17 @@
     "yaml": "^2.7.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^20.10.0",
     "@types/proper-lockfile": "^4.1.4",
+    "eslint": "^10.2.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import-x": "^4.16.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.2",
     "typescript": "^5.3.0",
+    "typescript-eslint": "^8.58.1",
     "vitest": "^3.0.0"
   },
   "keywords": [

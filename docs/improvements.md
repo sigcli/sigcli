@@ -14,7 +14,7 @@ Collected from real-world usage of `sig` with SAP systems (Jira, Wiki, Teams, Gr
 
 ```typescript
 function deriveShortId(hostname: string): string {
-  const parts = hostname.split(".");
+  const parts = hostname.split('.');
   const firstSegment = parts[0];
 
   if (firstSegment.length >= 8) {

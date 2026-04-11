@@ -20,14 +20,10 @@ class BasicAuthStrategy implements IAuthStrategy {
 
   validate(credential: Credential): Result<boolean, AuthError> {
     if (credential.type !== CredentialTypeName.BASIC) return ok(false);
-    return ok(
-      credential.username.length > 0 && credential.password.length > 0,
-    );
+    return ok(credential.username.length > 0 && credential.password.length > 0);
   }
 
-  async authenticate(
-    provider: ProviderConfig,
-  ): Promise<Result<CredentialResult, AuthError>> {
+  async authenticate(provider: ProviderConfig): Promise<Result<CredentialResult, AuthError>> {
     return err(
       new ManualSetupRequired(
         provider.id,
@@ -45,9 +41,7 @@ class BasicAuthStrategy implements IAuthStrategy {
   applyToRequest(credential: Credential): Record<string, string> {
     if (credential.type !== CredentialTypeName.BASIC) return {};
 
-    const encoded = Buffer.from(
-      `${credential.username}:${credential.password}`,
-    ).toString('base64');
+    const encoded = Buffer.from(`${credential.username}:${credential.password}`).toString('base64');
 
     return { [HttpHeader.AUTHORIZATION]: `${AuthScheme.BASIC} ${encoded}` };
   }

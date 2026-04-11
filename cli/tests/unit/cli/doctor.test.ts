@@ -41,9 +41,9 @@ vi.mock('playwright-core', () => ({
 // Import after mocking
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
-import { ok, err, ConfigError, getConfigPath, loadConfig } from '../../../src';
+import { ok, err, ConfigError, getConfigPath, loadConfig } from '../../../src/index.js';
 import { runDoctor } from '../../../src/cli/commands/doctor.js';
-import type { SignetConfig } from '../../../src';
+import type { SignetConfig } from '../../../src/index.js';
 
 const mockExistsSync = vi.mocked(fs.existsSync);
 const mockAccess = vi.mocked(fsp.access);
@@ -70,7 +70,7 @@ function validConfig(overrides: Partial<SignetConfig> = {}): SignetConfig {
       test: {
         domains: ['test.example.com'],
         strategy: 'cookie',
-        entryUrl: ''
+        entryUrl: '',
       },
     },
     ...overrides,
@@ -193,7 +193,9 @@ describe('runDoctor', () => {
     mockExistsSync.mockReturnValue(true);
     mockLoadConfig.mockResolvedValue(ok(config));
     mockAccess.mockResolvedValue(undefined);
-    mockReaddir.mockResolvedValue([] as unknown as ReturnType<typeof fsp.readdir> extends Promise<infer U> ? U : never);
+    mockReaddir.mockResolvedValue(
+      [] as unknown as ReturnType<typeof fsp.readdir> extends Promise<infer U> ? U : never,
+    );
 
     await runDoctor([], {});
 
@@ -210,7 +212,9 @@ describe('runDoctor', () => {
     mockExistsSync.mockReturnValue(true);
     mockLoadConfig.mockResolvedValue(ok(config));
     mockAccess.mockResolvedValue(undefined);
-    mockReaddir.mockResolvedValue([] as unknown as ReturnType<typeof fsp.readdir> extends Promise<infer U> ? U : never);
+    mockReaddir.mockResolvedValue(
+      [] as unknown as ReturnType<typeof fsp.readdir> extends Promise<infer U> ? U : never,
+    );
 
     await runDoctor([], {});
 
@@ -219,7 +223,7 @@ describe('runDoctor', () => {
     expect(output).toContain('Node.js version');
     expect(output).toContain(process.version);
     // The check mark should be present for the Node.js version line
-    const nodeVersionLine = logs.find(l => l.includes('Node.js version'));
+    const nodeVersionLine = logs.find((l) => l.includes('Node.js version'));
     expect(nodeVersionLine).toContain('\u2713'); // PASS mark
   });
 
@@ -229,19 +233,17 @@ describe('runDoctor', () => {
     // Config file missing + loadConfig error = at least 2 failures
     // Plus directories missing since no config
     mockExistsSync.mockReturnValue(false);
-    mockLoadConfig.mockResolvedValue(
-      err(new ConfigError('Config file not found')),
-    );
+    mockLoadConfig.mockResolvedValue(err(new ConfigError('Config file not found')));
     mockAccess.mockRejectedValue(new Error('ENOENT'));
     mockReaddir.mockRejectedValue(new Error('ENOENT'));
 
     await runDoctor([], {});
 
-    const output = logs.join('');
+    const _output = logs.join('');
     // Count the FAIL marks in output
-    const failCount = logs.filter(l => l.includes('\u2717')).length;
+    const failCount = logs.filter((l) => l.includes('\u2717')).length;
     // The summary line should mention the count
-    const summaryLine = logs.find(l => l.includes('issue'));
+    const summaryLine = logs.find((l) => l.includes('issue'));
     expect(summaryLine).toBeDefined();
 
     if (summaryLine) {
@@ -270,9 +272,11 @@ describe('runDoctor', () => {
       'another.json',
     ] as unknown as ReturnType<typeof fsp.readdir> extends Promise<infer U> ? U : never);
     // Mock readFile for credential inspection
-    mockReadFile.mockResolvedValue(JSON.stringify({
-      credential: { type: 'cookie', cookies: [] },
-    }));
+    mockReadFile.mockResolvedValue(
+      JSON.stringify({
+        credential: { type: 'cookie', cookies: [] },
+      }),
+    );
 
     await runDoctor([], {});
 
@@ -288,7 +292,9 @@ describe('runDoctor', () => {
     mockExistsSync.mockReturnValue(true);
     mockLoadConfig.mockResolvedValue(ok(config));
     mockAccess.mockResolvedValue(undefined);
-    mockReaddir.mockResolvedValue([] as unknown as ReturnType<typeof fsp.readdir> extends Promise<infer U> ? U : never);
+    mockReaddir.mockResolvedValue(
+      [] as unknown as ReturnType<typeof fsp.readdir> extends Promise<infer U> ? U : never,
+    );
 
     await runDoctor([], {});
 
@@ -310,14 +316,16 @@ describe('runDoctor', () => {
     mockLoadConfig.mockResolvedValue(ok(config));
     // Credentials dir passes
     mockAccess.mockResolvedValue(undefined);
-    mockReaddir.mockResolvedValue([] as unknown as ReturnType<typeof fsp.readdir> extends Promise<infer U> ? U : never);
+    mockReaddir.mockResolvedValue(
+      [] as unknown as ReturnType<typeof fsp.readdir> extends Promise<infer U> ? U : never,
+    );
 
     await runDoctor([], {});
 
     const output = logs.join('');
     // Only browser data dir should fail (1 issue)
     // The summary should use singular
-    const failLines = logs.filter(l => l.includes('\u2717'));
+    const failLines = logs.filter((l) => l.includes('\u2717'));
     if (failLines.length === 1) {
       expect(output).toContain('1 issue found');
       expect(output).not.toContain('1 issues found');

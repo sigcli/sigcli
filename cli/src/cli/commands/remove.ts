@@ -43,7 +43,7 @@ export async function runRemove(
       return;
     }
 
-    const ids = resolved.map(p => p.id).join(', ');
+    const ids = resolved.map((p) => p.id).join(', ');
     const confirmed = await new Promise<boolean>((resolve) => {
       const rl = createInterface({ input: process.stdin, output: process.stderr });
       rl.question(`Remove ${resolved.length} provider(s)? ${ids} [y/N] `, (answer) => {

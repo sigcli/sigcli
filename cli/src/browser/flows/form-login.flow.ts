@@ -8,7 +8,7 @@ import { LOGIN_URL_PATTERNS } from '../../core/constants.js';
 export async function isLoginPage(page: IBrowserPage): Promise<boolean> {
   try {
     const url = page.url().toLowerCase();
-    if (LOGIN_URL_PATTERNS.some(p => url.includes(p))) return true;
+    if (LOGIN_URL_PATTERNS.some((p) => url.includes(p))) return true;
 
     // Check for common form elements
     const hasLoginForm = await page.evaluate(() => {

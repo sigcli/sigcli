@@ -64,13 +64,15 @@ function detectBrowserChannel(): string {
 // Interactive prompts
 // ---------------------------------------------------------------------------
 
-async function promptProviders(rl: ReturnType<typeof createInterface>): Promise<Array<{
-  id: string;
-  domains: string[];
-  strategy: string;
-  entryUrl: string;
-  config?: Record<string, unknown>;
-}>> {
+async function promptProviders(rl: ReturnType<typeof createInterface>): Promise<
+  Array<{
+    id: string;
+    domains: string[];
+    strategy: string;
+    entryUrl: string;
+    config?: Record<string, unknown>;
+  }>
+> {
   const providers: Array<{
     id: string;
     domains: string[];
@@ -114,7 +116,10 @@ async function promptProviders(rl: ReturnType<typeof createInterface>): Promise<
     }
 
     const domain = await rl.question('Domain(s) (comma-separated): ');
-    const domains = domain.split(',').map(d => d.trim()).filter(Boolean);
+    const domains = domain
+      .split(',')
+      .map((d) => d.trim())
+      .filter(Boolean);
     if (domains.length === 0) {
       process.stderr.write('  Skipping — at least one domain is required.\n');
       const again = await rl.question('\nAdd another provider? (y/N) ');
@@ -161,8 +166,7 @@ export async function runInit(
   // Check if config already exists
   if (fs.existsSync(configPath) && !force) {
     process.stderr.write(
-      `Config file already exists: ${configPath}\n` +
-      'Use --force to overwrite.\n',
+      `Config file already exists: ${configPath}\n` + 'Use --force to overwrite.\n',
     );
     process.exitCode = ExitCode.GENERAL_ERROR;
     return;
@@ -171,16 +175,18 @@ export async function runInit(
   // Detect defaults
   const detectedChannel = remote ? 'chrome' : detectBrowserChannel();
   const defaultChannel = typeof flags.channel === 'string' ? flags.channel : detectedChannel;
-  const defaultBrowserDataDir = typeof flags['browser-data-dir'] === 'string'
-    ? flags['browser-data-dir']
-    : path.join(signetDir, 'browser-data');
-  const defaultCredentialsDir = typeof flags['credentials-dir'] === 'string'
-    ? flags['credentials-dir']
-    : path.join(signetDir, 'credentials');
+  const defaultBrowserDataDir =
+    typeof flags['browser-data-dir'] === 'string'
+      ? flags['browser-data-dir']
+      : path.join(signetDir, 'browser-data');
+  const defaultCredentialsDir =
+    typeof flags['credentials-dir'] === 'string'
+      ? flags['credentials-dir']
+      : path.join(signetDir, 'credentials');
 
   let channel = defaultChannel;
-  let browserDataDir = defaultBrowserDataDir;
-  let credentialsDir = defaultCredentialsDir;
+  const browserDataDir = defaultBrowserDataDir;
+  const credentialsDir = defaultCredentialsDir;
   let providers: Array<{
     id: string;
     domains: string[];
@@ -194,7 +200,7 @@ export async function runInit(
   if (isTTY && !yes) {
     const rl = createInterface({ input: process.stdin, output: process.stdout });
     try {
-      process.stderr.write('\nWelcome to Signet! Let\'s set up your configuration.\n\n');
+      process.stderr.write("\nWelcome to Signet! Let's set up your configuration.\n\n");
 
       const channelAnswer = await rl.question(`Browser channel [${defaultChannel}]: `);
       if (channelAnswer.trim()) channel = channelAnswer.trim();
@@ -237,7 +243,9 @@ export async function runInit(
 
   const validationResult = validateConfig(raw as Record<string, unknown>);
   if (!isOk(validationResult)) {
-    process.stderr.write(`Bug: generated config failed validation: ${validationResult.error.message}\n`);
+    process.stderr.write(
+      `Bug: generated config failed validation: ${validationResult.error.message}\n`,
+    );
     process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
@@ -260,7 +268,7 @@ export async function runInit(
     process.stderr.write(`  Browser:        disabled\n`);
   }
   if (providers.length > 0) {
-    process.stderr.write(`  Providers:      ${providers.map(p => p.id).join(', ')}\n`);
+    process.stderr.write(`  Providers:      ${providers.map((p) => p.id).join(', ')}\n`);
   }
   if (remote) {
     process.stderr.write('\nRemote setup complete (browser disabled).\n\n');

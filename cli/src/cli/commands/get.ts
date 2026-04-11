@@ -28,9 +28,14 @@ export async function runGet(
     if (!isOk(result)) {
       process.stderr.write(`Error: ${result.error.message}\n`);
       if (result.error.code === 'BROWSER_UNAVAILABLE') {
-        process.stderr.write(`Hint: Run "sig login ${target} --token <token>" or "sig sync pull" to get credentials.\n`);
+        process.stderr.write(
+          `Hint: Run "sig login ${target} --token <token>" or "sig sync pull" to get credentials.\n`,
+        );
       }
-      process.exitCode = result.error.code === 'CREDENTIAL_NOT_FOUND' ? ExitCode.CREDENTIAL_NOT_FOUND : ExitCode.GENERAL_ERROR;
+      process.exitCode =
+        result.error.code === 'CREDENTIAL_NOT_FOUND'
+          ? ExitCode.CREDENTIAL_NOT_FOUND
+          : ExitCode.GENERAL_ERROR;
       return;
     }
     credential = result.value;
@@ -46,9 +51,14 @@ export async function runGet(
     if (!isOk(result)) {
       process.stderr.write(`Error: ${result.error.message}\n`);
       if (result.error.code === 'BROWSER_UNAVAILABLE') {
-        process.stderr.write(`Hint: Run "sig login ${target} --token <token>" or "sig sync pull" to get credentials.\n`);
+        process.stderr.write(
+          `Hint: Run "sig login ${target} --token <token>" or "sig sync pull" to get credentials.\n`,
+        );
       }
-      process.exitCode = result.error.code === 'PROVIDER_NOT_FOUND' ? ExitCode.PROVIDER_NOT_FOUND : ExitCode.CREDENTIAL_NOT_FOUND;
+      process.exitCode =
+        result.error.code === 'PROVIDER_NOT_FOUND'
+          ? ExitCode.PROVIDER_NOT_FOUND
+          : ExitCode.CREDENTIAL_NOT_FOUND;
       return;
     }
     providerId = result.value.provider.id;
@@ -64,8 +74,8 @@ export async function runGet(
     return;
   }
 
-  const primaryEntry = entries.find(([name]) => PRIMARY_HEADERS.includes(name.toLowerCase()))
-    ?? entries[0];
+  const primaryEntry =
+    entries.find(([name]) => PRIMARY_HEADERS.includes(name.toLowerCase())) ?? entries[0];
   const [primaryHeaderName, primaryHeaderValue] = primaryEntry;
 
   const xHeaders: Record<string, string> = {};

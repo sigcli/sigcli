@@ -25,29 +25,27 @@ export async function loadConfig(): Promise<Result<SignetConfig, AuthError>> {
     content = await fs.readFile(CONFIG_PATH, 'utf-8');
   } catch (e: unknown) {
     if ((e as NodeJS.ErrnoException).code === 'ENOENT') {
-      return err(new ConfigError(
-        `Config file not found: ${CONFIG_PATH}. ` +
-        'Create it with browser.browserDataDir, storage.credentialsDir, and providers sections.',
-      ));
+      return err(
+        new ConfigError(
+          `Config file not found: ${CONFIG_PATH}. ` +
+            'Create it with browser.browserDataDir, storage.credentialsDir, and providers sections.',
+        ),
+      );
     }
-    return err(new ConfigError(
-      `Failed to read config from ${CONFIG_PATH}: ${(e as Error).message}`,
-    ));
+    return err(
+      new ConfigError(`Failed to read config from ${CONFIG_PATH}: ${(e as Error).message}`),
+    );
   }
 
   let raw: unknown;
   try {
     raw = YAML.parse(content);
   } catch (e: unknown) {
-    return err(new ConfigError(
-      `Invalid YAML in ${CONFIG_PATH}: ${(e as Error).message}`,
-    ));
+    return err(new ConfigError(`Invalid YAML in ${CONFIG_PATH}: ${(e as Error).message}`));
   }
 
   if (!raw || typeof raw !== 'object') {
-    return err(new ConfigError(
-      `Config file ${CONFIG_PATH} is empty or not an object.`,
-    ));
+    return err(new ConfigError(`Config file ${CONFIG_PATH} is empty or not an object.`));
   }
 
   return validateConfig(raw as Record<string, unknown>);

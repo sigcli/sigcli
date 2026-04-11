@@ -91,7 +91,10 @@ export async function runCycle(
           deps.logger.info(`${providerId}: synced to ${remoteName}`);
         }
         for (const se of syncResult.errors) {
-          result.errors.push({ providerId: se.providerId, error: `sync(${remoteName}): ${se.error}` });
+          result.errors.push({
+            providerId: se.providerId,
+            error: `sync(${remoteName}): ${se.error}`,
+          });
         }
       } catch (e: unknown) {
         result.errors.push({ providerId, error: `sync(${remoteName}): ${(e as Error).message}` });
@@ -172,9 +175,13 @@ export async function startWatchLoop(
       await tick();
     });
 
-    signal.addEventListener('abort', () => {
-      job.stop();
-      resolve();
-    }, { once: true });
+    signal.addEventListener(
+      'abort',
+      () => {
+        job.stop();
+        resolve();
+      },
+      { once: true },
+    );
   });
 }

@@ -35,7 +35,9 @@ describe('watch-config', () => {
     });
 
     it('returns null when config has no watch section', async () => {
-      mockReadFile.mockResolvedValue('providers:\n  jira:\n    strategy: cookie\n    domains: [jira.example.com]\n');
+      mockReadFile.mockResolvedValue(
+        'providers:\n  jira:\n    strategy: cookie\n    domains: [jira.example.com]\n',
+      );
       const result = await getWatchConfig();
       expect(result).toBeNull();
     });
@@ -43,12 +45,12 @@ describe('watch-config', () => {
     it('parses watch config with providers', async () => {
       mockReadFile.mockResolvedValue(
         'watch:\n' +
-        '  interval: "2m"\n' +
-        '  providers:\n' +
-        '    sap-jira:\n' +
-        '      autoSync:\n' +
-        '        - devbox\n' +
-        '    sap-wiki:\n',
+          '  interval: "2m"\n' +
+          '  providers:\n' +
+          '    sap-jira:\n' +
+          '      autoSync:\n' +
+          '        - devbox\n' +
+          '    sap-wiki:\n',
       );
       const result = await getWatchConfig();
       expect(result).toEqual({
@@ -61,11 +63,7 @@ describe('watch-config', () => {
     });
 
     it('defaults interval to 5m when not specified', async () => {
-      mockReadFile.mockResolvedValue(
-        'watch:\n' +
-        '  providers:\n' +
-        '    jira:\n',
-      );
+      mockReadFile.mockResolvedValue('watch:\n' + '  providers:\n' + '    jira:\n');
       const result = await getWatchConfig();
       expect(result?.interval).toBe('5m');
     });
@@ -81,12 +79,12 @@ describe('watch-config', () => {
     it('returns flat list of providers', async () => {
       mockReadFile.mockResolvedValue(
         'watch:\n' +
-        '  interval: "1m"\n' +
-        '  providers:\n' +
-        '    jira:\n' +
-        '      autoSync:\n' +
-        '        - devbox\n' +
-        '    wiki:\n',
+          '  interval: "1m"\n' +
+          '  providers:\n' +
+          '    jira:\n' +
+          '      autoSync:\n' +
+          '        - devbox\n' +
+          '    wiki:\n',
       );
       const result = await getWatchProviders();
       expect(result).toEqual([
@@ -98,7 +96,9 @@ describe('watch-config', () => {
 
   describe('addWatchProvider', () => {
     it('creates watch section when it does not exist', async () => {
-      mockReadFile.mockResolvedValue('providers:\n  jira:\n    strategy: cookie\n    domains: [jira.example.com]\n');
+      mockReadFile.mockResolvedValue(
+        'providers:\n  jira:\n    strategy: cookie\n    domains: [jira.example.com]\n',
+      );
       await addWatchProvider('jira', { autoSync: [] });
       expect(mockWriteFile).toHaveBeenCalledOnce();
       const written = mockWriteFile.mock.calls[0][1] as string;
@@ -107,11 +107,7 @@ describe('watch-config', () => {
     });
 
     it('adds provider with autoSync', async () => {
-      mockReadFile.mockResolvedValue(
-        'watch:\n' +
-        '  interval: "5m"\n' +
-        '  providers: {}\n',
-      );
+      mockReadFile.mockResolvedValue('watch:\n' + '  interval: "5m"\n' + '  providers: {}\n');
       await addWatchProvider('jira', { autoSync: ['devbox'] });
       const written = mockWriteFile.mock.calls[0][1] as string;
       expect(written).toContain('jira');
@@ -119,11 +115,7 @@ describe('watch-config', () => {
     });
 
     it('adds provider without autoSync as null in YAML', async () => {
-      mockReadFile.mockResolvedValue(
-        'watch:\n' +
-        '  interval: "5m"\n' +
-        '  providers: {}\n',
-      );
+      mockReadFile.mockResolvedValue('watch:\n' + '  interval: "5m"\n' + '  providers: {}\n');
       await addWatchProvider('wiki', { autoSync: [] });
       const written = mockWriteFile.mock.calls[0][1] as string;
       expect(written).toContain('wiki');
@@ -134,11 +126,11 @@ describe('watch-config', () => {
     it('removes an existing provider', async () => {
       mockReadFile.mockResolvedValue(
         'watch:\n' +
-        '  interval: "5m"\n' +
-        '  providers:\n' +
-        '    jira:\n' +
-        '      autoSync:\n' +
-        '        - devbox\n',
+          '  interval: "5m"\n' +
+          '  providers:\n' +
+          '    jira:\n' +
+          '      autoSync:\n' +
+          '        - devbox\n',
       );
       const result = await removeWatchProvider('jira');
       expect(result).toBe(true);
@@ -148,10 +140,7 @@ describe('watch-config', () => {
 
     it('returns false for non-existent provider', async () => {
       mockReadFile.mockResolvedValue(
-        'watch:\n' +
-        '  interval: "5m"\n' +
-        '  providers:\n' +
-        '    jira:\n',
+        'watch:\n' + '  interval: "5m"\n' + '  providers:\n' + '    jira:\n',
       );
       const result = await removeWatchProvider('unknown');
       expect(result).toBe(false);
@@ -168,10 +157,7 @@ describe('watch-config', () => {
   describe('setWatchInterval', () => {
     it('sets interval in existing watch section', async () => {
       mockReadFile.mockResolvedValue(
-        'watch:\n' +
-        '  interval: "5m"\n' +
-        '  providers:\n' +
-        '    jira:\n',
+        'watch:\n' + '  interval: "5m"\n' + '  providers:\n' + '    jira:\n',
       );
       await setWatchInterval('1m');
       const written = mockWriteFile.mock.calls[0][1] as string;

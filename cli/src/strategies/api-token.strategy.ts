@@ -45,16 +45,9 @@ class ApiTokenStrategy implements IAuthStrategy {
     return ok(true);
   }
 
-  async authenticate(
-    provider: ProviderConfig,
-  ): Promise<Result<CredentialResult, AuthError>> {
+  async authenticate(provider: ProviderConfig): Promise<Result<CredentialResult, AuthError>> {
     // API tokens cannot be obtained automatically — user must provide them.
-    return err(
-      new ManualSetupRequired(
-        provider.id,
-        this.setupInstructions,
-      ),
-    );
+    return err(new ManualSetupRequired(provider.id, this.setupInstructions));
   }
 
   async refresh(): Promise<Result<Credential | null, AuthError>> {
@@ -65,9 +58,7 @@ class ApiTokenStrategy implements IAuthStrategy {
   applyToRequest(credential: Credential): Record<string, string> {
     if (credential.type !== CredentialTypeName.API_KEY) return {};
 
-    const value = this.headerPrefix
-      ? `${this.headerPrefix} ${credential.key}`
-      : credential.key;
+    const value = this.headerPrefix ? `${this.headerPrefix} ${credential.key}` : credential.key;
 
     return { [this.headerName]: value };
   }

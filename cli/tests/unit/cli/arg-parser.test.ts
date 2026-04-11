@@ -46,9 +46,14 @@ describe('parseArgs', () => {
 
   it('parses remote command with multiple positionals and multiple flags', () => {
     const result = parseArgs([
-      'remote', 'add', 'dev', 'host.com',
-      '--user', 'jdoe',
-      '--ssh-key', '~/.ssh/id_ed25519',
+      'remote',
+      'add',
+      'dev',
+      'host.com',
+      '--user',
+      'jdoe',
+      '--ssh-key',
+      '~/.ssh/id_ed25519',
     ]);
     expect(result.command).toBe('remote');
     expect(result.positionals).toEqual(['add', 'dev', 'host.com']);
@@ -90,44 +95,56 @@ describe('parseArgs', () => {
 
   it('two --header flags become an array', () => {
     const result = parseArgs([
-      'request', 'https://api.example.com',
-      '--header', 'X-One: 1',
-      '--header', 'X-Two: 2',
+      'request',
+      'https://api.example.com',
+      '--header',
+      'X-One: 1',
+      '--header',
+      'X-Two: 2',
     ]);
     expect(result.flags.header).toEqual(['X-One: 1', 'X-Two: 2']);
   });
 
   it('three --header flags accumulate into an array', () => {
     const result = parseArgs([
-      'request', 'https://api.example.com',
-      '--header', 'X-One: 1',
-      '--header', 'X-Two: 2',
-      '--header', 'X-Three: 3',
+      'request',
+      'https://api.example.com',
+      '--header',
+      'X-One: 1',
+      '--header',
+      'X-Two: 2',
+      '--header',
+      'X-Three: 3',
     ]);
     expect(result.flags.header).toEqual(['X-One: 1', 'X-Two: 2', 'X-Three: 3']);
   });
 
   it('repeated --header mixed with other flags', () => {
     const result = parseArgs([
-      'request', 'https://api.example.com',
-      '--method', 'POST',
-      '--header', 'Content-Type: application/json',
-      '--header', 'Accept: text/plain',
-      '--body', '{"key":"value"}',
+      'request',
+      'https://api.example.com',
+      '--method',
+      'POST',
+      '--header',
+      'Content-Type: application/json',
+      '--header',
+      'Accept: text/plain',
+      '--body',
+      '{"key":"value"}',
     ]);
     expect(result.flags.method).toBe('POST');
     expect(result.flags.body).toBe('{"key":"value"}');
-    expect(result.flags.header).toEqual([
-      'Content-Type: application/json',
-      'Accept: text/plain',
-    ]);
+    expect(result.flags.header).toEqual(['Content-Type: application/json', 'Accept: text/plain']);
   });
 
   it('repeated value flags accumulate for any flag name', () => {
     const result = parseArgs([
-      'get', 'my-provider',
-      '--provider', 'jira',
-      '--provider', 'confluence',
+      'get',
+      'my-provider',
+      '--provider',
+      'jira',
+      '--provider',
+      'confluence',
     ]);
     expect(result.flags.provider).toEqual(['jira', 'confluence']);
   });
@@ -142,7 +159,13 @@ describe('parseArgs', () => {
   });
 
   it('--verbose combined with other flags', () => {
-    const result = parseArgs(['request', 'https://api.example.com', '--verbose', '--format', 'json']);
+    const result = parseArgs([
+      'request',
+      'https://api.example.com',
+      '--verbose',
+      '--format',
+      'json',
+    ]);
     expect(result.flags.verbose).toBe(true);
     expect(result.flags.format).toBe('json');
   });

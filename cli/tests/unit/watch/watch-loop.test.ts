@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { runCycle } from '../../../src/watch/watch-loop.js';
-import type { WatchLoopDeps, WatchCycleResult } from '../../../src/watch/watch-loop.js';
+import type { WatchLoopDeps } from '../../../src/watch/watch-loop.js';
 import type { WatchProviderEntry } from '../../../src/watch/watch-config.js';
 import { AuthManager } from '../../../src/auth-manager.js';
 import { MemoryStorage } from '../../../src/storage/memory-storage.js';
@@ -8,7 +8,7 @@ import { ProviderRegistry } from '../../../src/providers/provider-registry.js';
 import { StrategyRegistry } from '../../../src/strategies/registry.js';
 import { ApiTokenStrategyFactory } from '../../../src/strategies/api-token.strategy.js';
 import { CookieStrategyFactory } from '../../../src/strategies/cookie.strategy.js';
-import type { ProviderConfig, ApiKeyCredential, CookieCredential, ILogger } from '../../../src/core/types.js';
+import type { ProviderConfig, ApiKeyCredential, ILogger } from '../../../src/core/types.js';
 import type { IBrowserAdapter } from '../../../src/core/interfaces/browser-adapter.js';
 import type { BrowserConfig, SignetConfig } from '../../../src/config/schema.js';
 
@@ -68,7 +68,7 @@ function createDeps(providers: ProviderConfig[]): { deps: WatchLoopDeps; storage
     storage,
     strategyRegistry,
     providerRegistry,
-    browserAdapterFactory: () => ({} as IBrowserAdapter),
+    browserAdapterFactory: () => ({}) as IBrowserAdapter,
     browserConfig,
   });
 
@@ -95,13 +95,19 @@ const validApiKey: ApiKeyCredential = {
 describe('watch-loop', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockPush.mockResolvedValue({ pushed: [], pulled: [], skipped: [], errors: [], configSynced: { providers: [] } });
+    mockPush.mockResolvedValue({
+      pushed: [],
+      pulled: [],
+      skipped: [],
+      errors: [],
+      configSynced: { providers: [] },
+    });
     mockGetRemote.mockResolvedValue(null);
   });
 
   describe('runCycle', () => {
     it('always re-authenticates all watched providers', async () => {
-      const { deps, storage } = createDeps([jiraProvider, wikiProvider]);
+      const { deps } = createDeps([jiraProvider, wikiProvider]);
       await deps.authManager.setCredential('jira', validApiKey);
       await deps.authManager.setCredential('wiki', validApiKey);
 
@@ -137,9 +143,7 @@ describe('watch-loop', () => {
     it('records error when refresh fails (no stored credential for api-token)', async () => {
       const { deps } = createDeps([jiraProvider]);
 
-      const watchProviders: WatchProviderEntry[] = [
-        { providerId: 'jira', autoSync: [] },
-      ];
+      const watchProviders: WatchProviderEntry[] = [{ providerId: 'jira', autoSync: [] }];
 
       const result = await runCycle(deps, watchProviders, 1);
 
@@ -151,7 +155,7 @@ describe('watch-loop', () => {
     });
 
     it('syncs to remote after re-auth', async () => {
-      const { deps, storage } = createDeps([jiraProvider]);
+      const { deps } = createDeps([jiraProvider]);
       await deps.authManager.setCredential('jira', validApiKey);
 
       mockGetRemote.mockResolvedValue({ name: 'devbox', type: 'ssh', host: 'devbox.example.com' });
@@ -163,9 +167,7 @@ describe('watch-loop', () => {
         configSynced: { providers: [] },
       });
 
-      const watchProviders: WatchProviderEntry[] = [
-        { providerId: 'jira', autoSync: ['devbox'] },
-      ];
+      const watchProviders: WatchProviderEntry[] = [{ providerId: 'jira', autoSync: ['devbox'] }];
 
       const result = await runCycle(deps, watchProviders, 1);
 
@@ -198,8 +200,8 @@ describe('watch-loop', () => {
       await deps.authManager.setCredential('wiki', validApiKey);
 
       const watchProviders: WatchProviderEntry[] = [
-        { providerId: 'jira', autoSync: [] },  // no cred → error
-        { providerId: 'wiki', autoSync: [] },   // has cred, but api-token can't refresh
+        { providerId: 'jira', autoSync: [] }, // no cred → error
+        { providerId: 'wiki', autoSync: [] }, // has cred, but api-token can't refresh
       ];
 
       const result = await runCycle(deps, watchProviders, 1);
@@ -221,9 +223,7 @@ describe('watch-loop', () => {
       // The sync error path only triggers after a successful refresh.
       // Since api-token can't refresh without a browser, this test
       // verifies that the cycle continues even when sync infrastructure fails.
-      const watchProviders: WatchProviderEntry[] = [
-        { providerId: 'jira', autoSync: ['devbox'] },
-      ];
+      const watchProviders: WatchProviderEntry[] = [{ providerId: 'jira', autoSync: ['devbox'] }];
 
       const result = await runCycle(deps, watchProviders, 1);
       // Will error on refresh (ManualSetupRequired), not reach sync
@@ -235,8 +235,3 @@ describe('watch-loop', () => {
 /**
  * Create a JWT with an expired exp claim.
  */
-function createExpiredJwt(): string {
-  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
-  const payload = Buffer.from(JSON.stringify({ exp: Math.floor(Date.now() / 1000) - 3600 })).toString('base64url');
-  return `${header}.${payload}.fake-signature`;
-}
