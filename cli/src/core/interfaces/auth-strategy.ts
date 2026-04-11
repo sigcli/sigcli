@@ -11,9 +11,9 @@ import type { BrowserConfig } from '../../config/schema.js';
  * simply ignore it.
  */
 export interface AuthContext {
-  browserAdapter: IBrowserAdapter;
-  browserConfig: BrowserConfig;
-  logger?: ILogger;
+    browserAdapter: IBrowserAdapter;
+    browserConfig: BrowserConfig;
+    logger?: ILogger;
 }
 
 /**
@@ -24,28 +24,28 @@ export interface AuthContext {
  * are handled through types, not catch blocks.
  */
 export interface IAuthStrategy {
-  /** Check if a credential is still valid (not expired, not revoked). */
-  validate(credential: Credential, config: StrategyConfig): Result<boolean, AuthError>;
+    /** Check if a credential is still valid (not expired, not revoked). */
+    validate(credential: Credential, config: StrategyConfig): Result<boolean, AuthError>;
 
-  /** Perform fresh authentication. May launch a browser. */
-  authenticate(
-    provider: ProviderConfig,
-    context: AuthContext,
-  ): Promise<Result<CredentialResult, AuthError>>;
+    /** Perform fresh authentication. May launch a browser. */
+    authenticate(
+        provider: ProviderConfig,
+        context: AuthContext,
+    ): Promise<Result<CredentialResult, AuthError>>;
 
-  /**
-   * Try to refresh an expired credential without full re-authentication.
-   * Returns ok(null) if refresh is not supported by this strategy.
-   * Returns ok(credential) if refresh succeeded.
-   * Returns err() if refresh was attempted but failed.
-   */
-  refresh(
-    credential: Credential,
-    config: StrategyConfig,
-  ): Promise<Result<Credential | null, AuthError>>;
+    /**
+     * Try to refresh an expired credential without full re-authentication.
+     * Returns ok(null) if refresh is not supported by this strategy.
+     * Returns ok(credential) if refresh succeeded.
+     * Returns err() if refresh was attempted but failed.
+     */
+    refresh(
+        credential: Credential,
+        config: StrategyConfig,
+    ): Promise<Result<Credential | null, AuthError>>;
 
-  /** Convert a credential into HTTP headers for an outgoing request. */
-  applyToRequest(credential: Credential): Record<string, string>;
+    /** Convert a credential into HTTP headers for an outgoing request. */
+    applyToRequest(credential: Credential): Record<string, string>;
 }
 
 /**
@@ -53,9 +53,9 @@ export interface IAuthStrategy {
  * Each factory is registered in the StrategyRegistry by name.
  */
 export interface IAuthStrategyFactory {
-  /** Strategy name as used in provider config (e.g. "cookie", "oauth2") */
-  readonly name: string;
+    /** Strategy name as used in provider config (e.g. "cookie", "oauth2") */
+    readonly name: string;
 
-  /** Create a strategy instance with the given config */
-  create(config: StrategyConfig): IAuthStrategy;
+    /** Create a strategy instance with the given config */
+    create(config: StrategyConfig): IAuthStrategy;
 }

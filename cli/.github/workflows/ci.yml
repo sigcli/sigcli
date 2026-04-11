@@ -1,63 +1,63 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
 
 permissions:
-  contents: read
+    contents: read
 
 jobs:
-  lint:
-    name: Lint & Format
-    runs-on: ubuntu-latest
+    lint:
+        name: Lint & Format
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
 
-      - name: Install dependencies
-        run: rm -f package-lock.json && npm install
+            - name: Install dependencies
+              run: rm -f package-lock.json && npm install
 
-      - name: Check formatting
-        run: npm run format:check
+            - name: Check formatting
+              run: npm run format:check
 
-      - name: Lint
-        run: npm run lint
+            - name: Lint
+              run: npm run lint
 
-  ci:
-    name: CI (Node ${{ matrix.node-version }})
-    runs-on: ubuntu-latest
+    ci:
+        name: CI (Node ${{ matrix.node-version }})
+        runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [18, 20, 22]
-      fail-fast: false
+        strategy:
+            matrix:
+                node-version: [18, 20, 22]
+            fail-fast: false
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
+            - name: Setup Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ matrix.node-version }}
 
-      - name: Install dependencies
-        run: rm -f package-lock.json && npm install
+            - name: Install dependencies
+              run: rm -f package-lock.json && npm install
 
-      - name: Type check
-        run: npx tsc --noEmit
+            - name: Type check
+              run: npx tsc --noEmit
 
-      - name: Run tests
-        run: npm test
+            - name: Run tests
+              run: npm test
 
-      - name: Build
-        run: npm run build
+            - name: Build
+              run: npm run build

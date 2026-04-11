@@ -14,18 +14,18 @@ Collected from real-world usage of `sig` with SAP systems (Jira, Wiki, Teams, Gr
 
 ```typescript
 function deriveShortId(hostname: string): string {
-  const parts = hostname.split('.');
-  const firstSegment = parts[0];
+    const parts = hostname.split('.');
+    const firstSegment = parts[0];
 
-  if (firstSegment.length >= 8) {
+    if (firstSegment.length >= 8) {
+        return firstSegment;
+    }
+
+    if (parts.length >= 2) {
+        return `${parts[0]}-${parts[1]}`;
+    }
+
     return firstSegment;
-  }
-
-  if (parts.length >= 2) {
-    return `${parts[0]}-${parts[1]}`;
-  }
-
-  return firstSegment;
 }
 ```
 
@@ -68,13 +68,13 @@ Implement via `sig completions bash|zsh|fish` that outputs the completion script
 
 ```yaml
 providers:
-  my-api:
-    strategy: device-code
-    config:
-      authorizationEndpoint: https://idp.example.com/device/authorize
-      tokenEndpoint: https://idp.example.com/oauth/token
-      clientId: my-client-id
-      scopes: [openid, profile]
+    my-api:
+        strategy: device-code
+        config:
+            authorizationEndpoint: https://idp.example.com/device/authorize
+            tokenEndpoint: https://idp.example.com/oauth/token
+            clientId: my-client-id
+            scopes: [openid, profile]
 ```
 
 **Key files**: New `src/strategies/device-code.strategy.ts`, update `src/core/types.ts`, `src/config/validator.ts`, `src/deps.ts`.

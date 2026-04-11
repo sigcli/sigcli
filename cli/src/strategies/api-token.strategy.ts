@@ -14,63 +14,65 @@ const DEFAULT_SETUP_INSTRUCTIONS = 'Please provide an API token or Personal Acce
  * Optionally checks JWT expiry if the token is a JWT.
  */
 class ApiTokenStrategy implements IAuthStrategy {
-  private readonly headerName: string;
-  private readonly headerPrefix: string;
-  private readonly setupInstructions: string;
+    private readonly headerName: string;
+    private readonly headerPrefix: string;
+    private readonly setupInstructions: string;
 
-  constructor(config: ApiTokenStrategyConfig) {
-    this.headerName = config.headerName ?? HttpHeader.AUTHORIZATION;
-    this.headerPrefix = config.headerPrefix ?? AuthScheme.BEARER;
-    this.setupInstructions = config.setupInstructions ?? DEFAULT_SETUP_INSTRUCTIONS;
-  }
-
-  validate(credential: Credential): Result<boolean, AuthError> {
-    if (credential.type !== CredentialTypeName.API_KEY) {
-      return ok(false);
+    constructor(config: ApiTokenStrategyConfig) {
+        this.headerName = config.headerName ?? HttpHeader.AUTHORIZATION;
+        this.headerPrefix = config.headerPrefix ?? AuthScheme.BEARER;
+        this.setupInstructions = config.setupInstructions ?? DEFAULT_SETUP_INSTRUCTIONS;
     }
 
-    if (!credential.key || credential.key.trim() === '') {
-      return ok(false);
+    validate(credential: Credential): Result<boolean, AuthError> {
+        if (credential.type !== CredentialTypeName.API_KEY) {
+            return ok(false);
+        }
+
+        if (!credential.key || credential.key.trim() === '') {
+            return ok(false);
+        }
+
+        // If the key looks like a JWT, check its expiry
+        const jwt = decodeJwt(credential.key);
+        if (jwt?.exp) {
+            const expiresAtMs = jwt.exp * 1000;
+            if (Date.now() >= expiresAtMs) {
+                return ok(false);
+            }
+        }
+
+        return ok(true);
     }
 
-    // If the key looks like a JWT, check its expiry
-    const jwt = decodeJwt(credential.key);
-    if (jwt?.exp) {
-      const expiresAtMs = jwt.exp * 1000;
-      if (Date.now() >= expiresAtMs) {
-        return ok(false);
-      }
+    async authenticate(provider: ProviderConfig): Promise<Result<CredentialResult, AuthError>> {
+        // API tokens cannot be obtained automatically — user must provide them.
+        return err(new ManualSetupRequired(provider.id, this.setupInstructions));
     }
 
-    return ok(true);
-  }
+    async refresh(): Promise<Result<Credential | null, AuthError>> {
+        // Static tokens cannot be refreshed
+        return ok(null);
+    }
 
-  async authenticate(provider: ProviderConfig): Promise<Result<CredentialResult, AuthError>> {
-    // API tokens cannot be obtained automatically — user must provide them.
-    return err(new ManualSetupRequired(provider.id, this.setupInstructions));
-  }
+    applyToRequest(credential: Credential): Record<string, string> {
+        if (credential.type !== CredentialTypeName.API_KEY) return {};
 
-  async refresh(): Promise<Result<Credential | null, AuthError>> {
-    // Static tokens cannot be refreshed
-    return ok(null);
-  }
+        const value = this.headerPrefix ? `${this.headerPrefix} ${credential.key}` : credential.key;
 
-  applyToRequest(credential: Credential): Record<string, string> {
-    if (credential.type !== CredentialTypeName.API_KEY) return {};
-
-    const value = this.headerPrefix ? `${this.headerPrefix} ${credential.key}` : credential.key;
-
-    return { [this.headerName]: value };
-  }
+        return { [this.headerName]: value };
+    }
 }
 
 export class ApiTokenStrategyFactory implements IAuthStrategyFactory {
-  readonly name = StrategyName.API_TOKEN;
+    readonly name = StrategyName.API_TOKEN;
 
-  create(config: StrategyConfig): IAuthStrategy {
-    if (config.strategy !== StrategyName.API_TOKEN) {
-      throw new Error(`ApiTokenStrategyFactory received wrong config type: ${config.strategy}`);
+    create(config: StrategyConfig): IAuthStrategy {
+        if (config.strategy !== StrategyName.API_TOKEN) {
+            throw new Error(
+                `ApiTokenStrategyFactory received wrong config type: ${config.strategy}`,
+            );
+        }
+        return new ApiTokenStrategy(config);
     }
-    return new ApiTokenStrategy(config);
-  }
 }

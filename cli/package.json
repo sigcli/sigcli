@@ -1,77 +1,77 @@
 {
-  "name": "signet-auth",
-  "version": "1.1.0",
-  "description": "General-purpose authentication CLI with pluggable strategies and browser adapters",
-  "main": "dist/index.js",
-  "type": "module",
-  "bin": {
-    "sig": "./bin/sig.js"
-  },
-  "files": [
-    "dist/",
-    "bin/"
-  ],
-  "scripts": {
-    "build": "tsc",
-    "prepack": "npm run build",
-    "start": "node bin/sig.js",
-    "dev": "tsc && node bin/sig.js",
-    "test": "node --experimental-vm-modules node_modules/.bin/vitest run",
-    "test:watch": "node --experimental-vm-modules node_modules/.bin/vitest",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "prepare": "husky"
-  },
-  "lint-staged": {
-    "*.{ts,js}": [
-      "eslint --fix",
-      "prettier --write"
+    "name": "signet-auth",
+    "version": "1.1.0",
+    "description": "General-purpose authentication CLI with pluggable strategies and browser adapters",
+    "main": "dist/index.js",
+    "type": "module",
+    "bin": {
+        "sig": "./bin/sig.js"
+    },
+    "files": [
+        "dist/",
+        "bin/"
     ],
-    "*.{json,md,yml,yaml}": [
-      "prettier --write"
-    ]
-  },
-  "dependencies": {
-    "croner": "^10.0.1",
-    "playwright-core": "^1.50.0",
-    "proper-lockfile": "^4.1.2",
-    "yaml": "^2.7.0"
-  },
-  "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@types/node": "^20.10.0",
-    "@types/proper-lockfile": "^4.1.4",
-    "eslint": "^10.2.0",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-import-x": "^4.16.2",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.4.0",
-    "prettier": "^3.8.2",
-    "typescript": "^5.3.0",
-    "typescript-eslint": "^8.58.1",
-    "vitest": "^3.0.0"
-  },
-  "keywords": [
-    "cli",
-    "auth",
-    "authentication",
-    "oauth2",
-    "browser",
-    "playwright-core"
-  ],
-  "author": "pylon <pylon.peng@gmail.com>",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/pylon/signet.git"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
-  }
+    "scripts": {
+        "build": "tsc",
+        "prepack": "npm run build",
+        "start": "node bin/sig.js",
+        "dev": "tsc && node bin/sig.js",
+        "test": "node --experimental-vm-modules node_modules/.bin/vitest run",
+        "test:watch": "node --experimental-vm-modules node_modules/.bin/vitest",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "prepare": "husky"
+    },
+    "lint-staged": {
+        "*.{ts,js}": [
+            "eslint --fix",
+            "prettier --write"
+        ],
+        "*.{json,md,yml,yaml}": [
+            "prettier --write"
+        ]
+    },
+    "dependencies": {
+        "croner": "^10.0.1",
+        "playwright-core": "^1.50.0",
+        "proper-lockfile": "^4.1.2",
+        "yaml": "^2.7.0"
+    },
+    "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "@types/node": "^20.10.0",
+        "@types/proper-lockfile": "^4.1.4",
+        "eslint": "^10.2.0",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-import-x": "^4.16.2",
+        "husky": "^9.1.7",
+        "lint-staged": "^16.4.0",
+        "prettier": "^3.8.2",
+        "typescript": "^5.3.0",
+        "typescript-eslint": "^8.58.1",
+        "vitest": "^3.0.0"
+    },
+    "keywords": [
+        "cli",
+        "auth",
+        "authentication",
+        "oauth2",
+        "browser",
+        "playwright-core"
+    ],
+    "author": "pylon <pylon.peng@gmail.com>",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/pylon/signet.git"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "publishConfig": {
+        "registry": "https://registry.npmjs.org/",
+        "access": "public"
+    }
 }
