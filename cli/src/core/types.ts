@@ -64,6 +64,7 @@ export interface CookieCredential {
     cookies: Cookie[];
     obtainedAt: string; // ISO timestamp
     xHeaders?: Record<string, string>; // Extra captured HTTP headers (e.g. x-s, x-t)
+    localStorage?: Record<string, string>; // Extracted localStorage values (e.g. xoxc token)
 }
 
 export interface BearerCredential {
@@ -74,6 +75,7 @@ export interface BearerCredential {
     scopes?: string[];
     tokenEndpoint?: string; // For refresh
     xHeaders?: Record<string, string>; // Extra captured HTTP headers (e.g. x-s, x-t)
+    localStorage?: Record<string, string>; // Extracted localStorage values
 }
 
 export interface ApiKeyCredential {
@@ -103,6 +105,16 @@ export interface XHeaderConfig {
 }
 
 // ============================================================================
+// LocalStorage Configuration (values extracted from browser localStorage)
+// ============================================================================
+
+export interface LocalStorageConfig {
+    name: string; // Name to store the extracted value under
+    key: string; // localStorage key to read
+    jsonPath?: string; // Optional dot-delimited path into parsed JSON value
+}
+
+// ============================================================================
 // Provider Configuration
 // ============================================================================
 
@@ -116,6 +128,7 @@ export interface ProviderConfig {
     acceptedCredentialTypes?: CredentialType[]; // Enforce which credential types are valid
     setupInstructions?: string; // Shown when manual setup is needed
     xHeaders?: XHeaderConfig[]; // Extra HTTP headers to capture during browser auth
+    localStorage?: LocalStorageConfig[]; // localStorage values to extract during browser auth
     autoProvisioned?: boolean; // True if created by auto-provision (not from config file)
     forceVisible?: boolean; // Skip headless, go straight to visible browser mode
 }
