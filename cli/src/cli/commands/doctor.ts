@@ -197,7 +197,9 @@ async function checkStoredCredentials(config: SignetConfig | undefined): Promise
         for (const file of jsonFiles) {
             try {
                 const content = await fsp.readFile(path.join(dir, file), 'utf-8');
-                const data = JSON.parse(content);
+                const data = JSON.parse(content) as {
+                    credential?: { type?: string; accessToken?: string };
+                };
                 const cred = data?.credential;
                 if (cred?.type === 'bearer' && cred?.accessToken) {
                     try {
