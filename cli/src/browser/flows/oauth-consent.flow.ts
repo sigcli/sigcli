@@ -167,7 +167,7 @@ async function tryExtractTokens(
                 const key = rawKey.replace(/^(local|session):/, '');
                 if (key.toLowerCase().includes('refreshtoken')) {
                     try {
-                        const parsed = JSON.parse(value);
+                        const parsed = JSON.parse(value) as { secret?: string };
                         if (parsed.secret) {
                             refreshToken = parsed.secret;
                             break;

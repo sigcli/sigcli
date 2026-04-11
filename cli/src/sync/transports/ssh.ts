@@ -54,7 +54,10 @@ export class SshTransport implements ISyncTransport {
                         target,
                         `cat "${file}"`,
                     ]);
-                    const data = JSON.parse(content);
+                    const data = JSON.parse(content) as {
+                        providerId: string;
+                        updatedAt: string;
+                    };
                     entries.push({
                         providerId: data.providerId,
                         updatedAt: data.updatedAt,
@@ -82,7 +85,10 @@ export class SshTransport implements ISyncTransport {
                 target,
                 `cat ${rpath}/"${filename}"`,
             ]);
-            const data = JSON.parse(stdout);
+            const data = JSON.parse(stdout) as StoredCredential & {
+                version?: number;
+                metadata?: Record<string, unknown>;
+            };
             return {
                 credential: data.credential,
                 providerId: data.providerId,

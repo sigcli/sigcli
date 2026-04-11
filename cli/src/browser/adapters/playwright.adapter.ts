@@ -157,7 +157,7 @@ class PlaywrightPage implements IBrowserPage {
     }
 
     async evaluateWithArg<T, A>(fn: (arg: A) => T, arg: A): Promise<T> {
-        return await this.page.evaluate(fn as any, arg as any);
+        return await this.page.evaluate(fn as (...args: unknown[]) => T, arg as unknown);
     }
 
     async screenshot(options?: { path?: string; fullPage?: boolean }): Promise<Buffer> {
