@@ -4,6 +4,7 @@ import lockfile from 'proper-lockfile';
 import type { IStorage } from '../core/interfaces/storage.js';
 import type { StoredCredential, StoredEntry } from '../core/types.js';
 import { StorageError } from '../core/errors.js';
+import { sanitizeId } from '../utils/sanitize.js';
 
 interface ProviderFile {
   version: 1;
@@ -12,14 +13,6 @@ interface ProviderFile {
   strategy: string;
   updatedAt: string;
   metadata?: Record<string, unknown>;
-}
-
-/**
- * Convert a provider ID into a human-readable, filesystem-safe filename.
- * Replaces unsafe characters with underscores.
- */
-function sanitizeId(providerId: string): string {
-  return providerId.replace(/[^a-zA-Z0-9._-]/g, '_');
 }
 
 /**
