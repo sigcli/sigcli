@@ -66,8 +66,7 @@ class CookieStrategy implements IAuthStrategy {
       entryUrl: provider.entryUrl,
       browserConfig: context.browserConfig,
       forceVisible: provider.forceVisible ?? false,
-      // Cookie auth needs networkidle to ensure all post-SSO Set-Cookie responses arrive
-      waitUntil: 'networkidle',
+      waitUntil: 'commit',
       xHeaders: provider.xHeaders,
       providerDomains: provider.domains,
 
@@ -94,7 +93,10 @@ class CookieStrategy implements IAuthStrategy {
         const cookies = await page.cookies(urls);
         if (cookies.length === 0) {
           return err(new BrowserError(
-            'No cookies found after authentication.',
+            'No cookies found after authentication. ' +
+            'If this site sets cookies late (e.g. after client-side JS), try:\n' +
+            '  1. Set "waitUntil: networkidle" in the provider config to wait for all network activity\n' +
+            '  2. Set "requiredCookies: [cookie_name]" to wait for specific cookies before extracting',
             provider.id,
           ));
         }
