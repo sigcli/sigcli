@@ -15,7 +15,7 @@ export interface InitOptions {
     id: string;
     domains: string[];
     strategy: string;
-    entryUrl?: string;
+    entryUrl: string;
     config?: Record<string, unknown>;
   }>;
 }
@@ -43,16 +43,14 @@ function renderProvider(provider: {
   id: string;
   domains: string[];
   strategy: string;
-  entryUrl?: string;
+  entryUrl: string;
   config?: Record<string, unknown>;
 }): string {
   const lines: string[] = [];
   lines.push(`  ${provider.id}:`);
   lines.push(`    domains: ${yamlArray(provider.domains)}`);
+  lines.push(`    entryUrl: ${provider.entryUrl}`);
   lines.push(`    strategy: ${provider.strategy}`);
-  if (provider.entryUrl) {
-    lines.push(`    entryUrl: ${provider.entryUrl}`);
-  }
   if (provider.config && Object.keys(provider.config).length > 0) {
     lines.push('    config:');
     lines.push(renderProviderConfig(provider.config, 6));

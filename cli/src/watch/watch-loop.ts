@@ -46,7 +46,6 @@ export async function runCycle(
   deps: WatchLoopDeps,
   watchProviders: WatchProviderEntry[],
   cycleNumber: number,
-  intervalMs: number,
 ): Promise<WatchCycleResult> {
   const result: WatchCycleResult = {
     cycle: cycleNumber,
@@ -61,28 +60,10 @@ export async function runCycle(
     const { providerId } = entry;
     result.checked.push(providerId);
 
-    const status = await deps.authManager.getStatus(providerId);
-
-    if (!status.configured) {
-      result.errors.push({ providerId, error: `Provider "${providerId}" not configured` });
-      continue;
-    }
-
-    // Grace period = interval: refresh if credential expires before the next cycle
-    const graceMinutes = Math.ceil(intervalMs / 60_000);
-    const expiringSoon = status.valid
-      && status.expiresInMinutes !== undefined
-      && status.expiresInMinutes <= graceMinutes;
-
-    if (status.valid && !expiringSoon) {
-      deps.logger.debug(`${providerId}: valid (expires in ${status.expiresInMinutes ?? '?'}m)`);
-      continue;
-    }
-
-    const reason = expiringSoon
-      ? `expiring in ${status.expiresInMinutes}m`
-      : 'expired';
-    deps.logger.info(`${providerId}: ${reason}, refreshing...`);
+    // Always re-authenticate: cookie validity can't be determined reliably
+    // (session cookies have no expiry, server can invalidate at any time).
+    // Browser re-auth via cached SSO sessions is cheap.
+    deps.logger.info(`${providerId}: refreshing...`);
     const credResult = await deps.authManager.getCredentials(providerId);
 
     if (isOk(credResult)) {
@@ -166,7 +147,7 @@ export async function startWatchLoop(
       deps.logger.warn('No providers in watch list, skipping cycle');
       return;
     }
-    const result = await runCycle(deps, providers, cycle, options.intervalMs);
+    const result = await runCycle(deps, providers, cycle);
     onCycle(result);
   }
 

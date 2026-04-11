@@ -13,6 +13,7 @@ function validRawConfig(overrides: Record<string, unknown> = {}): Record<string,
     providers: {
       github: {
         domains: ['github.com'],
+        entryUrl: 'https://github.com/',
         strategy: 'cookie',
       },
     },
@@ -84,8 +85,8 @@ describe('validateConfig', () => {
   it('parses multiple providers', () => {
     const result = validateConfig(validRawConfig({
       providers: {
-        github: { domains: ['github.com'], strategy: 'cookie' },
-        api: { domains: ['api.example.com'], strategy: 'api-token', config: { headerName: 'X-Key' } },
+        github: { domains: ['github.com'], entryUrl: 'https://github.com/', strategy: 'cookie' },
+        api: { domains: ['api.example.com'], entryUrl: 'https://api.example.com/', strategy: 'api-token', config: { headerName: 'X-Key' } },
       },
     }));
     expect(isOk(result)).toBe(true);
@@ -279,7 +280,7 @@ describe('validateConfig', () => {
   it('returns error when provider has non-boolean forceVisible', () => {
     const result = validateConfig(validRawConfig({
       providers: {
-        bad: { domains: ['x.com'], strategy: 'cookie', forceVisible: 'yes' },
+        bad: { domains: ['x.com'], entryUrl: 'https://x.com/', strategy: 'cookie', forceVisible: 'yes' },
       },
     }));
     expect(isErr(result)).toBe(true);
@@ -291,7 +292,7 @@ describe('validateConfig', () => {
   it('accepts forceVisible as boolean at provider level', () => {
     const result = validateConfig(validRawConfig({
       providers: {
-        xhs: { domains: ['x.com'], strategy: 'cookie', forceVisible: true },
+        xhs: { domains: ['x.com'], entryUrl: 'https://x.com/', strategy: 'cookie', forceVisible: true },
       },
     }));
     expect(isOk(result)).toBe(true);
@@ -353,7 +354,7 @@ describe('validateConfig', () => {
   it('returns error when cookie config contains oauth2-only fields', () => {
     const result = validateConfig(validRawConfig({
       providers: {
-        bad: { domains: ['x.com'], strategy: 'cookie', config: { tokenEndpoint: 'https://token' } },
+        bad: { domains: ['x.com'], entryUrl: 'https://x.com/', strategy: 'cookie', config: { tokenEndpoint: 'https://token' } },
       },
     }));
     expect(isErr(result)).toBe(true);
@@ -366,7 +367,7 @@ describe('validateConfig', () => {
   it('returns error when oauth2 config contains cookie-only fields', () => {
     const result = validateConfig(validRawConfig({
       providers: {
-        bad: { domains: ['x.com'], strategy: 'oauth2', config: { ttl: '1h' } },
+        bad: { domains: ['x.com'], entryUrl: 'https://x.com/', strategy: 'oauth2', config: { ttl: '1h' } },
       },
     }));
     expect(isErr(result)).toBe(true);
@@ -449,7 +450,6 @@ describe('validateConfig', () => {
           config: { clientId: 'abc', scopes: ['openid'] },
           acceptedCredentialTypes: ['bearer'],
           setupInstructions: 'Go to settings',
-          credentialFile: 'full-creds.json',
           xHeaders: [{ name: 'X-Custom', pattern: '.*' }],
         },
       },
@@ -461,7 +461,6 @@ describe('validateConfig', () => {
       expect(p.entryUrl).toBe('https://full.example.com/login');
       expect(p.acceptedCredentialTypes).toEqual(['bearer']);
       expect(p.setupInstructions).toBe('Go to settings');
-      expect(p.credentialFile).toBe('full-creds.json');
       expect(p.xHeaders).toEqual([{ name: 'X-Custom', pattern: '.*' }]);
     }
   });

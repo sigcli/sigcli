@@ -103,6 +103,7 @@ describe('generateConfigYaml', () => {
           id: 'github',
           domains: ['github.com', 'api.github.com'],
           strategy: 'api-token',
+          entryUrl: 'https://github.com/',
           config: { headerName: 'Authorization', headerPrefix: 'Bearer' },
         },
       ],
@@ -141,13 +142,14 @@ describe('generateConfigYaml', () => {
     expect(parsed.providers['my-jira'].config.ttl).toBe('12h');
   });
 
-  it('renders provider without entryUrl when not provided', () => {
+  it('always renders entryUrl for providers', () => {
     const options = defaultOptions({
       providers: [
         {
           id: 'simple',
           domains: ['simple.example.com'],
           strategy: 'cookie',
+          entryUrl: 'https://simple.example.com/',
         },
       ],
     });
@@ -155,7 +157,7 @@ describe('generateConfigYaml', () => {
     const parsed = YAML.parse(yaml);
 
     expect(parsed.providers.simple).toBeDefined();
-    expect(parsed.providers.simple.entryUrl).toBeUndefined();
+    expect(parsed.providers.simple.entryUrl).toBe('https://simple.example.com/');
   });
 
   it('renders provider without config when not provided', () => {
@@ -165,6 +167,7 @@ describe('generateConfigYaml', () => {
           id: 'noconfig',
           domains: ['noconfig.example.com'],
           strategy: 'cookie',
+          entryUrl: 'https://noconfig.example.com/',
         },
       ],
     });
@@ -182,11 +185,13 @@ describe('generateConfigYaml', () => {
           id: 'github',
           domains: ['github.com'],
           strategy: 'api-token',
+          entryUrl: 'https://github.com/',
         },
         {
           id: 'jira',
           domains: ['jira.corp.com'],
           strategy: 'cookie',
+          entryUrl: 'https://jira.corp.com/',
         },
       ],
     });
@@ -205,6 +210,7 @@ describe('generateConfigYaml', () => {
           id: 'oauth-svc',
           domains: ['auth.example.com'],
           strategy: 'oauth2',
+          entryUrl: 'https://auth.example.com/',
           config: {
             scopes: ['openid', 'profile'],
             audiences: ['https://api.example.com'],
@@ -226,6 +232,7 @@ describe('generateConfigYaml', () => {
           id: 'booltest',
           domains: ['bool.example.com'],
           strategy: 'cookie',
+          entryUrl: 'https://bool.example.com/',
           config: { someFlag: true },
         },
       ],
@@ -243,6 +250,7 @@ describe('generateConfigYaml', () => {
           id: 'numtest',
           domains: ['num.example.com'],
           strategy: 'cookie',
+          entryUrl: 'https://num.example.com/',
           config: { retries: 3 },
         },
       ],
@@ -270,6 +278,7 @@ describe('generateConfigYaml', () => {
           id: 'test',
           domains: ['test.example.com'],
           strategy: 'cookie',
+          entryUrl: 'https://test.example.com/',
         },
       ],
     });
@@ -286,12 +295,14 @@ describe('generateConfigYaml', () => {
           id: 'github',
           domains: ['github.com', 'api.github.com'],
           strategy: 'api-token',
+          entryUrl: 'https://github.com/',
           config: { headerName: 'Authorization', headerPrefix: 'Bearer' },
         },
         {
           id: 'my-jira',
           domains: ['jira.corp.com'],
           strategy: 'cookie',
+          entryUrl: 'https://jira.corp.com/',
           config: { ttl: '12h' },
         },
       ],
@@ -318,6 +329,7 @@ describe('generateConfigYaml', () => {
           id: 'test',
           domains: ['test.example.com'],
           strategy: 'cookie',
+          entryUrl: 'https://test.example.com/',
         },
       ],
     });

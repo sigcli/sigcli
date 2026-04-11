@@ -119,7 +119,6 @@ export interface ProviderConfig {
   strategyConfig: StrategyConfig;  // Discriminated union strategy config
   acceptedCredentialTypes?: CredentialType[]; // Enforce which credential types are valid
   setupInstructions?: string;              // Shown when manual setup is needed
-  credentialFile?: string;                 // Custom credential filename (default: provider ID)
   xHeaders?: XHeaderConfig[];              // Extra HTTP headers to capture during browser auth
   autoProvisioned?: boolean;               // True if created by auto-provision (not from config file)
   forceVisible?: boolean;                  // Skip headless, go straight to visible browser mode
