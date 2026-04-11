@@ -65,36 +65,81 @@ const HELP = `signet — authenticate once, use everywhere
 
 Usage: sig <command> [options]
 
-Provider commands:
-  login <provider|url>     Authenticate with a provider
-                           --as <id>  Use a custom provider ID
-  logout [provider]        Clear stored credentials
-  get <provider|url>       Get credential headers
-  request <url>            Make an authenticated HTTP request
-  status [provider]        Show authentication status
-  remove <provider>        Remove a provider and its credentials
-  rename <old> <new>       Rename a provider
-  providers                List configured providers
-  watch [provider]         Monitor and auto-refresh credentials
+Authentication:
+  login <url>                  Browser SSO login
+    --as <id>                    Custom provider ID
+    --token <value>              API key or PAT (no browser)
+    --cookie "k=v; k2=v2"       Cookies from DevTools (no browser)
+    --username <u> --password <p>  Basic auth (no browser)
+    --strategy <name>            Force strategy (cookie|oauth2|api-token|basic)
+  logout [provider]            Clear credentials (all if none specified)
 
-Remote commands:
-  remote add|remove|list   Manage remote credential stores
-  sync push|pull [remote]  Sync credentials with a remote
+Credentials:
+  get <provider|url>           Retrieve credential headers
+    --format json|header|value   Output format (default: json)
+  request <url>                Make an authenticated HTTP request
+    --method <METHOD>            HTTP method (default: GET)
+    --body <json>                Request body
+    --header "Name: Value"       Custom header (repeatable)
+    --format json|body|headers   Output format (default: json)
+  status [provider]            Show authentication status
+    --format json|table          Output format
+
+Provider management:
+  providers                    List configured providers
+    --format json|table          Output format
+  rename <old> <new>           Rename a provider
+  remove <provider> [...]      Remove provider(s) and their credentials
+    --keep-config                Keep config entry, only clear credentials
+    --force                      Skip confirmation
+
+Remote & sync:
+  remote add <name> <host>     Add an SSH remote
+    --user <user>                SSH username
+    --path <path>                Remote credentials directory
+    --ssh-key <key>              SSH private key path
+  remote remove <name>         Remove a remote
+  remote list                  List remotes
+    --format json|table          Output format
+  sync push|pull [remote]      Sync credentials over SSH
+    --provider <id>              Sync a specific provider only
+    --force                      Overwrite on conflict
+
+Watch:
+  watch add <provider>         Add provider to watch list
+    --auto-sync <remote>         Auto-sync to remote after refresh
+  watch remove <provider>      Remove from watch list
+  watch list                   Show watched providers
+    --format json|table          Output format
+  watch start                  Start auto-refresh daemon
+    --interval <duration>        Override check interval (e.g. 5m, 1h)
+    --once                       Single check cycle, then exit
+  watch set-interval <dur>     Set default check interval
 
 Setup:
-  init                     Set up Signet configuration
-  doctor                   Check environment and configuration
+  init                         Create ~/.signet/config.yaml
+    --remote                     Headless machine setup (mode: browserless)
+    --yes                        Accept defaults, skip prompts
+    --force                      Overwrite existing config
+    --channel <name>             Browser channel (chrome|msedge|chromium)
+  doctor                       Check environment and configuration
 
 Global options:
-  --format <json|table|header|value|body>   Output format
-  --verbose                                 Show debug output
-  --help                                    Show this help message
+  --verbose                    Debug output to stderr
+  --help                       Show this help
 `;
 
 const DEPS_COMMANDS: ReadonlySet<string> = new Set([
-  Command.GET, Command.LOGIN, Command.STATUS, Command.LOGOUT,
-  Command.PROVIDERS, Command.REQUEST, Command.SYNC, Command.WATCH,
-  Command.RENAME, Command.REMOVE,
+  Command.GET,
+  Command.LOGIN,
+  Command.STATUS,
+  Command.LOGOUT,
+  Command.PROVIDERS,
+  Command.REQUEST,
+  Command.SYNC,
+  Command.WATCH,
+  Command.RENAME,
+  Command.REMOVE,
 ]);
 
 export async function run(args: string[]): Promise<void> {
@@ -122,8 +167,8 @@ export async function run(args: string[]): Promise<void> {
     if (!existsSync(configPath)) {
       process.stderr.write(
         '\nWelcome to Signet!\n\n' +
-        `  No config file found at ${configPath}\n` +
-        '  Run "sig init" to set up your configuration.\n\n',
+          `  No config file found at ${configPath}\n` +
+          '  Run "sig init" to set up your configuration.\n\n',
       );
       process.exitCode = ExitCode.GENERAL_ERROR;
       return;
