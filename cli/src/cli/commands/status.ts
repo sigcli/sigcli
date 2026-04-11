@@ -22,7 +22,7 @@ function buildRows(
 
 export async function runStatus(
   positionals: string[],
-  flags: Record<string, string | boolean>,
+  flags: Record<string, string | boolean | string[]>,
   deps: AuthDeps,
 ): Promise<void> {
   const providerId = (flags.provider as string) ?? positionals[0];

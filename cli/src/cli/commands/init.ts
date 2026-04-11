@@ -148,7 +148,7 @@ async function promptProviders(rl: ReturnType<typeof createInterface>): Promise<
 
 export async function runInit(
   positionals: string[],
-  flags: Record<string, string | boolean>,
+  flags: Record<string, string | boolean | string[]>,
 ): Promise<void> {
   const configPath = getConfigPath();
   const signetDir = path.dirname(configPath);
