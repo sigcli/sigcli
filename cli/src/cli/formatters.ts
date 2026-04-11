@@ -26,6 +26,13 @@ export function formatTable(rows: Record<string, string>[]): string {
   return [header, separator, ...body].join('\n');
 }
 
+export function formatExpiry(minutes: number): string {
+  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 1440) return `${Math.floor(minutes / 60)}h`;
+  if (minutes < 43200) return `${Math.floor(minutes / 1440)}d`;
+  return `${Math.floor(minutes / 43200)}mo`;
+}
+
 export function formatCredentialHeaders(headers: Record<string, string>): string {
   return Object.entries(headers).map(([k, v]) => `${k}: ${v}`).join('\n');
 }
