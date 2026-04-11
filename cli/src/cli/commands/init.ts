@@ -66,14 +66,14 @@ async function promptProviders(rl: ReturnType<typeof createInterface>): Promise<
   id: string;
   domains: string[];
   strategy: string;
-  entryUrl?: string;
+  entryUrl: string;
   config?: Record<string, unknown>;
 }>> {
   const providers: Array<{
     id: string;
     domains: string[];
     strategy: string;
-    entryUrl?: string;
+    entryUrl: string;
     config?: Record<string, unknown>;
   }> = [];
 
@@ -130,7 +130,7 @@ async function promptProviders(rl: ReturnType<typeof createInterface>): Promise<
       id: id.trim(),
       domains,
       strategy: strategyKey,
-      ...(entryUrl ? { entryUrl } : {}),
+      entryUrl: entryUrl ?? `https://${domains[0]}/`,
       ...(template.defaultConfig ? { config: template.defaultConfig } : {}),
     });
     console.log(`  Added "${id.trim()}" (${strategyKey}).`);
@@ -183,7 +183,7 @@ export async function runInit(
     id: string;
     domains: string[];
     strategy: string;
-    entryUrl?: string;
+    entryUrl: string;
     config?: Record<string, unknown>;
   }> = [];
 

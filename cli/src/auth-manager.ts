@@ -284,9 +284,9 @@ export class AuthManager {
     return this.providers;
   }
 
-  /** Storage key: uses credentialFile if configured, otherwise provider ID. */
+  /** Storage key: always the provider ID. */
   private storageKey(provider: ProviderConfig): string {
-    return provider.credentialFile ?? provider.id;
+    return provider.id;
   }
 
   private checkCredentialType(

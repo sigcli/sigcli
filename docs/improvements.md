@@ -96,35 +96,9 @@ Green `✓` (valid), red `✗` (expired), dim `—` (no credential). TTY-aware, 
 
 ---
 
-## 9. CLI Help & Command Documentation
+## ~~9. CLI Help & Command Documentation~~ DONE
 
-**Problem**: The CLI has a flat command structure where most commands operate on **providers** (the primary resource) while `sig remote` and `sig sync` manage **remote machines**. This mental model isn't documented anywhere — users have to infer it. `sig --help` lists commands but doesn't group or explain them.
-
-**Proposed**:
-
-- Group commands in `--help` output by resource:
-  ```
-  Provider commands:
-    login <provider|url>     Authenticate with a provider
-    logout [provider]        Clear stored credentials
-    get <provider|url>       Get credential headers
-    status [provider]        Show auth status
-    remove <provider>        Remove provider and credentials
-    rename <old> <new>       Rename a provider
-    providers                List configured providers
-
-  Remote commands:
-    remote add|remove|list   Manage remote credential stores
-    sync push|pull [remote]  Sync credentials with remote
-
-  Setup:
-    init                     Set up config
-    doctor                   Check environment
-  ```
-- Add a short description line at the top: "signet — authenticate once, use everywhere"
-- Each command's `--help` should show examples
-
-**Where**: `src/cli/main.ts` — the help output formatter.
+Help output grouped by resource (Provider / Remote / Setup), tagline added.
 
 ---
 
@@ -142,70 +116,27 @@ Implement via `sig completions bash|zsh|fish` that outputs the completion script
 
 ---
 
-## 11. `sig remove <provider>` — Full Provider Deletion
+## ~~11. `sig remove <provider>` — Full Provider Deletion~~ DONE
 
-**Problem**: `sig logout <provider>` only deletes the credential file. The provider entry remains in `config.yaml` and keeps showing up in `sig status` (as invalid). There is no way to fully remove a provider without manually editing the YAML. Over time, auto-provisioned providers accumulate.
-
-**Where**: `src/cli/commands/logout.ts` only calls `authManager.clearCredentials()` which deletes from storage. No code touches `config.yaml`.
-
-**Distinction from `sig logout`**:
-- `sig logout` = "sign out" — clears credentials, keeps config (you'll log back in)
-- `sig remove` = "delete" — removes everything (provider is gone)
-
-**Proposed**: New `sig remove` command — accepts one or more explicit provider IDs:
-
-```bash
-sig remove bdc-starkiller                          # Remove one provider
-sig remove bdc-master-canary dsp-master-canary      # Remove multiple
-sig remove bdc-starkiller --keep-config             # Clear creds only, keep config
-```
-
-No batch/`--stale` mode. Expired credentials are normal (users re-login), not a signal that a provider is unwanted. Only the user knows which providers they still need.
-
-**Safety**:
-
-- Confirmation lists all targets: `Remove 2 providers? bdc-master-canary, dsp-master-canary [y/N]`
-- `--force` to skip confirmation
-- Refuse to remove hand-crafted (non-auto-provisioned) providers unless `--force` is used
-
-**Implementation notes**:
-
-- New `removeProviderFromConfig()` using `YAML.parseDocument()` to preserve comments
-- Delete the YAML key under `providers:` matching the provider ID
+`sig remove` command with multi-provider support, `--force`, `--keep-config`, confirmation prompt. Uses `YAML.parseDocument()` to preserve comments when removing from config.
 
 ---
 
-## 12. Multiple `--header` Flags in `sig request`
+## ~~12. Multiple `--header` Flags in `sig request`~~ DONE
 
-**Problem**: `sig request` only supports a single `--header` flag because `flags` is `Record<string, string | boolean>` — a second `--header` overwrites the first. Many real API calls need multiple custom headers (e.g., `Content-Type` + `X-Requested-With` for Jira POST).
-
-**Where**: `src/cli/main.ts` — `parseArgs()` stores flags as single values. `src/cli/commands/request.ts` lines 37-42 parse only one header.
-
-**Proposed**: Change the arg parser to accumulate repeated flags into arrays, then iterate them in `request.ts`.
-
-```bash
-sig request --header "Content-Type: application/json" --header "X-Requested-With: XMLHttpRequest" https://jira.tools.sap/rest/api/2/issue
-```
+Arg parser accumulates repeated flags into arrays. `request.ts` iterates all `--header` values.
 
 ---
 
-## 13. Credential File Permissions (0o600)
+## ~~13. Credential File Permissions (0o600)~~ DONE
 
-**Problem**: `DirectoryStorage` creates credential files with default permissions (typically 0o644). Credentials (cookies, tokens, passwords) are readable by any user on the system.
-
-**Where**: `src/storage/directory-storage.ts` — `atomicWrite()` uses `fs.writeFile` without specifying a `mode`.
-
-**Proposed**: Add `{ mode: 0o600 }` to all `writeFile` calls so only the file owner can read credential files. Quick security hardening, best practice for any credential storage.
+`DirectoryStorage` now uses `mode: 0o600` for credential files and lock files, `mode: 0o700` for directories.
 
 ---
 
-## 14. `--verbose` / `--debug` Global Flag
+## ~~14. `--verbose` / `--debug` Global Flag~~ DONE
 
-**Problem**: No way to debug browser automation issues, sync failures, or auth flow decisions. The `ILogger` interface exists in `src/core/types.ts` and is threaded through `AuthContext` and `AuthManager`, but no CLI flag enables it. `hybrid-flow.ts` uses bare `console.error` for progress.
-
-**Where**: `src/cli/main.ts` (parse flag), `src/deps.ts` (pass logger), `src/browser/flows/hybrid-flow.ts`, strategies.
-
-**Proposed**: Add `--verbose` global flag that creates a console-based logger and pipes it through the dependency graph. Replace `console.error` calls with structured logger calls. Output decisions like "why headless failed", "what cookies were extracted", "which token matched".
+`--verbose` global flag creates a console-based logger via `createConsoleLogger()` in `deps.ts`, piped through the dependency graph.
 
 ---
 
@@ -309,16 +240,16 @@ sig import creds.enc                          # Decrypt and store
 
 ### Tier 1: Quick Wins (Small effort, High impact)
 
-| #   | Improvement                         | Impact | Effort |
-| --- | ----------------------------------- | ------ | ------ |
-| 1   | Smarter auto-provisioned IDs        | High   | Small  |
-| 2   | `--as` flag for login               | High   | Small  |
-| 11  | `sig remove` command                | High   | Small  |
-| 12  | Multiple `--header` flags           | High   | Small  |
-| 13  | Credential file permissions (0o600) | High   | Small  |
-| 14  | `--verbose` / `--debug` flag        | High   | Small  |
-| 15  | `sig renew` command                 | High   | Small  |
-| 9   | CLI help & command docs             | High   | Small  |
+| #   | Improvement                         | Impact | Effort | Status |
+| --- | ----------------------------------- | ------ | ------ | ------ |
+| 1   | Smarter auto-provisioned IDs        | High   | Small  |        |
+| 2   | `--as` flag for login               | High   | Small  | DONE   |
+| 11  | `sig remove` command                | High   | Small  | DONE   |
+| 12  | Multiple `--header` flags           | High   | Small  | DONE   |
+| 13  | Credential file permissions (0o600) | High   | Small  | DONE   |
+| 14  | `--verbose` / `--debug` flag        | High   | Small  | DONE   |
+| 15  | `sig renew` command                 | High   | Small  |        |
+| 9   | CLI help & command docs             | High   | Small  | DONE   |
 
 ### Tier 2: Polish (Small effort, Medium impact)
 
