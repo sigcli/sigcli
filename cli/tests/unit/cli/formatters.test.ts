@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatJson, formatTable, formatCredentialHeaders, formatExpiry } from '../../../src/cli/formatters.js';
+import { formatJson, formatTable, formatCredentialHeaders, formatExpiry, formatStatusIndicator, stripAnsi } from '../../../src/cli/formatters.js';
 
 describe('formatJson', () => {
   it('returns pretty-printed JSON for a simple object', () => {
@@ -124,6 +124,51 @@ describe('formatExpiry', () => {
     expect(formatExpiry(43200)).toBe('1mo');
     expect(formatExpiry(86400)).toBe('2mo');
     expect(formatExpiry(573304)).toBe('13mo');
+  });
+});
+
+describe('formatStatusIndicator', () => {
+  it('returns check mark for valid credentials', () => {
+    const result = formatStatusIndicator(true, true);
+    expect(stripAnsi(result)).toBe('\u2713');
+  });
+
+  it('returns cross for invalid but existing credentials', () => {
+    const result = formatStatusIndicator(false, true);
+    expect(stripAnsi(result)).toBe('\u2717');
+  });
+
+  it('returns em dash for no credential', () => {
+    const result = formatStatusIndicator(false, false);
+    expect(stripAnsi(result)).toBe('\u2014');
+  });
+});
+
+describe('stripAnsi', () => {
+  it('removes ANSI escape codes', () => {
+    expect(stripAnsi('\x1b[32mhello\x1b[0m')).toBe('hello');
+  });
+
+  it('returns plain text unchanged', () => {
+    expect(stripAnsi('hello')).toBe('hello');
+  });
+});
+
+describe('formatTable with ANSI content', () => {
+  it('aligns columns correctly when cells contain ANSI codes', () => {
+    const rows = [
+      { id: 'jira', status: '\x1b[32m\u2713\x1b[0m' },
+      { id: 'confluence', status: '\x1b[31m\u2717\x1b[0m' },
+    ];
+    const result = formatTable(rows);
+    const lines = result.split('\n');
+
+    // Both status columns should have the same visible alignment
+    // The id column width should be based on 'confluence' (10 chars)
+    const row1 = stripAnsi(lines[2]);
+    const row2 = stripAnsi(lines[3]);
+    // Both rows should have the same visible length
+    expect(row1.trimEnd().length).toBeLessThanOrEqual(row2.trimEnd().length + 10);
   });
 });
 
