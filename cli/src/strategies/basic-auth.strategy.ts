@@ -1,9 +1,10 @@
 import type { IAuthStrategy, IAuthStrategyFactory } from '../core/interfaces/auth-strategy.js';
-import type { Credential, ProviderConfig } from '../core/types.js';
+import type { Credential, CredentialResult, ProviderConfig } from '../core/types.js';
 import type { StrategyConfig, BasicStrategyConfig } from '../config/schema.js';
 import type { Result } from '../core/result.js';
 import { ok, err } from '../core/result.js';
 import { ManualSetupRequired, type AuthError } from '../core/errors.js';
+import { HttpHeader, AuthScheme, StrategyName, CredentialTypeName } from '../core/constants.js';
 
 /**
  * Basic authentication strategy.
@@ -18,7 +19,7 @@ class BasicAuthStrategy implements IAuthStrategy {
   }
 
   validate(credential: Credential): Result<boolean, AuthError> {
-    if (credential.type !== 'basic') return ok(false);
+    if (credential.type !== CredentialTypeName.BASIC) return ok(false);
     return ok(
       credential.username.length > 0 && credential.password.length > 0,
     );
@@ -26,7 +27,7 @@ class BasicAuthStrategy implements IAuthStrategy {
 
   async authenticate(
     provider: ProviderConfig,
-  ): Promise<Result<Credential, AuthError>> {
+  ): Promise<Result<CredentialResult, AuthError>> {
     return err(
       new ManualSetupRequired(
         provider.id,
@@ -42,21 +43,21 @@ class BasicAuthStrategy implements IAuthStrategy {
   }
 
   applyToRequest(credential: Credential): Record<string, string> {
-    if (credential.type !== 'basic') return {};
+    if (credential.type !== CredentialTypeName.BASIC) return {};
 
     const encoded = Buffer.from(
       `${credential.username}:${credential.password}`,
     ).toString('base64');
 
-    return { Authorization: `Basic ${encoded}` };
+    return { [HttpHeader.AUTHORIZATION]: `${AuthScheme.BASIC} ${encoded}` };
   }
 }
 
 export class BasicAuthStrategyFactory implements IAuthStrategyFactory {
-  readonly name = 'basic';
+  readonly name = StrategyName.BASIC;
 
   create(config: StrategyConfig): IAuthStrategy {
-    if (config.strategy !== 'basic') {
+    if (config.strategy !== StrategyName.BASIC) {
       throw new Error(`BasicAuthStrategyFactory received wrong config type: ${config.strategy}`);
     }
     return new BasicAuthStrategy(config);

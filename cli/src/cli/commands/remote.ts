@@ -1,17 +1,19 @@
 import { getRemotes, addRemote, removeRemote } from '../../sync/remote-config.js';
 import type { RemoteConfig } from '../../sync/types.js';
 import { formatJson, formatTable } from '../formatters.js';
+import { ExitCode } from '../exit-codes.js';
+import { RemoteSubcommand } from '../../core/constants.js';
 
 export async function runRemote(positionals: string[], flags: Record<string, string | boolean | string[]>): Promise<void> {
   const subcommand = positionals[0];
 
   switch (subcommand) {
-    case 'add': {
+    case RemoteSubcommand.ADD: {
       const name = positionals[1];
       const host = positionals[2];
       if (!name || !host) {
         process.stderr.write('Usage: sig remote add <name> <host> [--user <user>] [--path <path>] [--ssh-key <key>]\n');
-        process.exitCode = 1;
+        process.exitCode = ExitCode.GENERAL_ERROR;
         return;
       }
       const remote: RemoteConfig = {
@@ -27,11 +29,11 @@ export async function runRemote(positionals: string[], flags: Record<string, str
       return;
     }
 
-    case 'remove': {
+    case RemoteSubcommand.REMOVE: {
       const name = positionals[1];
       if (!name) {
         process.stderr.write('Usage: sig remote remove <name>\n');
-        process.exitCode = 1;
+        process.exitCode = ExitCode.GENERAL_ERROR;
         return;
       }
       const removed = await removeRemote(name);
@@ -39,12 +41,12 @@ export async function runRemote(positionals: string[], flags: Record<string, str
         process.stderr.write(`Remote "${name}" removed\n`);
       } else {
         process.stderr.write(`Remote "${name}" not found\n`);
-        process.exitCode = 1;
+        process.exitCode = ExitCode.GENERAL_ERROR;
       }
       return;
     }
 
-    case 'list':
+    case RemoteSubcommand.LIST:
     default: {
       const remotes = await getRemotes();
       if (remotes.length === 0) {

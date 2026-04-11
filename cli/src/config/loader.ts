@@ -8,7 +8,7 @@ import path from 'node:path';
 import os from 'node:os';
 import YAML from 'yaml';
 import type { Result } from '../core/result.js';
-import { ok, err } from '../core/result.js';
+import { err } from '../core/result.js';
 import { ConfigError, type AuthError } from '../core/errors.js';
 import type { SignetConfig, ProviderEntry } from './schema.js';
 import { validateConfig } from './validator.js';

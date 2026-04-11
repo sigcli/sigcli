@@ -1,4 +1,5 @@
 import type { Cookie, BrowserLaunchOptions } from '../types.js';
+import type { WaitUntilValue } from '../constants.js';
 
 /**
  * Pluggable browser automation adapter.
@@ -76,6 +77,6 @@ export interface PageResponse {
 }
 
 export interface NavigateOptions {
-  waitUntil?: 'load' | 'networkidle' | 'domcontentloaded' | 'commit';
+  waitUntil?: WaitUntilValue;
   timeout?: number;
 }

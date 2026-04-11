@@ -11,6 +11,7 @@ import type {
   XHeaderConfig,
   StrategyName,
 } from '../core/types.js';
+import type { WaitUntilValue } from '../core/constants.js';
 
 // Re-export strategy config types from core/types (the source of truth)
 export type {
@@ -31,7 +32,7 @@ export interface BrowserConfig {
   channel: string;
   headlessTimeout: number;
   visibleTimeout: number;
-  waitUntil: 'load' | 'networkidle' | 'domcontentloaded' | 'commit';
+  waitUntil: WaitUntilValue;
 }
 
 export interface StorageConfig {

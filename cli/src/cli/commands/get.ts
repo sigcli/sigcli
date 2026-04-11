@@ -1,6 +1,7 @@
 import type { AuthDeps } from '../../deps.js';
 import { isOk } from '../../core/result.js';
 import { formatJson, formatCredentialHeaders } from '../formatters.js';
+import { ExitCode } from '../exit-codes.js';
 
 const PRIMARY_HEADERS = ['cookie', 'authorization'];
 
@@ -12,7 +13,7 @@ export async function runGet(
   const target = positionals[0];
   if (!target) {
     process.stderr.write('Usage: sig get <provider|url>\n');
-    process.exitCode = 1;
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
 
@@ -29,7 +30,7 @@ export async function runGet(
       if (result.error.code === 'BROWSER_UNAVAILABLE') {
         process.stderr.write(`Hint: Run "sig login ${target} --token <token>" or "sig sync pull" to get credentials.\n`);
       }
-      process.exitCode = result.error.code === 'CREDENTIAL_NOT_FOUND' ? 3 : 1;
+      process.exitCode = result.error.code === 'CREDENTIAL_NOT_FOUND' ? ExitCode.CREDENTIAL_NOT_FOUND : ExitCode.GENERAL_ERROR;
       return;
     }
     credential = result.value;
@@ -38,7 +39,7 @@ export async function runGet(
     const isUrl = target.includes('.') || target.startsWith('http');
     if (!isUrl) {
       process.stderr.write(`Error: No provider found matching "${target}".\n`);
-      process.exitCode = 2;
+      process.exitCode = ExitCode.PROVIDER_NOT_FOUND;
       return;
     }
     const result = await deps.authManager.getCredentialsByUrl(target);
@@ -47,7 +48,7 @@ export async function runGet(
       if (result.error.code === 'BROWSER_UNAVAILABLE') {
         process.stderr.write(`Hint: Run "sig login ${target} --token <token>" or "sig sync pull" to get credentials.\n`);
       }
-      process.exitCode = result.error.code === 'PROVIDER_NOT_FOUND' ? 2 : 3;
+      process.exitCode = result.error.code === 'PROVIDER_NOT_FOUND' ? ExitCode.PROVIDER_NOT_FOUND : ExitCode.CREDENTIAL_NOT_FOUND;
       return;
     }
     providerId = result.value.provider.id;
@@ -59,7 +60,7 @@ export async function runGet(
 
   if (entries.length === 0) {
     process.stderr.write(`Error: No credential headers produced for "${providerId}".\n`);
-    process.exitCode = 3;
+    process.exitCode = ExitCode.CREDENTIAL_NOT_FOUND;
     return;
   }
 
@@ -98,7 +99,7 @@ export async function runGet(
     }
     default: {
       process.stderr.write(`Unknown format: ${format}\n`);
-      process.exitCode = 1;
+      process.exitCode = ExitCode.GENERAL_ERROR;
     }
   }
 }
