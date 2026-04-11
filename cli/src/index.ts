@@ -32,6 +32,7 @@ export type {
     BrowserLaunchOptions,
     ILogger,
     XHeaderConfig,
+    LocalStorageConfig,
     AuthDiagnostics,
     CredentialResult,
 } from './core/types.js';

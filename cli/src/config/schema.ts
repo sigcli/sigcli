@@ -6,7 +6,12 @@
  * and re-exported here for convenience.
  */
 
-import type { CredentialType, XHeaderConfig, StrategyName } from '../core/types.js';
+import type {
+    CredentialType,
+    XHeaderConfig,
+    LocalStorageConfig,
+    StrategyName,
+} from '../core/types.js';
 import type { WaitUntilValue } from '../core/constants.js';
 
 // Re-export strategy config types from core/types (the source of truth)
@@ -84,5 +89,6 @@ export interface ProviderEntry {
     acceptedCredentialTypes?: CredentialType[];
     setupInstructions?: string;
     xHeaders?: XHeaderConfig[];
+    localStorage?: LocalStorageConfig[];
     forceVisible?: boolean;
 }
