@@ -60,22 +60,6 @@ Implement via `sig completions bash|zsh|fish` that outputs the completion script
 
 ---
 
-## 15. `sig renew` Command
-
-**Problem**: Credentials are only refreshed lazily during `getCredentials`. No way to proactively renew before an AI agent workflow or batch job starts. If a credential expires mid-workflow, the agent is blocked.
-
-**Where**: New command. Infrastructure exists — `AuthManager.getCredentials` already does validate→refresh→authenticate.
-
-**Proposed**: `sig renew [provider]` iterates providers and calls the refresh path, reporting results. Useful as a cron job or pre-flight check:
-
-```bash
-sig renew              # Renew all expiring credentials
-sig renew jira         # Renew specific provider
-sig renew --dry-run    # Show what would be renewed
-```
-
----
-
 ## 16. Device Code OAuth2 Strategy (RFC 8628)
 
 **Problem**: On headless/remote machines, the only browserless auth options are manual `--token` or `--cookie` flags. No interactive-but-browserless OAuth2 flow.
@@ -119,21 +103,6 @@ providers:
 
 ---
 
-## 20. `sig export` / `sig import` Commands
-
-**Problem**: `sig sync` requires SSH between machines. No file-based transfer for air-gapped networks, USB drives, or pasting through chat.
-
-**Proposed**: Export credentials as an encrypted bundle (AES-256-GCM with user passphrase), import on another machine:
-
-```bash
-sig export --provider jira --out creds.enc   # Encrypted export
-sig import creds.enc                          # Decrypt and store
-```
-
-**Dependencies**: Benefits from #19 (encrypted storage) for shared encryption primitives.
-
----
-
 ## 21. Programmatic API Documentation
 
 **Problem**: `src/index.ts` exports a comprehensive public API (AuthManager, strategies, storage) but has no JSDoc examples. No "Programmatic Usage" section in README.
@@ -150,24 +119,6 @@ sig import creds.enc                          # Decrypt and store
 
 ---
 
-## Completed
-
-| #   | Improvement                         |
-| --- | ----------------------------------- |
-| 2   | `--as` flag for login               |
-| 3   | `sig rename` command                |
-| 4   | Truncated table output              |
-| 5   | Human-readable expiry               |
-| 6   | Color / status indicators           |
-| 9   | CLI help & command docs             |
-| 11  | `sig remove` command                |
-| 12  | Multiple `--header` flags           |
-| 13  | Credential file permissions (0o600) |
-| 14  | `--verbose` / `--debug` flag        |
-| 17  | `sig doctor` bug fix                |
-
----
-
 ## Priority
 
 ### Tier 1: Quick Wins (Small effort, High impact)
@@ -175,7 +126,6 @@ sig import creds.enc                          # Decrypt and store
 | #   | Improvement                  | Impact | Effort |
 | --- | ---------------------------- | ------ | ------ |
 | 1   | Smarter auto-provisioned IDs | High   | Small  |
-| 15  | `sig renew` command          | High   | Small  |
 
 ### Tier 2: Polish (Small effort, Medium impact)
 
@@ -191,7 +141,6 @@ sig import creds.enc                          # Decrypt and store
 | 16  | Device Code OAuth2 strategy | High   | Medium |
 | 10  | Shell completions           | Medium | Medium |
 | 18  | Windows browser detection   | Medium | Small  |
-| 20  | `sig export` / `sig import` | Medium | Medium |
 | 21  | Programmatic API docs       | Medium | Small  |
 
 ### Tier 4: Large Investments
