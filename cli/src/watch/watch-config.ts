@@ -1,14 +1,9 @@
 /**
  * Watch configuration — reads/writes from the unified ~/.signet/config.yaml.
- * Follows the same pattern as sync/remote-config.ts.
  */
 
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import os from 'node:os';
 import YAML from 'yaml';
-
-const CONFIG_PATH = path.join(os.homedir(), '.signet', 'config.yaml');
+import { loadDocument, saveDocument } from '../config/document.js';
 
 export interface WatchProviderOpts {
   autoSync: string[];    // empty array = no sync
@@ -25,35 +20,6 @@ export interface WatchProviderEntry {
 }
 
 const DEFAULT_INTERVAL = '5m';
-
-/**
- * Load the raw YAML content from disk.
- */
-async function loadRawContent(): Promise<string> {
-  try {
-    return await fs.readFile(CONFIG_PATH, 'utf-8');
-  } catch (e: unknown) {
-    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return '';
-    throw e;
-  }
-}
-
-/**
- * Load a YAML Document (preserves comments and formatting).
- */
-async function loadDocument(): Promise<YAML.Document> {
-  const content = await loadRawContent();
-  if (!content) return new YAML.Document({});
-  return YAML.parseDocument(content);
-}
-
-/**
- * Save the YAML Document back to disk, preserving comments.
- */
-async function saveDocument(doc: YAML.Document): Promise<void> {
-  await fs.mkdir(path.dirname(CONFIG_PATH), { recursive: true });
-  await fs.writeFile(CONFIG_PATH, doc.toString(), 'utf-8');
-}
 
 /**
  * Parse a raw YAML provider opts entry into a strict WatchProviderOpts.

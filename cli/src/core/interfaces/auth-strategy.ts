@@ -2,6 +2,7 @@ import type { Result } from '../result.js';
 import type { AuthError } from '../errors.js';
 import type {
   Credential,
+  CredentialResult,
   ProviderConfig,
   StrategyConfig,
 } from '../types.js';
@@ -35,7 +36,7 @@ export interface IAuthStrategy {
   authenticate(
     provider: ProviderConfig,
     context: AuthContext,
-  ): Promise<Result<Credential, AuthError>>;
+  ): Promise<Result<CredentialResult, AuthError>>;
 
   /**
    * Try to refresh an expired credential without full re-authentication.

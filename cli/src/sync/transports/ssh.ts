@@ -4,12 +4,13 @@ import path from 'node:path';
 import os from 'node:os';
 import type { RemoteConfig } from '../types.js';
 import type { StoredCredential } from '../../core/types.js';
+import type { ISyncTransport, RemoteEntry } from '../interfaces/transport.js';
 
 const execFileAsync = promisify(execFile);
 
 const DEFAULT_REMOTE_PATH = '~/.signet';
 
-export class SshTransport {
+export class SshTransport implements ISyncTransport {
 
   private sshArgs(remote: RemoteConfig): string[] {
     const args: string[] = [];
@@ -32,7 +33,7 @@ export class SshTransport {
   }
 
   /** List provider files on the remote */
-  async listRemote(remote: RemoteConfig): Promise<{ providerId: string; updatedAt: string; filename: string }[]> {
+  async listRemote(remote: RemoteConfig): Promise<RemoteEntry[]> {
     const target = this.remoteTarget(remote);
     const rpath = this.remoteCredentialsPath(remote);
 
@@ -44,7 +45,7 @@ export class SshTransport {
       ]);
 
       const files = stdout.trim().split('\n').filter(Boolean);
-      const entries: { providerId: string; updatedAt: string; filename: string }[] = [];
+      const entries: RemoteEntry[] = [];
 
       for (const file of files) {
         const filename = path.basename(file);
