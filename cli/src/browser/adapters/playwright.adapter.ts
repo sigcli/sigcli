@@ -1,5 +1,3 @@
-import os from "node:os";
-import path from "node:path";
 import type {
   IBrowserAdapter,
   IBrowserSession,
@@ -11,13 +9,7 @@ import type {
 import type { Cookie, BrowserLaunchOptions } from "../../core/types.js";
 import type { BrowserConfig } from "../../config/schema.js";
 import { BrowserLaunchError } from "../../core/errors.js";
-
-function expandHome(p: string): string {
-  if (p.startsWith("~/") || p === "~") {
-    return path.join(os.homedir(), p.slice(1));
-  }
-  return p;
-}
+import { expandHome } from "../../utils/path.js";
 
 /**
  * Playwright-based browser adapter.
@@ -98,11 +90,7 @@ class PlaywrightPage implements IBrowserPage {
 
   async goto(url: string, options?: NavigateOptions): Promise<void> {
     await this.page.goto(url, {
-      waitUntil: options?.waitUntil as
-        | "load"
-        | "networkidle"
-        | "domcontentloaded"
-        | "commit",
+      waitUntil: options?.waitUntil,
       timeout: options?.timeout,
     });
   }

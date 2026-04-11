@@ -1,4 +1,3 @@
-import os from 'node:os';
 import type { IStorage } from './core/interfaces/storage.js';
 import type { ILogger, ProviderConfig } from './core/types.js';
 import type { SignetConfig } from './config/schema.js';
@@ -14,6 +13,7 @@ import { CachedStorage } from './storage/cached-storage.js';
 import { PlaywrightAdapter } from './browser/adapters/playwright.adapter.js';
 import { NullBrowserAdapter } from './browser/adapters/null.adapter.js';
 import { buildStrategyConfig } from './config/validator.js';
+import { expandHome } from './utils/path.js';
 
 /**
  * Shared dependency graph used by the CLI and programmatic API.
@@ -78,7 +78,7 @@ export function createAuthDeps(config: SignetConfig, options?: { verbose?: boole
   strategyRegistry.register(new BasicAuthStrategyFactory());
 
   // 3. Build storage (CachedStorage wrapping DirectoryStorage)
-  const credDir = config.storage.credentialsDir.replace(/^~/, os.homedir());
+  const credDir = expandHome(config.storage.credentialsDir);
   const storage = new CachedStorage(
     new DirectoryStorage(credDir),
     { ttlMs: 5000 },
