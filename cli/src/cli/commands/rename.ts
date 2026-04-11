@@ -3,7 +3,7 @@ import { renameProviderInConfig } from '../../config/loader.js';
 
 export async function runRename(
   positionals: string[],
-  _flags: Record<string, string | boolean>,
+  _flags: Record<string, string | boolean | string[]>,
   deps: AuthDeps,
 ): Promise<void> {
   const oldId = positionals[0];

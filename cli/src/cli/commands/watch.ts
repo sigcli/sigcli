@@ -23,7 +23,7 @@ Subcommands:
 
 export async function runWatch(
   positionals: string[],
-  flags: Record<string, string | boolean>,
+  flags: Record<string, string | boolean | string[]>,
   deps?: AuthDeps,
 ): Promise<void> {
   const subcommand = positionals[0];
@@ -61,7 +61,7 @@ export async function runWatch(
 
 async function handleAdd(
   positionals: string[],
-  flags: Record<string, string | boolean>,
+  flags: Record<string, string | boolean | string[]>,
   deps?: AuthDeps,
 ): Promise<void> {
   const providerId = positionals[0];
@@ -130,7 +130,7 @@ async function handleRemove(positionals: string[]): Promise<void> {
 }
 
 async function handleList(
-  flags: Record<string, string | boolean>,
+  flags: Record<string, string | boolean | string[]>,
 ): Promise<void> {
   const config = await getWatchConfig();
   if (!config || Object.keys(config.providers).length === 0) {
@@ -183,7 +183,7 @@ async function handleSetInterval(positionals: string[]): Promise<void> {
 }
 
 async function handleStart(
-  flags: Record<string, string | boolean>,
+  flags: Record<string, string | boolean | string[]>,
   deps: AuthDeps,
 ): Promise<void> {
   // Load watch config
