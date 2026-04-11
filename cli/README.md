@@ -161,6 +161,35 @@ sig sync pull [remote] [--provider <id>] [--force]
 
 Push or pull credentials to/from remote machines over SSH. Use `--force` to overwrite on conflict.
 
+### `watch` -- Monitor and auto-refresh credentials
+
+```bash
+sig watch add <provider> [--auto-sync <remote>]   # Add provider to watch list
+sig watch remove <provider>                        # Remove provider from watch list
+sig watch list                                     # Show watched providers
+sig watch start [--interval 5m] [--once]           # Start the watch daemon
+sig watch set-interval <duration>                  # Set default check interval
+```
+
+Monitors credentials and automatically refreshes them before they expire. Optionally syncs refreshed credentials to remote machines.
+
+**Add providers to watch:**
+
+```bash
+sig watch add jira                          # Watch jira, refresh when expiring
+sig watch add jira --auto-sync devbox       # Watch + auto-sync to devbox after refresh
+```
+
+**Run the daemon:**
+
+```bash
+sig watch start                  # Run continuously (Ctrl+C to stop)
+sig watch start --once           # Single check cycle (for cron jobs)
+sig watch start --interval 1m    # Override check interval
+```
+
+The daemon proactively refreshes credentials that will expire before the next check cycle. When `--auto-sync` is configured, refreshed credentials are automatically pushed to the specified remotes.
+
 ## Configuration
 
 All configuration lives in a single file: `~/.signet/config.yaml`. No env vars, no cascading, no project-local overrides.
@@ -231,6 +260,26 @@ remotes:
     type: ssh
     host: dev.example.com
     user: deploy
+```
+
+### `watch` (optional)
+
+Managed by `sig watch add/remove/set-interval`. Defines which providers are monitored and their auto-sync targets.
+
+| Field                    | Required | Default | Description                                        |
+| ------------------------ | -------- | ------- | -------------------------------------------------- |
+| `interval`               | no       | `5m`    | Check interval. Duration string: `30s`, `5m`, `1h` |
+| `providers.<id>`         | no       | --      | Provider to watch (key = provider ID)               |
+| `providers.<id>.autoSync`| no       | --      | Remote names to sync to after refresh               |
+
+```yaml
+watch:
+  interval: "1m"
+  providers:
+    jira:
+      autoSync:
+        - devbox
+    wiki:               # watch + refresh only, no auto-sync
 ```
 
 ### `providers` (optional)
@@ -391,6 +440,14 @@ remotes:
     type: ssh
     host: dev.example.com
     user: deploy
+
+watch:
+  interval: "5m"
+  providers:
+    jira:
+      autoSync:
+        - dev-server
+    ms-teams:
 
 providers:
   jira:

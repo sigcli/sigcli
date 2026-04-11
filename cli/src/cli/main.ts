@@ -12,6 +12,7 @@ import { runProviders } from './commands/providers.js';
 import { runRequest } from './commands/request.js';
 import { runRemote } from './commands/remote.js';
 import { runSync } from './commands/sync.js';
+import { runWatch } from './commands/watch.js';
 import { runInit } from './commands/init.js';
 import { runDoctor } from './commands/doctor.js';
 
@@ -61,6 +62,7 @@ Commands:
   providers              List configured providers
   remote                 Manage remote credential stores
   sync                   Sync credentials with a remote
+  watch                  Monitor and auto-refresh credentials
   doctor                 Check environment and configuration
 
 Global options:
@@ -68,7 +70,7 @@ Global options:
   --help                                    Show this help message
 `;
 
-const DEPS_COMMANDS = new Set(['get', 'login', 'status', 'logout', 'providers', 'request', 'sync']);
+const DEPS_COMMANDS = new Set(['get', 'login', 'status', 'logout', 'providers', 'request', 'sync', 'watch']);
 
 export async function run(args: string[]): Promise<void> {
   const { command, positionals, flags } = parseArgs(args);
@@ -136,6 +138,9 @@ export async function run(args: string[]): Promise<void> {
       break;
     case 'sync':
       await runSync(positionals, flags, deps!);
+      break;
+    case 'watch':
+      await runWatch(positionals, flags, deps);
       break;
     default:
       process.stderr.write(`Unknown command: ${command}\n\n`);

@@ -12,6 +12,8 @@ import type {
   StorageConfig,
   ProviderEntry,
   RemoteEntry,
+  WatchEntry,
+  WatchProviderEntry,
   StrategyName,
   StrategyConfig,
 } from './schema.js';
@@ -102,6 +104,44 @@ export function validateConfig(raw: Record<string, unknown>): Result<SignetConfi
     }
   }
 
+  // --- watch section (optional) ---
+  if (raw.watch !== undefined && raw.watch !== null) {
+    if (typeof raw.watch !== 'object') {
+      errors.push('"watch" must be an object');
+    } else {
+      const watch = raw.watch as Record<string, unknown>;
+      if (watch.interval !== undefined && typeof watch.interval !== 'string') {
+        errors.push('watch.interval must be a string (e.g. "5m", "1h")');
+      }
+      if (watch.providers !== undefined && watch.providers !== null) {
+        if (typeof watch.providers !== 'object') {
+          errors.push('watch.providers must be an object');
+        } else {
+          const wp = watch.providers as Record<string, unknown>;
+          for (const [id, opts] of Object.entries(wp)) {
+            if (opts !== null && opts !== undefined && typeof opts === 'object') {
+              const o = opts as Record<string, unknown>;
+              if (o.autoSync !== undefined) {
+                if (!Array.isArray(o.autoSync)) {
+                  errors.push(`watch.providers.${id}.autoSync must be an array of remote names`);
+                } else {
+                  for (const r of o.autoSync) {
+                    if (typeof r !== 'string') {
+                      errors.push(`watch.providers.${id}.autoSync entries must be strings`);
+                      break;
+                    }
+                  }
+                }
+              }
+            } else if (opts !== null && opts !== undefined) {
+              errors.push(`watch.providers.${id} must be an object or null`);
+            }
+          }
+        }
+      }
+    }
+  }
+
   if (errors.length > 0) {
     return err(new ConfigError(
       `Config validation failed:\n  - ${errors.join('\n  - ')}`,
@@ -147,12 +187,35 @@ export function validateConfig(raw: Record<string, unknown>): Result<SignetConfi
     }
   }
 
+  let watch: WatchEntry | undefined;
+  if (raw.watch && typeof raw.watch === 'object') {
+    const w = raw.watch as Record<string, unknown>;
+    const watchProviders: Record<string, WatchProviderEntry | null> = {};
+    if (w.providers && typeof w.providers === 'object') {
+      for (const [id, opts] of Object.entries(w.providers as Record<string, unknown>)) {
+        if (opts === null || opts === undefined) {
+          watchProviders[id] = null;
+        } else {
+          const o = opts as Record<string, unknown>;
+          watchProviders[id] = {
+            ...(Array.isArray(o.autoSync) ? { autoSync: o.autoSync as string[] } : {}),
+          };
+        }
+      }
+    }
+    watch = {
+      ...(typeof w.interval === 'string' ? { interval: w.interval } : {}),
+      ...(Object.keys(watchProviders).length > 0 ? { providers: watchProviders } : {}),
+    };
+  }
+
   const config: SignetConfig = {
     mode,
     browser,
     storage,
     providers,
     ...(remotes ? { remotes } : {}),
+    ...(watch ? { watch } : {}),
   };
 
   return ok(config);
