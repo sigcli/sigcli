@@ -7,11 +7,11 @@ import type { BrowserLaunchOptions } from '../../core/types.js';
  * Every call to launch() throws BrowserUnavailableError with a descriptive reason.
  */
 export class NullBrowserAdapter implements IBrowserAdapter {
-  readonly name = 'null';
+    readonly name = 'null';
 
-  constructor(private readonly reason: string) {}
+    constructor(private readonly reason: string) {}
 
-  async launch(_options: BrowserLaunchOptions): Promise<IBrowserSession> {
-    throw new BrowserUnavailableError(this.reason);
-  }
+    async launch(_options: BrowserLaunchOptions): Promise<IBrowserSession> {
+        throw new BrowserUnavailableError(this.reason);
+    }
 }

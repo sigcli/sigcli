@@ -11,12 +11,12 @@ import type { WaitUntilValue } from '../core/constants.js';
 
 // Re-export strategy config types from core/types (the source of truth)
 export type {
-  CookieStrategyConfig,
-  OAuth2StrategyConfig,
-  ApiTokenStrategyConfig,
-  BasicStrategyConfig,
-  StrategyConfig,
-  StrategyName,
+    CookieStrategyConfig,
+    OAuth2StrategyConfig,
+    ApiTokenStrategyConfig,
+    BasicStrategyConfig,
+    StrategyConfig,
+    StrategyName,
 } from '../core/types.js';
 
 // ============================================================================
@@ -24,23 +24,23 @@ export type {
 // ============================================================================
 
 export interface BrowserConfig {
-  browserDataDir: string;
-  channel: string;
-  headlessTimeout: number;
-  visibleTimeout: number;
-  waitUntil: WaitUntilValue;
+    browserDataDir: string;
+    channel: string;
+    headlessTimeout: number;
+    visibleTimeout: number;
+    waitUntil: WaitUntilValue;
 }
 
 export interface StorageConfig {
-  credentialsDir: string; // MANDATORY
+    credentialsDir: string; // MANDATORY
 }
 
 export interface RemoteEntry {
-  type: 'ssh';
-  host: string;
-  user?: string;
-  path?: string;
-  sshKey?: string;
+    type: 'ssh';
+    host: string;
+    user?: string;
+    path?: string;
+    sshKey?: string;
 }
 
 // ============================================================================
@@ -48,12 +48,12 @@ export interface RemoteEntry {
 // ============================================================================
 
 export interface WatchProviderEntry {
-  autoSync?: string[]; // Remote names to sync to after refresh
+    autoSync?: string[]; // Remote names to sync to after refresh
 }
 
 export interface WatchEntry {
-  interval: string; // e.g. "1m", "5m"
-  providers: Record<string, WatchProviderEntry | null>; // provider ID → options (null = watch only)
+    interval: string; // e.g. "1m", "5m"
+    providers: Record<string, WatchProviderEntry | null>; // provider ID → options (null = watch only)
 }
 
 // ============================================================================
@@ -63,12 +63,12 @@ export interface WatchEntry {
 export type SignetMode = 'browser' | 'browserless';
 
 export interface SignetConfig {
-  mode: SignetMode;
-  browser: BrowserConfig;
-  storage: StorageConfig;
-  remotes?: Record<string, RemoteEntry>;
-  providers: Record<string, ProviderEntry>;
-  watch?: WatchEntry;
+    mode: SignetMode;
+    browser: BrowserConfig;
+    storage: StorageConfig;
+    remotes?: Record<string, RemoteEntry>;
+    providers: Record<string, ProviderEntry>;
+    watch?: WatchEntry;
 }
 
 // ============================================================================
@@ -76,13 +76,13 @@ export interface SignetConfig {
 // ============================================================================
 
 export interface ProviderEntry {
-  name?: string;
-  domains: string[];
-  entryUrl: string;
-  strategy: StrategyName;
-  config?: Record<string, unknown>;
-  acceptedCredentialTypes?: CredentialType[];
-  setupInstructions?: string;
-  xHeaders?: XHeaderConfig[];
-  forceVisible?: boolean;
+    name?: string;
+    domains: string[];
+    entryUrl: string;
+    strategy: StrategyName;
+    config?: Record<string, unknown>;
+    acceptedCredentialTypes?: CredentialType[];
+    setupInstructions?: string;
+    xHeaders?: XHeaderConfig[];
+    forceVisible?: boolean;
 }
