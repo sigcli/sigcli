@@ -5,6 +5,8 @@ import path from 'node:path';
 import { DirectoryStorage } from '../../../src/storage/directory-storage.js';
 import type { StoredCredential } from '../../../src/core/types.js';
 
+const isWindows = process.platform === 'win32';
+
 describe('DirectoryStorage', () => {
   let tmpDir: string;
   let storage: DirectoryStorage;
@@ -149,6 +151,51 @@ describe('DirectoryStorage', () => {
     // Provider A should have the updated value
     const retrievedA = await storage.get('providerA');
     expect(retrievedA).toEqual(updatedA);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Credential file permissions (#13)
+  // ---------------------------------------------------------------------------
+
+  it.skipIf(isWindows)('creates directory with mode 0o700', async () => {
+    const nestedDir = path.join(tmpDir, 'perm-test-dir');
+    const nestedStorage = new DirectoryStorage(nestedDir);
+
+    const cred: StoredCredential = { ...mockCredential, providerId: 'perm-test' };
+    await nestedStorage.set('perm-test', cred);
+
+    const stat = await fs.stat(nestedDir);
+    expect(stat.isDirectory()).toBe(true);
+    // mode & 0o777 masks out file type bits to get permission bits
+    expect(stat.mode & 0o777).toBe(0o700);
+  });
+
+  it.skipIf(isWindows)('writes credential files with mode 0o600', async () => {
+    const cred: StoredCredential = { ...mockCredential, providerId: 'perm-file' };
+    await storage.set('perm-file', cred);
+
+    const filePath = path.join(tmpDir, 'perm-file.json');
+    const stat = await fs.stat(filePath);
+    expect(stat.mode & 0o777).toBe(0o600);
+  });
+
+  it.skipIf(isWindows)('lock files have mode 0o600', async () => {
+    const cred: StoredCredential = { ...mockCredential, providerId: 'lock-perm' };
+    await storage.set('lock-perm', cred);
+
+    const lockPath = path.join(tmpDir, 'lock-perm.json.lock');
+    const stat = await fs.stat(lockPath);
+    expect(stat.mode & 0o777).toBe(0o600);
+  });
+
+  it.skipIf(isWindows)('overwritten files retain mode 0o600', async () => {
+    const cred: StoredCredential = { ...mockCredential, providerId: 'overwrite-perm' };
+    await storage.set('overwrite-perm', cred);
+    await storage.set('overwrite-perm', { ...cred, updatedAt: '2026-06-01T00:00:00.000Z' });
+
+    const filePath = path.join(tmpDir, 'overwrite-perm.json');
+    const stat = await fs.stat(filePath);
+    expect(stat.mode & 0o777).toBe(0o600);
   });
 
   it('provider IDs with special characters produce valid filenames and round-trip correctly', async () => {
