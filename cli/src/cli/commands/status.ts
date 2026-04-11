@@ -1,5 +1,20 @@
 import type { AuthDeps } from '../../deps.js';
+import type { FormatTableOptions } from '../formatters.js';
 import { formatJson, formatTable, formatExpiry } from '../formatters.js';
+import type { ProviderStatus } from '../../core/types.js';
+
+function buildRows(statuses: ProviderStatus[]): Record<string, string>[] {
+  const showName = statuses.some(s => s.name !== s.id);
+  return statuses.map(s => {
+    const row: Record<string, string> = { id: s.id };
+    if (showName) row.name = s.name;
+    row.strategy = s.strategy;
+    row.valid = s.valid ? 'yes' : 'no';
+    row.type = s.credentialType ?? '-';
+    row.expires = s.expiresInMinutes !== undefined ? formatExpiry(s.expiresInMinutes) : '-';
+    return row;
+  });
+}
 
 export async function runStatus(
   positionals: string[],
@@ -8,6 +23,8 @@ export async function runStatus(
 ): Promise<void> {
   const providerId = (flags.provider as string) ?? positionals[0];
   const format = (flags.format as string) ?? (process.stdout.isTTY ? 'table' : 'json');
+  const tableOptions: FormatTableOptions | undefined =
+    flags.full ? undefined : { maxColumnWidths: { id: 30 } };
 
   if (providerId) {
     const resolved = deps.authManager.providerRegistry.resolveFlexible(providerId);
@@ -15,14 +32,7 @@ export async function runStatus(
     if (format === 'json') {
       process.stdout.write(formatJson(status) + '\n');
     } else {
-      process.stdout.write(formatTable([{
-        id: status.id,
-        name: status.name,
-        strategy: status.strategy,
-        valid: status.valid ? 'yes' : 'no',
-        type: status.credentialType ?? '-',
-        expires: status.expiresInMinutes !== undefined ? formatExpiry(status.expiresInMinutes) : '-',
-      }]) + '\n');
+      process.stdout.write(formatTable(buildRows([status]), tableOptions) + '\n');
     }
     return;
   }
@@ -36,14 +46,6 @@ export async function runStatus(
       process.stderr.write('No providers configured.\n');
       return;
     }
-    const rows = statuses.map(s => ({
-      id: s.id,
-      name: s.name,
-      strategy: s.strategy,
-      valid: s.valid ? 'yes' : 'no',
-      type: s.credentialType ?? '-',
-      expires: s.expiresInMinutes !== undefined ? formatExpiry(s.expiresInMinutes) : '-',
-    }));
-    process.stdout.write(formatTable(rows) + '\n');
+    process.stdout.write(formatTable(buildRows(statuses), tableOptions) + '\n');
   }
 }
