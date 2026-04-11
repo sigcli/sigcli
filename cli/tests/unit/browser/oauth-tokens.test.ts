@@ -14,9 +14,7 @@ const VALID_JWT_WRONG_AUD =
  * Creates a minimal mock IBrowserPage whose `evaluate` returns the given
  * storage entries (simulating localStorage/sessionStorage content).
  */
-function createMockPage(
-  storageEntries: Record<string, string> = {},
-): IBrowserPage {
+function createMockPage(storageEntries: Record<string, string> = {}): IBrowserPage {
   return {
     goto: vi.fn(),
     url: vi.fn(() => 'https://app.example.com'),

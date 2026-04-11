@@ -2,16 +2,18 @@ import type { AuthContext } from './core/interfaces/auth-strategy.js';
 import type { IBrowserAdapter } from './core/interfaces/browser-adapter.js';
 import type { IStorage } from './core/interfaces/storage.js';
 import type { IProviderRegistry } from './core/interfaces/provider.js';
-import type { Credential, ProviderConfig, StoredCredential, ProviderStatus, ILogger } from './core/types.js';
+import type {
+  Credential,
+  ProviderConfig,
+  StoredCredential,
+  ProviderStatus,
+  ILogger,
+} from './core/types.js';
 import type { BrowserConfig } from './config/schema.js';
 import { createDefaultProvider } from './providers/auto-provision.js';
 import type { Result } from './core/result.js';
 import { ok, err, isOk } from './core/result.js';
-import {
-  CredentialTypeError,
-  ProviderNotFoundError,
-  type AuthError,
-} from './core/errors.js';
+import { CredentialTypeError, ProviderNotFoundError, type AuthError } from './core/errors.js';
 import { StrategyRegistry } from './strategies/registry.js';
 import { LOGIN_URL_PATTERNS, HttpHeader, CredentialTypeName } from './core/constants.js';
 import { buildUserAgent } from './utils/http.js';
@@ -110,9 +112,10 @@ export class AuthManager {
     if (existing) return existing;
 
     // Only auto-provision for URL-like inputs (contains '.' or starts with 'http')
-    const isUrlLike = input.startsWith('http://') || input.startsWith('https://') || input.includes('.');
+    const isUrlLike =
+      input.startsWith('http://') || input.startsWith('https://') || input.includes('.');
     if (isUrlLike) {
-      const existingIds = new Set(this.providers.list().map(p => p.id));
+      const existingIds = new Set(this.providers.list().map((p) => p.id));
       const provider = createDefaultProvider(input, existingIds);
       this.providers.register(provider);
       this.logger?.info(`Auto-provisioned provider "${provider.id}" for ${input}`);
@@ -127,7 +130,9 @@ export class AuthManager {
   /**
    * Get credentials for a specific provider, resolving by URL.
    */
-  async getCredentialsByUrl(url: string): Promise<Result<{ provider: ProviderConfig; credential: Credential }, AuthError>> {
+  async getCredentialsByUrl(
+    url: string,
+  ): Promise<Result<{ provider: ProviderConfig; credential: Credential }, AuthError>> {
     const provider = this.resolveProvider(url);
 
     const result = await this.getCredentials(provider.id);
@@ -216,7 +221,7 @@ export class AuthManager {
    */
   async getAllStatus(): Promise<ProviderStatus[]> {
     const providers = this.providers.list();
-    return Promise.all(providers.map(p => this.getStatus(p.id)));
+    return Promise.all(providers.map((p) => this.getStatus(p.id)));
   }
 
   /**
@@ -238,10 +243,7 @@ export class AuthManager {
   /**
    * Apply credentials to an outgoing request (as headers).
    */
-  applyToRequest(
-    providerId: string,
-    credential: Credential,
-  ): Record<string, string> {
+  applyToRequest(providerId: string, credential: Credential): Record<string, string> {
     const provider = this.providers.get(providerId);
     if (!provider) return {};
 
@@ -267,8 +269,10 @@ export class AuthManager {
         redirect: 'manual',
       });
       const location = response.headers.get('location') ?? '';
-      const isLoginRedirect = response.status >= 300 && response.status < 400
-        && LOGIN_URL_PATTERNS.some(p => location.toLowerCase().includes(p));
+      const isLoginRedirect =
+        response.status >= 300 &&
+        response.status < 400 &&
+        LOGIN_URL_PATTERNS.some((p) => location.toLowerCase().includes(p));
       return { status: response.status, isLoginRedirect };
     } catch {
       return { status: null, isLoginRedirect: false };
@@ -294,20 +298,14 @@ export class AuthManager {
       provider.acceptedCredentialTypes.length > 0 &&
       !provider.acceptedCredentialTypes.includes(credential.type)
     ) {
-      return err(new CredentialTypeError(
-        provider.id,
-        provider.acceptedCredentialTypes,
-        credential.type,
-      ));
+      return err(
+        new CredentialTypeError(provider.id, provider.acceptedCredentialTypes, credential.type),
+      );
     }
     return ok(undefined);
   }
 
-  private async store(
-    providerId: string,
-    strategy: string,
-    credential: Credential,
-  ): Promise<void> {
+  private async store(providerId: string, strategy: string, credential: Credential): Promise<void> {
     const stored: StoredCredential = {
       credential,
       providerId,
@@ -324,8 +322,8 @@ export class AuthManager {
       case CredentialTypeName.COOKIE: {
         // Earliest cookie expiry, or null if all session cookies
         const expiries = credential.cookies
-          .filter(c => c.expires > 0)
-          .map(c => c.expires * 1000);
+          .filter((c) => c.expires > 0)
+          .map((c) => c.expires * 1000);
         return expiries.length > 0 ? new Date(Math.min(...expiries)) : null;
       }
       default:

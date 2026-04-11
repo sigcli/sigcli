@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { startHeaderCapture } from '../../../src/browser/flows/header-capture.js';
-import type { IBrowserPage, PageRequest, PageResponse } from '../../../src/core/interfaces/browser-adapter.js';
+import type {
+  IBrowserPage,
+  PageRequest,
+  PageResponse,
+} from '../../../src/core/interfaces/browser-adapter.js';
 import type { XHeaderConfig } from '../../../src/core/types.js';
 
 /**
@@ -101,9 +105,7 @@ describe('startHeaderCapture', () => {
 
   it('captures dynamic request-source headers via onRequest', () => {
     const mock = createMockPage();
-    const configs: XHeaderConfig[] = [
-      { name: 'x-token', source: 'request' },
-    ];
+    const configs: XHeaderConfig[] = [{ name: 'x-token', source: 'request' }];
 
     const result = startHeaderCapture(mock.page, configs, providerDomains);
     expect(result.xHeaders['x-token']).toBeUndefined();
@@ -119,9 +121,7 @@ describe('startHeaderCapture', () => {
 
   it('captures dynamic response-source headers via onResponse', () => {
     const mock = createMockPage();
-    const configs: XHeaderConfig[] = [
-      { name: 'x-resp-id', source: 'response' },
-    ];
+    const configs: XHeaderConfig[] = [{ name: 'x-resp-id', source: 'response' }];
 
     const result = startHeaderCapture(mock.page, configs, providerDomains);
     expect(result.xHeaders['x-resp-id']).toBeUndefined();
@@ -156,9 +156,7 @@ describe('startHeaderCapture', () => {
   describe('URL pattern matching', () => {
     it('captures headers when URL matches the pattern', () => {
       const mock = createMockPage();
-      const configs: XHeaderConfig[] = [
-        { name: 'x-api', source: 'request', urlPattern: '/api/' },
-      ];
+      const configs: XHeaderConfig[] = [{ name: 'x-api', source: 'request', urlPattern: '/api/' }];
 
       const result = startHeaderCapture(mock.page, configs, providerDomains);
 
@@ -173,9 +171,7 @@ describe('startHeaderCapture', () => {
 
     it('does not capture headers when URL does not match the pattern', () => {
       const mock = createMockPage();
-      const configs: XHeaderConfig[] = [
-        { name: 'x-api', source: 'request', urlPattern: '/api/' },
-      ];
+      const configs: XHeaderConfig[] = [{ name: 'x-api', source: 'request', urlPattern: '/api/' }];
 
       const result = startHeaderCapture(mock.page, configs, providerDomains);
 
@@ -192,9 +188,7 @@ describe('startHeaderCapture', () => {
   describe('domain matching', () => {
     it('captures headers for matching provider domain', () => {
       const mock = createMockPage();
-      const configs: XHeaderConfig[] = [
-        { name: 'x-auth', source: 'request' },
-      ];
+      const configs: XHeaderConfig[] = [{ name: 'x-auth', source: 'request' }];
 
       const result = startHeaderCapture(mock.page, configs, ['api.example.com']);
 
@@ -209,9 +203,7 @@ describe('startHeaderCapture', () => {
 
     it('does not capture headers for non-matching domain', () => {
       const mock = createMockPage();
-      const configs: XHeaderConfig[] = [
-        { name: 'x-auth', source: 'request' },
-      ];
+      const configs: XHeaderConfig[] = [{ name: 'x-auth', source: 'request' }];
 
       const result = startHeaderCapture(mock.page, configs, ['api.example.com']);
 
@@ -226,9 +218,7 @@ describe('startHeaderCapture', () => {
 
     it('supports wildcard domain matching (*.example.com)', () => {
       const mock = createMockPage();
-      const configs: XHeaderConfig[] = [
-        { name: 'x-wild', source: 'request' },
-      ];
+      const configs: XHeaderConfig[] = [{ name: 'x-wild', source: 'request' }];
 
       const result = startHeaderCapture(mock.page, configs, ['*.example.com']);
 
@@ -243,9 +233,7 @@ describe('startHeaderCapture', () => {
 
     it('wildcard domain matches the bare domain as well', () => {
       const mock = createMockPage();
-      const configs: XHeaderConfig[] = [
-        { name: 'x-wild', source: 'request' },
-      ];
+      const configs: XHeaderConfig[] = [{ name: 'x-wild', source: 'request' }];
 
       const result = startHeaderCapture(mock.page, configs, ['*.example.com']);
 
@@ -259,9 +247,7 @@ describe('startHeaderCapture', () => {
 
     it('wildcard domain does not match unrelated domains', () => {
       const mock = createMockPage();
-      const configs: XHeaderConfig[] = [
-        { name: 'x-wild', source: 'request' },
-      ];
+      const configs: XHeaderConfig[] = [{ name: 'x-wild', source: 'request' }];
 
       const result = startHeaderCapture(mock.page, configs, ['*.example.com']);
 
@@ -276,9 +262,7 @@ describe('startHeaderCapture', () => {
 
   it('performs case-insensitive header name matching', () => {
     const mock = createMockPage();
-    const configs: XHeaderConfig[] = [
-      { name: 'X-Custom-Token', source: 'request' },
-    ];
+    const configs: XHeaderConfig[] = [{ name: 'X-Custom-Token', source: 'request' }];
 
     const result = startHeaderCapture(mock.page, configs, providerDomains);
 
@@ -294,9 +278,7 @@ describe('startHeaderCapture', () => {
 
   it('last-write-wins: later captures overwrite earlier ones for same header', () => {
     const mock = createMockPage();
-    const configs: XHeaderConfig[] = [
-      { name: 'x-session', source: 'request' },
-    ];
+    const configs: XHeaderConfig[] = [{ name: 'x-session', source: 'request' }];
 
     const result = startHeaderCapture(mock.page, configs, providerDomains);
 
@@ -317,9 +299,7 @@ describe('startHeaderCapture', () => {
 
   it('cleanup function removes listeners and stops further captures', () => {
     const mock = createMockPage();
-    const configs: XHeaderConfig[] = [
-      { name: 'x-token', source: 'request' },
-    ];
+    const configs: XHeaderConfig[] = [{ name: 'x-token', source: 'request' }];
 
     const result = startHeaderCapture(mock.page, configs, providerDomains);
 
@@ -414,9 +394,7 @@ describe('startHeaderCapture', () => {
 
   it('does not capture headers when request URL is invalid', () => {
     const mock = createMockPage();
-    const configs: XHeaderConfig[] = [
-      { name: 'x-test', source: 'request' },
-    ];
+    const configs: XHeaderConfig[] = [{ name: 'x-test', source: 'request' }];
 
     const result = startHeaderCapture(mock.page, configs, providerDomains);
 

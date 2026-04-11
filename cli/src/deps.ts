@@ -33,16 +33,24 @@ export interface AuthDeps {
 export function createConsoleLogger(): ILogger {
   return {
     debug(message: string, ...args: unknown[]) {
-      process.stderr.write(`[DEBUG] ${message}${args.length ? ' ' + args.map(String).join(' ') : ''}\n`);
+      process.stderr.write(
+        `[DEBUG] ${message}${args.length ? ' ' + args.map(String).join(' ') : ''}\n`,
+      );
     },
     info(message: string, ...args: unknown[]) {
-      process.stderr.write(`[INFO] ${message}${args.length ? ' ' + args.map(String).join(' ') : ''}\n`);
+      process.stderr.write(
+        `[INFO] ${message}${args.length ? ' ' + args.map(String).join(' ') : ''}\n`,
+      );
     },
     warn(message: string, ...args: unknown[]) {
-      process.stderr.write(`[WARN] ${message}${args.length ? ' ' + args.map(String).join(' ') : ''}\n`);
+      process.stderr.write(
+        `[WARN] ${message}${args.length ? ' ' + args.map(String).join(' ') : ''}\n`,
+      );
     },
     error(message: string, ...args: unknown[]) {
-      process.stderr.write(`[ERROR] ${message}${args.length ? ' ' + args.map(String).join(' ') : ''}\n`);
+      process.stderr.write(
+        `[ERROR] ${message}${args.length ? ' ' + args.map(String).join(' ') : ''}\n`,
+      );
     },
   };
 }
@@ -53,20 +61,18 @@ export function createConsoleLogger(): ILogger {
  */
 export function createAuthDeps(config: SignetConfig, options?: { verbose?: boolean }): AuthDeps {
   // 1. Convert config providers to ProviderConfig[]
-  const providerConfigs: ProviderConfig[] = Object.entries(config.providers).map(
-    ([id, entry]) => ({
-      id,
-      name: entry.name ?? id,
-      domains: entry.domains,
-      entryUrl: entry.entryUrl,
-      strategy: entry.strategy,
-      strategyConfig: buildStrategyConfig(entry.strategy, entry.config),
-      acceptedCredentialTypes: entry.acceptedCredentialTypes,
-      setupInstructions: entry.setupInstructions,
-      xHeaders: entry.xHeaders,
-      ...(entry.forceVisible !== undefined ? { forceVisible: entry.forceVisible } : {}),
-    }),
-  );
+  const providerConfigs: ProviderConfig[] = Object.entries(config.providers).map(([id, entry]) => ({
+    id,
+    name: entry.name ?? id,
+    domains: entry.domains,
+    entryUrl: entry.entryUrl,
+    strategy: entry.strategy,
+    strategyConfig: buildStrategyConfig(entry.strategy, entry.config),
+    acceptedCredentialTypes: entry.acceptedCredentialTypes,
+    setupInstructions: entry.setupInstructions,
+    xHeaders: entry.xHeaders,
+    ...(entry.forceVisible !== undefined ? { forceVisible: entry.forceVisible } : {}),
+  }));
 
   const providerRegistry = new ProviderRegistry(providerConfigs);
 
@@ -79,10 +85,7 @@ export function createAuthDeps(config: SignetConfig, options?: { verbose?: boole
 
   // 3. Build storage (CachedStorage wrapping DirectoryStorage)
   const credDir = expandHome(config.storage.credentialsDir);
-  const storage = new CachedStorage(
-    new DirectoryStorage(credDir),
-    { ttlMs: 5000 },
-  );
+  const storage = new CachedStorage(new DirectoryStorage(credDir), { ttlMs: 5000 });
 
   // 4. Build browser adapter factory using config.browser
   const browserConfig = config.browser;

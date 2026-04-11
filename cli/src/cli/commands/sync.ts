@@ -6,7 +6,11 @@ import { formatJson } from '../formatters.js';
 import { ExitCode } from '../exit-codes.js';
 import { SyncSubcommand } from '../../core/constants.js';
 
-export async function runSync(positionals: string[], flags: Record<string, string | boolean | string[]>, deps: AuthDeps): Promise<void> {
+export async function runSync(
+  positionals: string[],
+  flags: Record<string, string | boolean | string[]>,
+  deps: AuthDeps,
+): Promise<void> {
   const subcommand = positionals[0];
 
   if (subcommand !== SyncSubcommand.PUSH && subcommand !== SyncSubcommand.PULL) {
@@ -22,7 +26,9 @@ export async function runSync(positionals: string[], flags: Record<string, strin
   if (remoteName) {
     remote = await getRemote(remoteName);
     if (!remote) {
-      process.stderr.write(`Remote "${remoteName}" not found. Run "sig remote list" to see configured remotes.\n`);
+      process.stderr.write(
+        `Remote "${remoteName}" not found. Run "sig remote list" to see configured remotes.\n`,
+      );
       process.exitCode = ExitCode.REMOTE_NOT_FOUND;
       return;
     }
@@ -48,11 +54,14 @@ export async function runSync(positionals: string[], flags: Record<string, strin
   const force = flags.force === true;
   const provider = typeof flags.provider === 'string' ? [flags.provider] : undefined;
 
-  process.stderr.write(`${subcommand === SyncSubcommand.PUSH ? 'Pushing' : 'Pulling'} credentials ${subcommand === SyncSubcommand.PUSH ? 'to' : 'from'} "${remote.name}" (${remote.host})...\n`);
+  process.stderr.write(
+    `${subcommand === SyncSubcommand.PUSH ? 'Pushing' : 'Pulling'} credentials ${subcommand === SyncSubcommand.PUSH ? 'to' : 'from'} "${remote.name}" (${remote.host})...\n`,
+  );
 
-  const result = subcommand === SyncSubcommand.PUSH
-    ? await engine.push(provider, force)
-    : await engine.pull(provider, force);
+  const result =
+    subcommand === SyncSubcommand.PUSH
+      ? await engine.push(provider, force)
+      : await engine.pull(provider, force);
 
   // Report results
   const synced = subcommand === SyncSubcommand.PUSH ? result.pushed : result.pulled;
@@ -60,7 +69,9 @@ export async function runSync(positionals: string[], flags: Record<string, strin
     process.stderr.write(`Synced: ${synced.join(', ')}\n`);
   }
   if (result.skipped.length > 0) {
-    process.stderr.write(`Skipped (conflict): ${result.skipped.join(', ')} — use --force to overwrite\n`);
+    process.stderr.write(
+      `Skipped (conflict): ${result.skipped.join(', ')} — use --force to overwrite\n`,
+    );
   }
   if (result.errors.length > 0) {
     for (const e of result.errors) {

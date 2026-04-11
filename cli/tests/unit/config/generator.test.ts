@@ -265,7 +265,7 @@ describe('generateConfigYaml', () => {
 
   it('generated YAML with no providers passes validateConfig', () => {
     const yaml = generateConfigYaml(defaultOptions());
-    const parsed = YAML.parse(yaml);
+    YAML.parse(yaml);
     // The parsed output will have commented-out providers, so the
     // actual providers object will be null. We need a real provider
     // for validateConfig to pass — but the generated config with

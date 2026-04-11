@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { formatJson, formatTable, formatCredentialHeaders, formatExpiry, formatStatusIndicator, stripAnsi } from '../../../src/cli/formatters.js';
+import {
+  formatJson,
+  formatTable,
+  formatCredentialHeaders,
+  formatExpiry,
+  formatStatusIndicator,
+  stripAnsi,
+} from '../../../src/cli/formatters.js';
 
 describe('formatJson', () => {
   it('returns pretty-printed JSON for a simple object', () => {
@@ -74,10 +81,7 @@ describe('formatTable', () => {
 
   it('truncates columns exceeding maxColumnWidths', () => {
     const longId = 'bdc-cockpit-starkiller-hc-uclformation-ga';
-    const result = formatTable(
-      [{ id: longId, status: 'ok' }],
-      { maxColumnWidths: { id: 20 } },
-    );
+    const result = formatTable([{ id: longId, status: 'ok' }], { maxColumnWidths: { id: 20 } });
     const lines = result.split('\n');
     const dataRow = lines[2];
     // Should be truncated to 19 chars + ellipsis
@@ -86,10 +90,7 @@ describe('formatTable', () => {
   });
 
   it('does not truncate when value is within limit', () => {
-    const result = formatTable(
-      [{ id: 'short', status: 'ok' }],
-      { maxColumnWidths: { id: 20 } },
-    );
+    const result = formatTable([{ id: 'short', status: 'ok' }], { maxColumnWidths: { id: 20 } });
     const lines = result.split('\n');
     expect(lines[2]).toMatch(/^short\s+ok/);
   });

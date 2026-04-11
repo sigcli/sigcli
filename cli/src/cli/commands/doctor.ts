@@ -23,8 +23,8 @@ interface CheckResult {
   hint?: string;
 }
 
-const PASS = '\u2713';  // ✓
-const FAIL = '\u2717';  // ✗
+const PASS = '\u2713'; // ✓
+const FAIL = '\u2717'; // ✗
 
 function printResults(results: CheckResult[]): void {
   let failures = 0;
@@ -189,7 +189,7 @@ async function checkStoredCredentials(config: SignetConfig | undefined): Promise
   const dir = expandHome(config.storage.credentialsDir);
   try {
     const files = await fsp.readdir(dir);
-    const jsonFiles = files.filter(f => f.endsWith('.json') && !f.endsWith('.lock'));
+    const jsonFiles = files.filter((f) => f.endsWith('.json') && !f.endsWith('.lock'));
     const total = jsonFiles.length;
 
     // Check for expired credentials by reading each file
@@ -212,9 +212,10 @@ async function checkStoredCredentials(config: SignetConfig | undefined): Promise
       }
     }
 
-    const detail = expired > 0
-      ? `${total} stored credential${total !== 1 ? 's' : ''} (${expired} expired)`
-      : `${total} stored credential${total !== 1 ? 's' : ''}`;
+    const detail =
+      expired > 0
+        ? `${total} stored credential${total !== 1 ? 's' : ''} (${expired} expired)`
+        : `${total} stored credential${total !== 1 ? 's' : ''}`;
 
     return {
       label: 'Stored credentials',
@@ -230,7 +231,10 @@ async function checkStoredCredentials(config: SignetConfig | undefined): Promise
   }
 }
 
-function checkBrowserRequired(config: SignetConfig | undefined, browserAvailable: boolean): CheckResult {
+function checkBrowserRequired(
+  config: SignetConfig | undefined,
+  browserAvailable: boolean,
+): CheckResult {
   if (!config) {
     return {
       label: 'Browser needed for configured providers',
@@ -273,8 +277,8 @@ function checkBrowserRequired(config: SignetConfig | undefined, browserAvailable
 // ---------------------------------------------------------------------------
 
 export async function runDoctor(
-  positionals: string[],
-  flags: Record<string, string | boolean | string[]>,
+  _positionals: string[],
+  _flags: Record<string, string | boolean | string[]>,
 ): Promise<void> {
   const results: CheckResult[] = [];
 
@@ -307,7 +311,7 @@ export async function runDoctor(
 
   printResults(results);
 
-  const hasFailures = results.some(r => !r.ok);
+  const hasFailures = results.some((r) => !r.ok);
   if (hasFailures) {
     process.exitCode = ExitCode.GENERAL_ERROR;
   }

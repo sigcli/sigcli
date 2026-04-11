@@ -1,4 +1,8 @@
-import type { IBrowserAdapter, IBrowserPage, IBrowserSession } from '../../core/interfaces/browser-adapter.js';
+import type {
+  IBrowserAdapter,
+  IBrowserPage,
+  IBrowserSession,
+} from '../../core/interfaces/browser-adapter.js';
 import type { BrowserLaunchOptions, XHeaderConfig, ILogger } from '../../core/types.js';
 import type { WaitUntilValue } from '../../core/constants.js';
 import type { BrowserConfig } from '../../config/schema.js';
@@ -20,7 +24,11 @@ export interface HybridFlowOptions {
   /** Called on each page to check if auth is complete */
   isAuthenticated: (page: IBrowserPage) => Promise<boolean>;
   /** Called once auth is detected to extract credentials */
-  extractCredentials: (page: IBrowserPage, xHeaders?: Record<string, string>, meta?: { immediateAuth: boolean }) => Promise<Result<unknown, AuthError>>;
+  extractCredentials: (
+    page: IBrowserPage,
+    xHeaders?: Record<string, string>,
+    meta?: { immediateAuth: boolean },
+  ) => Promise<Result<unknown, AuthError>>;
   /** Global browser config (timeouts, waitUntil defaults) */
   browserConfig: BrowserConfig;
   /** Skip headless, go straight to visible (from provider config) */
@@ -101,11 +109,7 @@ async function attemptAuth<T>(
     // Set up x-header capture before navigation (so we capture all traffic)
     let xHeaders: Record<string, string> | undefined;
     if (options.xHeaders && options.xHeaders.length > 0) {
-      const capture = startHeaderCapture(
-        page,
-        options.xHeaders,
-        options.providerDomains ?? [],
-      );
+      const capture = startHeaderCapture(page, options.xHeaders, options.providerDomains ?? []);
       xHeaders = capture.xHeaders;
       headerCleanup = capture.cleanup;
     }
@@ -119,7 +123,7 @@ async function attemptAuth<T>(
     });
 
     // Brief pause to let any client-side redirects start
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     // Check if already authenticated (cached session/cookies)
     if (await options.isAuthenticated(page)) {
@@ -132,20 +136,10 @@ async function attemptAuth<T>(
     if (!options.headless) {
       logger.info('Waiting for login to complete...');
     }
-    const authenticated = await pollForAuth(
-      page,
-      options.isAuthenticated,
-      options.timeout,
-      logger,
-    );
+    const authenticated = await pollForAuth(page, options.isAuthenticated, options.timeout, logger);
 
     if (!authenticated) {
-      return err(
-        new BrowserTimeoutError(
-          'waiting for authentication',
-          options.timeout,
-        ),
-      );
+      return err(new BrowserTimeoutError('waiting for authentication', options.timeout));
     }
 
     const result = await options.extractCredentials(page, xHeaders, { immediateAuth: false });
@@ -193,7 +187,7 @@ async function pollForAuth(
       lastStatus = now;
     }
 
-    await new Promise(resolve => setTimeout(resolve, pollInterval));
+    await new Promise((resolve) => setTimeout(resolve, pollInterval));
   }
 
   return false;

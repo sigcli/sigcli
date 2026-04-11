@@ -11,7 +11,6 @@ const execFileAsync = promisify(execFile);
 const DEFAULT_REMOTE_PATH = '~/.signet';
 
 export class SshTransport implements ISyncTransport {
-
   private sshArgs(remote: RemoteConfig): string[] {
     const args: string[] = [];
     if (remote.sshKey) args.push('-i', remote.sshKey);
@@ -97,7 +96,11 @@ export class SshTransport implements ISyncTransport {
   }
 
   /** Write a credential file to remote via ssh pipe (avoids scp tilde issues) */
-  async writeRemote(remote: RemoteConfig, filename: string, stored: StoredCredential): Promise<void> {
+  async writeRemote(
+    remote: RemoteConfig,
+    filename: string,
+    stored: StoredCredential,
+  ): Promise<void> {
     const rpath = this.remoteCredentialsPath(remote);
 
     const data = {
@@ -142,12 +145,8 @@ export class SshTransport implements ISyncTransport {
   private sshWrite(remote: RemoteConfig, command: string, stdin: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const target = this.remoteTarget(remote);
-      const proc = execFile('ssh', [
-        ...this.sshArgs(remote),
-        target,
-        command,
-      ], (error) => {
-        if (error) reject(error);
+      const proc = execFile('ssh', [...this.sshArgs(remote), target, command], (error) => {
+        if (error) reject(error as Error);
         else resolve();
       });
 

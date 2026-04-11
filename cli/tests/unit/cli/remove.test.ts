@@ -60,7 +60,17 @@ const providerGithub: ProviderConfig = {
 const mockCredential: StoredCredential = {
   credential: {
     type: 'cookie',
-    cookies: [{ name: 'sid', value: 'abc123', domain: '.example.com', path: '/', expires: -1, httpOnly: true, secure: true }],
+    cookies: [
+      {
+        name: 'sid',
+        value: 'abc123',
+        domain: '.example.com',
+        path: '/',
+        expires: -1,
+        httpOnly: true,
+        secure: true,
+      },
+    ],
     obtainedAt: new Date().toISOString(),
   },
   providerId: 'jira',
@@ -68,19 +78,25 @@ const mockCredential: StoredCredential = {
   updatedAt: new Date().toISOString(),
 };
 
-function createDeps(providers?: ProviderConfig[]): { deps: AuthDeps; storage: MemoryStorage; providerRegistry: ProviderRegistry } {
+function createDeps(providers?: ProviderConfig[]): {
+  deps: AuthDeps;
+  storage: MemoryStorage;
+  providerRegistry: ProviderRegistry;
+} {
   const storage = new MemoryStorage();
   const strategyRegistry = new StrategyRegistry();
   strategyRegistry.register(new CookieStrategyFactory());
   strategyRegistry.register(new ApiTokenStrategyFactory());
 
-  const providerRegistry = new ProviderRegistry(providers ?? [providerJira, providerConfluence, providerGithub]);
+  const providerRegistry = new ProviderRegistry(
+    providers ?? [providerJira, providerConfluence, providerGithub],
+  );
 
   const authManager = new AuthManager({
     storage,
     strategyRegistry,
     providerRegistry,
-    browserAdapterFactory: () => ({} as IBrowserAdapter),
+    browserAdapterFactory: () => ({}) as IBrowserAdapter,
     browserConfig,
   });
 
@@ -129,7 +145,11 @@ describe('runRemove (#11)', () => {
 
   afterEach(() => {
     process.exitCode = originalExitCode;
-    Object.defineProperty(process.stdin, 'isTTY', { value: originalIsTTY, writable: true, configurable: true });
+    Object.defineProperty(process.stdin, 'isTTY', {
+      value: originalIsTTY,
+      writable: true,
+      configurable: true,
+    });
     vi.restoreAllMocks();
   });
 
@@ -246,7 +266,11 @@ describe('runRemove (#11)', () => {
     const { deps } = createDeps();
 
     // Simulate non-TTY
-    Object.defineProperty(process.stdin, 'isTTY', { value: false, writable: true, configurable: true });
+    Object.defineProperty(process.stdin, 'isTTY', {
+      value: false,
+      writable: true,
+      configurable: true,
+    });
 
     await runRemove(['jira'], {}, deps);
 

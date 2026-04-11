@@ -1,11 +1,6 @@
 import type { Result } from '../result.js';
 import type { AuthError } from '../errors.js';
-import type {
-  Credential,
-  CredentialResult,
-  ProviderConfig,
-  StrategyConfig,
-} from '../types.js';
+import type { Credential, CredentialResult, ProviderConfig, StrategyConfig } from '../types.js';
 import type { IBrowserAdapter } from './browser-adapter.js';
 import type { ILogger } from '../types.js';
 import type { BrowserConfig } from '../../config/schema.js';

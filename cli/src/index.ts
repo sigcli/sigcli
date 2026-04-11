@@ -1,12 +1,7 @@
 // Public API exports for signet
 
 // Config types and loader
-export type {
-  SignetConfig,
-  BrowserConfig,
-  StorageConfig,
-  ProviderEntry,
-} from './config/schema.js';
+export type { SignetConfig, BrowserConfig, StorageConfig, ProviderEntry } from './config/schema.js';
 export { loadConfig, saveConfig, getConfigPath } from './config/loader.js';
 export { validateConfig, buildStrategyConfig } from './config/validator.js';
 export { generateConfigYaml } from './config/generator.js';
@@ -67,8 +62,19 @@ export {
 } from './core/errors.js';
 
 // Interfaces (for implementing custom adapters/strategies)
-export type { IAuthStrategy, IAuthStrategyFactory, AuthContext } from './core/interfaces/auth-strategy.js';
-export type { IBrowserAdapter, IBrowserSession, IBrowserPage, NavigateOptions, PageRequest, PageResponse } from './core/interfaces/browser-adapter.js';
+export type {
+  IAuthStrategy,
+  IAuthStrategyFactory,
+  AuthContext,
+} from './core/interfaces/auth-strategy.js';
+export type {
+  IBrowserAdapter,
+  IBrowserSession,
+  IBrowserPage,
+  NavigateOptions,
+  PageRequest,
+  PageResponse,
+} from './core/interfaces/browser-adapter.js';
 export type { IStorage } from './core/interfaces/storage.js';
 export type { IProviderRegistry } from './core/interfaces/provider.js';
 

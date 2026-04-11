@@ -6,7 +6,7 @@ import YAML from 'yaml';
 import { loadDocument, saveDocument } from '../config/document.js';
 
 export interface WatchProviderOpts {
-  autoSync: string[];    // empty array = no sync
+  autoSync: string[]; // empty array = no sync
 }
 
 export interface WatchConfig {
@@ -31,7 +31,7 @@ function parseProviderOpts(raw: unknown): WatchProviderOpts {
   }
   const o = raw as Record<string, unknown>;
   return {
-    autoSync: Array.isArray(o.autoSync) ? o.autoSync as string[] : [],
+    autoSync: Array.isArray(o.autoSync) ? (o.autoSync as string[]) : [],
   };
 }
 
@@ -91,9 +91,7 @@ export async function addWatchProvider(
   }
 
   // Build the provider value: null in YAML for no-sync, object for sync
-  const value = opts.autoSync.length > 0
-    ? { autoSync: opts.autoSync }
-    : null;
+  const value = opts.autoSync.length > 0 ? { autoSync: opts.autoSync } : null;
 
   const providersNode = doc.getIn(['watch', 'providers'], true);
   if (YAML.isMap(providersNode)) {

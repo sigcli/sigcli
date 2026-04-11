@@ -28,7 +28,11 @@ const browserConfig: BrowserConfig = {
   waitUntil: 'load',
 };
 
-function createDeps(providers?: ProviderConfig[]): { deps: AuthDeps; storage: MemoryStorage; providerRegistry: ProviderRegistry } {
+function createDeps(providers?: ProviderConfig[]): {
+  deps: AuthDeps;
+  storage: MemoryStorage;
+  providerRegistry: ProviderRegistry;
+} {
   const storage = new MemoryStorage();
   const strategyRegistry = new StrategyRegistry();
   strategyRegistry.register(new CookieStrategyFactory());
@@ -40,7 +44,7 @@ function createDeps(providers?: ProviderConfig[]): { deps: AuthDeps; storage: Me
     storage,
     strategyRegistry,
     providerRegistry,
-    browserAdapterFactory: () => ({} as IBrowserAdapter),
+    browserAdapterFactory: () => ({}) as IBrowserAdapter,
     browserConfig,
   });
 
@@ -129,11 +133,7 @@ describe('runLogin --as flag', () => {
   it('updates provider name when it matches the old auto-derived ID', async () => {
     const { deps, providerRegistry } = createDeps();
 
-    await runLogin(
-      ['https://jira.tools.sap/'],
-      { as: 'my-jira', token: 'tok123' },
-      deps,
-    );
+    await runLogin(['https://jira.tools.sap/'], { as: 'my-jira', token: 'tok123' }, deps);
 
     expect(process.exitCode).not.toBe(1);
 
@@ -146,11 +146,7 @@ describe('runLogin --as flag', () => {
   it('overrides ID for token-based login', async () => {
     const { deps, storage } = createDeps();
 
-    await runLogin(
-      ['https://api.example.com/'],
-      { as: 'my-api', token: 'bearer-token-123' },
-      deps,
-    );
+    await runLogin(['https://api.example.com/'], { as: 'my-api', token: 'bearer-token-123' }, deps);
 
     expect(process.exitCode).not.toBe(1);
 
@@ -170,11 +166,7 @@ describe('runLogin --as flag', () => {
     };
     const { deps, storage } = createDeps([existingProvider]);
 
-    await runLogin(
-      ['https://site.example.com/'],
-      { as: 'new-name', cookie: 'key=val' },
-      deps,
-    );
+    await runLogin(['https://site.example.com/'], { as: 'new-name', cookie: 'key=val' }, deps);
 
     expect(process.exitCode).not.toBe(1);
 

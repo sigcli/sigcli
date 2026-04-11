@@ -7,7 +7,6 @@ import { ApiTokenStrategyFactory } from '../../src/strategies/api-token.strategy
 import { BasicAuthStrategyFactory } from '../../src/strategies/basic-auth.strategy.js';
 import type { ProviderConfig, ApiKeyCredential } from '../../src/core/types.js';
 import type { IBrowserAdapter } from '../../src/core/interfaces/browser-adapter.js';
-import type { BrowserConfig } from '../../src/config/schema.js';
 import { isOk, isErr } from '../../src/core/result.js';
 import { ProviderNotFoundError } from '../../src/core/errors.js';
 
@@ -42,14 +41,25 @@ describe('AuthManager', () => {
       storage,
       strategyRegistry,
       providerRegistry,
-      browserAdapterFactory: () => ({} as IBrowserAdapter),
-      browserConfig: { browserDataDir: '/tmp/test-browser-data', channel: 'chrome', headlessTimeout: 30000, visibleTimeout: 120000, waitUntil: 'load' },
+      browserAdapterFactory: () => ({}) as IBrowserAdapter,
+      browserConfig: {
+        browserDataDir: '/tmp/test-browser-data',
+        channel: 'chrome',
+        headlessTimeout: 30000,
+        visibleTimeout: 120000,
+        waitUntil: 'load',
+      },
     });
   });
 
   describe('getCredentials', () => {
     it('returns stored credential when valid', async () => {
-      const cred: ApiKeyCredential = { type: 'api-key', key: 'ghp_abc123', headerName: 'Authorization', headerPrefix: 'Bearer' };
+      const cred: ApiKeyCredential = {
+        type: 'api-key',
+        key: 'ghp_abc123',
+        headerName: 'Authorization',
+        headerPrefix: 'Bearer',
+      };
       await authManager.setCredential('github', cred);
 
       const result = await authManager.getCredentials('github');
@@ -79,7 +89,12 @@ describe('AuthManager', () => {
 
   describe('getCredentialsByUrl', () => {
     it('resolves provider by URL and returns credentials', async () => {
-      const cred: ApiKeyCredential = { type: 'api-key', key: 'ghp_test', headerName: 'Authorization', headerPrefix: 'Bearer' };
+      const cred: ApiKeyCredential = {
+        type: 'api-key',
+        key: 'ghp_test',
+        headerName: 'Authorization',
+        headerPrefix: 'Bearer',
+      };
       await authManager.setCredential('github', cred);
 
       const result = await authManager.getCredentialsByUrl('https://api.github.com/repos');
@@ -106,7 +121,11 @@ describe('AuthManager', () => {
 
   describe('setCredential', () => {
     it('stores credential and makes it retrievable', async () => {
-      const cred: ApiKeyCredential = { type: 'api-key', key: 'my-token', headerName: 'Authorization' };
+      const cred: ApiKeyCredential = {
+        type: 'api-key',
+        key: 'my-token',
+        headerName: 'Authorization',
+      };
       const setResult = await authManager.setCredential('github', cred);
       expect(isOk(setResult)).toBe(true);
 
@@ -156,7 +175,12 @@ describe('AuthManager', () => {
 
   describe('applyToRequest', () => {
     it('returns correct auth headers', () => {
-      const cred: ApiKeyCredential = { type: 'api-key', key: 'my-token', headerName: 'Authorization', headerPrefix: 'Bearer' };
+      const cred: ApiKeyCredential = {
+        type: 'api-key',
+        key: 'my-token',
+        headerName: 'Authorization',
+        headerPrefix: 'Bearer',
+      };
       const headers = authManager.applyToRequest('github', cred);
       expect(headers).toEqual({ Authorization: 'Bearer my-token' });
     });
@@ -165,7 +189,12 @@ describe('AuthManager', () => {
   describe('validateCredential', () => {
     it('returns null status when provider has no entryUrl', async () => {
       // githubProvider has no entryUrl defined
-      const cred: ApiKeyCredential = { type: 'api-key', key: 'token', headerName: 'Authorization', headerPrefix: 'Bearer' };
+      const cred: ApiKeyCredential = {
+        type: 'api-key',
+        key: 'token',
+        headerName: 'Authorization',
+        headerPrefix: 'Bearer',
+      };
       const result = await authManager.validateCredential(githubProvider, cred);
 
       expect(result.status).toBeNull();
@@ -195,7 +224,11 @@ describe('AuthManager', () => {
         domains: ['test-api.example.com'],
         entryUrl: 'https://test-api.example.com/',
         strategy: 'api-token',
-        strategyConfig: { strategy: 'api-token', headerName: 'Authorization', headerPrefix: 'Bearer' },
+        strategyConfig: {
+          strategy: 'api-token',
+          headerName: 'Authorization',
+          headerPrefix: 'Bearer',
+        },
       };
 
       // Mock fetch to return 200
@@ -205,7 +238,12 @@ describe('AuthManager', () => {
       });
       vi.stubGlobal('fetch', mockFetch);
 
-      const cred: ApiKeyCredential = { type: 'api-key', key: 'valid-token', headerName: 'Authorization', headerPrefix: 'Bearer' };
+      const cred: ApiKeyCredential = {
+        type: 'api-key',
+        key: 'valid-token',
+        headerName: 'Authorization',
+        headerPrefix: 'Bearer',
+      };
       const result = await authManager.validateCredential(providerWithEntry, cred);
 
       expect(result.status).toBe(200);
@@ -228,7 +266,11 @@ describe('AuthManager', () => {
         domains: ['sso-app.example.com'],
         entryUrl: 'https://sso-app.example.com/',
         strategy: 'api-token',
-        strategyConfig: { strategy: 'api-token', headerName: 'Authorization', headerPrefix: 'Bearer' },
+        strategyConfig: {
+          strategy: 'api-token',
+          headerName: 'Authorization',
+          headerPrefix: 'Bearer',
+        },
       };
 
       const mockFetch = vi.fn().mockResolvedValue({
@@ -237,7 +279,11 @@ describe('AuthManager', () => {
       });
       vi.stubGlobal('fetch', mockFetch);
 
-      const cred: ApiKeyCredential = { type: 'api-key', key: 'expired-token', headerName: 'Authorization' };
+      const cred: ApiKeyCredential = {
+        type: 'api-key',
+        key: 'expired-token',
+        headerName: 'Authorization',
+      };
       const result = await authManager.validateCredential(providerWithEntry, cred);
 
       expect(result.status).toBe(302);
@@ -253,7 +299,11 @@ describe('AuthManager', () => {
         domains: ['app.example.com'],
         entryUrl: 'https://app.example.com/',
         strategy: 'api-token',
-        strategyConfig: { strategy: 'api-token', headerName: 'Authorization', headerPrefix: 'Bearer' },
+        strategyConfig: {
+          strategy: 'api-token',
+          headerName: 'Authorization',
+          headerPrefix: 'Bearer',
+        },
       };
 
       const mockFetch = vi.fn().mockResolvedValue({
@@ -278,7 +328,11 @@ describe('AuthManager', () => {
         domains: ['redirect-app.example.com'],
         entryUrl: 'https://redirect-app.example.com/',
         strategy: 'api-token',
-        strategyConfig: { strategy: 'api-token', headerName: 'Authorization', headerPrefix: 'Bearer' },
+        strategyConfig: {
+          strategy: 'api-token',
+          headerName: 'Authorization',
+          headerPrefix: 'Bearer',
+        },
       };
 
       const mockFetch = vi.fn().mockResolvedValue({
@@ -303,7 +357,11 @@ describe('AuthManager', () => {
         domains: ['unreachable.example.com'],
         entryUrl: 'https://unreachable.example.com/',
         strategy: 'api-token',
-        strategyConfig: { strategy: 'api-token', headerName: 'Authorization', headerPrefix: 'Bearer' },
+        strategyConfig: {
+          strategy: 'api-token',
+          headerName: 'Authorization',
+          headerPrefix: 'Bearer',
+        },
       };
 
       const mockFetch = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'));
@@ -325,7 +383,11 @@ describe('AuthManager', () => {
         domains: ['secure-api.example.com'],
         entryUrl: 'https://secure-api.example.com/',
         strategy: 'api-token',
-        strategyConfig: { strategy: 'api-token', headerName: 'Authorization', headerPrefix: 'Bearer' },
+        strategyConfig: {
+          strategy: 'api-token',
+          headerName: 'Authorization',
+          headerPrefix: 'Bearer',
+        },
       };
 
       const mockFetch = vi.fn().mockResolvedValue({
@@ -334,7 +396,11 @@ describe('AuthManager', () => {
       });
       vi.stubGlobal('fetch', mockFetch);
 
-      const cred: ApiKeyCredential = { type: 'api-key', key: 'bad-token', headerName: 'Authorization' };
+      const cred: ApiKeyCredential = {
+        type: 'api-key',
+        key: 'bad-token',
+        headerName: 'Authorization',
+      };
       const result = await authManager.validateCredential(providerWithEntry, cred);
 
       expect(result.status).toBe(401);

@@ -40,7 +40,7 @@ function createDeps(providers?: ProviderConfig[]): { deps: AuthDeps; storage: Me
     storage,
     strategyRegistry,
     providerRegistry,
-    browserAdapterFactory: () => ({} as IBrowserAdapter),
+    browserAdapterFactory: () => ({}) as IBrowserAdapter,
     browserConfig,
   });
 
@@ -118,11 +118,7 @@ describe('runLogin --cookie flag', () => {
   it('parses "name1=value1; name2=value2" into two cookies', async () => {
     const { deps, storage } = createDeps();
 
-    await runLogin(
-      ['https://test-site.example.com/'],
-      { cookie: 'session=abc; token=xyz' },
-      deps,
-    );
+    await runLogin(['https://test-site.example.com/'], { cookie: 'session=abc; token=xyz' }, deps);
 
     expect(process.exitCode).not.toBe(1);
 
@@ -143,11 +139,7 @@ describe('runLogin --cookie flag', () => {
     const { deps, storage } = createDeps();
     const before = new Date().toISOString();
 
-    await runLogin(
-      ['https://test-site.example.com/'],
-      { cookie: 'key=val' },
-      deps,
-    );
+    await runLogin(['https://test-site.example.com/'], { cookie: 'key=val' }, deps);
 
     const stored = await storage.get('test-site');
     expect(stored).not.toBeNull();
@@ -207,11 +199,7 @@ describe('runLogin --cookie flag', () => {
   it('outputs JSON with provider id and type on stdout', async () => {
     const { deps } = createDeps();
 
-    await runLogin(
-      ['https://test-site.example.com/'],
-      { cookie: 'a=1; b=2' },
-      deps,
-    );
+    await runLogin(['https://test-site.example.com/'], { cookie: 'a=1; b=2' }, deps);
 
     expect(process.exitCode).not.toBe(1);
 
@@ -227,11 +215,7 @@ describe('runLogin --cookie flag', () => {
   it('stderr reports cookie count', async () => {
     const { deps } = createDeps();
 
-    await runLogin(
-      ['https://test-site.example.com/'],
-      { cookie: 'x=1; y=2; z=3' },
-      deps,
-    );
+    await runLogin(['https://test-site.example.com/'], { cookie: 'x=1; y=2; z=3' }, deps);
 
     const stderr = stderrChunks.join('');
     expect(stderr).toContain('3 cookie(s)');
@@ -242,11 +226,7 @@ describe('runLogin --cookie flag', () => {
   it('handles cookies with = in the value', async () => {
     const { deps, storage } = createDeps();
 
-    await runLogin(
-      ['https://test-site.example.com/'],
-      { cookie: 'token=abc=def=ghi' },
-      deps,
-    );
+    await runLogin(['https://test-site.example.com/'], { cookie: 'token=abc=def=ghi' }, deps);
 
     expect(process.exitCode).not.toBe(1);
 
@@ -261,11 +241,7 @@ describe('runLogin --cookie flag', () => {
   it('sets correct default cookie fields (expires, httpOnly, secure, path)', async () => {
     const { deps, storage } = createDeps();
 
-    await runLogin(
-      ['https://test-site.example.com/'],
-      { cookie: 'sid=test' },
-      deps,
-    );
+    await runLogin(['https://test-site.example.com/'], { cookie: 'sid=test' }, deps);
 
     const stored = await storage.get('test-site');
     const cred = stored!.credential as CookieCredential;

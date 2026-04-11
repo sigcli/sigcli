@@ -20,12 +20,18 @@ export class SyncEngine {
   }
 
   async push(providerIds?: string[], force = false): Promise<SyncResult> {
-    const result: SyncResult = { pushed: [], pulled: [], skipped: [], errors: [], configSynced: { providers: [] } };
+    const result: SyncResult = {
+      pushed: [],
+      pulled: [],
+      skipped: [],
+      errors: [],
+      configSynced: { providers: [] },
+    };
 
     // Get local entries
     const localEntries = await this.storage.list();
     const toPush = providerIds
-      ? localEntries.filter(e => providerIds.includes(e.providerId))
+      ? localEntries.filter((e) => providerIds.includes(e.providerId))
       : localEntries;
 
     if (toPush.length === 0) {
@@ -36,7 +42,7 @@ export class SyncEngine {
 
     // Get remote entries for conflict detection
     const remoteEntries = await this.transport.listRemote(this.remote);
-    const remoteMap = new Map(remoteEntries.map(e => [e.providerId, e]));
+    const remoteMap = new Map(remoteEntries.map((e) => [e.providerId, e]));
 
     for (const entry of toPush) {
       try {
@@ -73,12 +79,18 @@ export class SyncEngine {
   }
 
   async pull(providerIds?: string[], force = false): Promise<SyncResult> {
-    const result: SyncResult = { pushed: [], pulled: [], skipped: [], errors: [], configSynced: { providers: [] } };
+    const result: SyncResult = {
+      pushed: [],
+      pulled: [],
+      skipped: [],
+      errors: [],
+      configSynced: { providers: [] },
+    };
 
     // Get remote entries
     const remoteEntries = await this.transport.listRemote(this.remote);
     const toPull = providerIds
-      ? remoteEntries.filter(e => providerIds.includes(e.providerId))
+      ? remoteEntries.filter((e) => providerIds.includes(e.providerId))
       : remoteEntries;
 
     if (toPull.length === 0) {
@@ -125,11 +137,15 @@ export class SyncEngine {
   }
 
   /** Push local provider definitions to remote config.yaml */
-  private async syncConfigPush(providerIds?: string[]): Promise<{ providers: string[]; error?: string }> {
+  private async syncConfigPush(
+    providerIds?: string[],
+  ): Promise<{ providers: string[]; error?: string }> {
     try {
       const allProviders = this.config.providers;
       const localProviders = providerIds
-        ? Object.fromEntries(Object.entries(allProviders).filter(([id]) => providerIds.includes(id)))
+        ? Object.fromEntries(
+            Object.entries(allProviders).filter(([id]) => providerIds.includes(id)),
+          )
         : { ...allProviders };
 
       if (Object.keys(localProviders).length === 0) {
@@ -160,21 +176,29 @@ export class SyncEngine {
   }
 
   /** Pull remote provider definitions into local config.yaml */
-  private async syncConfigPull(providerIds?: string[]): Promise<{ providers: string[]; error?: string }> {
+  private async syncConfigPull(
+    providerIds?: string[],
+  ): Promise<{ providers: string[]; error?: string }> {
     try {
       // Read remote config
       const remoteYaml = await this.transport.readRemoteConfig(this.remote);
       if (remoteYaml === null) {
-        return { providers: [], error: 'Remote has no config.yaml — run "sig init" on remote first' };
+        return {
+          providers: [],
+          error: 'Remote has no config.yaml — run "sig init" on remote first',
+        };
       }
 
       // Parse remote and extract providers
       const remoteDoc = YAML.parseDocument(remoteYaml);
-      const allRemoteProviders: Record<string, unknown> = (remoteDoc.getIn(['providers']) as YAML.YAMLMap)?.toJSON() ?? {};
+      const allRemoteProviders: Record<string, unknown> =
+        (remoteDoc.getIn(['providers']) as YAML.YAMLMap)?.toJSON() ?? {};
 
       // Filter by providerIds if specified
       const remoteProviders = providerIds
-        ? Object.fromEntries(Object.entries(allRemoteProviders).filter(([id]) => providerIds.includes(id)))
+        ? Object.fromEntries(
+            Object.entries(allRemoteProviders).filter(([id]) => providerIds.includes(id)),
+          )
         : { ...allRemoteProviders };
 
       if (Object.keys(remoteProviders).length === 0) {
@@ -185,7 +209,8 @@ export class SyncEngine {
       const configPath = getConfigPath();
       const localYaml = await fs.readFile(configPath, 'utf-8');
       const doc = YAML.parseDocument(localYaml);
-      const localProviders: Record<string, unknown> = (doc.getIn(['providers']) as YAML.YAMLMap)?.toJSON() ?? {};
+      const localProviders: Record<string, unknown> =
+        (doc.getIn(['providers']) as YAML.YAMLMap)?.toJSON() ?? {};
 
       // Merge: remote wins on pull
       const merged = { ...localProviders, ...remoteProviders };

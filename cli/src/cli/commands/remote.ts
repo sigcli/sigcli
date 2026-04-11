@@ -4,7 +4,10 @@ import { formatJson, formatTable } from '../formatters.js';
 import { ExitCode } from '../exit-codes.js';
 import { RemoteSubcommand } from '../../core/constants.js';
 
-export async function runRemote(positionals: string[], flags: Record<string, string | boolean | string[]>): Promise<void> {
+export async function runRemote(
+  positionals: string[],
+  flags: Record<string, string | boolean | string[]>,
+): Promise<void> {
   const subcommand = positionals[0];
 
   switch (subcommand) {
@@ -12,7 +15,9 @@ export async function runRemote(positionals: string[], flags: Record<string, str
       const name = positionals[1];
       const host = positionals[2];
       if (!name || !host) {
-        process.stderr.write('Usage: sig remote add <name> <host> [--user <user>] [--path <path>] [--ssh-key <key>]\n');
+        process.stderr.write(
+          'Usage: sig remote add <name> <host> [--user <user>] [--path <path>] [--ssh-key <key>]\n',
+        );
         process.exitCode = ExitCode.GENERAL_ERROR;
         return;
       }
@@ -50,7 +55,9 @@ export async function runRemote(positionals: string[], flags: Record<string, str
     default: {
       const remotes = await getRemotes();
       if (remotes.length === 0) {
-        process.stderr.write('No remotes configured. Use "sig remote add <name> <host>" to add one.\n');
+        process.stderr.write(
+          'No remotes configured. Use "sig remote add <name> <host>" to add one.\n',
+        );
         return;
       }
 
@@ -58,7 +65,7 @@ export async function runRemote(positionals: string[], flags: Record<string, str
       if (format === 'json') {
         process.stdout.write(formatJson(remotes) + '\n');
       } else {
-        const rows = remotes.map(r => ({
+        const rows = remotes.map((r) => ({
           name: r.name,
           type: r.type,
           host: r.host,

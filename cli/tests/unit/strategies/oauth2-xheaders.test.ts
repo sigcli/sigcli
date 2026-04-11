@@ -55,7 +55,7 @@ describe('OAuth2Strategy — xHeaders in applyToRequest', () => {
   it('xHeaders do not overwrite the Authorization header', () => {
     const cred = makeCred({
       xHeaders: {
-        'Authorization': 'should-not-win',
+        Authorization: 'should-not-win',
         'x-other': 'value',
       },
     });

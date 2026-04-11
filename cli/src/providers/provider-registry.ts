@@ -92,9 +92,7 @@ export class ProviderRegistry implements IProviderRegistry {
  */
 function matchGlob(hostname: string, pattern: string): boolean {
   // Convert glob to regex: *.example.com → ^[^.]+\.example\.com$
-  const escaped = pattern
-    .replace(/\./g, '\\.')
-    .replace(/\*/g, '[^.]+');
+  const escaped = pattern.replace(/\./g, '\\.').replace(/\*/g, '[^.]+');
   const regex = new RegExp(`^${escaped}$`, 'i');
   return regex.test(hostname);
 }

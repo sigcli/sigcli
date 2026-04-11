@@ -4,9 +4,15 @@ export function formatJson(data: unknown): string {
 
 // ANSI helpers — color only when stdout is a TTY
 const isTTY = process.stdout.isTTY;
-function green(s: string): string { return isTTY ? `\x1b[32m${s}\x1b[0m` : s; }
-function red(s: string): string { return isTTY ? `\x1b[31m${s}\x1b[0m` : s; }
-function dim(s: string): string { return isTTY ? `\x1b[2m${s}\x1b[0m` : s; }
+function green(s: string): string {
+  return isTTY ? `\x1b[32m${s}\x1b[0m` : s;
+}
+function red(s: string): string {
+  return isTTY ? `\x1b[31m${s}\x1b[0m` : s;
+}
+function dim(s: string): string {
+  return isTTY ? `\x1b[2m${s}\x1b[0m` : s;
+}
 
 export function stripAnsi(s: string): string {
   return s.replace(/\x1b\[[0-9;]*m/g, '');
@@ -47,10 +53,10 @@ export function formatTable(rows: Record<string, string>[], options?: FormatTabl
     return value + ' '.repeat(Math.max(0, width - visible));
   };
 
-  const header = columns.map(c => c.toUpperCase().padEnd(widths.get(c)!)).join('  ');
-  const separator = columns.map(c => '-'.repeat(widths.get(c)!)).join('  ');
-  const body = rows.map(row =>
-    columns.map(c => padEnd(truncate(row[c] ?? '', widths.get(c)!), widths.get(c)!)).join('  ')
+  const header = columns.map((c) => c.toUpperCase().padEnd(widths.get(c)!)).join('  ');
+  const separator = columns.map((c) => '-'.repeat(widths.get(c)!)).join('  ');
+  const body = rows.map((row) =>
+    columns.map((c) => padEnd(truncate(row[c] ?? '', widths.get(c)!), widths.get(c)!)).join('  '),
   );
 
   return [header, separator, ...body].join('\n');
@@ -64,5 +70,7 @@ export function formatExpiry(minutes: number): string {
 }
 
 export function formatCredentialHeaders(headers: Record<string, string>): string {
-  return Object.entries(headers).map(([k, v]) => `${k}: ${v}`).join('\n');
+  return Object.entries(headers)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join('\n');
 }
