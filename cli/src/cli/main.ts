@@ -16,6 +16,7 @@ import { runWatch } from './commands/watch.js';
 import { runInit } from './commands/init.js';
 import { runDoctor } from './commands/doctor.js';
 import { runRename } from './commands/rename.js';
+import { runRemove } from './commands/remove.js';
 
 interface ParsedArgs {
   command: string;
@@ -88,7 +89,7 @@ Global options:
   --help                                    Show this help message
 `;
 
-const DEPS_COMMANDS = new Set(['get', 'login', 'status', 'logout', 'providers', 'request', 'sync', 'watch', 'rename']);
+const DEPS_COMMANDS = new Set(['get', 'login', 'status', 'logout', 'providers', 'request', 'sync', 'watch', 'rename', 'remove']);
 
 export async function run(args: string[]): Promise<void> {
   const { command, positionals, flags } = parseArgs(args);
@@ -163,6 +164,9 @@ export async function run(args: string[]): Promise<void> {
       break;
     case 'rename':
       await runRename(positionals, flags, deps!);
+      break;
+    case 'remove':
+      await runRemove(positionals, flags, deps!);
       break;
     default:
       process.stderr.write(`Unknown command: ${command}\n\n`);
