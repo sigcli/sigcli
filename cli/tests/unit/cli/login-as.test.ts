@@ -11,6 +11,15 @@ import type { ProviderConfig } from '../../../src/core/types.js';
 import type { IBrowserAdapter } from '../../../src/core/interfaces/browser-adapter.js';
 import type { BrowserConfig, SignetConfig } from '../../../src/config/schema.js';
 
+// Mock addProviderToConfig to prevent tests from writing to the real ~/.signet/config.yaml
+vi.mock('../../../src/config/loader.js', () => ({
+  addProviderToConfig: vi.fn(async () => {}),
+  removeProviderFromConfig: vi.fn(async () => {}),
+  loadConfig: vi.fn(),
+  getConfigPath: vi.fn(() => '/tmp/test-config.yaml'),
+  saveConfig: vi.fn(),
+}));
+
 const browserConfig: BrowserConfig = {
   browserDataDir: '/tmp/test-browser-data',
   channel: 'chrome',
