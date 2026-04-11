@@ -33,10 +33,8 @@ export async function extractOAuthTokens(
     if (result.ok) return result;
 
     // If this isn't the last attempt, wait and retry (MSAL may still be writing tokens)
-    // Exponential backoff: 100ms → 200ms → 400ms → 800ms → 1600ms → 2000ms (cap)
     if (attempt < maxRetries) {
-      const delay = Math.min(100 * Math.pow(2, attempt), 2000);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise(resolve => setTimeout(resolve, 2000));
     } else {
       return result; // Return the last error
     }
