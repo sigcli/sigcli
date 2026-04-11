@@ -29,16 +29,22 @@ describe('CLI help text grouping (#9)', () => {
     vi.restoreAllMocks();
   });
 
-  it('help output contains "Provider commands:" section header', async () => {
+  it('help output contains "Authentication:" section header', async () => {
     await run(['help']);
     const output = stdoutChunks.join('');
-    expect(output).toContain('Provider commands:');
+    expect(output).toContain('Authentication:');
   });
 
-  it('help output contains "Remote commands:" section header', async () => {
+  it('help output contains "Credentials:" section header', async () => {
     await run(['help']);
     const output = stdoutChunks.join('');
-    expect(output).toContain('Remote commands:');
+    expect(output).toContain('Credentials:');
+  });
+
+  it('help output contains "Remote & sync:" section header', async () => {
+    await run(['help']);
+    const output = stdoutChunks.join('');
+    expect(output).toContain('Remote & sync:');
   });
 
   it('help output contains "Setup:" section header', async () => {
@@ -53,7 +59,7 @@ describe('CLI help text grouping (#9)', () => {
     expect(output).toContain('Global options:');
   });
 
-  it('help output lists all provider commands', async () => {
+  it('help output lists all commands', async () => {
     await run(['help']);
     const output = stdoutChunks.join('');
     expect(output).toContain('login');
@@ -63,20 +69,42 @@ describe('CLI help text grouping (#9)', () => {
     expect(output).toContain('status');
     expect(output).toContain('remove');
     expect(output).toContain('providers');
+    expect(output).toContain('rename');
+    expect(output).toContain('watch');
   });
 
-  it('help output lists remote and sync commands', async () => {
+  it('help output lists command flags', async () => {
     await run(['help']);
     const output = stdoutChunks.join('');
-    expect(output).toContain('remote add|remove|list');
-    expect(output).toContain('sync push|pull');
+    expect(output).toContain('--as <id>');
+    expect(output).toContain('--token <value>');
+    expect(output).toContain('--cookie');
+    expect(output).toContain('--method <METHOD>');
+    expect(output).toContain('--body <json>');
+    expect(output).toContain('--keep-config');
+    expect(output).toContain('--provider <id>');
+    expect(output).toContain('--auto-sync <remote>');
+    expect(output).toContain('--once');
   });
 
-  it('help output lists setup commands (init, doctor)', async () => {
+  it('help output lists remote subcommands and flags', async () => {
+    await run(['help']);
+    const output = stdoutChunks.join('');
+    expect(output).toContain('remote add <name> <host>');
+    expect(output).toContain('remote remove <name>');
+    expect(output).toContain('remote list');
+    expect(output).toContain('sync push|pull');
+    expect(output).toContain('--user <user>');
+    expect(output).toContain('--ssh-key <key>');
+  });
+
+  it('help output lists setup commands and flags', async () => {
     await run(['help']);
     const output = stdoutChunks.join('');
     expect(output).toContain('init');
     expect(output).toContain('doctor');
+    expect(output).toContain('--remote');
+    expect(output).toContain('--channel <name>');
   });
 
   it('help output mentions --verbose in global options', async () => {
@@ -88,7 +116,7 @@ describe('CLI help text grouping (#9)', () => {
   it('--help flag on any command shows help text', async () => {
     await run(['status', '--help']);
     const output = stdoutChunks.join('');
-    expect(output).toContain('Provider commands:');
+    expect(output).toContain('Authentication:');
     expect(output).toContain('Setup:');
   });
 
@@ -96,20 +124,26 @@ describe('CLI help text grouping (#9)', () => {
     await run([]);
     const output = stdoutChunks.join('');
     expect(output).toContain('signet');
-    expect(output).toContain('Provider commands:');
+    expect(output).toContain('Authentication:');
   });
 
-  it('sections appear in correct order: Provider > Remote > Setup > Global', async () => {
+  it('sections appear in correct order: Auth > Credentials > Provider > Remote > Watch > Setup > Global', async () => {
     await run(['help']);
     const output = stdoutChunks.join('');
-    const providerIdx = output.indexOf('Provider commands:');
-    const remoteIdx = output.indexOf('Remote commands:');
+    const authIdx = output.indexOf('Authentication:');
+    const credIdx = output.indexOf('Credentials:');
+    const providerIdx = output.indexOf('Provider management:');
+    const remoteIdx = output.indexOf('Remote & sync:');
+    const watchIdx = output.indexOf('Watch:');
     const setupIdx = output.indexOf('Setup:');
     const globalIdx = output.indexOf('Global options:');
 
-    expect(providerIdx).toBeGreaterThan(-1);
+    expect(authIdx).toBeGreaterThan(-1);
+    expect(credIdx).toBeGreaterThan(authIdx);
+    expect(providerIdx).toBeGreaterThan(credIdx);
     expect(remoteIdx).toBeGreaterThan(providerIdx);
-    expect(setupIdx).toBeGreaterThan(remoteIdx);
+    expect(watchIdx).toBeGreaterThan(remoteIdx);
+    expect(setupIdx).toBeGreaterThan(watchIdx);
     expect(globalIdx).toBeGreaterThan(setupIdx);
   });
 });
