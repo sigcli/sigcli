@@ -77,6 +77,7 @@ Commands:
 
 Global options:
   --format <json|table|header|value|body>   Output format
+  --verbose                                 Show debug output
   --help                                    Show this help message
 `;
 
@@ -121,7 +122,8 @@ export async function run(args: string[]): Promise<void> {
       return;
     }
     const config = configResult.value;
-    deps = createAuthDeps(config);
+    const verbose = flags.verbose === true;
+    deps = createAuthDeps(config, { verbose });
   }
 
   switch (command) {
