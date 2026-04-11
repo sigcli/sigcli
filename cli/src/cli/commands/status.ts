@@ -1,5 +1,5 @@
 import type { AuthDeps } from '../../deps.js';
-import { formatJson, formatTable } from '../formatters.js';
+import { formatJson, formatTable, formatExpiry } from '../formatters.js';
 
 export async function runStatus(
   positionals: string[],
@@ -21,7 +21,7 @@ export async function runStatus(
         strategy: status.strategy,
         valid: status.valid ? 'yes' : 'no',
         type: status.credentialType ?? '-',
-        expires: status.expiresInMinutes !== undefined ? `${status.expiresInMinutes}m` : '-',
+        expires: status.expiresInMinutes !== undefined ? formatExpiry(status.expiresInMinutes) : '-',
       }]) + '\n');
     }
     return;
@@ -42,7 +42,7 @@ export async function runStatus(
       strategy: s.strategy,
       valid: s.valid ? 'yes' : 'no',
       type: s.credentialType ?? '-',
-      expires: s.expiresInMinutes !== undefined ? `${s.expiresInMinutes}m` : '-',
+      expires: s.expiresInMinutes !== undefined ? formatExpiry(s.expiresInMinutes) : '-',
     }));
     process.stdout.write(formatTable(rows) + '\n');
   }
