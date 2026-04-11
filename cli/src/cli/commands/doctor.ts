@@ -272,7 +272,7 @@ function checkBrowserRequired(config: SignetConfig | undefined, browserAvailable
 
 export async function runDoctor(
   positionals: string[],
-  flags: Record<string, string | boolean>,
+  flags: Record<string, string | boolean | string[]>,
 ): Promise<void> {
   const results: CheckResult[] = [];
 

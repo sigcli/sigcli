@@ -2,7 +2,7 @@ import type { AuthDeps } from '../../deps.js';
 
 export async function runLogout(
   positionals: string[],
-  flags: Record<string, string | boolean>,
+  flags: Record<string, string | boolean | string[]>,
   deps: AuthDeps,
 ): Promise<void> {
   const providerId = positionals[0];

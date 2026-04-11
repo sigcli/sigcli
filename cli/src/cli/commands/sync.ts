@@ -3,7 +3,7 @@ import { getRemote, getRemotes } from '../../sync/remote-config.js';
 import { SyncEngine } from '../../sync/sync-engine.js';
 import { formatJson } from '../formatters.js';
 
-export async function runSync(positionals: string[], flags: Record<string, string | boolean>, deps: AuthDeps): Promise<void> {
+export async function runSync(positionals: string[], flags: Record<string, string | boolean | string[]>, deps: AuthDeps): Promise<void> {
   const subcommand = positionals[0];
 
   if (subcommand !== 'push' && subcommand !== 'pull') {

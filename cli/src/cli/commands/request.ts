@@ -5,7 +5,7 @@ import { formatJson } from '../formatters.js';
 
 export async function runRequest(
   positionals: string[],
-  flags: Record<string, string | boolean>,
+  flags: Record<string, string | boolean | string[]>,
   deps: AuthDeps,
 ): Promise<void> {
   const url = positionals[0];
@@ -33,11 +33,17 @@ export async function runRequest(
     ...authHeaders,
   };
 
-  // Parse --header flags (may appear multiple times via positionals workaround, or as single value)
-  if (typeof flags.header === 'string') {
-    const idx = flags.header.indexOf(':');
+  // Parse --header flags (may appear multiple times)
+  const rawHeaders = flags.header;
+  const headerList: string[] = Array.isArray(rawHeaders)
+    ? rawHeaders
+    : typeof rawHeaders === 'string'
+      ? [rawHeaders]
+      : [];
+  for (const h of headerList) {
+    const idx = h.indexOf(':');
     if (idx > 0) {
-      requestHeaders[flags.header.slice(0, idx).trim()] = flags.header.slice(idx + 1).trim();
+      requestHeaders[h.slice(0, idx).trim()] = h.slice(idx + 1).trim();
     }
   }
 

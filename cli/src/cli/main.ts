@@ -20,14 +20,14 @@ import { runRename } from './commands/rename.js';
 interface ParsedArgs {
   command: string;
   positionals: string[];
-  flags: Record<string, string | boolean>;
+  flags: Record<string, string | boolean | string[]>;
 }
 
 export function parseArgs(args: string[]): ParsedArgs {
   const firstIsFlag = args[0]?.startsWith('--');
   const command = firstIsFlag ? 'help' : (args[0] ?? 'help');
   const positionals: string[] = [];
-  const flags: Record<string, string | boolean> = {};
+  const flags: Record<string, string | boolean | string[]> = {};
 
   let i = firstIsFlag ? 0 : 1;
   while (i < args.length) {
@@ -36,7 +36,14 @@ export function parseArgs(args: string[]): ParsedArgs {
       const key = arg.slice(2);
       const next = args[i + 1];
       if (next !== undefined && !next.startsWith('--')) {
-        flags[key] = next;
+        const existing = flags[key];
+        if (typeof existing === 'string') {
+          flags[key] = [existing, next];
+        } else if (Array.isArray(existing)) {
+          existing.push(next);
+        } else {
+          flags[key] = next;
+        }
         i += 2;
       } else {
         flags[key] = true;
