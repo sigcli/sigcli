@@ -58,22 +58,29 @@ export function parseArgs(args: string[]): ParsedArgs {
   return { command, positionals, flags };
 }
 
-const HELP = `Usage: sig <command> [options]
+const HELP = `signet — authenticate once, use everywhere
 
-Commands:
-  init                   Set up Signet configuration (interactive)
-  get <provider|url>     Get credential headers for a provider or URL
-  login <provider|url>   Authenticate with a system (browser or token)
-                         --as <id>  Use a custom provider ID
-  request <url>          Make an authenticated HTTP request
-  status [provider]      Show authentication status
-  logout [provider]      Clear stored credentials
-  rename <old> <new>     Rename a provider
-  providers              List configured providers
-  remote                 Manage remote credential stores
-  sync                   Sync credentials with a remote
-  watch                  Monitor and auto-refresh credentials
-  doctor                 Check environment and configuration
+Usage: sig <command> [options]
+
+Provider commands:
+  login <provider|url>     Authenticate with a provider
+                           --as <id>  Use a custom provider ID
+  logout [provider]        Clear stored credentials
+  get <provider|url>       Get credential headers
+  request <url>            Make an authenticated HTTP request
+  status [provider]        Show authentication status
+  remove <provider>        Remove a provider and its credentials
+  rename <old> <new>       Rename a provider
+  providers                List configured providers
+  watch [provider]         Monitor and auto-refresh credentials
+
+Remote commands:
+  remote add|remove|list   Manage remote credential stores
+  sync push|pull [remote]  Sync credentials with a remote
+
+Setup:
+  init                     Set up Signet configuration
+  doctor                   Check environment and configuration
 
 Global options:
   --format <json|table|header|value|body>   Output format
