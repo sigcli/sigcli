@@ -47,6 +47,19 @@ export interface RemoteEntry {
 }
 
 // ============================================================================
+// Watch Config
+// ============================================================================
+
+export interface WatchProviderEntry {
+  autoSync?: string[];    // Remote names to sync to after refresh
+}
+
+export interface WatchEntry {
+  interval?: string;                                          // e.g. "1m", "5m"
+  providers?: Record<string, WatchProviderEntry | null>;      // provider ID → options (null = watch only)
+}
+
+// ============================================================================
 // Root Config
 // ============================================================================
 
@@ -58,6 +71,7 @@ export interface SignetConfig {
   storage: StorageConfig;
   remotes?: Record<string, RemoteEntry>;
   providers: Record<string, ProviderEntry>;
+  watch?: WatchEntry;
 }
 
 // ============================================================================
