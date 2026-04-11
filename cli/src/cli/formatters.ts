@@ -2,7 +2,11 @@ export function formatJson(data: unknown): string {
   return JSON.stringify(data, null, 2);
 }
 
-export function formatTable(rows: Record<string, string>[]): string {
+export interface FormatTableOptions {
+  maxColumnWidths?: Record<string, number>;
+}
+
+export function formatTable(rows: Record<string, string>[], options?: FormatTableOptions): string {
   if (rows.length === 0) return '';
 
   const columns = Object.keys(rows[0]);
@@ -14,13 +18,18 @@ export function formatTable(rows: Record<string, string>[]): string {
       const len = (row[col] ?? '').length;
       if (len > max) max = len;
     }
+    const cap = options?.maxColumnWidths?.[col];
+    if (cap && max > cap) max = cap;
     widths.set(col, max);
   }
+
+  const truncate = (value: string, width: number): string =>
+    value.length > width ? value.slice(0, width - 1) + '\u2026' : value;
 
   const header = columns.map(c => c.toUpperCase().padEnd(widths.get(c)!)).join('  ');
   const separator = columns.map(c => '-'.repeat(widths.get(c)!)).join('  ');
   const body = rows.map(row =>
-    columns.map(c => (row[c] ?? '').padEnd(widths.get(c)!)).join('  ')
+    columns.map(c => truncate(row[c] ?? '', widths.get(c)!).padEnd(widths.get(c)!)).join('  ')
   );
 
   return [header, separator, ...body].join('\n');
