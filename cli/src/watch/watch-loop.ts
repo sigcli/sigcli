@@ -10,6 +10,7 @@ import type { ILogger } from '../core/types.js';
 import type { SignetConfig } from '../config/schema.js';
 import { isOk } from '../core/result.js';
 import { SyncEngine } from '../sync/sync-engine.js';
+import { SshTransport } from '../sync/transports/ssh.js';
 import { getRemote } from '../sync/remote-config.js';
 import type { WatchProviderEntry } from './watch-config.js';
 
@@ -83,7 +84,7 @@ export async function runCycle(
           result.errors.push({ providerId, error: `Remote "${remoteName}" not found` });
           continue;
         }
-        const engine = new SyncEngine(deps.storage, remote, deps.config);
+        const engine = new SyncEngine(deps.storage, remote, deps.config, new SshTransport());
         const syncResult = await engine.push([providerId], true);
         if (syncResult.pushed.includes(providerId)) {
           result.synced.push({ providerId, remote: remoteName });
