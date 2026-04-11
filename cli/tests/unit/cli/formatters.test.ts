@@ -71,6 +71,34 @@ describe('formatTable', () => {
     // 1 header + 1 separator + 2 data rows
     expect(lines).toHaveLength(4);
   });
+
+  it('truncates columns exceeding maxColumnWidths', () => {
+    const longId = 'bdc-cockpit-starkiller-hc-uclformation-ga';
+    const result = formatTable(
+      [{ id: longId, status: 'ok' }],
+      { maxColumnWidths: { id: 20 } },
+    );
+    const lines = result.split('\n');
+    const dataRow = lines[2];
+    // Should be truncated to 19 chars + ellipsis
+    expect(dataRow).toContain('bdc-cockpit-starkil\u2026');
+    expect(dataRow).not.toContain(longId);
+  });
+
+  it('does not truncate when value is within limit', () => {
+    const result = formatTable(
+      [{ id: 'short', status: 'ok' }],
+      { maxColumnWidths: { id: 20 } },
+    );
+    const lines = result.split('\n');
+    expect(lines[2]).toMatch(/^short\s+ok/);
+  });
+
+  it('works without options (backward compatible)', () => {
+    const longId = 'a-very-long-provider-id-that-should-not-be-truncated';
+    const result = formatTable([{ id: longId }]);
+    expect(result).toContain(longId);
+  });
 });
 
 describe('formatExpiry', () => {
