@@ -59,13 +59,27 @@ export async function runRemove(
 
   // Remove each provider
   const keepConfig = flags['keep-config'] === true;
+  const errors: string[] = [];
+  let removed = 0;
+
   for (const provider of resolved) {
-    await deps.storage.delete(provider.id);
-    deps.authManager.providerRegistry.unregister(provider.id);
-    if (!keepConfig) {
-      await removeProviderFromConfig(provider.id);
+    try {
+      await deps.storage.delete(provider.id);
+      deps.authManager.providerRegistry.unregister(provider.id);
+      if (!keepConfig) {
+        await removeProviderFromConfig(provider.id);
+      }
+      removed++;
+    } catch (e) {
+      errors.push(`${provider.id}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
-  process.stderr.write(`Removed ${resolved.length} provider(s).\n`);
+  if (removed > 0) {
+    process.stderr.write(`Removed ${removed} provider(s).\n`);
+  }
+  if (errors.length > 0) {
+    process.stderr.write(`Failed to remove: ${errors.join('; ')}\n`);
+    process.exitCode = 1;
+  }
 }
