@@ -6,7 +6,6 @@ export type {
   BrowserConfig,
   StorageConfig,
   ProviderEntry,
-  RemoteEntry,
 } from './config/schema.js';
 export { loadConfig, saveConfig, getConfigPath } from './config/loader.js';
 export { validateConfig, buildStrategyConfig } from './config/validator.js';
@@ -28,7 +27,6 @@ export type {
   Cookie,
   ProviderConfig,
   StrategyConfig,
-  StrategyName,
   CookieStrategyConfig,
   OAuth2StrategyConfig,
   ApiTokenStrategyConfig,
@@ -40,6 +38,7 @@ export type {
   ILogger,
   XHeaderConfig,
   AuthDiagnostics,
+  CredentialResult,
 } from './core/types.js';
 
 // Result type
@@ -100,15 +99,39 @@ export { NullBrowserAdapter } from './browser/adapters/null.adapter.js';
 export { findChannelBrowser } from './browser/detect.js';
 
 // CLI
-export { run as runCli, parseArgs } from './cli/main.js';
+export { parseArgs } from './cli/main.js';
+export { ExitCode } from './cli/exit-codes.js';
 
 // Sync
 export { SyncEngine } from './sync/sync-engine.js';
 export { SshTransport } from './sync/transports/ssh.js';
 export { getRemotes, getRemote, addRemote, removeRemote } from './sync/remote-config.js';
 export type { RemoteConfig, SyncResult } from './sync/types.js';
+export type { ISyncTransport, RemoteEntry } from './sync/interfaces/transport.js';
+
+// Constants
+export {
+  Command,
+  RemoteSubcommand,
+  SyncSubcommand,
+  WatchSubcommand,
+  WaitUntil,
+  StrategyName,
+  CredentialTypeName,
+  LOGIN_URL_PATTERNS,
+  BROWSER_REQUIRED_STRATEGIES,
+  HttpHeader,
+  AuthScheme,
+  APP_NAME,
+  APP_VERSION,
+  SIGNET_DIR,
+  CONFIG_FILENAME,
+} from './core/constants.js';
+export type { WaitUntilValue } from './core/constants.js';
 
 // Utilities
 export { decodeJwt, isJwtExpired, getJwtExpiresAt } from './utils/jwt.js';
 export { parseDuration, formatDuration } from './utils/duration.js';
 export { buildUserAgent } from './utils/http.js';
+export { sanitizeId } from './utils/sanitize.js';
+export { expandHome } from './utils/path.js';

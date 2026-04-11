@@ -184,10 +184,25 @@ export interface ILogger {
 // ============================================================================
 
 export interface AuthDiagnostics {
-  authDetectedImmediately: boolean;   // isAuthenticated returned true on first check
-  oauthTokensDetected: boolean;       // OAuth JWTs found in localStorage (even in cookie strategy)
-  cookiesExtracted: number;           // Number of cookies found
+  authDetectedImmediately?: boolean;  // isAuthenticated returned true on first check
+  oauthTokensDetected?: boolean;      // OAuth JWTs found in localStorage (even in cookie strategy)
+  cookiesExtracted?: number;          // Number of cookies found
   testRequestStatus?: number;         // HTTP status of validation request
-  suggestions: string[];              // Human-readable fix suggestions
+  suggestions?: string[];             // Human-readable fix suggestions
+  hint?: string;
+  entryUrl?: string;
+  finalUrl?: string;
+  authDuration?: number;
+  [key: string]: unknown;
+}
+
+/**
+ * Wrapper returned from strategy authenticate methods that carries
+ * transient diagnostics alongside the credential. The diagnostics
+ * are stripped before persisting to storage.
+ */
+export interface CredentialResult {
+  credential: Credential;
+  diagnostics?: AuthDiagnostics;
 }
 
