@@ -2,6 +2,22 @@ export function formatJson(data: unknown): string {
   return JSON.stringify(data, null, 2);
 }
 
+// ANSI helpers — color only when stdout is a TTY
+const isTTY = process.stdout.isTTY;
+function green(s: string): string { return isTTY ? `\x1b[32m${s}\x1b[0m` : s; }
+function red(s: string): string { return isTTY ? `\x1b[31m${s}\x1b[0m` : s; }
+function dim(s: string): string { return isTTY ? `\x1b[2m${s}\x1b[0m` : s; }
+
+export function stripAnsi(s: string): string {
+  return s.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
+export function formatStatusIndicator(valid: boolean, hasCredential: boolean): string {
+  if (valid) return green('\u2713');
+  if (hasCredential) return red('\u2717');
+  return dim('\u2014');
+}
+
 export interface FormatTableOptions {
   maxColumnWidths?: Record<string, number>;
 }
@@ -15,7 +31,7 @@ export function formatTable(rows: Record<string, string>[], options?: FormatTabl
   for (const col of columns) {
     let max = col.length;
     for (const row of rows) {
-      const len = (row[col] ?? '').length;
+      const len = stripAnsi(row[col] ?? '').length;
       if (len > max) max = len;
     }
     const cap = options?.maxColumnWidths?.[col];
@@ -24,12 +40,17 @@ export function formatTable(rows: Record<string, string>[], options?: FormatTabl
   }
 
   const truncate = (value: string, width: number): string =>
-    value.length > width ? value.slice(0, width - 1) + '\u2026' : value;
+    stripAnsi(value).length > width ? value.slice(0, width - 1) + '\u2026' : value;
+
+  const padEnd = (value: string, width: number): string => {
+    const visible = stripAnsi(value).length;
+    return value + ' '.repeat(Math.max(0, width - visible));
+  };
 
   const header = columns.map(c => c.toUpperCase().padEnd(widths.get(c)!)).join('  ');
   const separator = columns.map(c => '-'.repeat(widths.get(c)!)).join('  ');
   const body = rows.map(row =>
-    columns.map(c => truncate(row[c] ?? '', widths.get(c)!).padEnd(widths.get(c)!)).join('  ')
+    columns.map(c => padEnd(truncate(row[c] ?? '', widths.get(c)!), widths.get(c)!)).join('  ')
   );
 
   return [header, separator, ...body].join('\n');
