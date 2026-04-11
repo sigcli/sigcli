@@ -4,11 +4,11 @@
  */
 
 export interface JwtPayload {
-  exp?: number;       // Expiration time (Unix timestamp)
-  iat?: number;       // Issued at
-  aud?: string | string[];  // Audience
-  iss?: string;       // Issuer
-  sub?: string;       // Subject
+  exp?: number; // Expiration time (Unix timestamp)
+  iat?: number; // Issued at
+  aud?: string | string[]; // Audience
+  iss?: string; // Issuer
+  sub?: string; // Subject
   [key: string]: unknown;
 }
 

@@ -56,7 +56,7 @@ describe('CachedStorage', () => {
     const spy = vi.spyOn(inner, 'get');
 
     await cached.get('test');
-    await new Promise(resolve => setTimeout(resolve, 150)); // Wait for TTL
+    await new Promise((resolve) => setTimeout(resolve, 150)); // Wait for TTL
     await cached.get('test');
 
     expect(spy).toHaveBeenCalledTimes(2);

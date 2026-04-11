@@ -1,5 +1,15 @@
-import type { IAuthStrategy, IAuthStrategyFactory, AuthContext } from '../core/interfaces/auth-strategy.js';
-import type { Credential, BearerCredential, CredentialResult, ProviderConfig, AuthDiagnostics } from '../core/types.js';
+import type {
+  IAuthStrategy,
+  IAuthStrategyFactory,
+  AuthContext,
+} from '../core/interfaces/auth-strategy.js';
+import type {
+  Credential,
+  BearerCredential,
+  CredentialResult,
+  ProviderConfig,
+  AuthDiagnostics,
+} from '../core/types.js';
 import type { StrategyConfig, OAuth2StrategyConfig } from '../config/schema.js';
 import type { Result } from '../core/result.js';
 import { ok, err } from '../core/result.js';
@@ -48,10 +58,12 @@ class OAuth2Strategy implements IAuthStrategy {
     const adapter = context.browserAdapter;
 
     if (!provider.entryUrl) {
-      return err(new BrowserError(
-        `Provider "${provider.id}" requires an entryUrl for OAuth2 authentication.`,
-        provider.id,
-      ));
+      return err(
+        new BrowserError(
+          `Provider "${provider.id}" requires an entryUrl for OAuth2 authentication.`,
+          provider.id,
+        ),
+      );
     }
 
     return await runHybridFlow<CredentialResult>(adapter, {
@@ -76,7 +88,7 @@ class OAuth2Strategy implements IAuthStrategy {
         });
         if (!result.ok) return result;
 
-        const credential = result.value as BearerCredential;
+        const credential = result.value;
         // Attach captured headers to the bearer credential
         if (xHeaders && Object.keys(xHeaders).length > 0) {
           credential.xHeaders = xHeaders;
@@ -93,9 +105,7 @@ class OAuth2Strategy implements IAuthStrategy {
     });
   }
 
-  async refresh(
-    credential: Credential,
-  ): Promise<Result<Credential | null, AuthError>> {
+  async refresh(credential: Credential): Promise<Result<Credential | null, AuthError>> {
     if (credential.type !== CredentialTypeName.BEARER) return ok(null);
     if (!credential.refreshToken) return ok(null);
 
@@ -122,13 +132,15 @@ class OAuth2Strategy implements IAuthStrategy {
 
       if (!response.ok) {
         const errorBody = await response.text();
-        return err(new RefreshError(
-          credential.tokenEndpoint ?? 'unknown',
-          `Token refresh failed (${response.status}): ${errorBody}`,
-        ));
+        return err(
+          new RefreshError(
+            credential.tokenEndpoint ?? 'unknown',
+            `Token refresh failed (${response.status}): ${errorBody}`,
+          ),
+        );
       }
 
-      const tokenResponse = await response.json() as {
+      const tokenResponse = (await response.json()) as {
         access_token: string;
         refresh_token?: string;
         expires_in?: number;
@@ -151,10 +163,7 @@ class OAuth2Strategy implements IAuthStrategy {
 
       return ok(refreshed);
     } catch (e: unknown) {
-      return err(new RefreshError(
-        credential.tokenEndpoint ?? 'unknown',
-        (e as Error).message,
-      ));
+      return err(new RefreshError(credential.tokenEndpoint ?? 'unknown', (e as Error).message));
     }
   }
 

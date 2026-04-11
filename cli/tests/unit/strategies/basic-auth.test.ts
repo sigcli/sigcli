@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { BasicAuthStrategyFactory } from '../../../src/strategies/basic-auth.strategy.js';
 import type { BasicCredential } from '../../../src/core/types.js';
-import { isOk, isErr } from '../../../src/core/result.js';
+import { isOk } from '../../../src/core/result.js';
 
 describe('BasicAuthStrategy', () => {
   const factory = new BasicAuthStrategyFactory();

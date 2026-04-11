@@ -6,7 +6,12 @@ describe('MemoryStorage', () => {
   let storage: MemoryStorage;
 
   const mockCredential: StoredCredential = {
-    credential: { type: 'api-key', key: 'test-key', headerName: 'Authorization', headerPrefix: 'Bearer' },
+    credential: {
+      type: 'api-key',
+      key: 'test-key',
+      headerName: 'Authorization',
+      headerPrefix: 'Bearer',
+    },
     providerId: 'test-provider',
     strategy: 'api-token',
     updatedAt: new Date().toISOString(),
@@ -48,7 +53,7 @@ describe('MemoryStorage', () => {
     await storage.set('b', { ...mockCredential, providerId: 'b', strategy: 'cookie' });
     const entries = await storage.list();
     expect(entries).toHaveLength(2);
-    expect(entries.map(e => e.providerId).sort()).toEqual(['a', 'b']);
+    expect(entries.map((e) => e.providerId).sort()).toEqual(['a', 'b']);
   });
 
   it('clears all credentials', async () => {

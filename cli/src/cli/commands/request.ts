@@ -12,7 +12,9 @@ export async function runRequest(
 ): Promise<void> {
   const url = positionals[0];
   if (!url) {
-    process.stderr.write('Usage: sig request <url> [--method GET] [--header "Name: Value"] [--body \'{}\']\n');
+    process.stderr.write(
+      'Usage: sig request <url> [--method GET] [--header "Name: Value"] [--body \'{}\']\n',
+    );
     process.exitCode = ExitCode.GENERAL_ERROR;
     return;
   }
@@ -21,7 +23,9 @@ export async function runRequest(
   if (!isOk(result)) {
     process.stderr.write(`Auth error: ${result.error.message}\n`);
     if (result.error.code === 'BROWSER_UNAVAILABLE') {
-      process.stderr.write(`Hint: Run "sig login ${url} --token <token>" or "sig sync pull" to get credentials.\n`);
+      process.stderr.write(
+        `Hint: Run "sig login ${url} --token <token>" or "sig sync pull" to get credentials.\n`,
+      );
     }
     process.exitCode = ExitCode.GENERAL_ERROR;
     return;
@@ -87,13 +91,17 @@ export async function runRequest(
       case 'json':
       default: {
         const responseHeaders: Record<string, string> = {};
-        response.headers.forEach((value, key) => { responseHeaders[key] = value; });
-        process.stdout.write(formatJson({
-          status: response.status,
-          statusText: response.statusText,
-          headers: responseHeaders,
-          body: formattedBody,
-        }) + '\n');
+        response.headers.forEach((value, key) => {
+          responseHeaders[key] = value;
+        });
+        process.stdout.write(
+          formatJson({
+            status: response.status,
+            statusText: response.statusText,
+            headers: responseHeaders,
+            body: formattedBody,
+          }) + '\n',
+        );
         break;
       }
     }

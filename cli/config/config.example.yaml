@@ -10,9 +10,9 @@ mode: browser
 # Browser settings (required)
 browser:
   browserDataDir: ~/.signet/browser-data # Persistent browser profile directory
-  channel: chrome                        # Browser channel (chrome, msedge, chromium)
-  headlessTimeout: 30000                 # Timeout for headless auth attempt (ms)
-  visibleTimeout: 120000                 # Timeout for visible/user-assisted auth (ms)
+  channel: chrome # Browser channel (chrome, msedge, chromium)
+  headlessTimeout: 30000 # Timeout for headless auth attempt (ms)
+  visibleTimeout: 120000 # Timeout for visible/user-assisted auth (ms)
   waitUntil: load # Default page load condition (load, networkidle, domcontentloaded, commit)
 
 # Storage settings (required)

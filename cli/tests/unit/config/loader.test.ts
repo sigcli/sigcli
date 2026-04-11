@@ -219,12 +219,15 @@ describe('saveConfig', () => {
 
     await saveConfig(config);
 
-    expect(mockFs.mkdir).toHaveBeenCalledWith(
-      path.dirname(EXPECTED_CONFIG_PATH),
-      { recursive: true },
-    );
+    expect(mockFs.mkdir).toHaveBeenCalledWith(path.dirname(EXPECTED_CONFIG_PATH), {
+      recursive: true,
+    });
     expect(mockFs.writeFile).toHaveBeenCalledTimes(1);
-    const [writtenPath, writtenContent] = mockFs.writeFile.mock.calls[0] as [string, string, string];
+    const [writtenPath, writtenContent] = mockFs.writeFile.mock.calls[0] as [
+      string,
+      string,
+      string,
+    ];
     expect(writtenPath).toBe(EXPECTED_CONFIG_PATH);
     expect(writtenContent).toContain('browserDataDir');
     expect(writtenContent).toContain('test.com');

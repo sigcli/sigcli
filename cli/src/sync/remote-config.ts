@@ -10,14 +10,17 @@ export async function getRemotes(): Promise<RemoteConfig[]> {
   const doc = await loadDocument();
   const remotesNode = doc.getIn(['remotes']);
   if (!remotesNode) return [];
-  const remotes = (YAML.isMap(remotesNode) ? remotesNode.toJSON() : remotesNode) as Record<string, Omit<RemoteConfig, 'name'>>;
+  const remotes = (YAML.isMap(remotesNode) ? remotesNode.toJSON() : remotesNode) as Record<
+    string,
+    Omit<RemoteConfig, 'name'>
+  >;
   if (!remotes || typeof remotes !== 'object') return [];
   return Object.entries(remotes).map(([name, r]) => ({ name, ...r }));
 }
 
 export async function getRemote(name: string): Promise<RemoteConfig | null> {
   const remotes = await getRemotes();
-  return remotes.find(r => r.name === name) ?? null;
+  return remotes.find((r) => r.name === name) ?? null;
 }
 
 export async function addRemote(remote: RemoteConfig): Promise<void> {

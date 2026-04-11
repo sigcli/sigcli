@@ -78,11 +78,7 @@ export class CredentialTypeError extends AuthError {
 
 export class RefreshError extends AuthError {
   constructor(providerId: string, reason: string) {
-    super(
-      `Token refresh failed for "${providerId}": ${reason}`,
-      'REFRESH_FAILED',
-      providerId,
-    );
+    super(`Token refresh failed for "${providerId}": ${reason}`, 'REFRESH_FAILED', providerId);
     this.name = 'RefreshError';
   }
 }
@@ -114,11 +110,7 @@ export class BrowserTimeoutError extends AuthError {
 
 export class BrowserNavigationError extends AuthError {
   constructor(url: string, reason: string, providerId?: string) {
-    super(
-      `Failed to navigate to ${url}: ${reason}`,
-      'BROWSER_NAVIGATION_ERROR',
-      providerId,
-    );
+    super(`Failed to navigate to ${url}: ${reason}`, 'BROWSER_NAVIGATION_ERROR', providerId);
     this.name = 'BrowserNavigationError';
   }
 }
@@ -127,7 +119,7 @@ export class BrowserUnavailableError extends AuthError {
   constructor(reason: string) {
     super(
       `Browser is not available: ${reason}. ` +
-      'On headless machines, use "sig login --token <token>" or "sig sync pull" to get credentials.',
+        'On headless machines, use "sig login --token <token>" or "sig sync pull" to get credentials.',
       'BROWSER_UNAVAILABLE',
     );
     this.name = 'BrowserUnavailableError';
@@ -136,10 +128,7 @@ export class BrowserUnavailableError extends AuthError {
 
 export class StorageError extends AuthError {
   constructor(operation: string, reason: string) {
-    super(
-      `Storage ${operation} failed: ${reason}`,
-      'STORAGE_ERROR',
-    );
+    super(`Storage ${operation} failed: ${reason}`, 'STORAGE_ERROR');
     this.name = 'StorageError';
   }
 }

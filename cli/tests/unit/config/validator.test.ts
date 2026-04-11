@@ -36,12 +36,14 @@ describe('validateConfig', () => {
   });
 
   it('accepts config with different browser channel', () => {
-    const result = validateConfig(validRawConfig({
-      browser: {
-        browserDataDir: '/tmp/bd',
-        channel: 'msedge',
-      },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        browser: {
+          browserDataDir: '/tmp/bd',
+          channel: 'msedge',
+        },
+      }),
+    );
     expect(isOk(result)).toBe(true);
     if (result.ok) {
       expect(result.value.browser.channel).toBe('msedge');
@@ -49,9 +51,11 @@ describe('validateConfig', () => {
   });
 
   it('returns error when browser.channel is missing', () => {
-    const result = validateConfig(validRawConfig({
-      browser: { browserDataDir: '/tmp/bd' },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        browser: { browserDataDir: '/tmp/bd' },
+      }),
+    );
     expect(isErr(result)).toBe(true);
     if (!result.ok) {
       expect(result.error.message).toContain('browser.channel');
@@ -59,11 +63,19 @@ describe('validateConfig', () => {
   });
 
   it('accepts config with remotes section', () => {
-    const result = validateConfig(validRawConfig({
-      remotes: {
-        dev: { type: 'ssh', host: 'dev.example.com', user: 'alice', path: '/home/alice/.signet', sshKey: '~/.ssh/id_ed25519' },
-      },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        remotes: {
+          dev: {
+            type: 'ssh',
+            host: 'dev.example.com',
+            user: 'alice',
+            path: '/home/alice/.signet',
+            sshKey: '~/.ssh/id_ed25519',
+          },
+        },
+      }),
+    );
     expect(isOk(result)).toBe(true);
     if (result.ok) {
       expect(result.value.remotes).toBeDefined();
@@ -83,12 +95,19 @@ describe('validateConfig', () => {
   });
 
   it('parses multiple providers', () => {
-    const result = validateConfig(validRawConfig({
-      providers: {
-        github: { domains: ['github.com'], entryUrl: 'https://github.com/', strategy: 'cookie' },
-        api: { domains: ['api.example.com'], entryUrl: 'https://api.example.com/', strategy: 'api-token', config: { headerName: 'X-Key' } },
-      },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        providers: {
+          github: { domains: ['github.com'], entryUrl: 'https://github.com/', strategy: 'cookie' },
+          api: {
+            domains: ['api.example.com'],
+            entryUrl: 'https://api.example.com/',
+            strategy: 'api-token',
+            config: { headerName: 'X-Key' },
+          },
+        },
+      }),
+    );
     expect(isOk(result)).toBe(true);
     if (result.ok) {
       expect(Object.keys(result.value.providers)).toHaveLength(2);
@@ -198,9 +217,11 @@ describe('validateConfig', () => {
   });
 
   it('returns error when a provider entry is not an object', () => {
-    const result = validateConfig(validRawConfig({
-      providers: { bad: 'not-an-object' },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        providers: { bad: 'not-an-object' },
+      }),
+    );
     expect(isErr(result)).toBe(true);
     if (!result.ok) {
       expect(result.error.message).toContain('Provider "bad": must be an object');
@@ -208,11 +229,13 @@ describe('validateConfig', () => {
   });
 
   it('returns error when provider is missing domains', () => {
-    const result = validateConfig(validRawConfig({
-      providers: {
-        noDomains: { strategy: 'cookie' },
-      },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        providers: {
+          noDomains: { strategy: 'cookie' },
+        },
+      }),
+    );
     expect(isErr(result)).toBe(true);
     if (!result.ok) {
       expect(result.error.message).toContain('Provider "noDomains"');
@@ -221,11 +244,13 @@ describe('validateConfig', () => {
   });
 
   it('returns error when provider has empty domains array', () => {
-    const result = validateConfig(validRawConfig({
-      providers: {
-        empty: { domains: [], strategy: 'cookie' },
-      },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        providers: {
+          empty: { domains: [], strategy: 'cookie' },
+        },
+      }),
+    );
     expect(isErr(result)).toBe(true);
     if (!result.ok) {
       expect(result.error.message).toContain('Provider "empty"');
@@ -235,11 +260,13 @@ describe('validateConfig', () => {
   });
 
   it('returns error when domains contains non-string values', () => {
-    const result = validateConfig(validRawConfig({
-      providers: {
-        badDomains: { domains: [123], strategy: 'cookie' },
-      },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        providers: {
+          badDomains: { domains: [123], strategy: 'cookie' },
+        },
+      }),
+    );
     expect(isErr(result)).toBe(true);
     if (!result.ok) {
       expect(result.error.message).toContain('domains must be strings');
@@ -247,11 +274,13 @@ describe('validateConfig', () => {
   });
 
   it('returns error when provider has unknown strategy', () => {
-    const result = validateConfig(validRawConfig({
-      providers: {
-        badStrategy: { domains: ['example.com'], strategy: 'magic' },
-      },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        providers: {
+          badStrategy: { domains: ['example.com'], strategy: 'magic' },
+        },
+      }),
+    );
     expect(isErr(result)).toBe(true);
     if (!result.ok) {
       expect(result.error.message).toContain('invalid strategy "magic"');
@@ -263,11 +292,13 @@ describe('validateConfig', () => {
   });
 
   it('returns error when provider is missing strategy', () => {
-    const result = validateConfig(validRawConfig({
-      providers: {
-        noStrategy: { domains: ['example.com'] },
-      },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        providers: {
+          noStrategy: { domains: ['example.com'] },
+        },
+      }),
+    );
     expect(isErr(result)).toBe(true);
     if (!result.ok) {
       expect(result.error.message).toContain('Provider "noStrategy"');
@@ -278,11 +309,18 @@ describe('validateConfig', () => {
   // ---- strategy-specific config validation ----
 
   it('returns error when provider has non-boolean forceVisible', () => {
-    const result = validateConfig(validRawConfig({
-      providers: {
-        bad: { domains: ['x.com'], entryUrl: 'https://x.com/', strategy: 'cookie', forceVisible: 'yes' },
-      },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        providers: {
+          bad: {
+            domains: ['x.com'],
+            entryUrl: 'https://x.com/',
+            strategy: 'cookie',
+            forceVisible: 'yes',
+          },
+        },
+      }),
+    );
     expect(isErr(result)).toBe(true);
     if (!result.ok) {
       expect(result.error.message).toContain('forceVisible must be a boolean');
@@ -290,11 +328,18 @@ describe('validateConfig', () => {
   });
 
   it('accepts forceVisible as boolean at provider level', () => {
-    const result = validateConfig(validRawConfig({
-      providers: {
-        xhs: { domains: ['x.com'], entryUrl: 'https://x.com/', strategy: 'cookie', forceVisible: true },
-      },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        providers: {
+          xhs: {
+            domains: ['x.com'],
+            entryUrl: 'https://x.com/',
+            strategy: 'cookie',
+            forceVisible: true,
+          },
+        },
+      }),
+    );
     expect(isOk(result)).toBe(true);
     if (result.ok) {
       expect(result.value.providers.xhs.forceVisible).toBe(true);
@@ -304,9 +349,11 @@ describe('validateConfig', () => {
   // ---- browser section: new flow fields ----
 
   it('returns error when browser.headlessTimeout is not a number', () => {
-    const result = validateConfig(validRawConfig({
-      browser: { browserDataDir: '/tmp/bd', channel: 'chrome', headlessTimeout: 'fast' },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        browser: { browserDataDir: '/tmp/bd', channel: 'chrome', headlessTimeout: 'fast' },
+      }),
+    );
     expect(isErr(result)).toBe(true);
     if (!result.ok) {
       expect(result.error.message).toContain('browser.headlessTimeout must be a number');
@@ -314,9 +361,11 @@ describe('validateConfig', () => {
   });
 
   it('returns error when browser.visibleTimeout is not a number', () => {
-    const result = validateConfig(validRawConfig({
-      browser: { browserDataDir: '/tmp/bd', channel: 'chrome', visibleTimeout: true },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        browser: { browserDataDir: '/tmp/bd', channel: 'chrome', visibleTimeout: true },
+      }),
+    );
     expect(isErr(result)).toBe(true);
     if (!result.ok) {
       expect(result.error.message).toContain('browser.visibleTimeout must be a number');
@@ -324,9 +373,11 @@ describe('validateConfig', () => {
   });
 
   it('returns error when browser.waitUntil is invalid', () => {
-    const result = validateConfig(validRawConfig({
-      browser: { browserDataDir: '/tmp/bd', channel: 'chrome', waitUntil: 'never' },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        browser: { browserDataDir: '/tmp/bd', channel: 'chrome', waitUntil: 'never' },
+      }),
+    );
     expect(isErr(result)).toBe(true);
     if (!result.ok) {
       expect(result.error.message).toContain('browser.waitUntil must be one of');
@@ -334,15 +385,17 @@ describe('validateConfig', () => {
   });
 
   it('accepts valid browser flow fields in browser section', () => {
-    const result = validateConfig(validRawConfig({
-      browser: {
-        browserDataDir: '/tmp/bd',
-        channel: 'chrome',
-        headlessTimeout: 30000,
-        visibleTimeout: 120000,
-        waitUntil: 'networkidle',
-      },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        browser: {
+          browserDataDir: '/tmp/bd',
+          channel: 'chrome',
+          headlessTimeout: 30000,
+          visibleTimeout: 120000,
+          waitUntil: 'networkidle',
+        },
+      }),
+    );
     expect(isOk(result)).toBe(true);
     if (result.ok) {
       expect(result.value.browser.headlessTimeout).toBe(30000);
@@ -352,11 +405,18 @@ describe('validateConfig', () => {
   });
 
   it('returns error when cookie config contains oauth2-only fields', () => {
-    const result = validateConfig(validRawConfig({
-      providers: {
-        bad: { domains: ['x.com'], entryUrl: 'https://x.com/', strategy: 'cookie', config: { tokenEndpoint: 'https://token' } },
-      },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        providers: {
+          bad: {
+            domains: ['x.com'],
+            entryUrl: 'https://x.com/',
+            strategy: 'cookie',
+            config: { tokenEndpoint: 'https://token' },
+          },
+        },
+      }),
+    );
     expect(isErr(result)).toBe(true);
     if (!result.ok) {
       expect(result.error.message).toContain('tokenEndpoint');
@@ -365,11 +425,18 @@ describe('validateConfig', () => {
   });
 
   it('returns error when oauth2 config contains cookie-only fields', () => {
-    const result = validateConfig(validRawConfig({
-      providers: {
-        bad: { domains: ['x.com'], entryUrl: 'https://x.com/', strategy: 'oauth2', config: { ttl: '1h' } },
-      },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        providers: {
+          bad: {
+            domains: ['x.com'],
+            entryUrl: 'https://x.com/',
+            strategy: 'oauth2',
+            config: { ttl: '1h' },
+          },
+        },
+      }),
+    );
     expect(isErr(result)).toBe(true);
     if (!result.ok) {
       expect(result.error.message).toContain('ttl');
@@ -400,9 +467,11 @@ describe('validateConfig', () => {
   });
 
   it('returns error when remote type is not ssh', () => {
-    const result = validateConfig(validRawConfig({
-      remotes: { dev: { type: 'ftp', host: 'example.com' } },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        remotes: { dev: { type: 'ftp', host: 'example.com' } },
+      }),
+    );
     expect(isErr(result)).toBe(true);
     if (!result.ok) {
       expect(result.error.message).toContain('only type "ssh" is supported');
@@ -410,9 +479,11 @@ describe('validateConfig', () => {
   });
 
   it('returns error when remote is missing host', () => {
-    const result = validateConfig(validRawConfig({
-      remotes: { dev: { type: 'ssh' } },
-    }));
+    const result = validateConfig(
+      validRawConfig({
+        remotes: { dev: { type: 'ssh' } },
+      }),
+    );
     expect(isErr(result)).toBe(true);
     if (!result.ok) {
       expect(result.error.message).toContain('missing required field "host"');
@@ -440,20 +511,22 @@ describe('validateConfig', () => {
   // ---- provider entry parsing ----
 
   it('parses optional provider fields (name, entryUrl, acceptedCredentialTypes, xHeaders)', () => {
-    const result = validateConfig(validRawConfig({
-      providers: {
-        full: {
-          name: 'Full Provider',
-          domains: ['full.example.com'],
-          entryUrl: 'https://full.example.com/login',
-          strategy: 'oauth2',
-          config: { clientId: 'abc', scopes: ['openid'] },
-          acceptedCredentialTypes: ['bearer'],
-          setupInstructions: 'Go to settings',
-          xHeaders: [{ name: 'X-Custom', pattern: '.*' }],
+    const result = validateConfig(
+      validRawConfig({
+        providers: {
+          full: {
+            name: 'Full Provider',
+            domains: ['full.example.com'],
+            entryUrl: 'https://full.example.com/login',
+            strategy: 'oauth2',
+            config: { clientId: 'abc', scopes: ['openid'] },
+            acceptedCredentialTypes: ['bearer'],
+            setupInstructions: 'Go to settings',
+            xHeaders: [{ name: 'X-Custom', pattern: '.*' }],
+          },
         },
-      },
-    }));
+      }),
+    );
     expect(isOk(result)).toBe(true);
     if (result.ok) {
       const p = result.value.providers.full;
@@ -556,26 +629,26 @@ describe('buildStrategyConfig', () => {
 
   it('ignores fields with wrong types (non-string ttl, non-array requiredCookies)', () => {
     const result = buildStrategyConfig('cookie', {
-      ttl: 123,                   // should be string, gets ignored
-      requiredCookies: 'sid',     // should be array, gets ignored
+      ttl: 123, // should be string, gets ignored
+      requiredCookies: 'sid', // should be array, gets ignored
     });
     expect(result).toEqual({ strategy: 'cookie' });
   });
 
   it('ignores fields with wrong types for api-token', () => {
     const result = buildStrategyConfig('api-token', {
-      headerName: 42,             // should be string, gets ignored
-      headerPrefix: true,         // should be string, gets ignored
+      headerName: 42, // should be string, gets ignored
+      headerPrefix: true, // should be string, gets ignored
     });
     expect(result).toEqual({ strategy: 'api-token' });
   });
 
   it('ignores fields with wrong types for oauth2', () => {
     const result = buildStrategyConfig('oauth2', {
-      tokenEndpoint: 123,         // should be string, gets ignored
-      clientId: false,            // should be string, gets ignored
-      scopes: 'openid',           // should be array, gets ignored
-      audiences: 'aud',           // should be array, gets ignored
+      tokenEndpoint: 123, // should be string, gets ignored
+      clientId: false, // should be string, gets ignored
+      scopes: 'openid', // should be array, gets ignored
+      audiences: 'aud', // should be array, gets ignored
     });
     expect(result).toEqual({ strategy: 'oauth2' });
   });

@@ -27,7 +27,11 @@ const testProvider: ProviderConfig = {
   strategyConfig: { strategy: 'cookie' },
 };
 
-function createDeps(providers?: ProviderConfig[]): { deps: AuthDeps; storage: MemoryStorage; providerRegistry: ProviderRegistry } {
+function createDeps(providers?: ProviderConfig[]): {
+  deps: AuthDeps;
+  storage: MemoryStorage;
+  providerRegistry: ProviderRegistry;
+} {
   const storage = new MemoryStorage();
   const strategyRegistry = new StrategyRegistry();
   strategyRegistry.register(new CookieStrategyFactory());
@@ -38,7 +42,7 @@ function createDeps(providers?: ProviderConfig[]): { deps: AuthDeps; storage: Me
     storage,
     strategyRegistry,
     providerRegistry,
-    browserAdapterFactory: () => ({} as IBrowserAdapter),
+    browserAdapterFactory: () => ({}) as IBrowserAdapter,
     browserConfig,
   });
 

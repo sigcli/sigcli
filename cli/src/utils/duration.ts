@@ -5,7 +5,9 @@
 export function parseDuration(input: string): number {
   const match = input.trim().match(/^(\d+(?:\.\d+)?)\s*(ms|s|m|h|d)$/i);
   if (!match) {
-    throw new Error(`Invalid duration format: "${input}". Expected format like "30s", "5m", "24h", "7d".`);
+    throw new Error(
+      `Invalid duration format: "${input}". Expected format like "30s", "5m", "24h", "7d".`,
+    );
   }
 
   const value = parseFloat(match[1]);

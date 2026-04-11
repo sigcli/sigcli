@@ -12,7 +12,12 @@ describe('DirectoryStorage', () => {
   let storage: DirectoryStorage;
 
   const mockCredential: StoredCredential = {
-    credential: { type: 'api-key', key: 'test-key', headerName: 'Authorization', headerPrefix: 'Bearer' },
+    credential: {
+      type: 'api-key',
+      key: 'test-key',
+      headerName: 'Authorization',
+      headerPrefix: 'Bearer',
+    },
     providerId: 'test-provider',
     strategy: 'api-token',
     updatedAt: new Date().toISOString(),
@@ -21,7 +26,17 @@ describe('DirectoryStorage', () => {
   const cookieCredential: StoredCredential = {
     credential: {
       type: 'cookie',
-      cookies: [{ name: 'sid', value: 'abc123', domain: '.example.com', path: '/', expires: -1, httpOnly: true, secure: true }],
+      cookies: [
+        {
+          name: 'sid',
+          value: 'abc123',
+          domain: '.example.com',
+          path: '/',
+          expires: -1,
+          httpOnly: true,
+          secure: true,
+        },
+      ],
       obtainedAt: new Date().toISOString(),
     },
     providerId: 'cookie-provider',
@@ -220,7 +235,9 @@ describe('DirectoryStorage', () => {
     await storage.set('alpha', { ...mockCredential, providerId: 'alpha' });
     await storage.set('beta', { ...cookieCredential, providerId: 'beta' });
 
-    const files = (await fs.readdir(tmpDir)).filter(f => f.endsWith('.json') && !f.endsWith('.lock')).sort();
+    const files = (await fs.readdir(tmpDir))
+      .filter((f) => f.endsWith('.json') && !f.endsWith('.lock'))
+      .sort();
     expect(files).toHaveLength(2);
 
     // Filenames are human-readable provider IDs
@@ -235,5 +252,4 @@ describe('DirectoryStorage', () => {
     expect(betaContent.providerId).toBe('beta');
     expect(betaContent.version).toBe(1);
   });
-
 });

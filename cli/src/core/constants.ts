@@ -61,7 +61,7 @@ export const WaitUntil = {
   COMMIT: 'commit',
 } as const;
 
-export type WaitUntilValue = typeof WaitUntil[keyof typeof WaitUntil];
+export type WaitUntilValue = (typeof WaitUntil)[keyof typeof WaitUntil];
 
 /**
  * Strategy names matching StrategyConfig discriminator values.
@@ -95,8 +95,16 @@ export const BROWSER_REQUIRED_STRATEGIES: ReadonlySet<string> = new Set([
  * URL patterns that indicate a login/auth page.
  */
 export const LOGIN_URL_PATTERNS: readonly string[] = [
-  '/login', '/signin', '/sign-in', '/auth', '/sso', '/oauth',
-  '/adfs/', '/saml/', 'login.microsoftonline.com', 'accounts.google.com',
+  '/login',
+  '/signin',
+  '/sign-in',
+  '/auth',
+  '/sso',
+  '/oauth',
+  '/adfs/',
+  '/saml/',
+  'login.microsoftonline.com',
+  'accounts.google.com',
 ] as const;
 
 /**

@@ -6,11 +6,7 @@
  * and re-exported here for convenience.
  */
 
-import type {
-  CredentialType,
-  XHeaderConfig,
-  StrategyName,
-} from '../core/types.js';
+import type { CredentialType, XHeaderConfig, StrategyName } from '../core/types.js';
 import type { WaitUntilValue } from '../core/constants.js';
 
 // Re-export strategy config types from core/types (the source of truth)
@@ -36,7 +32,7 @@ export interface BrowserConfig {
 }
 
 export interface StorageConfig {
-  credentialsDir: string;  // MANDATORY
+  credentialsDir: string; // MANDATORY
 }
 
 export interface RemoteEntry {
@@ -52,12 +48,12 @@ export interface RemoteEntry {
 // ============================================================================
 
 export interface WatchProviderEntry {
-  autoSync?: string[];    // Remote names to sync to after refresh
+  autoSync?: string[]; // Remote names to sync to after refresh
 }
 
 export interface WatchEntry {
-  interval: string;                                           // e.g. "1m", "5m"
-  providers: Record<string, WatchProviderEntry | null>;       // provider ID → options (null = watch only)
+  interval: string; // e.g. "1m", "5m"
+  providers: Record<string, WatchProviderEntry | null>; // provider ID → options (null = watch only)
 }
 
 // ============================================================================

@@ -3,8 +3,9 @@ import { createDefaultProvider, deriveShortId } from '../../../src/providers/aut
 
 describe('deriveShortId', () => {
   it('uses first segment when >= 8 chars', () => {
-    expect(deriveShortId('cockpit.example-cloud.com'))
-      .toBe('bdc-cockpit-starkiller-hc-ga');
+    expect(
+      deriveShortId('cockpit.example-cloud.com'),
+    ).toBe('bdc-cockpit-starkiller-hc-ga');
   });
 
   it('joins first two segments when first < 8 chars', () => {
@@ -30,8 +31,12 @@ describe('deriveShortId', () => {
 
   it('appends -2 when base collides with existingIds', () => {
     const existing = new Set(['bdc-cockpit-starkiller-hc-ga']);
-    expect(deriveShortId('cockpit.example-cloud.com', existing))
-      .toBe('bdc-cockpit-starkiller-hc-ga-2');
+    expect(
+      deriveShortId(
+        'cockpit.example-cloud.com',
+        existing,
+      ),
+    ).toBe('bdc-cockpit-starkiller-hc-ga-2');
   });
 
   it('increments suffix until unique', () => {
@@ -46,12 +51,18 @@ describe('deriveShortId', () => {
 
 describe('createDefaultProvider', () => {
   it('creates provider with short ID from full URL', () => {
-    const provider = createDefaultProvider('https://cockpit.example-cloud.com/');
+    const provider = createDefaultProvider(
+      'https://cockpit.example-cloud.com/',
+    );
 
     expect(provider.id).toBe('bdc-cockpit-starkiller-hc-ga');
-    expect(provider.name).toBe('cockpit.example-cloud.com');
+    expect(provider.name).toBe(
+      'cockpit.example-cloud.com',
+    );
     expect(provider.strategy).toBe('cookie');
-    expect(provider.domains).toEqual(['cockpit.example-cloud.com']);
+    expect(provider.domains).toEqual([
+      'cockpit.example-cloud.com',
+    ]);
     expect(provider.autoProvisioned).toBe(true);
     expect(provider.strategyConfig).toEqual({ strategy: 'cookie' });
   });

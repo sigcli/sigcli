@@ -162,7 +162,7 @@ describe('runInit', () => {
     // Should create at least 3 directories: signet dir, browser-data, credentials
     expect(mockMkdir).toHaveBeenCalledTimes(3);
 
-    const mkdirPaths = mockMkdir.mock.calls.map(call => call[0]);
+    const mkdirPaths = mockMkdir.mock.calls.map((call) => call[0]);
     // Signet dir
     expect(mkdirPaths).toContain(EXPECTED_CONFIG_DIR);
     // Browser data and credentials dirs (default paths under ~/.signet/)
@@ -202,7 +202,7 @@ describe('runInit', () => {
     await runInit([], { yes: true, 'browser-data-dir': customDir });
 
     // Should create the custom directory
-    const mkdirPaths = mockMkdir.mock.calls.map(call => call[0]);
+    const mkdirPaths = mockMkdir.mock.calls.map((call) => call[0]);
     expect(mkdirPaths).toContain(customDir);
 
     // Config should reference the custom dir
@@ -219,7 +219,7 @@ describe('runInit', () => {
     await runInit([], { yes: true, 'credentials-dir': customDir });
 
     // Should create the custom directory
-    const mkdirPaths = mockMkdir.mock.calls.map(call => call[0]);
+    const mkdirPaths = mockMkdir.mock.calls.map((call) => call[0]);
     expect(mkdirPaths).toContain(customDir);
 
     // Config should reference the custom dir

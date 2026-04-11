@@ -66,7 +66,7 @@ describe('ProviderRegistry', () => {
     const registry = new ProviderRegistry([jiraProvider, githubProvider]);
     const list = registry.list();
     expect(list).toHaveLength(2);
-    expect(list.map(p => p.id).sort()).toEqual(['github', 'jira']);
+    expect(list.map((p) => p.id).sort()).toEqual(['github', 'jira']);
   });
 
   it('registers new provider at runtime', () => {

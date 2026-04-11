@@ -35,7 +35,7 @@ export async function extractOAuthTokens(
 
     // If this isn't the last attempt, wait and retry (MSAL may still be writing tokens)
     if (attempt < maxRetries) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     } else {
       return result; // Return the last error
     }
@@ -49,10 +49,7 @@ export async function extractOAuthTokens(
  * Used as a guard to ensure MSAL has finished writing tokens before
  * the browser is closed.
  */
-export async function hasOAuthTokens(
-  page: IBrowserPage,
-  audiences?: string[],
-): Promise<boolean> {
+export async function hasOAuthTokens(page: IBrowserPage, audiences?: string[]): Promise<boolean> {
   try {
     const storage = await page.evaluate(() => {
       const entries: Record<string, string> = {};
@@ -83,7 +80,7 @@ export async function hasOAuthTokens(
 
       if (audiences && audiences.length > 0) {
         const aud = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
-        if (audiences.some(a => aud.includes(a))) return true;
+        if (audiences.some((a) => aud.includes(a))) return true;
       } else {
         return true;
       }
@@ -143,7 +140,7 @@ async function tryExtractTokens(
 
       if (options?.audiences && options.audiences.length > 0) {
         const aud = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
-        if (!options.audiences.some(a => aud.includes(a))) continue;
+        if (!options.audiences.some((a) => aud.includes(a))) continue;
       }
 
       // Prefer the token with the latest expiry
@@ -154,10 +151,12 @@ async function tryExtractTokens(
     }
 
     if (!bestToken) {
-      return err(new BrowserError(
-        `No valid (non-expired) token matching audiences [${options?.audiences?.join(', ')}] found. ` +
-        `Found ${tokens.length} token(s) in storage.`,
-      ));
+      return err(
+        new BrowserError(
+          `No valid (non-expired) token matching audiences [${options?.audiences?.join(', ')}] found. ` +
+            `Found ${tokens.length} token(s) in storage.`,
+        ),
+      );
     }
 
     // Extract refresh token (MSAL format: keys containing "refreshtoken")
@@ -180,18 +179,14 @@ async function tryExtractTokens(
       }
     }
 
-    const expiresAt = bestPayload?.exp
-      ? new Date(bestPayload.exp * 1000).toISOString()
-      : undefined;
+    const expiresAt = bestPayload?.exp ? new Date(bestPayload.exp * 1000).toISOString() : undefined;
 
     const credential: BearerCredential = {
       type: CredentialTypeName.BEARER,
       accessToken: bestToken,
       refreshToken,
       expiresAt,
-      scopes: bestPayload?.scp
-        ? String(bestPayload.scp).split(' ')
-        : undefined,
+      scopes: bestPayload?.scp ? String(bestPayload.scp as unknown).split(' ') : undefined,
     };
 
     return ok(credential);

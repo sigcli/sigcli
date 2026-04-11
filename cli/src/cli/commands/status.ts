@@ -7,7 +7,7 @@ function buildRows(
   statuses: ProviderStatus[],
   watchMap: Map<string, WatchProviderEntry>,
 ): Record<string, string>[] {
-  return statuses.map(s => {
+  return statuses.map((s) => {
     const entry = watchMap.get(s.id);
     return {
       id: s.id,
@@ -30,7 +30,7 @@ export async function runStatus(
   const tableOptions = { maxColumnWidths: { id: 30, sync: 20 } };
 
   const watchEntries = await getWatchProviders();
-  const watchMap = new Map(watchEntries.map(e => [e.providerId, e]));
+  const watchMap = new Map(watchEntries.map((e) => [e.providerId, e]));
 
   if (providerId) {
     const resolved = deps.authManager.providerRegistry.resolveFlexible(providerId);

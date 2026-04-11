@@ -64,7 +64,7 @@ describe('CookieStrategy — xHeaders in applyToRequest', () => {
   it('xHeaders do not overwrite the Cookie header', () => {
     const cred = makeCred({
       xHeaders: {
-        'Cookie': 'should-not-win',
+        Cookie: 'should-not-win',
         'x-other': 'value',
       },
     });

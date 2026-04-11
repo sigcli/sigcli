@@ -45,7 +45,7 @@ export interface IBrowserPage {
   // Extraction
   cookies(urls?: string[]): Promise<Cookie[]>;
   evaluate<T>(fn: (() => T) | string): Promise<T>;
-  evaluateWithArg<T, A>(fn: ((arg: A) => T), arg: A): Promise<T>;
+  evaluateWithArg<T, A>(fn: (arg: A) => T, arg: A): Promise<T>;
 
   // Debug
   screenshot(options?: { path?: string; fullPage?: boolean }): Promise<Buffer>;

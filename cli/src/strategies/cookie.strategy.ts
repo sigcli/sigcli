@@ -1,5 +1,15 @@
-import type { IAuthStrategy, IAuthStrategyFactory, AuthContext } from '../core/interfaces/auth-strategy.js';
-import type { Credential, CookieCredential, CredentialResult, ProviderConfig, AuthDiagnostics } from '../core/types.js';
+import type {
+  IAuthStrategy,
+  IAuthStrategyFactory,
+  AuthContext,
+} from '../core/interfaces/auth-strategy.js';
+import type {
+  Credential,
+  CookieCredential,
+  CredentialResult,
+  ProviderConfig,
+  AuthDiagnostics,
+} from '../core/types.js';
 import type { StrategyConfig, CookieStrategyConfig } from '../config/schema.js';
 import type { Result } from '../core/result.js';
 import { ok, err } from '../core/result.js';
@@ -37,9 +47,7 @@ class CookieStrategy implements IAuthStrategy {
 
     // Check individual cookie expiry
     const now = Date.now() / 1000;
-    const hasExpired = credential.cookies.some(
-      c => c.expires > 0 && c.expires < now,
-    );
+    const hasExpired = credential.cookies.some((c) => c.expires > 0 && c.expires < now);
     if (hasExpired) return ok(false);
 
     // Ensure we have at least one cookie
@@ -55,10 +63,12 @@ class CookieStrategy implements IAuthStrategy {
     const adapter = context.browserAdapter;
 
     if (!provider.entryUrl) {
-      return err(new BrowserError(
-        `Provider "${provider.id}" requires an entryUrl for cookie authentication.`,
-        provider.id,
-      ));
+      return err(
+        new BrowserError(
+          `Provider "${provider.id}" requires an entryUrl for cookie authentication.`,
+          provider.id,
+        ),
+      );
     }
 
     return await runHybridFlow<CredentialResult>(adapter, {
@@ -73,10 +83,10 @@ class CookieStrategy implements IAuthStrategy {
       isAuthenticated: async (page) => {
         // If requiredCookies is set, auth is complete only when those cookies exist
         if (this.requiredCookies.length > 0) {
-          const urls = provider.domains.map(d => `https://${d}/`);
+          const urls = provider.domains.map((d) => `https://${d}/`);
           const cookies = await page.cookies(urls);
-          const cookieNames = new Set(cookies.map(c => c.name));
-          return this.requiredCookies.every(name => cookieNames.has(name));
+          const cookieNames = new Set(cookies.map((c) => c.name));
+          return this.requiredCookies.every((name) => cookieNames.has(name));
         }
 
         // Default: auth is complete when we're no longer on a login page
@@ -87,18 +97,20 @@ class CookieStrategy implements IAuthStrategy {
       extractCredentials: async (page, xHeaders, meta) => {
         // Only extract cookies matching this provider's domains (not all cookies from the shared profile)
         // Include both domain roots AND current page URL (to capture path-scoped cookies like /wiki)
-        const urls = provider.domains.map(d => `https://${d}/`);
+        const urls = provider.domains.map((d) => `https://${d}/`);
         const currentUrl = page.url();
         if (currentUrl && !urls.includes(currentUrl)) urls.push(currentUrl);
         const cookies = await page.cookies(urls);
         if (cookies.length === 0) {
-          return err(new BrowserError(
-            'No cookies found after authentication. ' +
-            'If this site sets cookies late (e.g. after client-side JS), try:\n' +
-            '  1. Set "waitUntil: networkidle" in the provider config to wait for all network activity\n' +
-            '  2. Set "requiredCookies: [cookie_name]" to wait for specific cookies before extracting',
-            provider.id,
-          ));
+          return err(
+            new BrowserError(
+              'No cookies found after authentication. ' +
+                'If this site sets cookies late (e.g. after client-side JS), try:\n' +
+                '  1. Set "waitUntil: networkidle" in the provider config to wait for all network activity\n' +
+                '  2. Set "requiredCookies: [cookie_name]" to wait for specific cookies before extracting',
+              provider.id,
+            ),
+          );
         }
 
         // Probe for OAuth tokens in browser storage (strategy mismatch detection)
@@ -130,9 +142,7 @@ class CookieStrategy implements IAuthStrategy {
   applyToRequest(credential: Credential): Record<string, string> {
     if (credential.type !== CredentialTypeName.COOKIE) return {};
 
-    const cookieStr = credential.cookies
-      .map(c => `${c.name}=${c.value}`)
-      .join('; ');
+    const cookieStr = credential.cookies.map((c) => `${c.name}=${c.value}`).join('; ');
 
     // Apply x-headers first, then set Cookie so it always wins
     const headers: Record<string, string> = { ...credential.xHeaders };

@@ -185,7 +185,10 @@ export class DirectoryStorage implements IStorage {
       return await fn();
     } catch (e: unknown) {
       if ((e as Error).message?.includes('ELOCKED')) {
-        throw new StorageError('lock', 'Could not acquire file lock. Another process may be writing.');
+        throw new StorageError(
+          'lock',
+          'Could not acquire file lock. Another process may be writing.',
+        );
       }
       throw e;
     } finally {

@@ -20,10 +20,16 @@ import type {
 import { StrategyName, WaitUntil } from '../core/constants.js';
 
 const VALID_STRATEGIES: readonly StrategyNameType[] = [
-  StrategyName.COOKIE, StrategyName.OAUTH2, StrategyName.API_TOKEN, StrategyName.BASIC,
+  StrategyName.COOKIE,
+  StrategyName.OAUTH2,
+  StrategyName.API_TOKEN,
+  StrategyName.BASIC,
 ];
 const VALID_WAIT_UNTIL: readonly string[] = [
-  WaitUntil.LOAD, WaitUntil.NETWORK_IDLE, WaitUntil.DOM_CONTENT_LOADED, WaitUntil.COMMIT,
+  WaitUntil.LOAD,
+  WaitUntil.NETWORK_IDLE,
+  WaitUntil.DOM_CONTENT_LOADED,
+  WaitUntil.COMMIT,
 ];
 
 /**
@@ -55,7 +61,10 @@ export function validateConfig(raw: Record<string, unknown>): Result<SignetConfi
     if (browser.visibleTimeout !== undefined && typeof browser.visibleTimeout !== 'number') {
       errors.push('browser.visibleTimeout must be a number');
     }
-    if (browser.waitUntil !== undefined && !VALID_WAIT_UNTIL.includes(browser.waitUntil as string)) {
+    if (
+      browser.waitUntil !== undefined &&
+      !VALID_WAIT_UNTIL.includes(browser.waitUntil as string)
+    ) {
       errors.push(`browser.waitUntil must be one of: ${VALID_WAIT_UNTIL.join(', ')}`);
     }
   }
@@ -148,21 +157,24 @@ export function validateConfig(raw: Record<string, unknown>): Result<SignetConfi
   }
 
   if (errors.length > 0) {
-    return err(new ConfigError(
-      `Config validation failed:\n  - ${errors.join('\n  - ')}`,
-    ));
+    return err(new ConfigError(`Config validation failed:\n  - ${errors.join('\n  - ')}`));
   }
 
   // Build the validated config
   const browserRaw = raw.browser as Record<string, unknown>;
-  const mode = raw.mode === 'browserless' ? 'browserless' as const : 'browser' as const;
+  const mode = raw.mode === 'browserless' ? ('browserless' as const) : ('browser' as const);
 
   const browser: BrowserConfig = {
     browserDataDir: browserRaw.browserDataDir as string,
     channel: browserRaw.channel as string,
-    headlessTimeout: typeof browserRaw.headlessTimeout === 'number' ? browserRaw.headlessTimeout : 30_000,
-    visibleTimeout: typeof browserRaw.visibleTimeout === 'number' ? browserRaw.visibleTimeout : 120_000,
-    waitUntil: typeof browserRaw.waitUntil === 'string' ? browserRaw.waitUntil as BrowserConfig['waitUntil'] : WaitUntil.LOAD,
+    headlessTimeout:
+      typeof browserRaw.headlessTimeout === 'number' ? browserRaw.headlessTimeout : 30_000,
+    visibleTimeout:
+      typeof browserRaw.visibleTimeout === 'number' ? browserRaw.visibleTimeout : 120_000,
+    waitUntil:
+      typeof browserRaw.waitUntil === 'string'
+        ? (browserRaw.waitUntil as BrowserConfig['waitUntil'])
+        : WaitUntil.LOAD,
   };
 
   const storageRaw = raw.storage as Record<string, unknown>;
@@ -255,7 +267,7 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
   } else if (!VALID_STRATEGIES.includes(raw.strategy as StrategyNameType)) {
     errors.push(
       `Provider "${id}": invalid strategy "${raw.strategy}". ` +
-      `Valid strategies: ${VALID_STRATEGIES.join(', ')}`,
+        `Valid strategies: ${VALID_STRATEGIES.join(', ')}`,
     );
   }
 
@@ -324,7 +336,9 @@ export function buildStrategyConfig(
       return {
         strategy: StrategyName.COOKIE,
         ...(typeof c.ttl === 'string' ? { ttl: c.ttl } : {}),
-        ...(Array.isArray(c.requiredCookies) ? { requiredCookies: c.requiredCookies as string[] } : {}),
+        ...(Array.isArray(c.requiredCookies)
+          ? { requiredCookies: c.requiredCookies as string[] }
+          : {}),
       };
 
     case StrategyName.OAUTH2:
@@ -341,13 +355,17 @@ export function buildStrategyConfig(
         strategy: StrategyName.API_TOKEN,
         ...(typeof c.headerName === 'string' ? { headerName: c.headerName } : {}),
         ...(typeof c.headerPrefix === 'string' ? { headerPrefix: c.headerPrefix } : {}),
-        ...(typeof c.setupInstructions === 'string' ? { setupInstructions: c.setupInstructions } : {}),
+        ...(typeof c.setupInstructions === 'string'
+          ? { setupInstructions: c.setupInstructions }
+          : {}),
       };
 
     case StrategyName.BASIC:
       return {
         strategy: StrategyName.BASIC,
-        ...(typeof c.setupInstructions === 'string' ? { setupInstructions: c.setupInstructions } : {}),
+        ...(typeof c.setupInstructions === 'string'
+          ? { setupInstructions: c.setupInstructions }
+          : {}),
       };
   }
 }
@@ -358,9 +376,15 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
     domains: raw.domains as string[],
     entryUrl: raw.entryUrl as string,
     strategy: raw.strategy as StrategyNameType,
-    ...(raw.config && typeof raw.config === 'object' ? { config: raw.config as Record<string, unknown> } : {}),
-    ...(Array.isArray(raw.acceptedCredentialTypes) ? { acceptedCredentialTypes: raw.acceptedCredentialTypes } : {}),
-    ...(typeof raw.setupInstructions === 'string' ? { setupInstructions: raw.setupInstructions } : {}),
+    ...(raw.config && typeof raw.config === 'object'
+      ? { config: raw.config as Record<string, unknown> }
+      : {}),
+    ...(Array.isArray(raw.acceptedCredentialTypes)
+      ? { acceptedCredentialTypes: raw.acceptedCredentialTypes }
+      : {}),
+    ...(typeof raw.setupInstructions === 'string'
+      ? { setupInstructions: raw.setupInstructions }
+      : {}),
     ...(Array.isArray(raw.xHeaders) ? { xHeaders: raw.xHeaders } : {}),
     ...(typeof raw.forceVisible === 'boolean' ? { forceVisible: raw.forceVisible } : {}),
   };

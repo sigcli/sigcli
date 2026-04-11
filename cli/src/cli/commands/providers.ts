@@ -9,12 +9,10 @@ export async function runProviders(
   const format = (flags.format as string) ?? (process.stdout.isTTY ? 'table' : 'json');
   const providers = deps.authManager.providerRegistry.list();
 
-  const statuses = await Promise.all(
-    providers.map(p => deps.authManager.getStatus(p.id)),
-  );
+  const statuses = await Promise.all(providers.map((p) => deps.authManager.getStatus(p.id)));
 
   if (format === 'json') {
-    const output = statuses.map(s => ({
+    const output = statuses.map((s) => ({
       id: s.id,
       name: s.name,
       strategy: s.strategy,
@@ -28,7 +26,7 @@ export async function runProviders(
       process.stderr.write('No providers configured.\n');
       return;
     }
-    const rows = statuses.map(s => ({
+    const rows = statuses.map((s) => ({
       id: s.id,
       name: s.name,
       strategy: s.strategy,

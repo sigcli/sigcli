@@ -346,7 +346,11 @@ describe('SyncEngine', () => {
     it('pulls when no local credential exists (no conflict)', async () => {
       const remoteCred = makeCredential('new-provider', '2026-04-01T00:00:00Z');
       mockListRemote.mockResolvedValue([
-        { providerId: 'new-provider', updatedAt: '2026-04-01T00:00:00Z', filename: 'new-provider.json' },
+        {
+          providerId: 'new-provider',
+          updatedAt: '2026-04-01T00:00:00Z',
+          filename: 'new-provider.json',
+        },
       ]);
       mockReadRemote.mockResolvedValue(remoteCred);
 

@@ -53,7 +53,7 @@ export interface Cookie {
   value: string;
   domain: string;
   path: string;
-  expires: number;       // Unix timestamp in seconds (-1 = session cookie)
+  expires: number; // Unix timestamp in seconds (-1 = session cookie)
   httpOnly: boolean;
   secure: boolean;
   sameSite?: 'Strict' | 'Lax' | 'None';
@@ -62,24 +62,24 @@ export interface Cookie {
 export interface CookieCredential {
   type: 'cookie';
   cookies: Cookie[];
-  obtainedAt: string;    // ISO timestamp
-  xHeaders?: Record<string, string>;  // Extra captured HTTP headers (e.g. x-s, x-t)
+  obtainedAt: string; // ISO timestamp
+  xHeaders?: Record<string, string>; // Extra captured HTTP headers (e.g. x-s, x-t)
 }
 
 export interface BearerCredential {
   type: 'bearer';
   accessToken: string;
   refreshToken?: string;
-  expiresAt?: string;    // ISO timestamp
+  expiresAt?: string; // ISO timestamp
   scopes?: string[];
   tokenEndpoint?: string; // For refresh
-  xHeaders?: Record<string, string>;  // Extra captured HTTP headers (e.g. x-s, x-t)
+  xHeaders?: Record<string, string>; // Extra captured HTTP headers (e.g. x-s, x-t)
 }
 
 export interface ApiKeyCredential {
   type: 'api-key';
   key: string;
-  headerName: string;    // e.g. "Authorization", "X-API-Key"
+  headerName: string; // e.g. "Authorization", "X-API-Key"
   headerPrefix?: string; // e.g. "Bearer", "Token"
 }
 
@@ -89,21 +89,17 @@ export interface BasicCredential {
   password: string;
 }
 
-export type Credential =
-  | CookieCredential
-  | BearerCredential
-  | ApiKeyCredential
-  | BasicCredential;
+export type Credential = CookieCredential | BearerCredential | ApiKeyCredential | BasicCredential;
 
 // ============================================================================
 // X-Header Configuration (extra HTTP headers captured during browser auth)
 // ============================================================================
 
 export interface XHeaderConfig {
-  name: string;                           // Header name to capture (case-insensitive match)
-  source?: 'request' | 'response';        // Where to capture from (default: both)
-  urlPattern?: string;                     // Only capture from URLs matching this pattern
-  staticValue?: string;                    // Use a fixed value instead of capturing dynamically
+  name: string; // Header name to capture (case-insensitive match)
+  source?: 'request' | 'response'; // Where to capture from (default: both)
+  urlPattern?: string; // Only capture from URLs matching this pattern
+  staticValue?: string; // Use a fixed value instead of capturing dynamically
 }
 
 // ============================================================================
@@ -113,15 +109,15 @@ export interface XHeaderConfig {
 export interface ProviderConfig {
   id: string;
   name: string;
-  domains: string[];                       // Exact or glob: ["*.example.com", "api.example.com"]
-  entryUrl?: string;                       // Starting URL for browser auth
-  strategy: string;                        // Strategy name: "cookie", "oauth2", "api-token", "basic"
-  strategyConfig: StrategyConfig;  // Discriminated union strategy config
+  domains: string[]; // Exact or glob: ["*.example.com", "api.example.com"]
+  entryUrl?: string; // Starting URL for browser auth
+  strategy: string; // Strategy name: "cookie", "oauth2", "api-token", "basic"
+  strategyConfig: StrategyConfig; // Discriminated union strategy config
   acceptedCredentialTypes?: CredentialType[]; // Enforce which credential types are valid
-  setupInstructions?: string;              // Shown when manual setup is needed
-  xHeaders?: XHeaderConfig[];              // Extra HTTP headers to capture during browser auth
-  autoProvisioned?: boolean;               // True if created by auto-provision (not from config file)
-  forceVisible?: boolean;                  // Skip headless, go straight to visible browser mode
+  setupInstructions?: string; // Shown when manual setup is needed
+  xHeaders?: XHeaderConfig[]; // Extra HTTP headers to capture during browser auth
+  autoProvisioned?: boolean; // True if created by auto-provision (not from config file)
+  forceVisible?: boolean; // Skip headless, go straight to visible browser mode
 }
 
 // ============================================================================
@@ -131,8 +127,8 @@ export interface ProviderConfig {
 export interface StoredCredential {
   credential: Credential;
   providerId: string;
-  strategy: string;          // Strategy name that produced this credential
-  updatedAt: string;         // ISO timestamp
+  strategy: string; // Strategy name that produced this credential
+  updatedAt: string; // ISO timestamp
   metadata?: Record<string, unknown>;
 }
 
@@ -184,11 +180,11 @@ export interface ILogger {
 // ============================================================================
 
 export interface AuthDiagnostics {
-  authDetectedImmediately?: boolean;  // isAuthenticated returned true on first check
-  oauthTokensDetected?: boolean;      // OAuth JWTs found in localStorage (even in cookie strategy)
-  cookiesExtracted?: number;          // Number of cookies found
-  testRequestStatus?: number;         // HTTP status of validation request
-  suggestions?: string[];             // Human-readable fix suggestions
+  authDetectedImmediately?: boolean; // isAuthenticated returned true on first check
+  oauthTokensDetected?: boolean; // OAuth JWTs found in localStorage (even in cookie strategy)
+  cookiesExtracted?: number; // Number of cookies found
+  testRequestStatus?: number; // HTTP status of validation request
+  suggestions?: string[]; // Human-readable fix suggestions
   hint?: string;
   entryUrl?: string;
   finalUrl?: string;
@@ -205,4 +201,3 @@ export interface CredentialResult {
   credential: Credential;
   diagnostics?: AuthDiagnostics;
 }
-

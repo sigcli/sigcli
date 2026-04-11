@@ -47,8 +47,8 @@ export function startHeaderCapture(
   }
 
   // Build a set of request-source and response-source configs
-  const requestConfigs = dynamicConfigs.filter(c => !c.source || c.source === 'request');
-  const responseConfigs = dynamicConfigs.filter(c => !c.source || c.source === 'response');
+  const requestConfigs = dynamicConfigs.filter((c) => !c.source || c.source === 'request');
+  const responseConfigs = dynamicConfigs.filter((c) => !c.source || c.source === 'response');
 
   // Helper: check if a URL matches the provider domains and optional urlPattern
   function matchesUrl(url: string, urlPattern?: string): boolean {

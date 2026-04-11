@@ -47,7 +47,10 @@ const apiTokenProvider: ProviderConfig = {
   strategyConfig: { strategy: 'api-token', headerName: 'Authorization', headerPrefix: 'Bearer' },
 };
 
-function createDeps(overrides?: { browserAvailable?: boolean; providers?: ProviderConfig[] }): AuthDeps {
+function createDeps(overrides?: {
+  browserAvailable?: boolean;
+  providers?: ProviderConfig[];
+}): AuthDeps {
   const storage = new MemoryStorage();
   const strategyRegistry = new StrategyRegistry();
   strategyRegistry.register(new CookieStrategyFactory());
@@ -62,7 +65,7 @@ function createDeps(overrides?: { browserAvailable?: boolean; providers?: Provid
     storage,
     strategyRegistry,
     providerRegistry,
-    browserAdapterFactory: () => ({} as IBrowserAdapter),
+    browserAdapterFactory: () => ({}) as IBrowserAdapter,
     browserConfig,
   });
 
