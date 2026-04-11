@@ -16,25 +16,6 @@ import {
 } from './core/errors.js';
 import { StrategyRegistry } from './strategies/registry.js';
 
-/** Cookie name patterns for known analytics/tracker cookies (excluded from expiry calculation) */
-const TRACKER_COOKIE_PATTERNS: RegExp[] = [
-  /^AMCV_/,       // Adobe Marketing Cloud
-  /^_ga$/,        // Google Analytics
-  /^_ga_/,        // Google Analytics 4
-  /^_gid$/,       // Google Analytics session
-  /^_gat(_|$)/,   // Google Analytics throttle (_gat, _gat_UA-*)
-  /^__utm/,       // Google Analytics legacy
-  /^_fbp$/,       // Facebook Pixel
-  /^_fbc$/,       // Facebook Click ID
-  /^_hjid$/,      // Hotjar ID
-  /^_hjSession/,  // Hotjar Session
-  /^NID$/,        // Google NID
-];
-
-function isTrackerCookie(name: string): boolean {
-  return TRACKER_COOKIE_PATTERNS.some(p => p.test(name));
-}
-
 export interface AuthManagerDeps {
   storage: IStorage;
   strategyRegistry: StrategyRegistry;
@@ -212,10 +193,7 @@ export class AuthManager {
     const validation = strategy.validate(stored.credential, provider.strategyConfig);
     const valid = isOk(validation) && validation.value;
 
-    const requiredCookies = provider.strategyConfig.strategy === 'cookie'
-      ? provider.strategyConfig.requiredCookies
-      : undefined;
-    const expiresAt = this.getExpiresAt(stored.credential, requiredCookies);
+    const expiresAt = this.getExpiresAt(stored.credential);
     const expiresInMinutes = expiresAt
       ? Math.max(0, Math.round((expiresAt.getTime() - Date.now()) / 60000))
       : undefined;
@@ -345,24 +323,13 @@ export class AuthManager {
     await this.storage.set(providerId, stored);
   }
 
-  private getExpiresAt(credential: Credential, requiredCookies?: string[]): Date | null {
+  private getExpiresAt(credential: Credential): Date | null {
     switch (credential.type) {
       case 'bearer':
         return credential.expiresAt ? new Date(credential.expiresAt) : null;
       case 'cookie': {
-        let cookies = credential.cookies;
-
-        // Tier 1: requiredCookies configured → use only those
-        if (requiredCookies && requiredCookies.length > 0) {
-          const required = new Set(requiredCookies);
-          cookies = cookies.filter(c => required.has(c.name));
-        } else {
-          // Tier 2: filter out known tracker cookies
-          cookies = cookies.filter(c => !isTrackerCookie(c.name));
-        }
-
-        // Tier 3: compute earliest non-session expiry, or null
-        const expiries = cookies
+        // Earliest cookie expiry, or null if all session cookies
+        const expiries = credential.cookies
           .filter(c => c.expires > 0)
           .map(c => c.expires * 1000);
         return expiries.length > 0 ? new Date(Math.min(...expiries)) : null;
