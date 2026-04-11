@@ -2,7 +2,7 @@ import { getRemotes, addRemote, removeRemote } from '../../sync/remote-config.js
 import type { RemoteConfig } from '../../sync/types.js';
 import { formatJson, formatTable } from '../formatters.js';
 
-export async function runRemote(positionals: string[], flags: Record<string, string | boolean>): Promise<void> {
+export async function runRemote(positionals: string[], flags: Record<string, string | boolean | string[]>): Promise<void> {
   const subcommand = positionals[0];
 
   switch (subcommand) {

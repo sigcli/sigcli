@@ -3,7 +3,7 @@ import { formatJson, formatTable } from '../formatters.js';
 
 export async function runProviders(
   positionals: string[],
-  flags: Record<string, string | boolean>,
+  flags: Record<string, string | boolean | string[]>,
   deps: AuthDeps,
 ): Promise<void> {
   const format = (flags.format as string) ?? (process.stdout.isTTY ? 'table' : 'json');

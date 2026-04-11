@@ -6,7 +6,7 @@ const PRIMARY_HEADERS = ['cookie', 'authorization'];
 
 export async function runGet(
   positionals: string[],
-  flags: Record<string, string | boolean>,
+  flags: Record<string, string | boolean | string[]>,
   deps: AuthDeps,
 ): Promise<void> {
   const target = positionals[0];

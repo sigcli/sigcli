@@ -41,7 +41,7 @@ function parseCookieString(raw: string, domain: string): Cookie[] {
 
 export async function runLogin(
   positionals: string[],
-  flags: Record<string, string | boolean>,
+  flags: Record<string, string | boolean | string[]>,
   deps: AuthDeps,
 ): Promise<void> {
   const url = positionals[0];
