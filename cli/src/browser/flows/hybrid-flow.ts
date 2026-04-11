@@ -11,11 +11,7 @@ export interface HybridFlowOptions {
   /** Called on each page to check if auth is complete */
   isAuthenticated: (page: IBrowserPage) => Promise<boolean>;
   /** Called once auth is detected to extract credentials */
-  extractCredentials: (
-    page: IBrowserPage,
-    xHeaders?: Record<string, string>,
-    meta?: { immediateAuth: boolean },
-  ) => Promise<Result<unknown, AuthError>>;
+  extractCredentials: (page: IBrowserPage, xHeaders?: Record<string, string>, meta?: { immediateAuth: boolean }) => Promise<Result<unknown, AuthError>>;
   /** Global browser config (timeouts, waitUntil defaults) */
   browserConfig: BrowserConfig;
   /** Skip headless, go straight to visible (from provider config) */
@@ -70,77 +66,6 @@ export async function runHybridFlow<T>(
   });
 }
 
-/**
- * Race `isAuthenticated` polling against an in-flight `page.goto()`.
- *
- * Why: page.goto() blocks until the page fully loads (DOMContentLoaded,
- * networkidle, etc.), but credentials are often available much earlier:
- *   - Cookies: set by SSO redirect responses mid-navigation
- *   - OAuth tokens: written to localStorage by MSAL ~1-2s into page load
- *
- * Instead of waiting for goto() to finish, we poll isAuthenticated()
- * every 500ms while navigation is still in-flight. If credentials appear
- * before the page finishes loading, we return immediately — the caller
- * extracts credentials and session.close() cleans up the pending navigation.
- *
- * Three possible outcomes:
- *   1. Auth detected during navigation → { authDetected: true }
- *   2. Navigation finishes, no auth   → { authDetected: false } (caller falls to poll loop)
- *   3. Navigation errors              → { authDetected: false, navigationError } (caller rethrows)
- */
-async function raceAuthAgainstNavigation(
-  page: IBrowserPage,
-  navigationPromise: Promise<void>,
-  isAuthenticated: (page: IBrowserPage) => Promise<boolean>,
-  timeoutMs: number,
-): Promise<{ authDetected: boolean; navigationError?: Error }> {
-  const deadline = Date.now() + timeoutMs;
-  let navSettled = false;
-  let navigationError: Error | undefined;
-
-  // Attach .then/.catch to track when navigation settles without awaiting it.
-  // goto() continues in the background while we poll. We capture any navigation
-  // error (timeout, net::ERR, etc.) so the caller can rethrow if needed.
-  const navDone = navigationPromise
-    .then(() => { navSettled = true; })
-    .catch((e: unknown) => {
-      navSettled = true;
-      navigationError = e as Error;
-    });
-
-  while (Date.now() < deadline) {
-    try {
-      if (await isAuthenticated(page)) {
-        return { authDetected: true };
-      }
-    } catch {
-      // Expected during redirects — page context is temporarily invalid.
-    }
-
-    if (navSettled) {
-      return { authDetected: false, navigationError };
-    }
-
-    await Promise.race([
-      new Promise<void>(resolve => setTimeout(resolve, 500)),
-      navDone,
-    ]);
-
-    if (navSettled) {
-      try {
-        if (await isAuthenticated(page)) {
-          return { authDetected: true };
-        }
-      } catch {
-        // Page may still be settling after load event.
-      }
-      return { authDetected: false, navigationError };
-    }
-  }
-
-  return { authDetected: false };
-}
-
 async function attemptAuth<T>(
   adapter: IBrowserAdapter,
   options: HybridFlowOptions & { headless: boolean; timeout: number },
@@ -170,36 +95,25 @@ async function attemptAuth<T>(
       headerCleanup = capture.cleanup;
     }
 
-    // Phase A: Race isAuthenticated polling against in-flight navigation
+    // Navigate to entry URL
+    // Strategy can override global waitUntil (e.g. cookie forces 'networkidle')
     const waitUntil = options.waitUntil ?? options.browserConfig.waitUntil;
-    const navigationPromise = page.goto(options.entryUrl, {
+    await page.goto(options.entryUrl, {
       waitUntil,
       timeout: options.timeout,
     });
 
-    const raceResult = await raceAuthAgainstNavigation(
-      page,
-      navigationPromise,
-      options.isAuthenticated,
-      options.timeout,
-    );
+    // Brief pause to let any client-side redirects start
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-    if (raceResult.authDetected) {
+    // Check if already authenticated (cached session/cookies)
+    if (await options.isAuthenticated(page)) {
       console.error('[signet] Cached session found, extracting credentials...');
-      const result = await options.extractCredentials(page, xHeaders, {
-        immediateAuth: true,
-      });
+      const result = await options.extractCredentials(page, xHeaders, { immediateAuth: true });
       return result as Result<T, AuthError>;
     }
 
-    // Navigation finished without auth detected — check for nav errors
-    if (raceResult.navigationError) {
-      throw raceResult.navigationError;
-    }
-
-    // Phase B: Post-navigation poll fallback (for fresh login where user interaction needed)
-    // raceAuthAgainstNavigation already did a final isAuthenticated check after nav settled,
-    // so go straight to polling for user-interactive login.
+    // Wait for authentication to complete (polling)
     if (!options.headless) {
       console.error('[signet] Waiting for login to complete...');
     }
@@ -211,13 +125,14 @@ async function attemptAuth<T>(
 
     if (!authenticated) {
       return err(
-        new BrowserTimeoutError('waiting for authentication', options.timeout),
+        new BrowserTimeoutError(
+          'waiting for authentication',
+          options.timeout,
+        ),
       );
     }
 
-    const result = await options.extractCredentials(page, xHeaders, {
-      immediateAuth: false,
-    });
+    const result = await options.extractCredentials(page, xHeaders, { immediateAuth: false });
     return result as Result<T, AuthError>;
   } catch (e: unknown) {
     if (e instanceof AuthError) {
@@ -239,7 +154,7 @@ async function pollForAuth(
   isAuthenticated: (page: IBrowserPage) => Promise<boolean>,
   timeoutMs: number,
 ): Promise<boolean> {
-  const pollInterval = 1_000;
+  const pollInterval = 2_000;
   const statusInterval = 30_000;
   const deadline = Date.now() + timeoutMs;
   let lastStatus = Date.now();
@@ -257,9 +172,7 @@ async function pollForAuth(
     const now = Date.now();
     if (now - lastStatus >= statusInterval) {
       const elapsed = Math.round((now - (deadline - timeoutMs)) / 1000);
-      console.error(
-        `[signet] Still waiting for login... (${elapsed}s elapsed)`,
-      );
+      console.error(`[signet] Still waiting for login... (${elapsed}s elapsed)`);
       lastStatus = now;
     }
 
