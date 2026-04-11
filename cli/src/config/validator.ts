@@ -280,6 +280,30 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
         errors.push(`Provider "${id}": forceVisible must be a boolean`);
     }
 
+    // Validate localStorage entries
+    if (raw.localStorage !== undefined) {
+        if (!Array.isArray(raw.localStorage)) {
+            errors.push(`Provider "${id}": localStorage must be an array`);
+        } else {
+            for (let i = 0; i < raw.localStorage.length; i++) {
+                const entry = raw.localStorage[i] as Record<string, unknown>;
+                if (!entry || typeof entry !== 'object') {
+                    errors.push(`Provider "${id}": localStorage[${i}] must be an object`);
+                    continue;
+                }
+                if (typeof entry.name !== 'string' || entry.name.trim() === '') {
+                    errors.push(`Provider "${id}": localStorage[${i}].name is required (string)`);
+                }
+                if (typeof entry.key !== 'string' || entry.key.trim() === '') {
+                    errors.push(`Provider "${id}": localStorage[${i}].key is required (string)`);
+                }
+                if (entry.jsonPath !== undefined && typeof entry.jsonPath !== 'string') {
+                    errors.push(`Provider "${id}": localStorage[${i}].jsonPath must be a string`);
+                }
+            }
+        }
+    }
+
     // Validate strategy-specific config shape
     if (typeof raw.strategy === 'string' && raw.config && typeof raw.config === 'object') {
         const strategyErrors = validateStrategyConfig(
@@ -390,6 +414,7 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
             ? { setupInstructions: raw.setupInstructions }
             : {}),
         ...(Array.isArray(raw.xHeaders) ? { xHeaders: raw.xHeaders } : {}),
+        ...(Array.isArray(raw.localStorage) ? { localStorage: raw.localStorage } : {}),
         ...(typeof raw.forceVisible === 'boolean' ? { forceVisible: raw.forceVisible } : {}),
     };
 }

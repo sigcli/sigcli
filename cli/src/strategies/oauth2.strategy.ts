@@ -72,6 +72,7 @@ class OAuth2Strategy implements IAuthStrategy {
             forceVisible: provider.forceVisible ?? false,
             xHeaders: provider.xHeaders,
             providerDomains: provider.domains,
+            localStorage: provider.localStorage,
             logger: context.logger ?? stderrLogger,
 
             isAuthenticated: async (page) => {
@@ -80,7 +81,7 @@ class OAuth2Strategy implements IAuthStrategy {
                 return await hasOAuthTokens(page, this.strategyConfig.audiences);
             },
 
-            extractCredentials: async (page, xHeaders, meta) => {
+            extractCredentials: async (page, xHeaders, localStorage, meta) => {
                 const result = await extractOAuthTokens(page, {
                     audiences: this.strategyConfig.audiences,
                     extractRefreshToken: true,
@@ -92,6 +93,10 @@ class OAuth2Strategy implements IAuthStrategy {
                 // Attach captured headers to the bearer credential
                 if (xHeaders && Object.keys(xHeaders).length > 0) {
                     credential.xHeaders = xHeaders;
+                }
+                // Attach captured localStorage values to the bearer credential
+                if (localStorage && Object.keys(localStorage).length > 0) {
+                    credential.localStorage = localStorage;
                 }
                 // Build typed diagnostics metadata for post-auth validation
                 const diagnostics: AuthDiagnostics = {
@@ -159,6 +164,7 @@ class OAuth2Strategy implements IAuthStrategy {
                 scopes: tokenResponse.scope?.split(' '),
                 tokenEndpoint: credential.tokenEndpoint,
                 ...(credential.xHeaders ? { xHeaders: credential.xHeaders } : {}),
+                ...(credential.localStorage ? { localStorage: credential.localStorage } : {}),
             };
 
             return ok(refreshed);

@@ -72,6 +72,7 @@ export function createAuthDeps(config: SignetConfig, options?: { verbose?: boole
             acceptedCredentialTypes: entry.acceptedCredentialTypes,
             setupInstructions: entry.setupInstructions,
             xHeaders: entry.xHeaders,
+            localStorage: entry.localStorage,
             ...(entry.forceVisible !== undefined ? { forceVisible: entry.forceVisible } : {}),
         }),
     );

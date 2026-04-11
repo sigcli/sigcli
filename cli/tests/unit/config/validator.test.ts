@@ -514,6 +514,207 @@ describe('validateConfig', () => {
 
     // ---- provider entry parsing ----
 
+    // ---- localStorage validation ----
+
+    it('accepts provider with valid localStorage config', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    slack: {
+                        domains: ['slack.com'],
+                        entryUrl: 'https://slack.com/',
+                        strategy: 'cookie',
+                        localStorage: [
+                            { name: 'xoxc', key: 'localConfig_v2' },
+                            { name: 'token', key: 'slackData', jsonPath: 'teams.T123.token' },
+                        ],
+                    },
+                },
+            }),
+        );
+        expect(isOk(result)).toBe(true);
+        if (result.ok) {
+            expect(result.value.providers.slack.localStorage).toHaveLength(2);
+            expect(result.value.providers.slack.localStorage![0].name).toBe('xoxc');
+            expect(result.value.providers.slack.localStorage![1].jsonPath).toBe('teams.T123.token');
+        }
+    });
+
+    it('returns error when localStorage is not an array', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    bad: {
+                        domains: ['x.com'],
+                        entryUrl: 'https://x.com/',
+                        strategy: 'cookie',
+                        localStorage: 'not-an-array',
+                    },
+                },
+            }),
+        );
+        expect(isErr(result)).toBe(true);
+        if (!result.ok) {
+            expect(result.error.message).toContain('localStorage must be an array');
+        }
+    });
+
+    it('returns error when localStorage entry is not an object', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    bad: {
+                        domains: ['x.com'],
+                        entryUrl: 'https://x.com/',
+                        strategy: 'cookie',
+                        localStorage: ['not-an-object'],
+                    },
+                },
+            }),
+        );
+        expect(isErr(result)).toBe(true);
+        if (!result.ok) {
+            expect(result.error.message).toContain('localStorage[0] must be an object');
+        }
+    });
+
+    it('returns error when localStorage entry is missing name', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    bad: {
+                        domains: ['x.com'],
+                        entryUrl: 'https://x.com/',
+                        strategy: 'cookie',
+                        localStorage: [{ key: 'someKey' }],
+                    },
+                },
+            }),
+        );
+        expect(isErr(result)).toBe(true);
+        if (!result.ok) {
+            expect(result.error.message).toContain('localStorage[0].name is required');
+        }
+    });
+
+    it('returns error when localStorage entry has empty name', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    bad: {
+                        domains: ['x.com'],
+                        entryUrl: 'https://x.com/',
+                        strategy: 'cookie',
+                        localStorage: [{ name: '  ', key: 'someKey' }],
+                    },
+                },
+            }),
+        );
+        expect(isErr(result)).toBe(true);
+        if (!result.ok) {
+            expect(result.error.message).toContain('localStorage[0].name is required');
+        }
+    });
+
+    it('returns error when localStorage entry is missing key', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    bad: {
+                        domains: ['x.com'],
+                        entryUrl: 'https://x.com/',
+                        strategy: 'cookie',
+                        localStorage: [{ name: 'token' }],
+                    },
+                },
+            }),
+        );
+        expect(isErr(result)).toBe(true);
+        if (!result.ok) {
+            expect(result.error.message).toContain('localStorage[0].key is required');
+        }
+    });
+
+    it('returns error when localStorage entry has empty key', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    bad: {
+                        domains: ['x.com'],
+                        entryUrl: 'https://x.com/',
+                        strategy: 'cookie',
+                        localStorage: [{ name: 'token', key: '' }],
+                    },
+                },
+            }),
+        );
+        expect(isErr(result)).toBe(true);
+        if (!result.ok) {
+            expect(result.error.message).toContain('localStorage[0].key is required');
+        }
+    });
+
+    it('returns error when localStorage jsonPath is not a string', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    bad: {
+                        domains: ['x.com'],
+                        entryUrl: 'https://x.com/',
+                        strategy: 'cookie',
+                        localStorage: [{ name: 'token', key: 'data', jsonPath: 123 }],
+                    },
+                },
+            }),
+        );
+        expect(isErr(result)).toBe(true);
+        if (!result.ok) {
+            expect(result.error.message).toContain('localStorage[0].jsonPath must be a string');
+        }
+    });
+
+    it('reports errors for multiple invalid localStorage entries', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    bad: {
+                        domains: ['x.com'],
+                        entryUrl: 'https://x.com/',
+                        strategy: 'cookie',
+                        localStorage: [
+                            { name: 'ok', key: 'valid' },
+                            { key: 'noName' },
+                            { name: 'noKey' },
+                        ],
+                    },
+                },
+            }),
+        );
+        expect(isErr(result)).toBe(true);
+        if (!result.ok) {
+            expect(result.error.message).toContain('localStorage[1].name is required');
+            expect(result.error.message).toContain('localStorage[2].key is required');
+        }
+    });
+
+    it('accepts provider without localStorage (optional field)', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    simple: {
+                        domains: ['example.com'],
+                        entryUrl: 'https://example.com/',
+                        strategy: 'cookie',
+                    },
+                },
+            }),
+        );
+        expect(isOk(result)).toBe(true);
+        if (result.ok) {
+            expect(result.value.providers.simple.localStorage).toBeUndefined();
+        }
+    });
+
     it('parses optional provider fields (name, entryUrl, acceptedCredentialTypes, xHeaders)', () => {
         const result = validateConfig(
             validRawConfig({

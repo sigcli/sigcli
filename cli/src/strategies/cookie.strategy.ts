@@ -78,6 +78,7 @@ class CookieStrategy implements IAuthStrategy {
             waitUntil: WaitUntil.COMMIT,
             xHeaders: provider.xHeaders,
             providerDomains: provider.domains,
+            localStorage: provider.localStorage,
             logger: context.logger ?? stderrLogger,
 
             isAuthenticated: async (page) => {
@@ -94,7 +95,7 @@ class CookieStrategy implements IAuthStrategy {
                 return !onLoginPage;
             },
 
-            extractCredentials: async (page, xHeaders, meta) => {
+            extractCredentials: async (page, xHeaders, localStorage, meta) => {
                 // Only extract cookies matching this provider's domains (not all cookies from the shared profile)
                 // Include both domain roots AND current page URL (to capture path-scoped cookies like /wiki)
                 const urls = provider.domains.map((d) => `https://${d}/`);
@@ -127,6 +128,9 @@ class CookieStrategy implements IAuthStrategy {
                     cookies,
                     obtainedAt: new Date().toISOString(),
                     ...(xHeaders && Object.keys(xHeaders).length > 0 ? { xHeaders } : {}),
+                    ...(localStorage && Object.keys(localStorage).length > 0
+                        ? { localStorage }
+                        : {}),
                 };
 
                 return ok({ credential, diagnostics });

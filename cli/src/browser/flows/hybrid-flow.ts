@@ -3,13 +3,19 @@ import type {
     IBrowserPage,
     IBrowserSession,
 } from '../../core/interfaces/browser-adapter.js';
-import type { BrowserLaunchOptions, XHeaderConfig, ILogger } from '../../core/types.js';
+import type {
+    BrowserLaunchOptions,
+    XHeaderConfig,
+    LocalStorageConfig,
+    ILogger,
+} from '../../core/types.js';
 import type { WaitUntilValue } from '../../core/constants.js';
 import type { BrowserConfig } from '../../config/schema.js';
 import type { Result } from '../../core/result.js';
 import { err } from '../../core/result.js';
 import { AuthError, BrowserError, BrowserTimeoutError } from '../../core/errors.js';
 import { startHeaderCapture } from './header-capture.js';
+import { extractLocalStorage } from './localstorage-capture.js';
 
 /** Fallback logger used when callers pass the default stderr logger. */
 export const stderrLogger: ILogger = {
@@ -27,6 +33,7 @@ export interface HybridFlowOptions {
     extractCredentials: (
         page: IBrowserPage,
         xHeaders?: Record<string, string>,
+        localStorage?: Record<string, string>,
         meta?: { immediateAuth: boolean },
     ) => Promise<Result<unknown, AuthError>>;
     /** Global browser config (timeouts, waitUntil defaults) */
@@ -41,6 +48,8 @@ export interface HybridFlowOptions {
     xHeaders?: XHeaderConfig[];
     /** Provider domains used for filtering x-header capture */
     providerDomains?: string[];
+    /** localStorage configs — values to extract from browser localStorage after auth */
+    localStorage?: LocalStorageConfig[];
     /** Logger for flow progress messages */
     logger: ILogger;
 }
@@ -88,6 +97,20 @@ export async function runHybridFlow<T>(
     });
 }
 
+async function captureLocalStorageValues(
+    page: IBrowserPage,
+    configs?: LocalStorageConfig[],
+): Promise<Record<string, string> | undefined> {
+    if (!configs || configs.length === 0) return undefined;
+    try {
+        const values = await extractLocalStorage(page, configs);
+        return Object.keys(values).length > 0 ? values : undefined;
+    } catch {
+        // localStorage extraction is supplementary — never block the primary auth flow
+        return undefined;
+    }
+}
+
 async function attemptAuth<T>(
     adapter: IBrowserAdapter,
     options: HybridFlowOptions & { headless: boolean; timeout: number; logger: ILogger },
@@ -132,7 +155,8 @@ async function attemptAuth<T>(
         // Check if already authenticated (cached session/cookies)
         if (await options.isAuthenticated(page)) {
             logger.info('Cached session found, extracting credentials...');
-            const result = await options.extractCredentials(page, xHeaders, {
+            const localStorageValues = await captureLocalStorageValues(page, options.localStorage);
+            const result = await options.extractCredentials(page, xHeaders, localStorageValues, {
                 immediateAuth: true,
             });
             return result as Result<T, AuthError>;
@@ -153,7 +177,10 @@ async function attemptAuth<T>(
             return err(new BrowserTimeoutError('waiting for authentication', options.timeout));
         }
 
-        const result = await options.extractCredentials(page, xHeaders, { immediateAuth: false });
+        const localStorageValues = await captureLocalStorageValues(page, options.localStorage);
+        const result = await options.extractCredentials(page, xHeaders, localStorageValues, {
+            immediateAuth: false,
+        });
         return result as Result<T, AuthError>;
     } catch (e: unknown) {
         if (e instanceof AuthError) {

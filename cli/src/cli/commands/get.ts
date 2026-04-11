@@ -96,6 +96,11 @@ export async function runGet(
                 type: credential.type,
             };
             if (Object.keys(xHeaders).length > 0) output.xHeaders = xHeaders;
+            if (credential.type === 'cookie' || credential.type === 'bearer') {
+                if (credential.localStorage && Object.keys(credential.localStorage).length > 0) {
+                    output.localStorage = credential.localStorage;
+                }
+            }
             process.stdout.write(formatJson(output) + '\n');
             break;
         }
@@ -105,6 +110,16 @@ export async function runGet(
         }
         case 'value': {
             process.stdout.write(primaryHeaderValue + '\n');
+            for (const [name, value] of Object.entries(xHeaders)) {
+                process.stdout.write(`${name}=${value}\n`);
+            }
+            if (credential.type === 'cookie' || credential.type === 'bearer') {
+                if (credential.localStorage && Object.keys(credential.localStorage).length > 0) {
+                    for (const [name, value] of Object.entries(credential.localStorage)) {
+                        process.stdout.write(`${name}=${value}\n`);
+                    }
+                }
+            }
             break;
         }
         default: {
