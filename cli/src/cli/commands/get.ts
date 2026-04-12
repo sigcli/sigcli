@@ -1,9 +1,22 @@
 import type { AuthDeps } from '../../deps.js';
+import type { Credential } from '../../core/types.js';
 import { isOk } from '../../core/result.js';
 import { formatJson, formatCredentialHeaders } from '../formatters.js';
 import { ExitCode } from '../exit-codes.js';
+import { CredentialTypeName, HttpHeader, OutputFormat } from '../../core/constants.js';
 
-const PRIMARY_HEADERS = ['cookie', 'authorization'];
+const PRIMARY_HEADERS = [HttpHeader.COOKIE.toLowerCase(), HttpHeader.AUTHORIZATION.toLowerCase()];
+
+function getLocalStorage(credential: Credential): Record<string, string> | undefined {
+    if (
+        credential.type === CredentialTypeName.COOKIE ||
+        credential.type === CredentialTypeName.BEARER
+    ) {
+        const ls = credential.localStorage;
+        if (ls && Object.keys(ls).length > 0) return ls;
+    }
+    return undefined;
+}
 
 export async function runGet(
     positionals: string[],
@@ -85,39 +98,38 @@ export async function runGet(
         }
     }
 
-    const format = (flags.format as string) ?? 'json';
+    const format = (flags.format as string) ?? OutputFormat.JSON;
 
     switch (format) {
-        case 'json': {
-            const output: Record<string, unknown> = {
-                provider: providerId,
-                credential: primaryHeaderValue,
-                headerName: primaryHeaderName,
+        case OutputFormat.JSON: {
+            const credentialObj: Record<string, unknown> = {
                 type: credential.type,
+                headerName: primaryHeaderName,
+                value: primaryHeaderValue,
             };
-            if (Object.keys(xHeaders).length > 0) output.xHeaders = xHeaders;
-            if (credential.type === 'cookie' || credential.type === 'bearer') {
-                if (credential.localStorage && Object.keys(credential.localStorage).length > 0) {
-                    output.localStorage = credential.localStorage;
-                }
-            }
+            if (Object.keys(xHeaders).length > 0) credentialObj.xHeaders = xHeaders;
+            const ls = getLocalStorage(credential);
+            if (ls) credentialObj.localStorage = ls;
+            const output = {
+                provider: providerId,
+                credential: credentialObj,
+            };
             process.stdout.write(formatJson(output) + '\n');
             break;
         }
-        case 'header': {
+        case OutputFormat.HEADER: {
             process.stdout.write(formatCredentialHeaders(headers) + '\n');
             break;
         }
-        case 'value': {
+        case OutputFormat.VALUE: {
             process.stdout.write(primaryHeaderValue + '\n');
             for (const [name, value] of Object.entries(xHeaders)) {
                 process.stdout.write(`${name}=${value}\n`);
             }
-            if (credential.type === 'cookie' || credential.type === 'bearer') {
-                if (credential.localStorage && Object.keys(credential.localStorage).length > 0) {
-                    for (const [name, value] of Object.entries(credential.localStorage)) {
-                        process.stdout.write(`${name}=${value}\n`);
-                    }
+            const ls = getLocalStorage(credential);
+            if (ls) {
+                for (const [name, value] of Object.entries(ls)) {
+                    process.stdout.write(`${name}=${value}\n`);
                 }
             }
             break;

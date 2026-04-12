@@ -11,7 +11,7 @@ sig get <provider-or-url> [--format json|header|value]
 ```
 - `--format value` → just the credential string (e.g. `Bearer eyJ...`)
 - `--format header` → `HeaderName: value` lines (for curl `-H`)
-- `--format json` → `{ provider, credential, headerName, type, xHeaders? }`
+- `--format json` → `{ provider, credential: { type, headerName, value, xHeaders?, localStorage? } }`
 
 ### Authenticated HTTP Request
 ```bash
