@@ -28,6 +28,16 @@ storage:
 #     path: ~/.signet
 #     sshKey: ~/.ssh/id_ed25519
 
+# Watch — auto-refresh credentials on a schedule.
+# Managed by "sig watch add/remove/set-interval", but you can edit directly.
+# watch:
+#   interval: "5m"
+#   providers:
+#     jira:
+#       autoSync:
+#         - dev-server
+#     wiki:                                  # watch + refresh only, no auto-sync
+
 # Provider configurations
 # Cookie-based providers (most SSO systems) don't need config at all —
 # just call `sig login https://jira.example.com` and it auto-provisions.
@@ -104,3 +114,17 @@ providers:
     #       staticValue: https://www.xiaohongshu.com
     #     - name: referer
     #       staticValue: https://www.xiaohongshu.com/
+
+    # Cookie auth with localStorage extraction (e.g. Slack xoxc token)
+    # slack:
+    #   name: Slack
+    #   domains: ["app.slack.com", "edgeapi.slack.com"]
+    #   entryUrl: https://app.slack.com/
+    #   strategy: cookie
+    #   config:
+    #     ttl: "7d"
+    #     requiredCookies: ["d"]             # xoxd cookie
+    #   localStorage:
+    #     - name: token                      # output key in `sig get` JSON
+    #       key: localConfig_v2              # localStorage key to read
+    #       jsonPath: teams.*.token          # dot-path into parsed JSON value

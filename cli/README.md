@@ -28,6 +28,7 @@ General-purpose authentication CLI. Authenticate via browser SSO, store tokens, 
     - [api-token](#strategy-api-token)
     - [basic](#strategy-basic)
 - [xHeaders](#xheaders)
+- [localStorage](#localstorage)
 - [Remote / Headless Setup](#remote--headless-setup)
 - [AI Agent Integration](#ai-agent-integration)
 
@@ -185,15 +186,16 @@ Define providers explicitly for OAuth2, API tokens, custom settings, or xHeaders
 
 **Common fields:**
 
-| Field          | Required | Description                                                       |
-| -------------- | -------- | ----------------------------------------------------------------- |
-| `domains`      | **yes**  | Array of domains for URL-to-provider resolution                   |
-| `entryUrl`     | **yes**  | URL to navigate to for browser auth                               |
-| `strategy`     | **yes**  | `cookie`, `oauth2`, `api-token`, or `basic`                       |
-| `name`         | no       | Display name (defaults to provider ID)                            |
-| `forceVisible` | no       | Skip headless, open visible browser immediately. Default: `false` |
-| `config`       | no       | Strategy-specific settings (see [Strategies](#strategies))        |
-| `xHeaders`     | no       | Extra headers to capture during auth (see [xHeaders](#xheaders))  |
+| Field          | Required | Description                                                                |
+| -------------- | -------- | -------------------------------------------------------------------------- |
+| `domains`      | **yes**  | Array of domains for URL-to-provider resolution                            |
+| `entryUrl`     | **yes**  | URL to navigate to for browser auth                                        |
+| `strategy`     | **yes**  | `cookie`, `oauth2`, `api-token`, or `basic`                                |
+| `name`         | no       | Display name (defaults to provider ID)                                     |
+| `forceVisible` | no       | Skip headless, open visible browser immediately. Default: `false`          |
+| `config`       | no       | Strategy-specific settings (see [Strategies](#strategies))                 |
+| `xHeaders`     | no       | Extra headers to capture during auth (see [xHeaders](#xheaders))           |
+| `localStorage` | no       | Browser localStorage values to extract (see [localStorage](#localstorage)) |
 
 ```yaml
 providers:
@@ -295,6 +297,18 @@ providers:
         strategy: oauth2
         config:
             audiences: ['https://ic3.teams.office.com']
+
+    slack:
+        domains: ['app.slack.com', 'edgeapi.slack.com']
+        entryUrl: https://app.slack.com/
+        strategy: cookie
+        config:
+            ttl: '7d'
+            requiredCookies: ['d']
+        localStorage:
+            - name: token
+              key: localConfig_v2
+              jsonPath: teams.*.token
 ```
 
 ## Strategies
@@ -303,10 +317,11 @@ providers:
 
 For SSO-protected web apps. Opens a browser, waits for login, extracts cookies. This is the default -- most sites need no config.
 
-| Config field      | Default | Description                                                             |
-| ----------------- | ------- | ----------------------------------------------------------------------- |
-| `ttl`             | `24h`   | Validity duration: `ms`, `s`, `m`, `h`, `d`                             |
-| `requiredCookies` | --      | Cookie names that must exist before auth completes (e.g. QR code login) |
+| Config field      | Default | Description                                                              |
+| ----------------- | ------- | ------------------------------------------------------------------------ |
+| `ttl`             | `24h`   | Validity duration: `ms`, `s`, `m`, `h`, `d`                              |
+| `waitUntil`       | `load`  | Page load condition: `load`, `networkidle`, `domcontentloaded`, `commit` |
+| `requiredCookies` | --      | Cookie names that must exist before auth completes (e.g. QR code login)  |
 
 ### Strategy: `oauth2`
 
@@ -357,6 +372,25 @@ xHeaders:
       urlPattern: app.example.com/api
     - name: origin
       staticValue: https://app.example.com
+```
+
+## localStorage
+
+Extract values from browser localStorage after authentication. Useful for apps that store tokens or session data in localStorage alongside cookies (e.g., Slack stores an `xoxc` token in localStorage).
+
+Extracted values are stored on the credential and included in `sig get` JSON output, but are NOT applied as HTTP headers.
+
+| Field      | Required | Description                                                      |
+| ---------- | -------- | ---------------------------------------------------------------- |
+| `name`     | **yes**  | Output key name for the extracted value                          |
+| `key`      | **yes**  | localStorage key to read                                         |
+| `jsonPath` | no       | Dot-delimited path into parsed JSON value (e.g. `teams.*.token`) |
+
+```yaml
+localStorage:
+    - name: token
+      key: localConfig_v2
+      jsonPath: teams.*.token
 ```
 
 ## Remote / Headless Setup
