@@ -128,6 +128,17 @@ export const AuthScheme = {
 } as const;
 
 /**
+ * Output format options for `sig get`.
+ */
+export const OutputFormat = {
+    JSON: 'json',
+    HEADER: 'header',
+    VALUE: 'value',
+} as const;
+
+export type OutputFormatValue = (typeof OutputFormat)[keyof typeof OutputFormat];
+
+/**
  * Application identity.
  */
 export const APP_NAME = 'signet';
