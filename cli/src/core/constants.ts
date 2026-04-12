@@ -1,3 +1,5 @@
+import pkg from '../../package.json' with { type: 'json' };
+
 /**
  * Shared constants for signet.
  * Centralizes magic strings and patterns to avoid duplication across modules.
@@ -129,7 +131,7 @@ export const AuthScheme = {
  * Application identity.
  */
 export const APP_NAME = 'signet';
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = pkg.version;
 
 /**
  * Default configuration directory and filename.
