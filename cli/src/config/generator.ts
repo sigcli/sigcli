@@ -82,7 +82,17 @@ export function generateConfigYaml(options: InitOptions): string {
   #     strategy: api-token
   #     config:
   #       headerName: Authorization
-  #       headerPrefix: Bearer`;
+  #       headerPrefix: Bearer
+  #
+  # Example — OAuth2:
+  #   ms-teams:
+  #     domains: ["teams.cloud.microsoft"]
+  #     entryUrl: https://teams.cloud.microsoft/v2/
+  #     strategy: oauth2
+  #     config:
+  #       audiences: ["https://ic3.teams.office.com"]
+  #
+  # See config.example.yaml for more examples (xHeaders, localStorage, watch).`;
 
     const modeLine =
         options.mode === 'browserless'
