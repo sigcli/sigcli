@@ -298,9 +298,12 @@ providers:
         config:
             audiences: ['https://ic3.teams.office.com']
 
+    # IMPORTANT: entryUrl must point to a specific workspace (/client/<TEAM_ID>),
+    # not the root URL, which shows a workspace picker where localStorage
+    # is not yet populated.
     slack:
         domains: ['app.slack.com', 'edgeapi.slack.com']
-        entryUrl: https://app.slack.com/
+        entryUrl: https://app.slack.com/client/<TEAM_ID>
         strategy: cookie
         config:
             ttl: '7d'
@@ -308,7 +311,7 @@ providers:
         localStorage:
             - name: token
               key: localConfig_v2
-              jsonPath: teams.*.token
+              jsonPath: teams.<TEAM_ID>.token
 ```
 
 ## Strategies
@@ -380,17 +383,19 @@ Extract values from browser localStorage after authentication. Useful for apps t
 
 Extracted values are stored on the credential and included in `sig get` JSON output, but are NOT applied as HTTP headers.
 
-| Field      | Required | Description                                                      |
-| ---------- | -------- | ---------------------------------------------------------------- |
-| `name`     | **yes**  | Output key name for the extracted value                          |
-| `key`      | **yes**  | localStorage key to read                                         |
-| `jsonPath` | no       | Dot-delimited path into parsed JSON value (e.g. `teams.*.token`) |
+**Important:** The `entryUrl` must point to a page where localStorage is actually populated. For example, Slack's root URL shows a workspace picker — localStorage is only populated after entering a workspace. Use a direct workspace URL like `https://app.slack.com/client/<TEAM_ID>` instead.
+
+| Field      | Required | Description                                                              |
+| ---------- | -------- | ------------------------------------------------------------------------ |
+| `name`     | **yes**  | Output key name for the extracted value                                  |
+| `key`      | **yes**  | localStorage key to read                                                 |
+| `jsonPath` | no       | Dot-delimited path into parsed JSON value (e.g. `teams.<TEAM_ID>.token`) |
 
 ```yaml
 localStorage:
     - name: token
       key: localConfig_v2
-      jsonPath: teams.*.token
+      jsonPath: teams.<TEAM_ID>.token
 ```
 
 ## Remote / Headless Setup
