@@ -46,7 +46,7 @@ export async function runRemote(
                 process.stderr.write(`Remote "${name}" removed\n`);
             } else {
                 process.stderr.write(`Remote "${name}" not found\n`);
-                process.exitCode = ExitCode.GENERAL_ERROR;
+                process.exitCode = ExitCode.REMOTE_NOT_FOUND;
             }
             return;
         }
