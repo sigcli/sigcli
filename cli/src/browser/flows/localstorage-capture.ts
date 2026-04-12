@@ -1,25 +1,7 @@
+import dlv from 'dlv';
+
 import type { IBrowserPage } from '../../core/interfaces/browser-adapter.js';
 import type { LocalStorageConfig } from '../../core/types.js';
-
-/**
- * Resolve a dot-delimited JSON path on an object.
- * Numeric segments index into arrays (e.g. "teams.0.token").
- * Returns undefined if any segment is missing.
- */
-function resolveJsonPath(obj: unknown, path: string): unknown {
-    let current = obj;
-    for (const segment of path.split('.')) {
-        if (current == null || typeof current !== 'object') return undefined;
-        if (Array.isArray(current)) {
-            const index = Number(segment);
-            if (!Number.isInteger(index) || index < 0) return undefined;
-            current = current[index] as unknown;
-        } else {
-            current = (current as Record<string, unknown>)[segment];
-        }
-    }
-    return current;
-}
 
 /**
  * Extract values from the browser's localStorage.
@@ -52,7 +34,7 @@ export async function extractLocalStorage(
         if (config.jsonPath) {
             try {
                 const parsed: unknown = JSON.parse(raw);
-                const value = resolveJsonPath(parsed, config.jsonPath);
+                const value = dlv(parsed as Record<string, unknown>, config.jsonPath);
                 if (typeof value === 'string') {
                     result[config.name] = value;
                 }
