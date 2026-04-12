@@ -116,10 +116,13 @@ providers:
     #       staticValue: https://www.xiaohongshu.com/
 
     # Cookie auth with localStorage extraction (e.g. Slack xoxc token)
+    # IMPORTANT: entryUrl must point to a specific workspace (e.g. /client/TEAM_ID),
+    # NOT the root URL. The root URL shows a workspace picker where localStorage
+    # is not yet populated.
     # slack:
     #   name: Slack
     #   domains: ["app.slack.com", "edgeapi.slack.com"]
-    #   entryUrl: https://app.slack.com/
+    #   entryUrl: https://app.slack.com/client/TEAM_ID
     #   strategy: cookie
     #   config:
     #     ttl: "7d"
@@ -127,4 +130,4 @@ providers:
     #   localStorage:
     #     - name: token                      # output key in `sig get` JSON
     #       key: localConfig_v2              # localStorage key to read
-    #       jsonPath: teams.*.token          # dot-path into parsed JSON value
+    #       jsonPath: teams.TEAM_ID.token    # dot-path into parsed JSON value
