@@ -22,17 +22,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: npm
-          cache-dependency-path: packages/typescript/package-lock.json
       - name: Install dependencies
         run: |
-          for i in 1 2 3; do
-            npm install && test -d node_modules/@types/node && break
-            echo "Attempt $i failed, cleaning and retrying..."
-            rm -rf node_modules
-            sleep 5
-          done
-          test -d node_modules/@types/node || { echo "Failed to install dependencies after 3 attempts"; exit 1; }
+          npm cache clean --force
+          rm -rf node_modules
+          npm install --prefer-online --no-audit --no-fund 2>&1 || true
+          # Verify critical packages are installed correctly
+          if [ ! -f node_modules/@types/node/index.d.ts ]; then
+            echo "First install incomplete, retrying with clean state..."
+            rm -rf node_modules package-lock.json
+            npm install --prefer-online --no-audit --no-fund 2>&1 || true
+          fi
+          if [ ! -f node_modules/@types/node/index.d.ts ]; then
+            echo "Second install failed, trying individual install..."
+            npm install @types/node typescript vitest --no-audit --no-fund 2>&1 || true
+          fi
+          node -e "require('typescript/lib/typescript')" || { echo "TypeScript not installed"; exit 1; }
+          test -f node_modules/@types/node/index.d.ts || { echo "@types/node not installed correctly"; exit 1; }
       - run: npm run build
       - run: npm test
 
