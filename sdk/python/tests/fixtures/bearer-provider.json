@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "providerId": "azure-graph",
+  "credential": {
+    "type": "bearer",
+    "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.test",
+    "expiresAt": "2026-04-13T11:00:00.000Z"
+  },
+  "strategy": "oauth2",
+  "updatedAt": "2026-04-13T10:00:00.000Z"
+}
