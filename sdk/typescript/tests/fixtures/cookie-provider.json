@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "providerId": "my-jira",
+  "credential": {
+    "type": "cookie",
+    "cookies": [
+      { "name": "sid", "value": "abc123", "domain": ".jira.example.com", "path": "/", "expires": -1, "httpOnly": true, "secure": true },
+      { "name": "csrf", "value": "xyz789", "domain": ".jira.example.com", "path": "/", "expires": 1750000000, "httpOnly": false, "secure": true }
+    ],
+    "obtainedAt": "2026-04-13T10:00:00.000Z"
+  },
+  "strategy": "cookie",
+  "updatedAt": "2026-04-13T10:00:00.000Z"
+}
