@@ -18,7 +18,19 @@ jobs:
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
-      - run: npm install --no-audit --no-fund
+      - name: Install dependencies
+        run: |
+          npm cache clean --force
+          rm -rf node_modules
+          npm install --prefer-online --no-audit --no-fund 2>&1 || true
+          if [ ! -f node_modules/@types/node/index.d.ts ]; then
+            rm -rf node_modules package-lock.json
+            npm install --prefer-online --no-audit --no-fund 2>&1 || true
+          fi
+          if [ ! -f node_modules/@types/node/index.d.ts ]; then
+            npm install @types/node typescript vitest --no-audit --no-fund 2>&1 || true
+          fi
+          test -f node_modules/@types/node/index.d.ts || { echo "@types/node not installed"; exit 1; }
       - run: npm run build
       - run: npm test
       - run: npm publish --access public
