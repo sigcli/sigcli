@@ -11,6 +11,7 @@ jobs:
     name: TypeScript (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         node-version: [18, 20, 22]
     defaults:
@@ -21,7 +22,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-      - run: npm install
+          cache: npm
+          cache-dependency-path: packages/typescript/package-lock.json
+      - name: Install dependencies
+        run: |
+          for i in 1 2 3; do
+            npm install && test -d node_modules/@types/node && break
+            echo "Attempt $i failed, cleaning and retrying..."
+            rm -rf node_modules
+            sleep 5
+          done
+          test -d node_modules/@types/node || { echo "Failed to install dependencies after 3 attempts"; exit 1; }
       - run: npm run build
       - run: npm test
 
@@ -29,6 +40,7 @@ jobs:
     name: Python (${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ['3.9', '3.10', '3.11', '3.12']
     defaults:
