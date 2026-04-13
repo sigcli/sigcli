@@ -19,6 +19,6 @@ def format_headers(credential: Credential) -> dict[str, str]:
     return {}
 
 def extract_local_storage(credential: Credential) -> dict[str, str]:
-    if credential.type in ("cookie", "bearer"):
+    if credential.type == "cookie" or credential.type == "bearer":
         return dict(credential.localStorage)
     return {}

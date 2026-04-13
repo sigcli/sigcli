@@ -104,6 +104,55 @@ describe('readProviderFile', () => {
     const result = await readProviderFile('my/provider', tmpDir);
     expect(result.providerId).toBe('my-jira');
   });
+
+  it('reads api-key provider without headerPrefix', async () => {
+    await copyFixture('apikey-no-prefix.json', 'custom-api.json');
+    const result = await readProviderFile('custom-api', tmpDir);
+    expect(result.credential.type).toBe('api-key');
+    if (result.credential.type === 'api-key') {
+      expect(result.credential.key).toBe('raw-key-no-prefix');
+      expect(result.credential.headerName).toBe('X-API-Key');
+      expect(result.credential.headerPrefix).toBeUndefined();
+    }
+  });
+
+  it('throws CredentialParseError for partial fields (missing credential)', async () => {
+    await fs.writeFile(
+      path.join(tmpDir, 'partial.json'),
+      JSON.stringify({ version: 1, providerId: 'partial' })
+    );
+    await expect(readProviderFile('partial', tmpDir))
+      .rejects.toThrow(CredentialParseError);
+  });
+
+  it('throws CredentialParseError for version 0 (falsy version)', async () => {
+    await fs.writeFile(
+      path.join(tmpDir, 'zero-ver.json'),
+      JSON.stringify({ version: 0, providerId: 'zero-ver', credential: { type: 'basic', username: 'u', password: 'p' } })
+    );
+    await expect(readProviderFile('zero-ver', tmpDir))
+      .rejects.toThrow(CredentialParseError);
+  });
+
+  it('throws CredentialParseError for empty JSON object', async () => {
+    await fs.writeFile(path.join(tmpDir, 'empty-obj.json'), '{}');
+    await expect(readProviderFile('empty-obj', tmpDir))
+      .rejects.toThrow(CredentialParseError);
+  });
+
+  it('preserves metadata field when present', async () => {
+    const data = {
+      version: 1,
+      providerId: 'meta-test',
+      credential: { type: 'basic', username: 'u', password: 'p' },
+      strategy: 'basic',
+      updatedAt: '2026-04-13T10:00:00.000Z',
+      metadata: { source: 'test' },
+    };
+    await fs.writeFile(path.join(tmpDir, 'meta-test.json'), JSON.stringify(data));
+    const result = await readProviderFile('meta-test', tmpDir);
+    expect(result.metadata).toEqual({ source: 'test' });
+  });
 });
 
 describe('listProviderFiles', () => {
@@ -146,5 +195,34 @@ describe('listProviderFiles', () => {
     const providers = await listProviderFiles(tmpDir);
     expect(providers[0].credentialType).toBe('bearer');
     expect(providers[0].strategy).toBe('oauth2');
+  });
+
+  it('returns empty array for empty directory', async () => {
+    const result = await listProviderFiles(tmpDir);
+    expect(result).toEqual([]);
+  });
+
+  it('skips non-JSON files', async () => {
+    await copyFixture('cookie-provider.json', 'valid.json');
+    await fs.writeFile(path.join(tmpDir, 'notes.txt'), 'just a text file');
+    await fs.writeFile(path.join(tmpDir, 'data.yaml'), 'key: val');
+
+    const providers = await listProviderFiles(tmpDir);
+    expect(providers).toHaveLength(1);
+    expect(providers[0].providerId).toBe('my-jira');
+  });
+
+  it('skips files with missing providerId or credential', async () => {
+    await fs.writeFile(
+      path.join(tmpDir, 'no-provider-id.json'),
+      JSON.stringify({ version: 1, credential: { type: 'basic' } })
+    );
+    await fs.writeFile(
+      path.join(tmpDir, 'no-credential.json'),
+      JSON.stringify({ version: 1, providerId: 'test' })
+    );
+
+    const providers = await listProviderFiles(tmpDir);
+    expect(providers).toHaveLength(0);
   });
 });

@@ -77,6 +77,41 @@ def test_credential_parse_error_missing_fields(tmp_path: Path):
         read_provider_file("incomplete", tmp_path)
 
 
+def test_read_apikey_provider_without_prefix(tmp_path: Path):
+    copy_fixture("apikey-no-prefix.json", tmp_path, "custom-api.json")
+    result = read_provider_file("custom-api", tmp_path)
+    assert result.credential.type == "api-key"
+    assert result.credential.key == "raw-key-no-prefix"
+    assert result.credential.headerName == "X-API-Key"
+    assert result.credential.headerPrefix is None
+
+
+def test_credential_parse_error_partial_fields(tmp_path: Path):
+    (tmp_path / "partial.json").write_text(json.dumps({"version": 1, "providerId": "partial"}))
+    with pytest.raises(CredentialParseError):
+        read_provider_file("partial", tmp_path)
+
+
+def test_credential_parse_error_empty_json_object(tmp_path: Path):
+    (tmp_path / "empty-obj.json").write_text("{}")
+    with pytest.raises(CredentialParseError):
+        read_provider_file("empty-obj", tmp_path)
+
+
+def test_preserves_metadata_field(tmp_path: Path):
+    data = {
+        "version": 1,
+        "providerId": "meta-test",
+        "credential": {"type": "basic", "username": "u", "password": "p"},
+        "strategy": "basic",
+        "updatedAt": "2026-04-13T10:00:00.000Z",
+        "metadata": {"source": "test"},
+    }
+    (tmp_path / "meta-test.json").write_text(json.dumps(data))
+    result = read_provider_file("meta-test", tmp_path)
+    assert result.metadata == {"source": "test"}
+
+
 def test_list_provider_files(tmp_path: Path):
     copy_fixture("cookie-provider.json", tmp_path, "my-jira.json")
     copy_fixture("bearer-provider.json", tmp_path, "azure-graph.json")
@@ -118,3 +153,21 @@ def test_list_provider_files_includes_type_and_strategy(tmp_path: Path):
     providers = list_provider_files(tmp_path)
     assert providers[0].credentialType == "bearer"
     assert providers[0].strategy == "oauth2"
+
+
+def test_list_provider_files_skips_non_json(tmp_path: Path):
+    copy_fixture("cookie-provider.json", tmp_path, "valid.json")
+    (tmp_path / "notes.txt").write_text("just a text file")
+    (tmp_path / "data.yaml").write_text("key: val")
+
+    providers = list_provider_files(tmp_path)
+    assert len(providers) == 1
+    assert providers[0].providerId == "my-jira"
+
+
+def test_list_provider_files_skips_missing_provider_or_credential(tmp_path: Path):
+    (tmp_path / "no-provider-id.json").write_text(json.dumps({"version": 1, "credential": {"type": "basic"}}))
+    (tmp_path / "no-credential.json").write_text(json.dumps({"version": 1, "providerId": "test"}))
+
+    providers = list_provider_files(tmp_path)
+    assert len(providers) == 0

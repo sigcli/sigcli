@@ -73,6 +73,52 @@ def test_cookie_header_overwrites_xheaders_cookie():
     assert headers["Cookie"] == "a=b"
 
 
+def test_authorization_header_overwrites_xheaders_authorization_for_bearer():
+    cred = BearerCredential(
+        type="bearer",
+        accessToken="real-token",
+        xHeaders={"Authorization": "should-be-overwritten"},
+    )
+    headers = format_headers(cred)
+    assert headers["Authorization"] == "Bearer real-token"
+
+
+def test_format_cookie_credential_with_empty_cookies():
+    cred = CookieCredential(
+        type="cookie",
+        cookies=[],
+        obtainedAt="2026-04-13T10:00:00.000Z",
+    )
+    headers = format_headers(cred)
+    assert headers["Cookie"] == ""
+
+
+def test_format_single_cookie_no_trailing_semicolon():
+    cred = CookieCredential(
+        type="cookie",
+        cookies=[Cookie(name="only", value="one", domain=".x.com", path="/", expires=-1, httpOnly=False, secure=False)],
+        obtainedAt="2026-04-13T10:00:00.000Z",
+    )
+    headers = format_headers(cred)
+    assert headers["Cookie"] == "only=one"
+    assert ";" not in headers["Cookie"]
+
+
+def test_cookie_credential_with_xheaders_and_localstorage():
+    cred = CookieCredential(
+        type="cookie",
+        cookies=[Cookie(name="d", value="xoxd-abc", domain=".slack.com", path="/", expires=-1, httpOnly=True, secure=True)],
+        obtainedAt="2026-04-13T10:00:00.000Z",
+        xHeaders={"x-custom": "val"},
+        localStorage={"token": "xoxc-123"},
+    )
+    headers = format_headers(cred)
+    assert headers["Cookie"] == "d=xoxd-abc"
+    assert headers["x-custom"] == "val"
+    # localStorage should NOT appear in headers
+    assert "token" not in headers
+
+
 def test_extract_local_storage_cookie():
     cred = CookieCredential(
         type="cookie", cookies=[], obtainedAt="2026-04-13T10:00:00.000Z",
@@ -99,3 +145,18 @@ def test_extract_local_storage_basic():
 def test_extract_local_storage_empty_when_undefined():
     cred = CookieCredential(type="cookie", cookies=[], obtainedAt="2026-04-13T10:00:00.000Z")
     assert extract_local_storage(cred) == {}
+
+
+def test_extract_local_storage_bearer_empty_when_undefined():
+    cred = BearerCredential(type="bearer", accessToken="tok")
+    assert extract_local_storage(cred) == {}
+
+
+def test_extract_local_storage_returns_copy():
+    cred = CookieCredential(
+        type="cookie", cookies=[], obtainedAt="2026-04-13T10:00:00.000Z",
+        localStorage={"key": "val"},
+    )
+    result = extract_local_storage(cred)
+    result["key"] = "mutated"
+    assert cred.localStorage["key"] == "val"

@@ -101,4 +101,42 @@ describe('CredentialWatcher', () => {
     watcher.start(); // Should not throw or create duplicate watchers
     watcher.stop();
   });
+
+  it('detects file deletion', async () => {
+    // Create a file before starting the watcher
+    const filePath = path.join(tmpDir, 'to-delete.json');
+    await fs.writeFile(filePath, '{}');
+
+    const watcher = new CredentialWatcher(tmpDir);
+    const changes: string[] = [];
+    watcher.on('change', (id: string) => changes.push(id));
+    watcher.start();
+
+    // Wait briefly then delete
+    await new Promise(resolve => setTimeout(resolve, 200));
+    await fs.unlink(filePath);
+
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    expect(changes).toContain('to-delete');
+    watcher.stop();
+  });
+
+  it('can restart after stop', async () => {
+    const watcher = new CredentialWatcher(tmpDir);
+    watcher.start();
+    watcher.stop();
+
+    // Restart
+    const changes: string[] = [];
+    watcher.on('change', (id: string) => changes.push(id));
+    watcher.start();
+
+    const changePromise = waitForEvent(watcher, 'change');
+    await fs.writeFile(path.join(tmpDir, 'restart-test.json'), '{}');
+    const providerId = await changePromise;
+    expect(providerId).toBe('restart-test');
+
+    watcher.stop();
+  });
 });

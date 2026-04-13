@@ -94,6 +94,81 @@ Standalone function to convert a `Credential` into HTTP headers.
 
 Standalone function to extract localStorage values from a credential.
 
+## Return values by credential type
+
+### `get_headers(provider_id)` -- returns `dict[str, str]`
+
+| Credential Type | Example Return Value |
+|---|---|
+| `cookie` | `{"Cookie": "sid=abc123; csrf=xyz789", "x-csrf-token": "tok", "origin": "https://..."}` |
+| `bearer` | `{"Authorization": "Bearer eyJhbG...", "x-csrf-token": "tok"}` |
+| `api-key` | `{"Authorization": "Bearer ghp_test123"}` or `{"X-API-Key": "key123"}` |
+| `basic` | `{"Authorization": "Basic YWRtaW46czNjcmV0"}` |
+
+For `cookie` and `bearer` types, `xHeaders` (captured during browser authentication, e.g. CSRF tokens, origin headers) are merged into the result. The primary header (`Cookie` or `Authorization`) always takes precedence over xHeaders with the same name.
+
+### `get_credential(provider_id)` -- returns `Optional[Credential]`
+
+Returns the full credential dataclass, discriminated by the `type` field. Returns `None` if not found.
+
+**CookieCredential:**
+
+```python
+CookieCredential(
+    type="cookie",
+    cookies=[Cookie(name="sid", value="abc123", domain=".example.com", path="/", expires=1735689600, httpOnly=True, secure=True, sameSite="Lax")],
+    obtainedAt="2025-01-01T00:00:00Z",
+    xHeaders={"x-csrf-token": "tok123", "origin": "https://example.com"},  # default: {}
+    localStorage={"token": "xoxc-123-456"},                                 # default: {}
+)
+```
+
+**BearerCredential:**
+
+```python
+BearerCredential(
+    type="bearer",
+    accessToken="eyJhbGciOiJSUzI1NiIs...",
+    refreshToken="dGhpcyBpcyBhIHJlZnJlc2g...",   # optional
+    expiresAt="2025-01-02T00:00:00Z",              # optional
+    scopes=["read", "write"],                       # optional
+    tokenEndpoint="https://auth.example.com/token", # optional
+    xHeaders={"x-csrf-token": "tok"},               # default: {}
+    localStorage={"token": "xoxc-123"},             # default: {}
+)
+```
+
+**ApiKeyCredential:**
+
+```python
+ApiKeyCredential(
+    type="api-key",
+    key="ghp_xxxxxxxxxxxxxxxxxxxx",
+    headerName="Authorization",      # configurable header name
+    headerPrefix="Bearer",           # optional prefix before the key
+)
+```
+
+**BasicCredential:**
+
+```python
+BasicCredential(
+    type="basic",
+    username="admin",
+    password="s3cret",
+)
+```
+
+### `get_local_storage(provider_id)` -- returns `dict[str, str]`
+
+Returns extracted browser localStorage values. Only `cookie` and `bearer` credential types can carry localStorage; `api-key` and `basic` always return `{}`. Returns `{}` if the provider is not found.
+
+```python
+# Example: Slack stores an xoxc token in localStorage alongside cookies
+ls = client.get_local_storage("my-slack")
+# {"token": "xoxc-123-456-789"}
+```
+
 ## Credential types
 
 | Type | Headers produced |
