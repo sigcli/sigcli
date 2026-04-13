@@ -17,7 +17,7 @@ import type {
     StrategyName as StrategyNameType,
     StrategyConfig,
 } from './schema.js';
-import { StrategyName, WaitUntil } from '../core/constants.js';
+import { StrategyName, WaitUntil, type WaitUntilValue } from '../core/constants.js';
 
 const VALID_STRATEGIES: readonly StrategyNameType[] = [
     StrategyName.COOKIE,
@@ -364,6 +364,9 @@ export function buildStrategyConfig(
             return {
                 strategy: StrategyName.COOKIE,
                 ...(typeof c.ttl === 'string' ? { ttl: c.ttl } : {}),
+                ...(typeof c.waitUntil === 'string' && VALID_WAIT_UNTIL.includes(c.waitUntil)
+                    ? { waitUntil: c.waitUntil as WaitUntilValue }
+                    : {}),
                 ...(Array.isArray(c.requiredCookies)
                     ? { requiredCookies: c.requiredCookies as string[] }
                     : {}),
