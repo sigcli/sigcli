@@ -122,3 +122,52 @@ def test_close_after_watch(tmp_path: Path):
     client.close()
     client.close()
     # Should not raise
+
+
+def test_watch_is_idempotent(tmp_path: Path):
+    setup_fixtures(tmp_path)
+    client = SignetClient(credentials_dir=tmp_path)
+    client.watch()
+    client.watch()  # Should not create a second watcher
+    client.close()
+
+
+def test_get_headers_includes_xheaders(tmp_path: Path):
+    setup_fixtures(tmp_path)
+    client = SignetClient(credentials_dir=tmp_path)
+    headers = client.get_headers("xiaohongshu")
+    assert headers["Cookie"] == "id_token=tok123"
+    assert headers["x-csrf-token"] == "csrf-abc"
+    assert headers["origin"] == "https://www.xiaohongshu.com"
+    client.close()
+
+
+def test_get_local_storage_empty_for_provider_without_localstorage(tmp_path: Path):
+    setup_fixtures(tmp_path)
+    client = SignetClient(credentials_dir=tmp_path)
+    ls = client.get_local_storage("my-jira")
+    assert ls == {}
+    client.close()
+
+
+def test_get_credential_returns_correct_types(tmp_path: Path):
+    setup_fixtures(tmp_path)
+    client = SignetClient(credentials_dir=tmp_path)
+
+    cookie = client.get_credential("my-jira")
+    assert cookie is not None
+    assert cookie.type == "cookie"
+
+    bearer = client.get_credential("azure-graph")
+    assert bearer is not None
+    assert bearer.type == "bearer"
+
+    api_key = client.get_credential("github")
+    assert api_key is not None
+    assert api_key.type == "api-key"
+
+    basic = client.get_credential("legacy-api")
+    assert basic is not None
+    assert basic.type == "basic"
+
+    client.close()

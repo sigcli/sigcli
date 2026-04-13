@@ -56,9 +56,11 @@ class ProviderFile:
     updatedAt: str
     metadata: dict[str, Any] = field(default_factory=dict)
 
+CredentialType = Literal["cookie", "bearer", "api-key", "basic"]
+
 @dataclass(frozen=True)
 class ProviderInfo:
     providerId: str
-    credentialType: str
+    credentialType: CredentialType
     strategy: str
     updatedAt: str
