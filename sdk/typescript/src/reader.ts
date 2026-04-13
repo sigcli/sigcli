@@ -31,7 +31,6 @@ export async function readProviderFile(
     }
     return data;
   } catch (e) {
-    if (e instanceof CredentialNotFoundError) throw e;
     throw new CredentialParseError(filePath, e instanceof Error ? e : undefined);
   }
 }

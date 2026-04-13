@@ -98,6 +98,56 @@ describe('formatHeaders', () => {
     const headers = formatHeaders(cred);
     expect(headers['Cookie']).toBe('a=b');
   });
+
+  it('Authorization header overwrites any xHeaders Authorization for bearer', () => {
+    const cred: BearerCredential = {
+      type: 'bearer',
+      accessToken: 'real-token',
+      xHeaders: { Authorization: 'should-be-overwritten' },
+    };
+    const headers = formatHeaders(cred);
+    expect(headers['Authorization']).toBe('Bearer real-token');
+  });
+
+  it('formats cookie credential with empty cookies array', () => {
+    const cred: CookieCredential = {
+      type: 'cookie',
+      cookies: [],
+      obtainedAt: '2026-04-13T10:00:00.000Z',
+    };
+    const headers = formatHeaders(cred);
+    expect(headers['Cookie']).toBe('');
+  });
+
+  it('formats single cookie without trailing semicolon', () => {
+    const cred: CookieCredential = {
+      type: 'cookie',
+      cookies: [
+        { name: 'only', value: 'one', domain: '.x.com', path: '/', expires: -1, httpOnly: false, secure: false },
+      ],
+      obtainedAt: '2026-04-13T10:00:00.000Z',
+    };
+    const headers = formatHeaders(cred);
+    expect(headers['Cookie']).toBe('only=one');
+    expect(headers['Cookie']).not.toContain(';');
+  });
+
+  it('handles cookie credential with both xHeaders and localStorage', () => {
+    const cred: CookieCredential = {
+      type: 'cookie',
+      cookies: [
+        { name: 'd', value: 'xoxd-abc', domain: '.slack.com', path: '/', expires: -1, httpOnly: true, secure: true },
+      ],
+      obtainedAt: '2026-04-13T10:00:00.000Z',
+      xHeaders: { 'x-custom': 'val' },
+      localStorage: { token: 'xoxc-123' },
+    };
+    const headers = formatHeaders(cred);
+    expect(headers['Cookie']).toBe('d=xoxd-abc');
+    expect(headers['x-custom']).toBe('val');
+    // localStorage should NOT appear in headers
+    expect(headers['token']).toBeUndefined();
+  });
 });
 
 describe('extractLocalStorage', () => {
@@ -145,5 +195,25 @@ describe('extractLocalStorage', () => {
       obtainedAt: '2026-04-13T10:00:00.000Z',
     };
     expect(extractLocalStorage(cred)).toEqual({});
+  });
+
+  it('returns empty object when bearer localStorage is undefined', () => {
+    const cred: BearerCredential = {
+      type: 'bearer',
+      accessToken: 'tok',
+    };
+    expect(extractLocalStorage(cred)).toEqual({});
+  });
+
+  it('returns a copy that does not mutate the original', () => {
+    const cred: CookieCredential = {
+      type: 'cookie',
+      cookies: [],
+      obtainedAt: '2026-04-13T10:00:00.000Z',
+      localStorage: { key: 'val' },
+    };
+    const result = extractLocalStorage(cred);
+    result['key'] = 'mutated';
+    expect(cred.localStorage!['key']).toBe('val');
   });
 });

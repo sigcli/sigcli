@@ -118,4 +118,49 @@ describe('SignetClient', () => {
     client.close();
     // Should not throw
   });
+
+  it('watch() is idempotent', () => {
+    const client = new SignetClient({ credentialsDir: tmpDir });
+    client.watch();
+    client.watch(); // Should not create a second watcher
+    client.close();
+  });
+
+  it('getHeaders includes xHeaders for cookie provider', async () => {
+    const client = new SignetClient({ credentialsDir: tmpDir });
+    const headers = await client.getHeaders('xiaohongshu');
+    expect(headers['Cookie']).toBe('id_token=tok123');
+    expect(headers['x-csrf-token']).toBe('csrf-abc');
+    expect(headers['origin']).toBe('https://www.xiaohongshu.com');
+    client.close();
+  });
+
+  it('getLocalStorage returns empty object for provider without localStorage', async () => {
+    const client = new SignetClient({ credentialsDir: tmpDir });
+    const ls = await client.getLocalStorage('my-jira');
+    expect(ls).toEqual({});
+    client.close();
+  });
+
+  it('getCredential returns correctly typed credential', async () => {
+    const client = new SignetClient({ credentialsDir: tmpDir });
+
+    const cookie = await client.getCredential('my-jira');
+    expect(cookie).not.toBeNull();
+    expect(cookie!.type).toBe('cookie');
+
+    const bearer = await client.getCredential('azure-graph');
+    expect(bearer).not.toBeNull();
+    expect(bearer!.type).toBe('bearer');
+
+    const apiKey = await client.getCredential('github');
+    expect(apiKey).not.toBeNull();
+    expect(apiKey!.type).toBe('api-key');
+
+    const basic = await client.getCredential('legacy-api');
+    expect(basic).not.toBeNull();
+    expect(basic!.type).toBe('basic');
+
+    client.close();
+  });
 });
