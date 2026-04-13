@@ -18,7 +18,8 @@ import { parseDuration } from '../utils/duration.js';
 import { runHybridFlow, stderrLogger } from '../browser/flows/hybrid-flow.js';
 import { isLoginPage } from '../browser/flows/form-login.flow.js';
 import { hasOAuthTokens } from '../browser/flows/oauth-consent.flow.js';
-import { HttpHeader, WaitUntil, StrategyName, CredentialTypeName } from '../core/constants.js';
+import { HttpHeader, StrategyName, CredentialTypeName } from '../core/constants.js';
+import type { WaitUntilValue } from '../core/constants.js';
 
 const DEFAULT_TTL = '24h';
 
@@ -30,10 +31,12 @@ const DEFAULT_TTL = '24h';
 class CookieStrategy implements IAuthStrategy {
     private readonly ttlMs: number;
     private readonly requiredCookies: string[];
+    private readonly waitUntil?: WaitUntilValue;
 
     constructor(config: CookieStrategyConfig) {
         this.ttlMs = parseDuration(config.ttl ?? DEFAULT_TTL);
         this.requiredCookies = config.requiredCookies ?? [];
+        this.waitUntil = config.waitUntil;
     }
 
     validate(credential: Credential): Result<boolean, AuthError> {
@@ -75,7 +78,7 @@ class CookieStrategy implements IAuthStrategy {
             entryUrl: provider.entryUrl,
             browserConfig: context.browserConfig,
             forceVisible: provider.forceVisible ?? false,
-            waitUntil: WaitUntil.COMMIT,
+            waitUntil: this.waitUntil,
             xHeaders: provider.xHeaders,
             providerDomains: provider.domains,
             localStorage: provider.localStorage,
