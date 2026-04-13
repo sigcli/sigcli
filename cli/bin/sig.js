@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { readFileSync, existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 import { execSync } from 'node:child_process';
 
@@ -50,7 +50,7 @@ async function main() {
 
     buildIfNeeded();
 
-    const { run } = await import(join(rootDir, 'dist', 'cli', 'main.js'));
+    const { run } = await import(pathToFileURL(join(rootDir, 'dist', 'cli', 'main.js')).href);
     await run(args);
 }
 
