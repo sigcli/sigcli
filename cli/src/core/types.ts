@@ -3,6 +3,7 @@
  * These types have zero external dependencies — they are the shared vocabulary
  * used across all layers (strategies, storage, providers, handlers).
  */
+import type { WaitUntilValue } from './constants.js';
 
 // ============================================================================
 // Discriminated Strategy Configs
@@ -11,6 +12,7 @@
 export interface CookieStrategyConfig {
     strategy: 'cookie';
     ttl?: string;
+    waitUntil?: WaitUntilValue;
     requiredCookies?: string[];
 }
 
