@@ -160,8 +160,21 @@ export class SyncEngine {
 
             let doc: YAML.Document;
             if (remoteYaml === null) {
-                // Create a minimal config with only providers
-                doc = new YAML.Document({ providers: localProviders });
+                // Create a full config so the remote passes validation
+                doc = new YAML.Document({
+                    mode: 'browserless',
+                    browser: {
+                        browserDataDir: '~/.signet/browser-data',
+                        channel: 'chrome',
+                        headlessTimeout: 30000,
+                        visibleTimeout: 120000,
+                        waitUntil: 'load',
+                    },
+                    storage: {
+                        credentialsDir: '~/.signet/credentials',
+                    },
+                    providers: localProviders,
+                });
             } else {
                 // Parse with Document to preserve comments
                 doc = YAML.parseDocument(remoteYaml);
@@ -173,6 +186,31 @@ export class SyncEngine {
                 // Merge: local wins on push
                 const merged = { ...remoteProviders, ...localProviders };
                 doc.setIn(['providers'], doc.createNode(merged));
+
+                // Ensure required sections exist so remote passes validation
+                if (!doc.getIn(['mode'])) {
+                    doc.setIn(['mode'], 'browserless');
+                }
+                if (!doc.getIn(['browser'])) {
+                    doc.setIn(
+                        ['browser'],
+                        doc.createNode({
+                            browserDataDir: '~/.signet/browser-data',
+                            channel: 'chrome',
+                            headlessTimeout: 30000,
+                            visibleTimeout: 120000,
+                            waitUntil: 'load',
+                        }),
+                    );
+                }
+                if (!doc.getIn(['storage'])) {
+                    doc.setIn(
+                        ['storage'],
+                        doc.createNode({
+                            credentialsDir: '~/.signet/credentials',
+                        }),
+                    );
+                }
             }
 
             await this.transport.writeRemoteConfig(this.remote, doc.toString());
