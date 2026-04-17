@@ -25,11 +25,11 @@
    ======================================================================== */
 
 @font-face {
-  font-family: 'Inter var';
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('/fonts/InterVariable.woff2') format('woff2');
+    font-family: 'Inter var';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('/fonts/InterVariable.woff2') format('woff2');
 }
 
 /* ========================================================================
@@ -39,11 +39,11 @@
    ======================================================================== */
 
 @font-face {
-  font-family: 'JetBrainsMono NF Mono';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/JetBrainsMonoNerdFontMono-Regular.ttf') format('truetype');
+    font-family: 'JetBrainsMono NF Mono';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/JetBrainsMonoNerdFontMono-Regular.ttf') format('truetype');
 }
 
 /* ========================================================================
@@ -51,20 +51,20 @@
    ======================================================================== */
 
 .slot-page {
-  font-optical-sizing: auto;
-  font-feature-settings:
-    'liga' 1,
-    'calt' 1;
+    font-optical-sizing: auto;
+    font-feature-settings:
+        'liga' 1,
+        'calt' 1;
 }
 
 .slot-page ::selection {
-  background: var(--selection-bg);
+    background: var(--selection-bg);
 }
 
 /* Bold and inline code inside prose punch through the reduced opacity */
 .editorial-prose strong,
 .editorial-prose .inline-code {
-  opacity: calc(1 / 0.82);
+    opacity: calc(1 / 0.82);
 }
 
 /* ========================================================================
@@ -72,14 +72,14 @@
    ======================================================================== */
 
 @keyframes stagger-in {
-  0% {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+    0% {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /*
@@ -100,17 +100,17 @@
 
 /* Images and their wrappers must never overflow the content column */
 .slot-main img {
-  max-width: 100% !important;
-  height: auto;
+    max-width: 100% !important;
+    height: auto;
 }
 
 /* Force all children of bleed to respect container width */
 .slot-main .bleed > * {
-  max-width: 100% !important;
+    max-width: 100% !important;
 }
 
 .slot-main .bleed {
-  overflow: hidden;
+    overflow: hidden;
 }
 
 /* ========================================================================
@@ -120,8 +120,8 @@
    ======================================================================== */
 
 .bleed {
-  margin-left: calc(-1 * var(--bleed));
-  margin-right: calc(-1 * var(--bleed));
+    margin-left: calc(-1 * var(--bleed));
+    margin-right: calc(-1 * var(--bleed));
 }
 
 /* ========================================================================
@@ -131,36 +131,36 @@
    ======================================================================== */
 
 .inline-code {
-  position: relative;
-  display: inline-block;
-  font-family: var(--font-code);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 13px;
-  letter-spacing: 0.01em;
-  padding: 2px 4px;
-  color: rgba(0, 0, 0, 0.75);
+    position: relative;
+    display: inline-block;
+    font-family: var(--font-code);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 13px;
+    letter-spacing: 0.01em;
+    padding: 2px 4px;
+    color: rgba(0, 0, 0, 0.75);
 }
 
 .inline-code::before {
-  content: '';
-  position: absolute;
-  inset: -1px 0;
-  background: rgba(0, 0, 0, 0.04);
-  border-radius: 4px;
-  z-index: -1;
+    content: '';
+    position: absolute;
+    inset: -1px 0;
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 4px;
+    z-index: -1;
 }
 
 .inline-code {
-  @variant dark {
-    color: rgba(255, 255, 255, 0.75);
-  }
+    @variant dark {
+        color: rgba(255, 255, 255, 0.75);
+    }
 }
 
 .inline-code::before {
-  @variant dark {
-    background: rgba(255, 255, 255, 0.08);
-  }
+    @variant dark {
+        background: rgba(255, 255, 255, 0.08);
+    }
 }
 
 /* ========================================================================
@@ -168,27 +168,27 @@
    ======================================================================== */
 
 .slot-page::before {
-  content: '';
-  pointer-events: none;
-  z-index: 9;
-  position: fixed;
-  top: var(--fade-top);
-  left: 0;
-  right: 0;
-  height: var(--fade-height);
-  background: linear-gradient(
-    var(--fade-0) 0px,
-    var(--fade-1) 19%,
-    var(--fade-2) 34%,
-    var(--fade-3) 47%,
-    var(--fade-4) 56.5%,
-    var(--fade-5) 65%,
-    var(--fade-6) 73%,
-    var(--fade-7) 80.2%,
-    var(--fade-8) 86.1%,
-    var(--fade-9) 91%,
-    var(--fade-10) 95.2%,
-    var(--fade-11) 98.2%,
-    var(--fade-12) 100%
-  );
+    content: '';
+    pointer-events: none;
+    z-index: 9;
+    position: fixed;
+    top: var(--fade-top);
+    left: 0;
+    right: 0;
+    height: var(--fade-height);
+    background: linear-gradient(
+        var(--fade-0) 0px,
+        var(--fade-1) 19%,
+        var(--fade-2) 34%,
+        var(--fade-3) 47%,
+        var(--fade-4) 56.5%,
+        var(--fade-5) 65%,
+        var(--fade-6) 73%,
+        var(--fade-7) 80.2%,
+        var(--fade-8) 86.1%,
+        var(--fade-9) 91%,
+        var(--fade-10) 95.2%,
+        var(--fade-11) 98.2%,
+        var(--fade-12) 100%
+    );
 }
