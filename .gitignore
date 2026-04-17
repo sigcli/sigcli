@@ -34,3 +34,6 @@ npm-debug.log*
 
 # TypeScript incremental build cache
 tsconfig.tsbuildinfo
+
+# Temporary scratch directory (reference repos, experiments)
+tmp/
