@@ -20,10 +20,11 @@ import { createTocDb, searchToc, type SearchState } from './search.js';
 import type { TocNodeType, VisualLevel, TocTreeNode, FlatTocItem } from './toc-tree.js';
 
 export type { TocNodeType, VisualLevel, TocTreeNode, FlatTocItem };
-import Prism from 'prismjs';
-import 'prismjs/components/prism-jsx';
-import 'prismjs/components/prism-tsx';
-import 'prismjs/components/prism-bash';
+if (typeof self === 'undefined') (globalThis as any).self = globalThis;
+const { default: Prism } = await import('prismjs');
+await import('prismjs/components/prism-jsx');
+await import('prismjs/components/prism-tsx');
+await import('prismjs/components/prism-bash');
 
 /* Custom "diagram" language for ASCII/Unicode box-drawing diagrams.
    Tokenizes box-drawing chars as neutral structure, text as highlighted labels. */
