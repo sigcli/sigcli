@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" shape-rendering="crispEdges">
+  <!-- Seal body -->
+  <rect x="1" y="1" width="30" height="30" rx="1" fill="#111"/>
+
+  <!-- Border frame + S -->
+  <path fill="white" d="
+    M4,4h24v2h-24z M4,26h24v2h-24z M4,6h2v20h-2z M26,6h2v20h-2z
+    M10,10h12v2h-12z M10,12h4v4h-4z M12,16h8v2h-8z M18,18h4v4h-4z M10,22h12v2h-12z
+  "/>
+</svg>
