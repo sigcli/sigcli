@@ -14,6 +14,7 @@ const config = defineConfig({
         tailwindcss(),
         tanstackStart(),
         nitro({
+            traceDeps: ['prismjs'],
             vercel: {
                 functions: {
                     runtime: 'nodejs20.x',
