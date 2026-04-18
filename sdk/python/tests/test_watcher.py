@@ -1,7 +1,7 @@
 import time
 import threading
 from pathlib import Path
-from signet_sdk.watcher import CredentialWatcher
+from signet_auth_sdk.watcher import CredentialWatcher
 
 
 def test_emits_change_on_file_write(tmp_path: Path):

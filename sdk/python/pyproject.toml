@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "signet-sdk"
-version = "0.1.0"
+name = "signet-auth-sdk"
+version = "0.1.1"
 description = "Lightweight client SDK for consuming Signet credentials"
 readme = "README.md"
 license = {text = "MIT"}
@@ -25,7 +25,7 @@ dev = ["pytest>=7.0", "mypy>=1.0"]
 Repository = "https://github.com/signet-auth/signet-sdk"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/signet_sdk"]
+packages = ["src/signet_auth_sdk"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

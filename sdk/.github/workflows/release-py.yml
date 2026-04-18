@@ -9,6 +9,8 @@ jobs:
   release:
     name: Publish to PyPI
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     defaults:
       run:
         working-directory: packages/python
@@ -20,9 +22,8 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: pytest
       - run: mypy src/
-      - run: pip install build twine
+      - run: pip install build
       - run: python -m build
-      - run: twine upload --verbose dist/*
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: packages/python/dist/

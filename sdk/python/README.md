@@ -1,11 +1,11 @@
-# signet-sdk
+# signet-auth-sdk
 
 Lightweight Python client SDK for consuming [Signet](https://github.com/signet-auth/signet) credentials.
 
 ## Install
 
 ```bash
-pip install signet-sdk
+pip install signet-auth-sdk
 ```
 
 Requires Python >= 3.9.
@@ -13,7 +13,7 @@ Requires Python >= 3.9.
 ## Quick start
 
 ```python
-from signet_sdk import SignetClient
+from signet_auth_sdk import SignetClient
 
 client = SignetClient()
 
@@ -25,7 +25,7 @@ response = requests.get("https://jira.example.com/rest/api/2/search", headers=he
 ## Watching for changes
 
 ```python
-from signet_sdk import SignetClient
+from signet_auth_sdk import SignetClient
 
 client = SignetClient()
 

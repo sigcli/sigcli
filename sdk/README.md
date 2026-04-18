@@ -8,8 +8,8 @@ Signet handles authentication via browser automation and stores credentials loca
 
 | Package | Language | Install |
 |---------|----------|---------|
-| [`@signet-auth/sdk`](./packages/typescript/) | TypeScript / Node.js | `npm install @signet-auth/sdk` |
-| [`signet-sdk`](./packages/python/) | Python | `pip install signet-sdk` |
+| [`signet-auth-sdk`](./packages/typescript/) | TypeScript / Node.js | `npm install signet-auth-sdk` |
+| [`signet-auth-sdk`](./packages/python/) | Python | `pip install signet-auth-sdk` |
 
 ## How it works
 
@@ -22,7 +22,7 @@ Signet handles authentication via browser automation and stores credentials loca
 **TypeScript:**
 
 ```typescript
-import { SignetClient } from '@signet-auth/sdk';
+import { SignetClient } from 'signet-auth-sdk';
 
 const client = new SignetClient();
 const headers = await client.getHeaders('my-jira');
@@ -32,7 +32,7 @@ const res = await fetch('https://jira.example.com/api/search', { headers });
 **Python:**
 
 ```python
-from signet_sdk import SignetClient
+from signet_auth_sdk import SignetClient
 
 client = SignetClient()
 headers = client.get_headers("my-jira")
