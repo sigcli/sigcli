@@ -7,4 +7,5 @@ node_modules/
 pnpm-lock.yaml
 .signet/
 .claude/
+pitch/
 website/src/routeTree.gen.ts
