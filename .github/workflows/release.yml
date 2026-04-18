@@ -1,8 +1,15 @@
-name: Release CLI
+name: Release
 
 on:
     workflow_dispatch:
         inputs:
+            package:
+                description: Package to release
+                required: true
+                type: choice
+                options:
+                    - '@sigcli/cli'
+                    - '@sigcli/sdk'
             release_type:
                 description: Release type
                 required: true
@@ -14,7 +21,7 @@ on:
 
 jobs:
     release:
-        name: Release CLI (${{ inputs.release_type }})
+        name: Release ${{ inputs.package }} (${{ inputs.release_type }})
         runs-on: ubuntu-latest
 
         if: github.ref == 'refs/heads/main'
@@ -41,28 +48,38 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
+            - name: Resolve package directory
+              id: pkg
+              run: |
+                  if [ "${{ inputs.package }}" = "@sigcli/cli" ]; then
+                    echo "dir=cli" >> "$GITHUB_OUTPUT"
+                  elif [ "${{ inputs.package }}" = "@sigcli/sdk" ]; then
+                    echo "dir=sdk/typescript" >> "$GITHUB_OUTPUT"
+                  fi
+
             - name: Type check
-              run: pnpm --filter signet-auth exec tsc --noEmit
+              run: pnpm --filter '${{ inputs.package }}' exec tsc --noEmit
 
             - name: Run tests
-              run: pnpm --filter signet-auth test
+              run: pnpm --filter '${{ inputs.package }}' test
 
             - name: Build
-              run: pnpm --filter signet-auth build
+              run: pnpm --filter '${{ inputs.package }}' build
 
             - name: Publish beta
               if: inputs.release_type == 'beta'
               env:
                   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-              working-directory: cli
+              working-directory: ${{ steps.pkg.outputs.dir }}
               run: |
+                  PKG_NAME="${{ inputs.package }}"
                   BASE_VERSION=$(node -p "require('./package.json').version")
 
                   NEXT_BETA=$(node -e "
                     const { execSync } = require('child_process');
                     let versions = [];
                     try {
-                      const out = execSync('npm view signet-auth versions --json', { encoding: 'utf8' });
+                      const out = execSync('npm view ${PKG_NAME} versions --json', { encoding: 'utf8' });
                       const parsed = JSON.parse(out);
                       versions = Array.isArray(parsed) ? parsed : [parsed];
                     } catch {}
@@ -77,15 +94,16 @@ jobs:
                   BETA_VERSION="${BASE_VERSION%-*}-beta.${NEXT_BETA}"
                   npm version "${BETA_VERSION}" --no-git-tag-version
                   npm publish --tag beta
-                  echo "## Published \`signet-auth@${BETA_VERSION}\` (beta)" >> "$GITHUB_STEP_SUMMARY"
+                  echo "## Published \`${PKG_NAME}@${BETA_VERSION}\` (beta)" >> "$GITHUB_STEP_SUMMARY"
 
             - name: Publish stable
               if: inputs.release_type == 'stable'
               env:
                   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
                   GH_TOKEN: ${{ github.token }}
-              working-directory: cli
+              working-directory: ${{ steps.pkg.outputs.dir }}
               run: |
+                  PKG_NAME="${{ inputs.package }}"
                   VERSION=$(node -p "require('./package.json').version")
 
                   if echo "$VERSION" | grep -qE '[-]'; then
@@ -93,15 +111,16 @@ jobs:
                     exit 1
                   fi
 
-                  if npm view "signet-auth@${VERSION}" version 2>/dev/null; then
+                  if npm view "${PKG_NAME}@${VERSION}" version 2>/dev/null; then
                     echo "::error::Version ${VERSION} is already published to npm."
                     exit 1
                   fi
 
                   npm publish
 
-                  gh release create "v${VERSION}" \
-                    --title "v${VERSION}" \
+                  TAG="${PKG_NAME//\//-}-v${VERSION}"
+                  gh release create "${TAG}" \
+                    --title "${PKG_NAME}@${VERSION}" \
                     --generate-notes
 
-                  echo "## Published \`signet-auth@${VERSION}\` (stable)" >> "$GITHUB_STEP_SUMMARY"
+                  echo "## Published \`${PKG_NAME}@${VERSION}\` (stable)" >> "$GITHUB_STEP_SUMMARY"

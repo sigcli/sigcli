@@ -24,9 +24,9 @@ sigcli/
 pnpm install               # Install all workspace deps
 pnpm -r build              # Build all packages
 pnpm -r test               # Test all packages
-pnpm --filter signet-auth build   # Build CLI only
-pnpm --filter signet-auth test    # Test CLI only
-pnpm --filter signet-auth-sdk build  # Build TS SDK only
+pnpm --filter @sigcli/cli build   # Build CLI only
+pnpm --filter @sigcli/cli test    # Test CLI only
+pnpm --filter @sigcli/sdk build  # Build TS SDK only
 pnpm --filter website dev          # Dev server for website
 ```
 

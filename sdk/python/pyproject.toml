@@ -3,13 +3,13 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "signet-auth-sdk"
-version = "0.1.1"
+name = "sigcli-sdk"
+version = "1.0.0"
 description = "Lightweight client SDK for consuming Signet credentials"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
-keywords = ["signet", "auth", "sdk", "credentials"]
+keywords = ["sigcli", "signet", "auth", "sdk", "credentials"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -22,7 +22,7 @@ classifiers = [
 dev = ["pytest>=7.0", "mypy>=1.0"]
 
 [project.urls]
-Repository = "https://github.com/signet-auth/signet-sdk"
+Repository = "https://github.com/sigcli/sigcli"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/signet_auth_sdk"]
