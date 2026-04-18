@@ -35,14 +35,14 @@ General-purpose authentication CLI. Authenticate via browser SSO, store tokens, 
 ## Install
 
 ```bash
-npm install -g signet-auth
+npm install -g @sigcli/cli
 ```
 
 Or from source:
 
 ```bash
-git clone https://github.com/signet-auth/signet.git && cd signet
-npm install && npm run build
+git clone https://github.com/sigcli/sigcli.git && cd sigcli
+pnpm install && pnpm --filter @sigcli/cli build
 ```
 
 ## Quick Start
