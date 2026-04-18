@@ -1,0 +1,107 @@
+name: Release CLI
+
+on:
+    workflow_dispatch:
+        inputs:
+            release_type:
+                description: Release type
+                required: true
+                type: choice
+                options:
+                    - beta
+                    - stable
+                default: beta
+
+jobs:
+    release:
+        name: Release CLI (${{ inputs.release_type }})
+        runs-on: ubuntu-latest
+
+        if: github.ref == 'refs/heads/main'
+
+        permissions:
+            contents: write
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 10
+
+            - name: Setup Node.js 22
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  registry-url: https://registry.npmjs.org
+                  cache: pnpm
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Type check
+              run: pnpm --filter signet-auth exec tsc --noEmit
+
+            - name: Run tests
+              run: pnpm --filter signet-auth test
+
+            - name: Build
+              run: pnpm --filter signet-auth build
+
+            - name: Publish beta
+              if: inputs.release_type == 'beta'
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+              working-directory: cli
+              run: |
+                  BASE_VERSION=$(node -p "require('./package.json').version")
+
+                  NEXT_BETA=$(node -e "
+                    const { execSync } = require('child_process');
+                    let versions = [];
+                    try {
+                      const out = execSync('npm view signet-auth versions --json', { encoding: 'utf8' });
+                      const parsed = JSON.parse(out);
+                      versions = Array.isArray(parsed) ? parsed : [parsed];
+                    } catch {}
+                    const base = '${BASE_VERSION}'.replace(/-.*/, '');
+                    const betas = versions
+                      .filter(v => v.startsWith(base + '-beta.'))
+                      .map(v => parseInt(v.split('-beta.')[1], 10))
+                      .filter(n => !isNaN(n));
+                    console.log(betas.length ? Math.max(...betas) + 1 : 0);
+                  ")
+
+                  BETA_VERSION="${BASE_VERSION%-*}-beta.${NEXT_BETA}"
+                  npm version "${BETA_VERSION}" --no-git-tag-version
+                  npm publish --tag beta
+                  echo "## Published \`signet-auth@${BETA_VERSION}\` (beta)" >> "$GITHUB_STEP_SUMMARY"
+
+            - name: Publish stable
+              if: inputs.release_type == 'stable'
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+                  GH_TOKEN: ${{ github.token }}
+              working-directory: cli
+              run: |
+                  VERSION=$(node -p "require('./package.json').version")
+
+                  if echo "$VERSION" | grep -qE '[-]'; then
+                    echo "::error::Version ${VERSION} contains a pre-release suffix. Update package.json to a stable version before publishing."
+                    exit 1
+                  fi
+
+                  if npm view "signet-auth@${VERSION}" version 2>/dev/null; then
+                    echo "::error::Version ${VERSION} is already published to npm."
+                    exit 1
+                  fi
+
+                  npm publish
+
+                  gh release create "v${VERSION}" \
+                    --title "v${VERSION}" \
+                    --generate-notes
+
+                  echo "## Published \`signet-auth@${VERSION}\` (stable)" >> "$GITHUB_STEP_SUMMARY"

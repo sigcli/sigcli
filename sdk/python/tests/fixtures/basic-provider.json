@@ -1,0 +1,11 @@
+{
+    "version": 1,
+    "providerId": "legacy-api",
+    "credential": {
+        "type": "basic",
+        "username": "admin",
+        "password": "s3cret"
+    },
+    "strategy": "basic",
+    "updatedAt": "2026-04-13T10:00:00.000Z"
+}
