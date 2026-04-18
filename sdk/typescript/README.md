@@ -1,11 +1,11 @@
-# @signet-auth/sdk
+# signet-auth-sdk
 
 Lightweight TypeScript/Node.js client SDK for consuming [Signet](https://github.com/signet-auth/signet) credentials.
 
 ## Install
 
 ```bash
-npm install @signet-auth/sdk
+npm install signet-auth-sdk
 ```
 
 Requires Node.js >= 18.
@@ -13,7 +13,7 @@ Requires Node.js >= 18.
 ## Quick start
 
 ```typescript
-import { SignetClient } from '@signet-auth/sdk';
+import { SignetClient } from 'signet-auth-sdk';
 
 const client = new SignetClient();
 

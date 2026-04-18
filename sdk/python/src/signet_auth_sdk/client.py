@@ -16,7 +16,7 @@ class SignetClient:
 
     Example::
 
-        from signet_sdk import SignetClient
+        from signet_auth_sdk import SignetClient
 
         client = SignetClient()
         headers = client.get_headers("my-jira")

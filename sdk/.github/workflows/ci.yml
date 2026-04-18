@@ -22,23 +22,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-      - name: Install dependencies
-        run: |
-          npm cache clean --force
-          rm -rf node_modules
-          npm install --prefer-online --no-audit --no-fund 2>&1 || true
-          # Verify critical packages are installed correctly
-          if [ ! -f node_modules/@types/node/index.d.ts ]; then
-            echo "First install incomplete, retrying with clean state..."
-            rm -rf node_modules package-lock.json
-            npm install --prefer-online --no-audit --no-fund 2>&1 || true
-          fi
-          if [ ! -f node_modules/@types/node/index.d.ts ]; then
-            echo "Second install failed, trying individual install..."
-            npm install @types/node typescript vitest --no-audit --no-fund 2>&1 || true
-          fi
-          node -e "require('typescript/lib/typescript')" || { echo "TypeScript not installed"; exit 1; }
-          test -f node_modules/@types/node/index.d.ts || { echo "@types/node not installed correctly"; exit 1; }
+      - run: npm install
       - run: npm run build
       - run: npm test
 
