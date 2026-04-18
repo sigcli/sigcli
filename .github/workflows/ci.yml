@@ -66,10 +66,10 @@ jobs:
               run: pnpm install --frozen-lockfile
 
             - name: Type check (CLI)
-              run: pnpm --filter signet-auth exec tsc --noEmit
+              run: pnpm --filter @sigcli/cli exec tsc --noEmit
 
             - name: Type check (SDK)
-              run: pnpm --filter signet-auth-sdk exec tsc --noEmit
+              run: pnpm --filter @sigcli/sdk exec tsc --noEmit
 
             - name: Run tests
               run: pnpm -r test

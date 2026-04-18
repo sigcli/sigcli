@@ -1,6 +1,6 @@
 {
-    "name": "signet-auth-sdk",
-    "version": "0.1.1",
+    "name": "@sigcli/sdk",
+    "version": "1.0.0",
     "description": "Lightweight client SDK for consuming Signet credentials",
     "type": "module",
     "main": "dist/index.js",
@@ -25,8 +25,12 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/signet-auth/signet-sdk.git",
-        "directory": "packages/typescript"
+        "url": "https://github.com/sigcli/sigcli.git",
+        "directory": "sdk/typescript"
+    },
+    "publishConfig": {
+        "registry": "https://registry.npmjs.org/",
+        "access": "public"
     },
     "devDependencies": {
         "@types/node": "^20.17.0",
