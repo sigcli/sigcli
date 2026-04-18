@@ -2,8 +2,8 @@ import json
 import shutil
 from pathlib import Path
 import pytest
-from signet_sdk.client import SignetClient
-from signet_sdk.errors import CredentialNotFoundError
+from signet_auth_sdk.client import SignetClient
+from signet_auth_sdk.errors import CredentialNotFoundError
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
