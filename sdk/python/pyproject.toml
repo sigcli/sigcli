@@ -7,7 +7,7 @@ name = "signet-sdk"
 version = "0.1.0"
 description = "Lightweight client SDK for consuming Signet credentials"
 readme = "README.md"
-license = "MIT"
+license = {text = "MIT"}
 requires-python = ">=3.9"
 keywords = ["signet", "auth", "sdk", "credentials"]
 classifiers = [
