@@ -424,11 +424,27 @@ sig login https://api.example.com --token ghp_xxxxxxxxxxxxx
 
 ## AI Agent Integration
 
-Signet works as an auth layer for AI coding agents (Claude Code, Cursor, Windsurf). The agent shells out to `sig` -- no SDK or MCP server needed.
+Signet works as an auth layer for AI coding agents (Claude Code, Cursor, Windsurf). Two approaches are available, with the SDK strongly recommended for security.
 
-**Flow:** Human authenticates via browser SSO once. Agent reuses credentials via `sig get` / `sig request`. On 401/403, agent triggers `sig login <url>` for the human.
+### Recommended: Signet SDK (credentials never leave the process)
 
-### Direct requests
+Install the SDK ([TypeScript](https://github.com/signet-auth/signet-sdk/tree/main/packages/typescript) / [Python](https://github.com/signet-auth/signet-sdk/tree/main/packages/python)) and read credentials directly in your scripts:
+
+```python
+from signet_auth_sdk import SignetClient
+
+client = SignetClient()
+headers = client.get_headers("my-jira")
+response = requests.get("https://jira.example.com/rest/api/2/myself", headers=headers)
+```
+
+**Why:** Credentials stay inside the process. They never appear on stdout, in shell variables, in CLI args, or in the AI agent's context window -- eliminating the biggest credential leakage vector.
+
+**Flow:** Human authenticates via browser SSO once (`sig login`). Scripts use the SDK to read stored credentials from `~/.signet/credentials/`. On auth failure, the agent prompts the human to `sig login <url>`.
+
+### Alternative: `sig request` (for simple one-off API calls)
+
+For commands that don't need Python scripts, `sig request` injects auth headers internally:
 
 ```bash
 sig request "https://jira.example.com/rest/api/2/issue/PROJ-123" --format body
@@ -440,15 +456,13 @@ sig request "https://jira.example.com/rest/api/2/issue" \
   --format body
 ```
 
-### Credential pass-through
+The agent sees only the response body -- never the credentials.
 
-```bash
-CRED=$(sig get https://wiki.example.com/ --format value)
-python scripts/wiki_search.py --cookie "$CRED"
+### Avoid: `sig get` in agent contexts
 
-TOKEN=$(sig get https://graph.microsoft.com/ --format value | sed 's/^Bearer //')
-python scripts/calendar.py --token "$TOKEN"
-```
+> **Security warning:** `sig get` outputs raw credentials to stdout. When used inside an AI agent skill (`CRED=$(sig get url --format value)`), the credential becomes visible in the agent's context window, shell history, and process listing. Use the SDK or `sig request` instead.
+
+`sig get` remains available for human use (debugging, manual curl commands) but should not be used in automated agent workflows.
 
 ### Curl fallback
 
@@ -468,7 +482,7 @@ curl -X POST "https://jira.example.com/rest/api/2/issue/PROJ-123/attachments" \
 | --------------------------- | --------------- | ------------------------ |
 | HTTP 401/403                | Session expired | `sig login <url>`, retry |
 | HTML login page in response | SSO redirect    | `sig login <url>`, retry |
-| `sig get` returns empty     | No credential   | `sig login <url>`        |
+| `CredentialNotFoundError`   | No credential   | `sig login <url>`        |
 
 ### Claude Code skill setup
 
@@ -482,8 +496,8 @@ description: 'Interact with My API. Trigger on: my-api, tickets, issues...'
 
 ## Authentication
 
-Get credential: `CRED=$(sig get https://api.example.com/ --format value)`
-Re-auth: `sig login https://api.example.com/`
+Authentication is handled automatically by Signet SDK.
+If a script returns AUTHENTICATION_REQUIRED, re-authenticate: `sig login https://api.example.com/`
 
 ## Endpoints
 
