@@ -1,5 +1,5 @@
 {
-  "name": "@signet-auth/sdk",
+  "name": "signet-auth-sdk",
   "version": "0.1.0",
   "description": "Lightweight client SDK for consuming Signet credentials",
   "type": "module",
