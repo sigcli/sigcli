@@ -18,7 +18,14 @@ jobs:
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
-      - run: npm ci
+      - name: Install dependencies
+        run: |
+          for i in 1 2 3; do
+            rm -rf node_modules
+            npm install --prefer-online 2>&1 && break
+            echo "Attempt $i failed, retrying..."
+          done
+          test -d node_modules/@types/node || { echo "@types/node missing"; exit 1; }
       - run: npm run build
       - run: npm test
       - run: npm publish --access public
