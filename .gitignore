@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.output/
+.nitro/
+.tanstack/
+
+# Pack artifacts
+*.tgz
+
+# Credentials and local auth state (SECURITY CRITICAL)
+.signet/
+credentials.json
+browser-data/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor state
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment overrides
+.env
+.env.*
+*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# TypeScript incremental build cache
+tsconfig.tsbuildinfo
+
+# Temporary scratch directory
+tmp/
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
