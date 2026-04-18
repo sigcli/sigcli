@@ -1,0 +1,37 @@
+{
+    "redirects": [
+        {
+            "source": "/:path*",
+            "has": [
+                {
+                    "type": "host",
+                    "value": "sigcli.com"
+                }
+            ],
+            "destination": "https://sigcli.ai/:path*",
+            "permanent": true
+        },
+        {
+            "source": "/:path*",
+            "has": [
+                {
+                    "type": "host",
+                    "value": "www.sigcli.com"
+                }
+            ],
+            "destination": "https://sigcli.ai/:path*",
+            "permanent": true
+        },
+        {
+            "source": "/:path*",
+            "has": [
+                {
+                    "type": "host",
+                    "value": "www.sigcli.ai"
+                }
+            ],
+            "destination": "https://sigcli.ai/:path*",
+            "permanent": true
+        }
+    ]
+}
