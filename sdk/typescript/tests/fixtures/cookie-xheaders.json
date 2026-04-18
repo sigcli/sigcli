@@ -1,0 +1,26 @@
+{
+    "version": 1,
+    "providerId": "xiaohongshu",
+    "credential": {
+        "type": "cookie",
+        "cookies": [
+            {
+                "name": "id_token",
+                "value": "tok123",
+                "domain": ".xiaohongshu.com",
+                "path": "/",
+                "expires": -1,
+                "httpOnly": true,
+                "secure": true
+            }
+        ],
+        "obtainedAt": "2026-04-13T10:00:00.000Z",
+        "xHeaders": {
+            "x-csrf-token": "csrf-abc",
+            "origin": "https://www.xiaohongshu.com",
+            "referer": "https://www.xiaohongshu.com/"
+        }
+    },
+    "strategy": "cookie",
+    "updatedAt": "2026-04-13T10:00:00.000Z"
+}

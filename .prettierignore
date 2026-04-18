@@ -1,0 +1,10 @@
+dist/
+.output/
+.nitro/
+.tanstack/
+node_modules/
+*.tgz
+pnpm-lock.yaml
+.signet/
+.claude/
+website/src/routeTree.gen.ts

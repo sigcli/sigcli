@@ -1,0 +1,12 @@
+{
+    "version": 1,
+    "providerId": "github",
+    "credential": {
+        "type": "api-key",
+        "key": "ghp_test123456",
+        "headerName": "Authorization",
+        "headerPrefix": "Bearer"
+    },
+    "strategy": "api-token",
+    "updatedAt": "2026-04-13T10:00:00.000Z"
+}

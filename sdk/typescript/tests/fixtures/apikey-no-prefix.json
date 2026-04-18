@@ -1,0 +1,11 @@
+{
+    "version": 1,
+    "providerId": "custom-api",
+    "credential": {
+        "type": "api-key",
+        "key": "raw-key-no-prefix",
+        "headerName": "X-API-Key"
+    },
+    "strategy": "api-token",
+    "updatedAt": "2026-04-13T10:00:00.000Z"
+}

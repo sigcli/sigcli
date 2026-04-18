@@ -1,0 +1,43 @@
+{
+    "name": "sigcli",
+    "private": true,
+    "type": "module",
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "scripts": {
+        "build": "pnpm -r build",
+        "test": "pnpm -r test",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "prepare": "husky"
+    },
+    "lint-staged": {
+        "*.{ts,js}": [
+            "eslint --fix",
+            "prettier --write"
+        ],
+        "*.{json,md,yml,yaml}": [
+            "prettier --write"
+        ]
+    },
+    "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "eslint": "^10.2.0",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-import-x": "^4.16.2",
+        "husky": "^9.1.7",
+        "lint-staged": "^16.4.0",
+        "prettier": "^3.8.2",
+        "typescript": "^5.3.0",
+        "typescript-eslint": "^8.58.1"
+    },
+    "author": "pylon <pylon.peng@gmail.com>",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/signet-auth/sigcli.git"
+    }
+}
