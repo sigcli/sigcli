@@ -22,6 +22,7 @@ export const Command = {
     WATCH: 'watch',
     RENAME: 'rename',
     REMOVE: 'remove',
+    COMPLETION: 'completion',
     HELP: 'help',
 } as const;
 
