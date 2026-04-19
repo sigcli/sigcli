@@ -18,7 +18,7 @@ export async function runRemote(
                 process.stderr.write(
                     'Usage: sig remote add <name> <host> [--user <user>] [--path <path>] [--ssh-key <key>]\n',
                 );
-                process.exitCode = ExitCode.GENERAL_ERROR;
+                process.exitCode = ExitCode.USAGE_ERROR;
                 return;
             }
             const remote: RemoteConfig = {
@@ -46,7 +46,7 @@ export async function runRemote(
                 process.stderr.write(`Remote "${name}" removed\n`);
             } else {
                 process.stderr.write(`Remote "${name}" not found\n`);
-                process.exitCode = ExitCode.REMOTE_NOT_FOUND;
+                process.exitCode = ExitCode.CONFIG_ERROR;
             }
             return;
         }

@@ -15,7 +15,7 @@ export async function runSync(
 
     if (subcommand !== SyncSubcommand.PUSH && subcommand !== SyncSubcommand.PULL) {
         process.stderr.write('Usage: sig sync <push|pull> [remote] [--provider <id>] [--force]\n');
-        process.exitCode = ExitCode.GENERAL_ERROR;
+        process.exitCode = ExitCode.USAGE_ERROR;
         return;
     }
 
@@ -29,7 +29,7 @@ export async function runSync(
             process.stderr.write(
                 `Remote "${remoteName}" not found. Run "sig remote list" to see configured remotes.\n`,
             );
-            process.exitCode = ExitCode.REMOTE_NOT_FOUND;
+            process.exitCode = ExitCode.CONFIG_ERROR;
             return;
         }
     } else {
@@ -38,7 +38,7 @@ export async function runSync(
             process.stderr.write(
                 'No remotes configured. Run "sig remote add <name> <host>" first.\n',
             );
-            process.exitCode = ExitCode.REMOTE_NOT_FOUND;
+            process.exitCode = ExitCode.CONFIG_ERROR;
             return;
         }
         if (remotes.length > 1) {
@@ -46,7 +46,7 @@ export async function runSync(
             for (const r of remotes) {
                 process.stderr.write(`  ${r.name} (${r.host})\n`);
             }
-            process.exitCode = ExitCode.GENERAL_ERROR;
+            process.exitCode = ExitCode.USAGE_ERROR;
             return;
         }
         remote = remotes[0];
@@ -79,7 +79,7 @@ export async function runSync(
         for (const e of result.errors) {
             process.stderr.write(`Error (${e.providerId}): ${e.error}\n`);
         }
-        process.exitCode = ExitCode.REMOTE_NOT_FOUND;
+        process.exitCode = ExitCode.SERVICE_UNAVAILABLE;
     }
 
     // Report config sync results
