@@ -1,0 +1,58 @@
+name: CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+jobs:
+    typescript:
+        name: TypeScript (Node ${{ matrix.node-version }})
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                node-version: [18, 20, 22]
+        defaults:
+            run:
+                working-directory: packages/typescript
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ matrix.node-version }}
+            - name: Install dependencies
+              run: |
+                  for i in 1 2 3; do
+                    rm -rf node_modules package-lock.json
+                    npm install --prefer-online 2>&1 || true
+                    if [ -f node_modules/@types/node/index.d.ts ]; then
+                      echo "Install succeeded on attempt $i"
+                      break
+                    fi
+                    echo "Attempt $i: @types/node not installed correctly, retrying..."
+                    sleep 5
+                  done
+                  test -f node_modules/@types/node/index.d.ts || { echo "@types/node missing after 3 attempts"; exit 1; }
+            - run: npm run build
+            - run: npm test
+
+    python:
+        name: Python (${{ matrix.python-version }})
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                python-version: ['3.9', '3.10', '3.11', '3.12']
+        defaults:
+            run:
+                working-directory: packages/python
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ matrix.python-version }}
+            - run: pip install -e ".[dev]"
+            - run: pytest
+            - run: mypy src/
