@@ -5,6 +5,7 @@ import { isOk } from '../core/result.js';
 import type { AuthDeps } from '../deps.js';
 import { Command } from '../core/constants.js';
 
+import { runCascade } from './commands/cascade.js';
 import { runGet } from './commands/get.js';
 import { runLogin } from './commands/login.js';
 import { runStatus } from './commands/status.js';
@@ -72,6 +73,8 @@ Authentication:
     --cookie "k=v; k2=v2"       Cookies from DevTools (no browser)
     --username <u> --password <p>  Basic auth (no browser)
     --strategy <name>            Force strategy (cookie|oauth2|api-token|basic)
+    --cascade                    Auto-try stored → refresh → browser in order
+  cascade <url>                Auto-detect and try auth methods in order
   logout [provider]            Clear credentials (all if none specified)
 
 Credentials:
@@ -132,6 +135,7 @@ Global options:
 const DEPS_COMMANDS: ReadonlySet<string> = new Set([
     Command.GET,
     Command.LOGIN,
+    Command.CASCADE,
     Command.STATUS,
     Command.LOGOUT,
     Command.PROVIDERS,
@@ -191,6 +195,9 @@ export async function run(args: string[]): Promise<void> {
             break;
         case Command.LOGIN:
             await runLogin(positionals, flags, deps as AuthDeps);
+            break;
+        case Command.CASCADE:
+            await runCascade(positionals, flags, deps as AuthDeps);
             break;
         case Command.REQUEST:
             await runRequest(positionals, flags, deps as AuthDeps);
