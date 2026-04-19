@@ -1,6 +1,6 @@
 {
     "name": "@sigcli/cli",
-    "version": "1.0.1",
+    "version": "1.1.0",
     "description": "General-purpose authentication CLI with pluggable strategies and browser adapters",
     "main": "dist/index.js",
     "type": "module",
