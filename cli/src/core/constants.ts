@@ -23,6 +23,7 @@ export const Command = {
     RENAME: 'rename',
     REMOVE: 'remove',
     COMPLETION: 'completion',
+    RUN: 'run',
     HELP: 'help',
 } as const;
 

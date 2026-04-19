@@ -19,6 +19,7 @@ import { runDoctor } from './commands/doctor.js';
 import { runRename } from './commands/rename.js';
 import { runRemove } from './commands/remove.js';
 import { runCompletion } from './commands/completion.js';
+import { runRun } from './commands/run.js';
 import { ExitCode } from './exit-codes.js';
 
 interface ParsedArgs {
@@ -36,7 +37,13 @@ export function parseArgs(args: string[]): ParsedArgs {
     let i = firstIsFlag ? 0 : 1;
     while (i < args.length) {
         const arg = args[i];
-        if (arg.startsWith('--')) {
+        if (arg === '--') {
+            // Everything after -- is positional (for sig run)
+            for (let j = i + 1; j < args.length; j++) {
+                positionals.push(args[j]);
+            }
+            break;
+        } else if (arg.startsWith('--')) {
             const key = arg.slice(2);
             const next = args[i + 1];
             if (next !== undefined && !next.startsWith('--')) {
@@ -127,6 +134,13 @@ Setup:
   doctor                       Check environment and configuration
   completion <shell>           Generate shell completion script (bash|zsh|fish)
 
+Process:
+  run --provider <id> -- <cmd>  Run command with credentials injected as SIG_* env vars
+    --expand-cookies             Expand individual cookies as SIG_COOKIE_<NAME>=value
+    --no-redaction               Disable credential redaction from child output
+    --mount <path>               Write credentials to file instead of env vars
+    --mount-format env|json      File format for --mount (default: env)
+
 Global options:
   --verbose                    Debug output to stderr
   --help                       Show this help
@@ -143,6 +157,7 @@ const DEPS_COMMANDS: ReadonlySet<string> = new Set([
     Command.WATCH,
     Command.RENAME,
     Command.REMOVE,
+    Command.RUN,
 ]);
 
 export async function run(args: string[]): Promise<void> {
@@ -225,6 +240,9 @@ export async function run(args: string[]): Promise<void> {
             break;
         case Command.REMOVE:
             await runRemove(positionals, flags, deps as AuthDeps);
+            break;
+        case Command.RUN:
+            await runRun(positionals, flags, deps as AuthDeps);
             break;
         default:
             process.stderr.write(`Unknown command: ${command}\n\n`);
