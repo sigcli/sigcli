@@ -44,15 +44,16 @@ sig request https://jira.example.com/rest/api/2/myself   # Authenticated request
 
 ### Authentication
 
-| Command                                         | Description                                  |
-| ----------------------------------------------- | -------------------------------------------- |
-| `sig login <url>`                               | Authenticate via browser SSO                 |
-| `sig login <url> --as <id>`                     | Authenticate with a custom provider ID       |
-| `sig login <url> --token <value>`               | Store an API key or PAT (no browser)         |
-| `sig login <url> --cookie "k=v; k2=v2"`         | Store cookies from DevTools (no browser)     |
-| `sig login <url> --username <u> --password <p>` | Basic auth (no browser)                      |
-| `sig login <url> --strategy <name>`             | Force a specific strategy                    |
-| `sig logout [provider]`                         | Clear credentials (all if no provider given) |
+| Command                                         | Description                                      |
+| ----------------------------------------------- | ------------------------------------------------ |
+| `sig login <url>`                               | Authenticate (checks stored → refresh → browser) |
+| `sig login <url> --force`                       | Force re-authentication (skip stored/refresh)    |
+| `sig login <url> --as <id>`                     | Authenticate with a custom provider ID           |
+| `sig login <url> --token <value>`               | Store an API key or PAT (no browser)             |
+| `sig login <url> --cookie "k=v; k2=v2"`         | Store cookies from DevTools (no browser)         |
+| `sig login <url> --username <u> --password <p>` | Basic auth (no browser)                          |
+| `sig login <url> --strategy <name>`             | Force a specific strategy                        |
+| `sig logout [provider]`                         | Clear credentials (all if no provider given)     |
 
 ### Credentials
 

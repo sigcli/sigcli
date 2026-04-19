@@ -73,6 +73,7 @@ Authentication:
     --cookie "k=v; k2=v2"       Cookies from DevTools (no browser)
     --username <u> --password <p>  Basic auth (no browser)
     --strategy <name>            Force strategy (cookie|oauth2|api-token|basic)
+    --force                      Skip stored/refresh check, go straight to browser
   logout [provider]            Clear credentials (all if none specified)
 
 Credentials:
