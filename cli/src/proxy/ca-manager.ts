@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import {
     X509CertificateGenerator,
     X509Certificate,
