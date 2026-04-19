@@ -25,6 +25,7 @@ describe('constants', () => {
             expect(Command.DOCTOR).toBe('doctor');
             expect(Command.GET).toBe('get');
             expect(Command.LOGIN).toBe('login');
+            expect(Command.CASCADE).toBe('cascade');
             expect(Command.REQUEST).toBe('request');
             expect(Command.STATUS).toBe('status');
             expect(Command.LOGOUT).toBe('logout');
@@ -38,7 +39,7 @@ describe('constants', () => {
         });
 
         it('has exactly the expected number of commands', () => {
-            expect(Object.keys(Command)).toHaveLength(14);
+            expect(Object.keys(Command)).toHaveLength(15);
         });
 
         it('values are all lowercase strings', () => {

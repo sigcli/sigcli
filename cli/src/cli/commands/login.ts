@@ -20,6 +20,7 @@ import {
     CredentialTypeName,
 } from '../../core/constants.js';
 import { ExitCode } from '../exit-codes.js';
+import { runCascade } from './cascade.js';
 
 /** Convert runtime ProviderConfig to the YAML ProviderEntry format. */
 function toProviderEntry(pc: ProviderConfig): ProviderEntry {
@@ -86,6 +87,12 @@ export async function runLogin(
 
     const hasOverrides = flags.strategy !== undefined || typeof flags.as === 'string';
     const provider = hasOverrides ? { ...baseProvider } : baseProvider;
+
+    // --cascade: delegate to cascade flow (stored -> refresh -> browser)
+    if (flags.cascade === true) {
+        await runCascade(positionals, flags, deps);
+        return;
+    }
 
     // --as <id>: override the provider ID (useful for auto-provisioned providers)
     if (typeof flags.as === 'string') {
