@@ -21,8 +21,8 @@ The system SHALL spawn a child process with credentials injected as `SIG_*` envi
 
 #### Scenario: Cookie credential injection
 
-- GIVEN a valid cookie credential for provider "loki-orca" with cookies `session=abc` and `d=xyz`
-- WHEN the user runs `sig run --provider loki-orca -- env`
+- GIVEN a valid cookie credential for provider "sap-jira" with cookies `session=abc` and `d=xyz`
+- WHEN the user runs `sig run --provider sap-jira -- env`
 - THEN the child process environment contains `SIG_COOKIE=session=abc; d=xyz`
 - AND `SIG_CREDENTIAL_TYPE=cookie`
 
@@ -122,8 +122,8 @@ The system MUST check stored credentials and attempt refresh, but MUST NOT open 
 
 #### Scenario: Valid stored credential
 
-- GIVEN a valid stored credential for provider "loki-orca"
-- WHEN the user runs `sig run --provider loki-orca -- <command>`
+- GIVEN a valid stored credential for provider "sap-jira"
+- WHEN the user runs `sig run --provider sap-jira -- <command>`
 - THEN the credential is used without any auth flow
 
 #### Scenario: Expired credential with refresh

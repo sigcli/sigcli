@@ -42,7 +42,7 @@ describe('credentialToEnvVars', () => {
                 cookies: [makeCookie('session', 'abc'), makeCookie('d', 'xyz')],
                 obtainedAt: new Date().toISOString(),
             };
-            const env = credentialToEnvVars(cred, 'loki-orca', {});
+            const env = credentialToEnvVars(cred, 'my-jira', {});
             expect(env['SIG_COOKIE']).toBe('session=abc; d=xyz');
             expect(env['SIG_CREDENTIAL_TYPE']).toBe('cookie');
             expect(env['SIG_AUTH_HEADER']).toBeUndefined();

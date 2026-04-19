@@ -32,23 +32,9 @@ providers:
 **Proposed**: On `ProviderNotFoundError`, compute Levenshtein distance against known IDs/names and suggest the closest match:
 
 ```
-Error: No provider found matching "bdc-strkiller".
-Did you mean: bdc-starkiller?
+Error: No provider found matching "sap-jra".
+Did you mean: sap-jira?
 ```
-
----
-
-## 3. Shell Completions
-
-**Problem**: Provider IDs are hard to remember and type. No tab completion support.
-
-**Proposed**: Generate bash/zsh/fish completions:
-
-- `sig login <TAB>` → list provider IDs
-- `sig get <TAB>` → list provider IDs
-- `sig status <TAB>` → list provider IDs
-
-Implement via `sig completions bash|zsh|fish` that outputs the completion script.
 
 ---
 
@@ -89,7 +75,6 @@ Implement via `sig completions bash|zsh|fish` that outputs the completion script
 | --- | --------------------------- | ------ | ------ |
 | 1   | Device Code OAuth2 strategy | High   | Medium |
 | 2   | "Did you mean?" suggestions | Medium | Small  |
-| 3   | Shell completions           | Medium | Medium |
 | 4   | Windows browser detection   | Medium | Small  |
 | 5   | Programmatic API docs       | Medium | Small  |
 | 6   | `sig doctor` enhancements   | Low    | Medium |

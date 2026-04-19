@@ -4,7 +4,7 @@ import type { ProviderConfig } from '../core/types.js';
  * Derive a short, human-friendly provider ID from a hostname.
  *
  * - If the first subdomain segment is >= 8 chars, use it as-is
- *   (e.g., "bdc-cockpit-starkiller-hc-ga" from the long SAP URL)
+ *   (e.g., "dashboard-analytics-prod-us" from a long subdomain URL)
  * - If < 8 chars, join first two segments with "-"
  *   (e.g., "jira-tools" from "jira.tools.sap")
  *

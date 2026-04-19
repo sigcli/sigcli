@@ -1,0 +1,837 @@
+import {
+    SectionHeading,
+    P,
+    Code,
+    CodeBlock,
+    List,
+    Li,
+    type EditorialSection,
+} from '../components/markdown';
+import type { FlatTocItem, TocNodeType } from '../components/toc-tree';
+
+function tocItem(
+    href: string,
+    label: string,
+    opts: { level?: 0 | 1 | 2 | 3; parent?: string; prefix?: string; type?: TocNodeType } = {},
+): FlatTocItem {
+    return {
+        href,
+        label,
+        type: opts.type ?? (opts.level === 0 || !opts.level ? 'h2' : 'h3'),
+        visualLevel: (opts.level ?? 0) as FlatTocItem['visualLevel'],
+        prefix: opts.prefix ?? '',
+        parentHref: opts.parent ?? null,
+        pageHref: '/docs/',
+    };
+}
+
+export const pageContent = {
+    meta: {
+        title: 'Sigcli Docs — Complete Reference',
+        description:
+            'Complete documentation for Sigcli: getting started, commands reference, environment variables, configuration, strategies, browser adapters, SDK, AI agents, and remote sync.',
+    },
+
+    toc: [
+        tocItem('#getting-started', 'Getting Started'),
+        tocItem('#install', 'Install', { level: 1, parent: '#getting-started', prefix: '├ ' }),
+        tocItem('#first-login', 'First login', { level: 1, parent: '#getting-started', prefix: '├ ' }),
+        tocItem('#first-run', 'First sig run', { level: 1, parent: '#getting-started', prefix: '└ ' }),
+        tocItem('#commands', 'Commands'),
+        tocItem('#cmd-init', 'sig init', { level: 1, parent: '#commands', prefix: '├ ' }),
+        tocItem('#cmd-doctor', 'sig doctor', { level: 1, parent: '#commands', prefix: '├ ' }),
+        tocItem('#cmd-run', 'sig run ★', { level: 1, parent: '#commands', prefix: '├ ' }),
+        tocItem('#cmd-login', 'sig login', { level: 1, parent: '#commands', prefix: '├ ' }),
+        tocItem('#cmd-logout', 'sig logout', { level: 1, parent: '#commands', prefix: '├ ' }),
+        tocItem('#cmd-get', 'sig get', { level: 1, parent: '#commands', prefix: '├ ' }),
+        tocItem('#cmd-request', 'sig request', { level: 1, parent: '#commands', prefix: '├ ' }),
+        tocItem('#cmd-status', 'sig status', { level: 1, parent: '#commands', prefix: '├ ' }),
+        tocItem('#cmd-providers', 'sig providers', { level: 1, parent: '#commands', prefix: '├ ' }),
+        tocItem('#cmd-rename', 'sig rename', { level: 1, parent: '#commands', prefix: '├ ' }),
+        tocItem('#cmd-remove', 'sig remove', { level: 1, parent: '#commands', prefix: '├ ' }),
+        tocItem('#cmd-remote', 'sig remote', { level: 1, parent: '#commands', prefix: '├ ' }),
+        tocItem('#cmd-sync', 'sig sync', { level: 1, parent: '#commands', prefix: '├ ' }),
+        tocItem('#cmd-watch', 'sig watch', { level: 1, parent: '#commands', prefix: '├ ' }),
+        tocItem('#cmd-completion', 'sig completion', { level: 1, parent: '#commands', prefix: '└ ' }),
+        tocItem('#env-vars', 'Environment Variables'),
+        tocItem('#configuration', 'Configuration'),
+        tocItem('#config-file', 'config.yaml', { level: 1, parent: '#configuration', prefix: '├ ' }),
+        tocItem('#config-providers', 'Providers', { level: 1, parent: '#configuration', prefix: '└ ' }),
+        tocItem('#strategies', 'Auth Strategies'),
+        tocItem('#strat-cookie', 'cookie', { level: 1, parent: '#strategies', prefix: '├ ' }),
+        tocItem('#strat-oauth2', 'oauth2', { level: 1, parent: '#strategies', prefix: '├ ' }),
+        tocItem('#strat-api-token', 'api-token', { level: 1, parent: '#strategies', prefix: '├ ' }),
+        tocItem('#strat-basic', 'basic', { level: 1, parent: '#strategies', prefix: '└ ' }),
+        tocItem('#browser-adapters', 'Browser Adapters'),
+        tocItem('#sdk', 'SDK'),
+        tocItem('#sdk-ts', 'TypeScript SDK', { level: 1, parent: '#sdk', prefix: '├ ' }),
+        tocItem('#sdk-python', 'Python SDK', { level: 1, parent: '#sdk', prefix: '└ ' }),
+        tocItem('#ai-agents', 'AI Agent Integration'),
+        tocItem('#remote-ssh', 'Remote & SSH'),
+        tocItem('#error-codes', 'Error Codes'),
+    ] as FlatTocItem[],
+
+    hero: (
+        <div style={{ padding: '20px 0 8px' }}>
+            <p
+                style={{
+                    fontFamily: 'var(--font-secondary)',
+                    fontStyle: 'italic',
+                    fontSize: '19px',
+                    fontWeight: 400,
+                    lineHeight: 1.55,
+                    color: 'var(--text-primary)',
+                    opacity: 0.72,
+                    margin: 0,
+                }}
+            >
+                Complete reference for Sigcli — the authentication CLI that signs requests on your
+                behalf. Log in once, use credentials everywhere.
+            </p>
+        </div>
+    ),
+
+    sections: [
+        /* ── Getting Started ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="getting-started" level={1}>
+                        Getting Started
+                    </SectionHeading>
+                    <P>
+                        Sigcli (<Code>sig</Code>) is a personal seal of authority. It handles browser
+                        SSO, stores tokens, and injects credentials into any command — so you log in
+                        once and every tool just works.
+                    </P>
+
+                    <SectionHeading id="install" level={2}>
+                        Install
+                    </SectionHeading>
+                    <CodeBlock lang="bash">{`npm install -g @sigcli/cli
+
+# or without global install:
+npx @sigcli/cli sig --help`}</CodeBlock>
+
+                    <SectionHeading id="first-login" level={2}>
+                        First login
+                    </SectionHeading>
+                    <P>
+                        Run <Code>sig init</Code> to create <Code>~/.sig/config.yaml</Code>, then
+                        sign in to your provider. Sign in with a real browser — credentials are captured automatically
+                        via browser SSO.
+                    </P>
+                    <CodeBlock lang="bash">{`# 1. Create config (interactive)
+sig init
+
+# 2. Sign in — opens a real browser, captures cookies automatically
+sig login https://jira.example.com
+
+# 3. Confirm it worked
+sig status my-jira`}</CodeBlock>
+
+                    <SectionHeading id="first-run" level={2}>
+                        First sig run
+                    </SectionHeading>
+                    <P>
+                        <Code>sig run</Code> is the recommended way to use credentials. It injects{' '}
+                        <Code>SIG_*</Code> environment variables directly into the child process —
+                        nothing leaks into shell history or process lists.
+                    </P>
+                    <CodeBlock lang="bash">{`# Discover what variables are available
+sig run my-jira -- env | grep SIG_
+
+# Run any command with credentials injected
+sig run my-jira -- curl https://jira.example.com/api/me
+
+# Run a Python script
+sig run my-jira -- python fetch_issues.py`}</CodeBlock>
+                </>
+            ),
+            aside: (
+                <P>
+                    Credentials are stored in <Code>~/.sig/credentials/</Code> as sealed JSON files.
+                    Nothing goes into your repo, shell history, or environment by default.
+                </P>
+            ),
+        },
+
+        /* ── Commands ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="commands" level={1}>
+                        Commands
+                    </SectionHeading>
+                    <P>
+                        All commands accept <Code>--verbose</Code> for debug output on stderr and{' '}
+                        <Code>--help</Code> to show usage.
+                    </P>
+
+                    <SectionHeading id="cmd-init" level={2}>
+                        sig init
+                    </SectionHeading>
+                    <P>
+                        Creates <Code>~/.sig/config.yaml</Code> interactively. On headless machines
+                        use <Code>--remote</Code> to enable browserless mode.
+                    </P>
+                    <CodeBlock lang="bash">{`sig init                    # interactive setup
+sig init --remote           # headless / CI / remote machine
+sig init --yes              # accept all defaults, skip prompts
+sig init --force            # overwrite existing config
+sig init --channel chrome   # use a specific browser (chrome|msedge|chromium)`}</CodeBlock>
+
+                    <SectionHeading id="cmd-doctor" level={2}>
+                        sig doctor
+                    </SectionHeading>
+                    <P>
+                        Checks Node version, Playwright installation, config parsing, and that the
+                        credentials directory is writable. Run this first when something doesn't work.
+                    </P>
+                    <CodeBlock lang="bash">{`sig doctor`}</CodeBlock>
+
+                    <SectionHeading id="cmd-run" level={2}>
+                        sig run ★
+                    </SectionHeading>
+                    <P>
+                        <strong>The recommended way to use credentials.</strong> Runs any command
+                        with <Code>SIG_*</Code> environment variables injected. Credential values are
+                        automatically redacted from the child's stdout and stderr.
+                    </P>
+                    <CodeBlock lang="bash">{`sig run <provider|url> -- <cmd>
+
+# Discover available SIG_* variables
+sig run my-jira -- env | grep SIG_
+
+# Run with credentials injected
+sig run my-jira -- python fetch_issues.py
+sig run my-jira -- node export_board.js
+sig run jira.example.com -- curl https://jira.example.com/api/me
+
+# Expand individual cookies as SIG_COOKIE_<NAME>=value
+sig run my-jira --expand-cookies -- python script.py
+
+# Write credentials to a .env file (auto-deleted after child exits)
+sig run my-jira --mount .env -- node app.js
+sig run my-jira --mount creds.json --mount-format json -- node app.js
+
+# Disable redaction (raw values visible in output — use with caution)
+sig run my-jira --no-redaction -- env | grep SIG_`}</CodeBlock>
+                </>
+            ),
+            aside: (
+                <>
+                    <P>
+                        <strong>Why sig run over sig get?</strong> <Code>sig get</Code> exposes raw
+                        tokens in shell variables, <Code>ps</Code> output, and AI agent context.{' '}
+                        <Code>sig run</Code> injects credentials directly into the child environment
+                        and redacts them from output — nothing leaks.
+                    </P>
+                </>
+            ),
+        },
+
+        {
+            content: (
+                <>
+                    <SectionHeading id="cmd-login" level={2}>
+                        sig login
+                    </SectionHeading>
+                    <P>
+                        Authenticates with a provider. Accepts a URL or provider ID. By default
+                        launches Playwright headless; falls back to a visible window when a login page
+                        is detected.
+                    </P>
+                    <CodeBlock lang="bash">{`sig login <url>
+
+# Browser SSO (opens browser automatically)
+sig login https://jira.example.com
+
+# Custom provider ID
+sig login https://jira.example.com --as my-jira
+
+# API token / Personal Access Token (no browser)
+sig login https://jira.example.com --token <your-pat>
+
+# Cookies copied from browser DevTools → Network → Copy as cURL
+sig login https://jira.example.com --cookie "SESSION=abc123; csrf_token=xyz"
+
+# HTTP Basic auth
+sig login https://jira.example.com --username alice --password hunter2
+
+# Force a specific strategy
+sig login https://jira.example.com --strategy cookie
+sig login https://jira.example.com --strategy oauth2
+sig login https://jira.example.com --strategy api-token
+sig login https://jira.example.com --strategy basic
+
+# Skip stored credential check, go straight to browser
+sig login https://jira.example.com --force`}</CodeBlock>
+
+                    <SectionHeading id="cmd-logout" level={2}>
+                        sig logout
+                    </SectionHeading>
+                    <CodeBlock lang="bash">{`sig logout my-jira         # clear one provider
+sig logout                   # clear all credentials`}</CodeBlock>
+
+                    <SectionHeading id="cmd-get" level={2}>
+                        sig get
+                    </SectionHeading>
+                    <P>
+                        Retrieves credential headers for a provider. Prefer <Code>sig run</Code> or{' '}
+                        <Code>sig request</Code> over <Code>sig get</Code> — the latter exposes raw
+                        values in your shell.
+                    </P>
+                    <CodeBlock lang="bash">{`sig get my-jira                        # JSON map (default)
+sig get my-jira --format json          # structured JSON
+sig get my-jira --format header        # HTTP header string
+sig get my-jira --format value         # raw value only
+sig get jira.example.com                  # by URL`}</CodeBlock>
+                </>
+            ),
+            aside: (
+                <P>
+                    Strategy selection: use <Code>--token</Code>, <Code>--cookie</Code>, or{' '}
+                    <Code>--username/--password</Code> when you already have credentials — no browser
+                    needed. Only launch the browser for SSO sites.
+                </P>
+            ),
+        },
+
+        {
+            content: (
+                <>
+                    <SectionHeading id="cmd-request" level={2}>
+                        sig request
+                    </SectionHeading>
+                    <P>
+                        Makes an authenticated HTTP request. Credentials stay internal — never appear
+                        in shell history.
+                    </P>
+                    <CodeBlock lang="bash">{`sig request <url>
+
+sig request https://jira.example.com/api/me
+sig request https://jira.example.com/api/issues/123 --format body
+sig request https://jira.example.com/api/issues \
+  --method POST \
+  --body '{"title":"Bug","status":"open"}' \
+  --header "Content-Type: application/json"
+sig request <url> --format json     # full response (status, headers, body)
+sig request <url> --format body     # body only
+sig request <url> --format headers  # response headers only`}</CodeBlock>
+
+                    <SectionHeading id="cmd-status" level={2}>
+                        sig status
+                    </SectionHeading>
+                    <CodeBlock lang="bash">{`sig status                       # all providers
+sig status my-jira              # one provider
+sig status --format json         # machine-readable`}</CodeBlock>
+
+                    <SectionHeading id="cmd-providers" level={2}>
+                        sig providers
+                    </SectionHeading>
+                    <CodeBlock lang="bash">{`sig providers                    # table view
+sig providers --format json      # machine-readable`}</CodeBlock>
+
+                    <SectionHeading id="cmd-rename" level={2}>
+                        sig rename
+                    </SectionHeading>
+                    <CodeBlock lang="bash">{`sig rename my-jira my-service   # rename provider ID`}</CodeBlock>
+
+                    <SectionHeading id="cmd-remove" level={2}>
+                        sig remove
+                    </SectionHeading>
+                    <CodeBlock lang="bash">{`sig remove my-jira              # remove provider + credentials
+sig remove my-jira --keep-config  # clear credentials only
+sig remove my-jira --force        # skip confirmation`}</CodeBlock>
+                </>
+            ),
+        },
+
+        {
+            content: (
+                <>
+                    <SectionHeading id="cmd-remote" level={2}>
+                        sig remote
+                    </SectionHeading>
+                    <P>Manages SSH remotes for credential sync across machines.</P>
+                    <CodeBlock lang="bash">{`sig remote add prod ssh://deploy@ci.example.com
+sig remote add prod ci.example.com --user deploy --ssh-key ~/.ssh/id_rsa --path ~/.sig
+sig remote remove prod
+sig remote list
+sig remote list --format json`}</CodeBlock>
+
+                    <SectionHeading id="cmd-sync" level={2}>
+                        sig sync
+                    </SectionHeading>
+                    <P>Syncs credentials over SSH. Sign in on your laptop, push to servers.</P>
+                    <CodeBlock lang="bash">{`sig sync push prod               # push all credentials to remote
+sig sync pull prod               # pull credentials from remote
+sig sync push prod --provider my-jira   # sync one provider only
+sig sync push --force            # overwrite on conflict`}</CodeBlock>
+
+                    <SectionHeading id="cmd-watch" level={2}>
+                        sig watch
+                    </SectionHeading>
+                    <P>
+                        Auto-refreshes credentials on a schedule. Run{' '}
+                        <Code>sig watch start</Code> as a background daemon to keep sessions alive.
+                    </P>
+                    <CodeBlock lang="bash">{`sig watch add my-jira           # add to watch list
+sig watch add my-jira --auto-sync prod   # auto-sync after refresh
+sig watch remove my-jira        # remove from watch list
+sig watch list                   # show watched providers
+sig watch start                  # start auto-refresh daemon
+sig watch start --interval 30m   # refresh every 30 minutes
+sig watch start --once           # single cycle, then exit
+sig watch set-interval 1h        # change default interval`}</CodeBlock>
+
+                    <SectionHeading id="cmd-completion" level={2}>
+                        sig completion
+                    </SectionHeading>
+                    <CodeBlock lang="bash">{`sig completion bash >> ~/.bashrc
+sig completion zsh >> ~/.zshrc
+sig completion fish > ~/.config/fish/completions/sig.fish`}</CodeBlock>
+                </>
+            ),
+            aside: (
+                <P>
+                    <Code>sig watch start</Code> runs indefinitely — only invoke it as a background
+                    process or daemon, never in an interactive loop.
+                </P>
+            ),
+        },
+
+        /* ── Environment Variables ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="env-vars" level={1}>
+                        Environment Variables
+                    </SectionHeading>
+                    <P>
+                        <Code>sig run</Code> injects <Code>SIG_*</Code> variables into the child
+                        process. Use <Code>sig run my-jira -- env | grep SIG_</Code> to discover
+                        exactly what's available for a provider.
+                    </P>
+                    <CodeBlock lang="bash">{`# Always present
+SIG_PROVIDER          # provider ID, e.g. "my-jira"
+SIG_AUTH_TYPE         # credential type: cookie | bearer | api-key | basic
+
+# Bearer / OAuth2 token
+SIG_TOKEN             # raw token value, e.g. "eyJ..."
+SIG_AUTH_HEADER       # complete Authorization header value
+
+# Cookie credentials
+SIG_COOKIE            # full cookie string, e.g. "SESSION=abc; ..."
+
+# With --expand-cookies: individual cookies
+SIG_COOKIE_SESSION=abc123
+SIG_COOKIE_CSRF_TOKEN=xyz
+
+# Custom x-headers captured from browser traffic
+SIG_HEADER_X_AUSERNAME=alice
+SIG_HEADER_X_ATTOKEN=xyz`}</CodeBlock>
+
+                    <P>Example: reading credentials inside a Python script:</P>
+                    <CodeBlock lang="bash">{`import os
+
+# Python script run via: sig run my-jira -- python fetch.py
+token = os.environ.get("SIG_TOKEN")
+cookie = os.environ.get("SIG_COOKIE")
+auth_type = os.environ.get("SIG_AUTH_TYPE")
+
+if auth_type == "cookie":
+    headers = {"Cookie": cookie}
+elif auth_type == "bearer":
+    headers = {"Authorization": f"Bearer {token}"}`}</CodeBlock>
+                </>
+            ),
+            aside: (
+                <P>
+                    Credential values are redacted from child stdout/stderr by default. Use{' '}
+                    <Code>--no-redaction</Code> to see raw values during debugging.
+                </P>
+            ),
+        },
+
+        /* ── Configuration ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="configuration" level={1}>
+                        Configuration
+                    </SectionHeading>
+
+                    <SectionHeading id="config-file" level={2}>
+                        config.yaml
+                    </SectionHeading>
+                    <P>
+                        Sigcli reads <Code>~/.sig/config.yaml</Code>. Run <Code>sig init</Code> to
+                        generate a starter file. The top-level keys are <Code>mode</Code> and{' '}
+                        <Code>providers</Code>.
+                    </P>
+                    <CodeBlock lang="bash">{`# ~/.sig/config.yaml
+
+mode: browser          # browser | browserless
+browserChannel: chrome # chrome | msedge | chromium (default: chromium)
+
+providers:
+  my-jira:
+    url: https://jira.example.com
+    strategy: cookie
+    requiredCookies:
+      - SESSION
+    xHeaders:
+      - name: X-User
+        header: x-user
+      - name: X-Token
+        header: x-token`}</CodeBlock>
+
+                    <SectionHeading id="config-providers" level={2}>
+                        Provider config options
+                    </SectionHeading>
+                    <CodeBlock lang="bash">{`providers:
+  <provider-id>:
+    url: <base-url>              # required: URL to match
+    strategy: cookie|oauth2|api-token|basic
+    requiredCookies:             # wait until these cookies appear
+      - SESSION
+    xHeaders:                    # capture these response headers
+      - name: X-User        # internal name
+        header: x-user      # actual HTTP header name
+    forceVisible: true           # always open visible browser (default: false)
+    waitUntil: networkidle       # load event: load|domcontentloaded|networkidle
+    ttl: 8h                      # credential TTL (e.g. 1h, 8h, 7d)`}</CodeBlock>
+                </>
+            ),
+            aside: (
+                <P>
+                    Provider IDs (e.g. <Code>my-jira</Code>) are how you reference a provider in
+                    all commands. <Code>sig login</Code> auto-creates a provider entry when you pass
+                    a URL; use <Code>--as</Code> to set a custom ID.
+                </P>
+            ),
+        },
+
+        /* ── Auth Strategies ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="strategies" level={1}>
+                        Auth Strategies
+                    </SectionHeading>
+                    <P>
+                        A strategy implements <Code>IAuthStrategy</Code>: <Code>validate</Code>,{' '}
+                        <Code>authenticate</Code>, <Code>refresh</Code>, and{' '}
+                        <Code>applyToRequest</Code>. Sigcli ships four built-in strategies. Auto-detection
+                        picks the right one; use <Code>--strategy</Code> to override.
+                    </P>
+
+                    <SectionHeading id="strat-cookie" level={3}>
+                        cookie
+                    </SectionHeading>
+                    <P>
+                        Captures the cookie jar from a real browser session. Best for SSO sites like
+                        Any site with multi-step login (QR codes, SAML, MFA).
+                        Supports <Code>forceVisible</Code>, <Code>waitUntil</Code>, and{' '}
+                        <Code>requiredCookies</Code>.
+                    </P>
+                    <CodeBlock lang="bash">{`sig login https://jira.example.com --strategy cookie`}</CodeBlock>
+
+                    <SectionHeading id="strat-oauth2" level={3}>
+                        oauth2
+                    </SectionHeading>
+                    <P>
+                        Watches for <Code>Authorization: Bearer ...</Code> on outgoing requests, or
+                        decodes a JWT from an OAuth redirect. Auto-refreshes when a refresh token is
+                        present.
+                    </P>
+                    <CodeBlock lang="bash">{`sig login https://jira.example.com --strategy oauth2`}</CodeBlock>
+
+                    <SectionHeading id="strat-api-token" level={3}>
+                        api-token
+                    </SectionHeading>
+                    <P>
+                        For static API keys or Personal Access Tokens you already have. No browser
+                        needed — ideal for CI/CD.
+                    </P>
+                    <CodeBlock lang="bash">{`sig login https://jira.example.com --token <your-pat>`}</CodeBlock>
+
+                    <SectionHeading id="strat-basic" level={3}>
+                        basic
+                    </SectionHeading>
+                    <P>
+                        Username and password, encoded to a Basic auth header at request time. The
+                        plaintext password is stored only in the sealed credential file under{' '}
+                        <Code>~/.sig/credentials/</Code>.
+                    </P>
+                    <CodeBlock lang="bash">{`sig login https://jira.example.com --username alice --password hunter2`}</CodeBlock>
+                </>
+            ),
+            aside: (
+                <P>
+                    Strategies return <Code>{'Result<T, AuthError>'}</Code> — never throw for
+                    expected failures. Callers check <Code>isOk()</Code> / <Code>isErr()</Code>.
+                    Build custom strategies by implementing <Code>IAuthStrategyFactory</Code>.
+                </P>
+            ),
+        },
+
+        /* ── Browser Adapters ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="browser-adapters" level={1}>
+                        Browser Adapters
+                    </SectionHeading>
+                    <P>
+                        Sigcli abstracts the browser behind <Code>IBrowserAdapter</Code> — three
+                        small classes: <strong>Adapter → Session → Page</strong>. Two adapters ship
+                        in the box.
+                    </P>
+
+                    <List>
+                        <Li>
+                            <strong>playwright</strong> — Default. Uses{' '}
+                            <Code>playwright-core</Code> with Chromium, Chrome, or Edge. Supports
+                            headless and visible modes. Required for browser SSO.
+                        </Li>
+                        <Li>
+                            <strong>chrome-cdp</strong> — Connects to an existing Chrome instance via
+                            the Chrome DevTools Protocol. Useful when you want to attach to your
+                            already-open browser without launching a new one.
+                        </Li>
+                    </List>
+
+                    <P>
+                        <Code>sig init --remote</Code> puts Sigcli into <Code>browserless</Code>{' '}
+                        mode, where the <Code>NullBrowserAdapter</Code> is used — token/cookie/basic
+                        login still works, but SSO flows are disabled.
+                    </P>
+                    <CodeBlock lang="bash">{`# Which adapter to use?
+# → Developer laptop with display: playwright (default)
+# → Attach to open Chrome: chrome-cdp
+# → Headless CI / remote server: browserless mode + sig sync pull`}</CodeBlock>
+                </>
+            ),
+            aside: (
+                <P>
+                    Write a custom adapter by implementing <Code>IBrowserAdapter</Code>,{' '}
+                    <Code>IBrowserSession</Code>, and <Code>IBrowserPage</Code>. Lazy-import the
+                    browser library and throw <Code>BrowserLaunchError</Code> on import failure so{' '}
+                    <Code>sig doctor</Code> can diagnose what's missing.
+                </P>
+            ),
+        },
+
+        /* ── SDK ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="sdk" level={1}>
+                        SDK
+                    </SectionHeading>
+                    <P>
+                        Lightweight client SDKs wrap the <Code>sig get</Code> CLI call, parse the
+                        JSON output, and return typed credential objects. They are thin wrappers —
+                        all auth logic lives in the CLI.
+                    </P>
+
+                    <SectionHeading id="sdk-ts" level={2}>
+                        TypeScript SDK
+                    </SectionHeading>
+                    <CodeBlock lang="bash">{`npm install @sigcli/sdk`}</CodeBlock>
+                    <CodeBlock lang="bash">{`import { SigClient } from '@sigcli/sdk';
+
+const sig = new SigClient();
+
+// Get credential headers
+const headers = await sig.getHeaders('my-jira');
+const response = await fetch('https://jira.example.com/api/me', { headers });
+
+// Or use sig.request() directly
+const result = await sig.request('https://jira.example.com/api/issues/123');`}</CodeBlock>
+
+                    <SectionHeading id="sdk-python" level={2}>
+                        Python SDK
+                    </SectionHeading>
+                    <CodeBlock lang="bash">{`pip install sigcli-sdk`}</CodeBlock>
+                    <CodeBlock lang="bash">{`from sigcli import SigClient
+
+sig = SigClient()
+
+# Get headers
+headers = sig.get_headers("my-jira")
+response = requests.get("https://jira.example.com/api/me", headers=headers)
+
+# Or use sig.request() directly
+result = sig.request("https://jira.example.com/api/issues/123")`}</CodeBlock>
+                </>
+            ),
+            aside: (
+                <P>
+                    The SDKs require <Code>sig</Code> to be installed and a valid credential to
+                    exist. They call <Code>sig get --format json</Code> internally and parse the
+                    result — no browser or network access in the SDK itself.
+                </P>
+            ),
+        },
+
+        /* ── AI Agents ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="ai-agents" level={1}>
+                        AI Agent Integration
+                    </SectionHeading>
+                    <P>
+                        Sigcli exposes a stable CLI surface that agents shell out to. No SDK, no MCP
+                        server — just commands with predictable exit codes and JSON output.
+                    </P>
+                    <P>
+                        The recommended pattern is <Code>sig run</Code>: the agent spawns a child
+                        process with credentials already in the environment. The agent never sees
+                        token values.
+                    </P>
+                    <CodeBlock lang="bash">{`# Recommended: sig run keeps credentials out of agent context
+sig run my-jira -- python fetch_issues.py
+sig run my-jira -- node export_sprint.js
+
+# Discovery: find out what SIG_* vars are available
+sig run my-jira -- env | grep SIG_
+
+# Alternative: sig request (credentials stay internal)
+sig request https://jira.example.com/api/me`}</CodeBlock>
+
+                    <P>
+                        For Claude Code, the bundled <Code>/auth</Code> skill wraps these commands.
+                        To check auth status before acting:
+                    </P>
+                    <CodeBlock lang="bash">{`# Always check before logging in — avoid unnecessary browser launches
+sig status my-jira --format json
+# exit 0 + "valid": true  → credentials ready, skip login
+# exit 3                  → no credentials, run sig login
+# exit 0 + expired        → sig logout my-jira && sig login https://jira.example.com`}</CodeBlock>
+                </>
+            ),
+            aside: (
+                <>
+                    <P>
+                        The CLI owns locking, TTL, and refresh logic. Shelling out means every
+                        caller benefits from those without re-implementing them.
+                    </P>
+                    <P>
+                        Never display <Code>sig get</Code> output in agent context or logs — it may
+                        contain raw bearer tokens or API keys.
+                    </P>
+                </>
+            ),
+        },
+
+        /* ── Remote & SSH ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="remote-ssh" level={1}>
+                        Remote & SSH
+                    </SectionHeading>
+                    <P>
+                        Sign in on your laptop, push credentials to headless servers over SSH. No
+                        daemon required — sync uses your existing SSH keys and the same file locking
+                        as local storage.
+                    </P>
+                    <CodeBlock lang="bash">{`# 1. On the headless server — set browserless mode
+sig init --remote
+
+# 2. On the laptop — add the remote
+sig remote add prod ssh://deploy@ci.example.com
+# or with explicit options:
+sig remote add prod ci.example.com --user deploy --ssh-key ~/.ssh/id_rsa
+
+# 3. Push all credentials to the server
+sig sync push prod
+
+# 4. Push a single provider
+sig sync push prod --provider my-jira
+
+# 5. On the server — use immediately, no browser needed
+sig run my-jira -- python deploy.py`}</CodeBlock>
+
+                    <P>
+                        Pull credentials from a remote machine (e.g. in a CI job that should mirror
+                        your dev credentials):
+                    </P>
+                    <CodeBlock lang="bash">{`sig sync pull prod                # pull all
+sig sync pull prod --force        # overwrite on conflict`}</CodeBlock>
+
+                    <P>
+                        Keep credentials fresh on the server by pairing watch with auto-sync:
+                    </P>
+                    <CodeBlock lang="bash">{`# On laptop: refresh my-jira every hour and auto-push to prod
+sig watch add my-jira --auto-sync prod
+sig watch start --interval 1h`}</CodeBlock>
+                </>
+            ),
+            aside: (
+                <P>
+                    Sync transports credential files as-is over SSH — the transport never decodes
+                    them. You keep your normal SSH key management; no new infrastructure to run.
+                </P>
+            ),
+        },
+
+        /* ── Error Codes ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="error-codes" level={1}>
+                        Error Codes
+                    </SectionHeading>
+                    <P>All commands exit with a code that scripts can branch on:</P>
+                    <CodeBlock lang="bash">{`# Exit codes
+0   Success
+1   GENERAL_ERROR       — invalid args or unexpected failure
+2   PROVIDER_NOT_FOUND  — URL/ID doesn't match any configured provider
+3   CREDENTIAL_NOT_FOUND — no stored credentials → run sig login
+4   REMOTE_NOT_FOUND    — SSH remote not configured → run sig remote add`}</CodeBlock>
+
+                    <P>Auth error codes from <Code>--verbose</Code> stderr:</P>
+                    <CodeBlock lang="bash">{`CREDENTIAL_EXPIRED        # token/cookie expired, refresh failed
+                          # fix: sig logout <p> && sig login <url>
+
+CREDENTIAL_TYPE_MISMATCH  # wrong credential type for provider
+                          # fix: re-login with --strategy <name>
+
+REFRESH_FAILED            # OAuth2 refresh token rejected
+                          # fix: sig logout <p> && sig login <url>
+
+BROWSER_LAUNCH_ERROR      # playwright-core not installed or no browser
+                          # fix: sig doctor; install playwright-core
+
+BROWSER_TIMEOUT           # browser auth took too long
+                          # fix: retry; if CAPTCHA/MFA ensure visible mode
+
+BROWSER_UNAVAILABLE       # machine is in browserless mode
+                          # fix: use --token/--cookie or sig sync pull
+
+CONFIG_ERROR              # malformed ~/.sig/config.yaml
+                          # fix: sig doctor to validate
+
+SYNC_CONFLICT             # local/remote credentials differ
+                          # fix: sig sync pull --force
+
+STORAGE_ERROR             # cannot read/write credential files
+                          # fix: check permissions on ~/.sig/credentials/`}</CodeBlock>
+                </>
+            ),
+            aside: (
+                <P>
+                    Add <Code>--verbose</Code> to any command to see detailed error messages on
+                    stderr. Use <Code>sig doctor</Code> as the first step when something doesn't
+                    work.
+                </P>
+            ),
+        },
+    ] as EditorialSection[],
+};

@@ -98,20 +98,20 @@ describe('runLogin --as flag', () => {
         const { deps, storage } = createDeps();
 
         await runLogin(
-            ['https://bdc-cockpit-starkiller-hc-ga.starkiller.hanacloudservices.cloud.sap/'],
-            { as: 'bdc-starkiller', cookie: 'session=abc' },
+            ['https://dashboard-analytics-prod-us.analytics.cloudservices.example.com/'],
+            { as: 'my-dashboard', cookie: 'session=abc' },
             deps,
         );
 
         expect(process.exitCode).not.toBe(1);
 
         // Credential stored under the custom ID
-        const stored = await storage.get('bdc-starkiller');
+        const stored = await storage.get('my-dashboard');
         expect(stored).not.toBeNull();
         expect(stored!.credential.type).toBe('cookie');
 
         // Not stored under the auto-derived ID
-        const old = await storage.get('bdc-cockpit-starkiller-hc-ga');
+        const old = await storage.get('dashboard-analytics-prod-us');
         expect(old).toBeNull();
     });
 

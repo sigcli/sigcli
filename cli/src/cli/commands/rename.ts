@@ -11,7 +11,7 @@ export async function runRename(
     const newId = positionals[1];
 
     if (!oldId || !newId) {
-        process.stderr.write('Usage: sig rename <old-id> <new-id>\n');
+        process.stderr.write('Usage: sig rename <old> <new>\n');
         process.exitCode = ExitCode.GENERAL_ERROR;
         return;
     }
