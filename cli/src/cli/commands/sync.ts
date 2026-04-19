@@ -5,6 +5,7 @@ import { SshTransport } from '../../sync/transports/ssh.js';
 import { formatJson } from '../formatters.js';
 import { ExitCode } from '../exit-codes.js';
 import { SyncSubcommand } from '../../core/constants.js';
+import { logAuditEvent, AuditAction, AuditStatus } from '../../audit/audit-log.js';
 
 export async function runSync(
     positionals: string[],
@@ -89,6 +90,18 @@ export async function runSync(
     if (result.configSynced.error) {
         process.stderr.write(`Config warning: ${result.configSynced.error}\n`);
     }
+
+    await logAuditEvent({
+        action: subcommand === SyncSubcommand.PUSH ? AuditAction.SYNC_PUSH : AuditAction.SYNC_PULL,
+        status: result.errors.length > 0 ? AuditStatus.FAILURE : AuditStatus.SUCCESS,
+        metadata: {
+            remote: remote.name,
+            host: remote.host,
+            synced,
+            skipped: result.skipped,
+            errors: result.errors.length,
+        },
+    });
 
     // JSON output to stdout
     process.stdout.write(formatJson(result) + '\n');
