@@ -56,25 +56,25 @@ sig request https://jira.example.com/rest/api/2/myself   # Authenticated request
 
 ### Credentials
 
-| Command                                                | Description                           |
-| ------------------------------------------------------ | ------------------------------------- |
-| `sig get <provider\|url>`                              | Get credential headers (JSON default) |
-| `sig get <provider\|url> --format json\|header\|value` | Choose output format                  |
-| `sig request <url>`                                    | Make authenticated HTTP request       |
-| `sig request <url> --method POST --body '{...}'`       | POST with body                        |
-| `sig request <url> --header "K: V" --format body`      | Add headers, get body only            |
-| `sig status`                                           | Show auth status for all providers    |
-| `sig status <provider> --format json\|table`           | Status for one provider               |
+| Command                                                        | Description                           |
+| -------------------------------------------------------------- | ------------------------------------- |
+| `sig get <provider\|url>`                                      | Get credential headers (JSON default) |
+| `sig get <provider\|url> --format json\|header\|value`         | Choose output format                  |
+| `sig request <url>`                                            | Make authenticated HTTP request       |
+| `sig request <url> --method POST --body '{...}'`               | POST with body                        |
+| `sig request <url> --header "K: V" --format body`              | Add headers, get body only            |
+| `sig status`                                                   | Show auth status for all providers    |
+| `sig status <provider> --format json\|yaml\|env\|table\|plain` | Status for one provider               |
 
 ### Provider Management
 
-| Command                               | Description                                        |
-| ------------------------------------- | -------------------------------------------------- |
-| `sig providers`                       | List all configured providers                      |
-| `sig providers --format json\|table`  | Choose output format                               |
-| `sig rename <old-id> <new-id>`        | Rename a provider (updates config + credentials)   |
-| `sig remove <provider> [...]`         | Remove provider(s) -- deletes config + credentials |
-| `sig remove <provider> --keep-config` | Clear credentials only, keep config entry          |
+| Command                                                | Description                                        |
+| ------------------------------------------------------ | -------------------------------------------------- |
+| `sig providers`                                        | List all configured providers                      |
+| `sig providers --format json\|yaml\|env\|table\|plain` | Choose output format                               |
+| `sig rename <old-id> <new-id>`                         | Rename a provider (updates config + credentials)   |
+| `sig remove <provider> [...]`                          | Remove provider(s) -- deletes config + credentials |
+| `sig remove <provider> --keep-config`                  | Clear credentials only, keep config entry          |
 
 ### Remote & Sync
 

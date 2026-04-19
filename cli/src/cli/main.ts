@@ -84,11 +84,11 @@ Credentials:
     --header "Name: Value"       Custom header (repeatable)
     --format json|body|headers   Output format (default: json)
   status [provider]            Show authentication status
-    --format json|table          Output format
+    --format json|yaml|env|table|plain  Output format
 
 Provider management:
   providers                    List configured providers
-    --format json|table          Output format
+    --format json|yaml|env|table|plain  Output format
   rename <old> <new>           Rename a provider
   remove <provider> [...]      Remove provider(s) and their credentials
     --keep-config                Keep config entry, only clear credentials

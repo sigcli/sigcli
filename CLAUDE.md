@@ -46,7 +46,7 @@ core/ (types, interfaces, Result, errors) ── zero external deps, imported by
 - **`src/deps.ts`** — Composition root. Creates registries, storage, browser factory, AuthManager. No singletons.
 - **`src/auth-manager.ts`** — Orchestrator. Flow: stored cred → validate → refresh → authenticate. All methods return `Result<T, AuthError>`.
 - **`src/core/`** — Shared vocabulary. Zero external dependencies.
-- **`src/cli/`** — CLI commands (init, doctor, get, login, request, status, logout, providers, remote, sync).
+- **`src/cli/`** — CLI commands (init, doctor, get, login, request, status, logout, providers, remote, sync, watch, rename, remove, completion).
 - **`src/strategies/`** — Each strategy: private class + exported `*StrategyFactory` (IAuthStrategyFactory).
 - **`src/browser/adapters/`** — Browser automation. Three-class pattern: Adapter → Session → Page.
 - **`src/browser/flows/`** — `runHybridFlow`, `extractOAuthTokens`, `isLoginPage`, `startHeaderCapture`.
@@ -92,8 +92,12 @@ sig request <url>          # Make authenticated HTTP request
 sig status [provider]      # Show auth status
 sig logout [provider]      # Clear credentials
 sig providers              # List configured providers
+sig rename <old> <new>     # Rename a provider
+sig remove <provider>      # Remove provider and credentials
 sig remote add|remove|list # Manage remote credential stores
 sig sync push|pull [remote]# Sync credentials with remote
+sig watch add|remove|list|start  # Auto-refresh credentials
+sig completion <shell>     # Generate shell completion (bash|zsh|fish)
 ```
 
 ## Extension Points
