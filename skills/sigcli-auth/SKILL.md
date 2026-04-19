@@ -94,20 +94,27 @@ sig status <provider> --format json
 
 ### Run scripts with credentials injected (recommended for scripts)
 
-Use `sig run` to inject credentials as `SIG_*` environment variables without exposing them in shell history or `ps` output. Credential values are automatically redacted from child stdout/stderr.
+Use `sig run` to inject credentials as `SIG_<PROVIDER>_*` environment variables without exposing them in shell history or `ps` output. Credential values are automatically redacted from child stdout/stderr.
 
 ```bash
 # Discover available environment variables for a provider
-sig run <provider> -- env | grep SIG_
+sig run grafana -- env | grep SIG_GRAFANA_
 
-# Run a script with credentials available as SIG_* env vars
+# Run a script with credentials available as SIG_<PROVIDER>_* env vars
 sig run grafana -- python fetch_data.py
 
-# The child process can read:
-#   SIG_PROVIDER, SIG_CREDENTIAL_TYPE, SIG_TOKEN / SIG_COOKIE / SIG_API_KEY etc.
-#   SIG_AUTH_HEADER -- complete Authorization header value
+# The child process can read (e.g. for provider "grafana"):
+#   SIG_GRAFANA_PROVIDER, SIG_GRAFANA_CREDENTIAL_TYPE
+#   SIG_GRAFANA_TOKEN / SIG_GRAFANA_COOKIE / SIG_GRAFANA_API_KEY etc.
+#   SIG_GRAFANA_AUTH_HEADER — complete Authorization header value
 
-# Expand individual cookies as SIG_COOKIE_<NAME>=value
+# Multiple providers at once
+sig run provider-a provider-b -- python cross_tool.py
+
+# No providers — inject all valid credentials
+sig run -- python script.py
+
+# Expand individual cookies as SIG_<PROVIDER>_COOKIE_<NAME>=value
 sig run my-jira --expand-cookies -- python script.py
 
 # Write credentials to a .env file (deleted after child exits)

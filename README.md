@@ -9,9 +9,11 @@ npm install -g @sigcli/cli
 ## Quick Start
 
 ```bash
-sig init                                    # Create ~/.sig/config.yaml
+sig init                                      # Create ~/.sig/config.yaml
 sig login https://jira.example.com            # Authenticate via browser SSO
-sig run my-jira -- curl https://jira.example.com/rest/api/2/myself
+
+sig request https://jira.example.com/rest/api/2/myself                                   # Authenticated request
+sig run my-jira -- bash -c 'python fetch.py --cookie "$SIG_MY_JIRA_COOKIE"'              # Credentials as env vars
 ```
 
 Credentials are injected as `SIG_<PROVIDER>_*` env vars and never appear in your shell or logs. All credential files are encrypted at rest (AES-256-GCM).
@@ -35,12 +37,12 @@ Credentials are injected as `SIG_<PROVIDER>_*` env vars and never appear in your
 
 **Credentials**
 
-| Command                            | Description                                                   |
-| ---------------------------------- | ------------------------------------------------------------- |
-| `sig run <provider\|url> -- <cmd>` | **Run command with credentials injected as `SIG_*` env vars** |
-| `sig request <url>`                | Make an authenticated HTTP request                            |
-| `sig status [provider]`            | Show auth status                                              |
-| `sig get <provider\|url>`          | Get raw credential headers                                    |
+| Command                          | Description                                                              |
+| -------------------------------- | ------------------------------------------------------------------------ |
+| `sig run [provider...] -- <cmd>` | **Run command with credentials injected as `SIG_<PROVIDER>_*` env vars** |
+| `sig request <url>`              | Make an authenticated HTTP request                                       |
+| `sig status [provider]`          | Show auth status                                                         |
+| `sig get <provider\|url>`        | Get raw credential headers                                               |
 
 **Provider management**
 
