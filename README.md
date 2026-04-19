@@ -18,6 +18,7 @@ sig request https://jira.example.com/rest/api/2/myself   # Authenticated request
 ## Table of Contents
 
 - [Commands](#commands)
+- [Shell Completion](#shell-completion)
 - [Configuration](#configuration)
 - [Strategies](#strategies)
 - [xHeaders](#xheaders)
@@ -106,6 +107,29 @@ sig request https://jira.example.com/rest/api/2/myself   # Authenticated request
 | ----------- | ----------------------- |
 | `--verbose` | Debug logging to stderr |
 | `--help`    | Show help               |
+
+### Shell Completion
+
+Tab completion for commands, providers, and flags.
+
+```bash
+# Auto-detect shell from $SHELL
+eval "$(sig completion)"
+
+# Or specify explicitly
+eval "$(sig completion bash)"    # Bash
+eval "$(sig completion zsh)"     # Zsh
+source <(sig completion fish)    # Fish
+```
+
+**Permanent install — add to your shell profile:**
+
+```bash
+# ~/.zshrc (or ~/.bashrc)
+eval "$(sig completion)"
+```
+
+Completions include all subcommands, dynamic provider IDs (via `sig providers`), and subcommands for `remote`, `sync`, and `watch`.
 
 ## Configuration
 
