@@ -1,5 +1,13 @@
 # Signet
 
+> **This repository has been deprecated.** Development has moved to [sigcli/sigcli](https://github.com/sigcli/sigcli).
+>
+> ```bash
+> npm install -g @sigcli/cli
+> ```
+
+---
+
 General-purpose authentication CLI. Authenticate via browser SSO, store tokens, and make authenticated requests to any web service.
 
 ## Table of Contents
