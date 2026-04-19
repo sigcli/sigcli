@@ -1,7 +1,8 @@
 import type { AuthDeps } from '../../deps.js';
-import { formatJson, formatTable, formatExpiry, formatStatusIndicator } from '../formatters.js';
+import { formatExpiry, formatStatusIndicator, formatTable } from '../formatters.js';
 import type { ProviderStatus } from '../../core/types.js';
 import { getWatchProviders, type WatchProviderEntry } from '../../watch/watch-config.js';
+import { detectFormat, formatOutput } from '../../utils/formatter.js';
 
 function buildRows(
     statuses: ProviderStatus[],
@@ -26,7 +27,7 @@ export async function runStatus(
     deps: AuthDeps,
 ): Promise<void> {
     const providerId = (flags.provider as string) ?? positionals[0];
-    const format = (flags.format as string) ?? (process.stdout.isTTY ? 'table' : 'json');
+    const format = detectFormat(flags.format as string | undefined, 'table');
     const tableOptions = { maxColumnWidths: { id: 30, sync: 20 } };
 
     const watchEntries = await getWatchProviders();
@@ -35,23 +36,27 @@ export async function runStatus(
     if (providerId) {
         const resolved = deps.authManager.providerRegistry.resolveFlexible(providerId);
         const status = await deps.authManager.getStatus(resolved?.id ?? providerId);
-        if (format === 'json') {
-            process.stdout.write(formatJson(status) + '\n');
-        } else {
+        if (format === 'table') {
             process.stdout.write(formatTable(buildRows([status], watchMap), tableOptions) + '\n');
+        } else {
+            process.stdout.write(
+                formatOutput(status as unknown as Record<string, unknown>, format) + '\n',
+            );
         }
         return;
     }
 
     const statuses = await deps.authManager.getAllStatus();
 
-    if (format === 'json') {
-        process.stdout.write(formatJson(statuses) + '\n');
-    } else {
+    if (format === 'table') {
         if (statuses.length === 0) {
             process.stderr.write('No providers configured.\n');
             return;
         }
         process.stdout.write(formatTable(buildRows(statuses, watchMap), tableOptions) + '\n');
+    } else {
+        process.stdout.write(
+            formatOutput(statuses as unknown as Record<string, unknown>[], format) + '\n',
+        );
     }
 }
