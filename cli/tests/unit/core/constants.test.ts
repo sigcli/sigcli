@@ -4,6 +4,7 @@ import {
     RemoteSubcommand,
     SyncSubcommand,
     WatchSubcommand,
+    ProxySubcommand,
     WaitUntil,
     StrategyName,
     CredentialTypeName,
@@ -36,11 +37,12 @@ describe('constants', () => {
             expect(Command.REMOVE).toBe('remove');
             expect(Command.COMPLETION).toBe('completion');
             expect(Command.RUN).toBe('run');
+            expect(Command.PROXY).toBe('proxy');
             expect(Command.HELP).toBe('help');
         });
 
         it('has exactly the expected number of commands', () => {
-            expect(Object.keys(Command)).toHaveLength(16);
+            expect(Object.keys(Command)).toHaveLength(17);
         });
 
         it('values are all lowercase strings', () => {
@@ -75,16 +77,27 @@ describe('constants', () => {
     });
 
     describe('WatchSubcommand', () => {
-        it('has add, remove, list, start, and set-interval', () => {
+        it('has add, remove, and set-interval', () => {
             expect(WatchSubcommand.ADD).toBe('add');
             expect(WatchSubcommand.REMOVE).toBe('remove');
-            expect(WatchSubcommand.LIST).toBe('list');
-            expect(WatchSubcommand.START).toBe('start');
             expect(WatchSubcommand.SET_INTERVAL).toBe('set-interval');
         });
 
-        it('has exactly 5 subcommands', () => {
-            expect(Object.keys(WatchSubcommand)).toHaveLength(5);
+        it('has exactly 3 subcommands', () => {
+            expect(Object.keys(WatchSubcommand)).toHaveLength(3);
+        });
+    });
+
+    describe('ProxySubcommand', () => {
+        it('has start, stop, status, and trust', () => {
+            expect(ProxySubcommand.START).toBe('start');
+            expect(ProxySubcommand.STOP).toBe('stop');
+            expect(ProxySubcommand.STATUS).toBe('status');
+            expect(ProxySubcommand.TRUST).toBe('trust');
+        });
+
+        it('has exactly 4 subcommands', () => {
+            expect(Object.keys(ProxySubcommand)).toHaveLength(4);
         });
     });
 

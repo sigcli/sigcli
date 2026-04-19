@@ -60,6 +60,7 @@ export const pageContent = {
         tocItem('#cmd-remote', 'sig remote', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-sync', 'sig sync', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-watch', 'sig watch', { level: 1, parent: '#commands', prefix: '├ ' }),
+        tocItem('#cmd-proxy', 'sig proxy', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-completion', 'sig completion', {
             level: 1,
             parent: '#commands',
@@ -398,17 +399,40 @@ sig sync push --force            # overwrite on conflict`}</CodeBlock>
                         sig watch
                     </SectionHeading>
                     <P>
-                        Auto-refreshes credentials on a schedule. Run <Code>sig watch start</Code>{' '}
-                        as a background daemon to keep sessions alive.
+                        Manages the auto-refresh watch list. The watch loop itself runs as part of
+                        the proxy daemon — use <Code>sig proxy start</Code> to keep sessions alive
+                        automatically.
                     </P>
                     <CodeBlock lang="bash">{`sig watch add my-jira           # add to watch list
 sig watch add my-jira --auto-sync prod   # auto-sync after refresh
 sig watch remove my-jira        # remove from watch list
-sig watch list                   # show watched providers
-sig watch start                  # start auto-refresh daemon
-sig watch start --interval 30m   # refresh every 30 minutes
-sig watch start --once           # single cycle, then exit
-sig watch set-interval 1h        # change default interval`}</CodeBlock>
+sig watch set-interval 1h       # change default interval`}</CodeBlock>
+
+                    <SectionHeading id="cmd-proxy" level={2}>
+                        sig proxy
+                    </SectionHeading>
+                    <P>
+                        Runs a local MITM HTTP/HTTPS proxy daemon. Agents point{' '}
+                        <Code>HTTP_PROXY</Code>/<Code>HTTPS_PROXY</Code> at the proxy and make
+                        normal requests — credentials are injected transparently and the agent never
+                        sees token values. The proxy also runs the watch/refresh loop.
+                    </P>
+                    <CodeBlock lang="bash">{`sig proxy start                  # start daemon (default port 7891)
+sig proxy start --port 8080      # use custom port
+sig proxy stop                   # stop daemon
+sig proxy status                 # show running state, port, env var hints
+sig proxy trust                  # print CA cert path + OS trust instructions
+
+# Usage: point any tool at the proxy
+export HTTP_PROXY=http://127.0.0.1:7891
+export HTTPS_PROXY=http://127.0.0.1:7891
+curl https://jira.example.com/api/me   # credentials injected automatically`}</CodeBlock>
+                    <P>
+                        <strong>When to use proxy vs sig run:</strong> Use <Code>sig run</Code> for
+                        wrapping a single command. Use <Code>sig proxy</Code> for long-lived
+                        daemons, tools that fork process trees, or tools that only read proxy env
+                        vars.
+                    </P>
 
                     <SectionHeading id="cmd-completion" level={2}>
                         sig completion
@@ -420,8 +444,8 @@ sig completion fish > ~/.config/fish/completions/sig.fish`}</CodeBlock>
             ),
             aside: (
                 <P>
-                    <Code>sig watch start</Code> runs indefinitely — only invoke it as a background
-                    process or daemon, never in an interactive loop.
+                    Use <Code>sig proxy start</Code> to run the watch loop as a background daemon —
+                    it keeps credentials fresh and handles HTTPS interception simultaneously.
                 </P>
             ),
         },
@@ -438,6 +462,12 @@ sig completion fish > ~/.config/fish/completions/sig.fish`}</CodeBlock>
                         into the child process. Use{' '}
                         <Code>sig run my-jira -- env | grep SIG_MY_JIRA_</Code> to discover exactly
                         what's available for a provider.
+                    </P>
+                    <P>
+                        When using the proxy (<Code>sig proxy start</Code>), set{' '}
+                        <Code>HTTP_PROXY=http://127.0.0.1:&lt;port&gt;</Code> and{' '}
+                        <Code>HTTPS_PROXY=http://127.0.0.1:&lt;port&gt;</Code> — credentials are
+                        injected by the proxy and no <Code>SIG_*</Code> variables are needed.
                     </P>
                     <CodeBlock lang="bash">{`# Always present (example: provider "my-jira")
 SIG_MY_JIRA_PROVIDER          # provider ID: "my-jira"
@@ -717,11 +747,17 @@ result = sig.request("https://jira.example.com/api/issues/123")`}</CodeBlock>
                     <P>
                         The recommended pattern is <Code>sig run</Code>: the agent spawns a child
                         process with credentials already in the environment. The agent never sees
-                        token values.
+                        token values. For tools that can't be wrapped — long-lived daemons, tools
+                        that fork — use <Code>sig proxy start</Code> instead.
                     </P>
                     <CodeBlock lang="bash">{`# Recommended: sig run keeps credentials out of agent context
 sig run my-jira -- python fetch_issues.py
 sig run my-jira -- node export_sprint.js
+
+# Alternative: sig proxy for daemons / tools that only read proxy env vars
+sig proxy start
+export HTTP_PROXY=http://127.0.0.1:7891 HTTPS_PROXY=http://127.0.0.1:7891
+# now any tool that respects proxy env vars gets credentials injected
 
 # Discovery: find out what SIG_<PROVIDER>_* vars are available
 sig run my-jira -- env | grep SIG_MY_JIRA_

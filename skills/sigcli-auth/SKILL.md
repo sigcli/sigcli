@@ -33,9 +33,11 @@ sigcli (`sig`) is a CLI tool that stores and manages authentication credentials 
 | `sig sync push\|pull [remote]`   | Sync credentials over SSH                        | Share credentials with headless machines        | 5-30s                            |
 | `sig watch add <provider>`       | Add provider to auto-refresh watch list          | Keep long-lived sessions alive                  | < 1s                             |
 | `sig watch remove <provider>`    | Remove from watch list                           | Stop auto-refresh                               | < 1s                             |
-| `sig watch list`                 | Show watched providers                           | Inspect watch config                            | < 1s                             |
-| `sig watch start`                | Start auto-refresh daemon                        | Run in background for session maintenance       | Continuous                       |
 | `sig watch set-interval <dur>`   | Set default watch interval                       | Tune refresh frequency                          | < 1s                             |
+| `sig proxy start [--port N]`     | Start MITM proxy daemon                          | Daemons/tools that read HTTP_PROXY env vars     | < 1s (daemon runs in background) |
+| `sig proxy stop`                 | Stop proxy daemon                                | Shut down proxy                                 | < 1s                             |
+| `sig proxy status`               | Show proxy running state and port                | Check if proxy is running                       | < 1s                             |
+| `sig proxy trust`                | Print CA cert path + OS trust instructions       | First-time proxy setup                          | < 1s                             |
 | `sig run [provider...] -- <cmd>` | Run command with credentials in env              | Scripts that need SIG\_<PROVIDER\>\_\* env vars | < 1s + child process             |
 
 ---
@@ -214,9 +216,38 @@ sig get <provider> --format json   # includes type, headerName, value, xHeaders
 
 ```bash
 sig watch add <provider>
-sig watch start --interval 30m   # refresh every 30 minutes
-sig watch start --once           # single cycle (for cron)
+sig watch set-interval 30m   # change default refresh interval
+# The watch loop runs automatically inside the proxy daemon:
+sig proxy start              # starts both MITM proxy + watch loop
 ```
+
+### Use MITM proxy for transparent credential injection
+
+Use `sig proxy` when you have tools that can't be wrapped with `sig run` — long-lived daemons, tools that fork process trees, or tools that only read proxy env vars.
+
+```bash
+# 1. Start the proxy (also runs the watch/refresh loop)
+sig proxy start
+
+# 2. Trust the CA cert (one-time per machine)
+sig proxy trust   # prints path + OS-specific instructions
+
+# 3. Point your tools at the proxy
+export HTTP_PROXY=http://127.0.0.1:7891
+export HTTPS_PROXY=http://127.0.0.1:7891
+
+# 4. Now any HTTP/HTTPS request gets credentials injected automatically
+curl https://jira.example.com/api/me   # no SIG_* env vars needed
+python long_running_agent.py           # daemon never sees credentials
+
+# Stop when done
+sig proxy stop
+```
+
+**When to use proxy vs sig run:**
+
+- `sig run` — simpler, wraps a single command, no CA trust required
+- `sig proxy` — for daemons, process trees, or tools that only respect proxy env vars
 
 ---
 
@@ -262,7 +293,7 @@ sig get <provider>          # reads + decrypts local credential file
 sig status [provider]       # reads credential files + decrypts + parses JWT
 sig providers               # reads config file
 sig remote list             # reads config file
-sig watch list              # reads config file
+sig proxy status            # reads PID/port state files
 ```
 
 ### Moderate -- network I/O
@@ -298,6 +329,6 @@ sig login <url>             # 30-120s; uses playwright-core
 
 6. **Credentials are encrypted at rest.** `~/.sig/credentials/` stores AES-256-GCM encrypted files. The encryption key is at `~/.sig/encryption.key`. Do not commit, copy, or transmit credential files or the encryption key.
 
-7. **`sig watch start` runs forever.** Only invoke it as a background daemon, not in interactive agent loops.
+7. **`sig proxy start` runs a background daemon.** Only invoke once; use `sig proxy stop` to shut it down. For credential refresh, the proxy runs the watch loop automatically — no need to run `sig watch start` separately.
 
 8. **Use `--verbose` to debug.** All internal logs go to stderr and are hidden by default. Add `--verbose` when diagnosing failures.

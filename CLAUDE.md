@@ -54,6 +54,7 @@ core/ (types, interfaces, Result, errors) ── zero external deps, imported by
 - **`src/crypto/`** — Encryption at rest. AES-256-GCM encrypt/decrypt, key generation/loading. Key stored at `~/.sig/encryption.key`.
 - **`src/providers/`** — ProviderRegistry, config-loader.
 - **`src/sync/`** — SyncEngine + SshTransport (encrypts with remote key).
+- **`src/proxy/`** — MITM proxy daemon. CaManager (ECDSA P-256 CA + per-hostname leaf certs), ProxyServer (HTTP/HTTPS CONNECT with credential injection), daemon (proxy + watch loop), proxy-state (PID/port files at `~/.sig/proxy/`).
 - **`src/utils/`** — JWT decode, duration parse, HTTP helpers.
 
 ### Key Interfaces
@@ -81,6 +82,7 @@ core/ (types, interfaces, Result, errors) ── zero external deps, imported by
 9. **Config**: `StrategyConfig = Record<string, unknown>` — parsed inside each strategy via a private `parseConfig()`.
 10. **Exports**: Public API through `src/index.ts`.
 11. **Encryption**: All credentials encrypted at rest with AES-256-GCM. Key at `~/.sig/encryption.key` (0o400). DirectoryStorage and SshTransport handle encrypt/decrypt transparently. Legacy unencrypted files are read but re-written encrypted.
+12. **Proxy**: Local MITM daemon at `127.0.0.1`. CaManager generates ECDSA P-256 CA + leaf certs. ProxyServer handles HTTP proxy + HTTPS CONNECT. Daemon runs proxy + watch loop. State files at `~/.sig/proxy/`.
 
 ### CLI Usage
 
@@ -98,7 +100,8 @@ sig rename <old> <new>     # Rename a provider
 sig remove <provider>      # Remove provider and credentials
 sig remote add|remove|list # Manage remote credential stores
 sig sync push|pull [remote]# Sync credentials with remote
-sig watch add|remove|list|start  # Auto-refresh credentials
+sig watch add|remove|set-interval  # Auto-refresh credentials
+sig proxy start|stop|status|trust  # MITM proxy daemon for zero-trust credential injection
 sig completion <shell>     # Generate shell completion (bash|zsh|fish)
 sig run [provider...] -- <cmd>  # Run command with SIG_<PROVIDER>_* credentials injected
 ```

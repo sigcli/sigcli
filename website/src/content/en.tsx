@@ -91,6 +91,10 @@ export const pageContent = {
  │  curl, fetch,    │    │  ┌─────────────────┐  │    │  cookies, tokens,    │
  │  agents, CI      │<───┼──┤ SSH transport   │  │    │  x-headers,          │
  │                  │    │  │ sig sync push   │  │    │  localStorage        │
+ │  ┌────────────┐  │    │  └─────────────────┘  │    │                      │
+ │  │HTTP_PROXY= ├──┼──> │  ┌─────────────────┐  │    │                      │
+ │  │sig proxy   │  │    │  │ MITM proxy      │  │    │                      │
+ │  └────────────┘  │    │  │ sig proxy start │  │    │                      │
  │                  │    │  └─────────────────┘  │    │                      │
  └──────────────────┘    └───────────────────────┘    └──────────────────────┘
 `}</CodeBlock>
@@ -181,6 +185,14 @@ $ sig run my-jira -- node export_board.js`}</CodeBlock>
                         Features
                     </SectionHeading>
                     <List>
+                        <Li>
+                            <strong>MITM proxy</strong> — <Code>sig proxy start</Code> runs a local
+                            HTTPS proxy at <Code>127.0.0.1</Code>. Agents set{' '}
+                            <Code>HTTP_PROXY</Code>/<Code>HTTPS_PROXY</Code> and credentials are
+                            injected transparently — the agent never sees tokens. Ideal for
+                            long-lived daemons or tools that can't be wrapped with{' '}
+                            <Code>sig run</Code>.
+                        </Li>
                         <Li>
                             <strong>sig run</strong> — inject <Code>SIG_&lt;PROVIDER&gt;_*</Code>{' '}
                             credentials directly into any child process. Values are redacted from

@@ -20,6 +20,7 @@
         "test:watch": "vitest"
     },
     "dependencies": {
+        "@peculiar/x509": "^2.0.0",
         "croner": "^10.0.1",
         "dlv": "^1.1.3",
         "playwright-core": "^1.50.0",
@@ -30,6 +31,7 @@
         "@types/dlv": "^1.1.5",
         "@types/node": "^20.10.0",
         "@types/proper-lockfile": "^4.1.4",
+        "reflect-metadata": "^0.2.2",
         "vitest": "^3.0.0"
     },
     "keywords": [
