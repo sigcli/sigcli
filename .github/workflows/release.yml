@@ -60,11 +60,11 @@ jobs:
             - name: Type check
               run: pnpm --filter '${{ inputs.package }}' exec tsc --noEmit
 
-            - name: Run tests
-              run: pnpm --filter '${{ inputs.package }}' test
-
             - name: Build
               run: pnpm --filter '${{ inputs.package }}' build
+
+            - name: Run tests
+              run: pnpm --filter '${{ inputs.package }}' test
 
             - name: Publish beta
               if: inputs.release_type == 'beta'
