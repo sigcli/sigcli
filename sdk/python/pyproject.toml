@@ -4,12 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sigcli-sdk"
-version = "1.0.0"
-description = "Lightweight client SDK for consuming Signet credentials"
+version = "1.1.0"
+description = "Lightweight client SDK for consuming sigcli credentials"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
-keywords = ["sigcli", "signet", "auth", "sdk", "credentials"]
+keywords = ["sigcli", "auth", "sdk", "credentials"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",

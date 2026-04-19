@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import YAML from 'yaml';
 import type { IStorage } from '../core/interfaces/storage.js';
-import type { SignetConfig } from '../config/schema.js';
+import type { SigConfig } from '../config/schema.js';
 import { getConfigPath } from '../config/loader.js';
 import type { RemoteConfig, SyncResult } from './types.js';
 import type { ISyncTransport } from './interfaces/transport.js';
@@ -13,7 +13,7 @@ export class SyncEngine {
     constructor(
         private readonly storage: IStorage,
         private readonly remote: RemoteConfig,
-        private readonly config: SignetConfig,
+        private readonly config: SigConfig,
         transport: ISyncTransport,
     ) {
         this.transport = transport;

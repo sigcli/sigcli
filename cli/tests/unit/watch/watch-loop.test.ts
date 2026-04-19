@@ -10,7 +10,7 @@ import { ApiTokenStrategyFactory } from '../../../src/strategies/api-token.strat
 import { CookieStrategyFactory } from '../../../src/strategies/cookie.strategy.js';
 import type { ProviderConfig, ApiKeyCredential, ILogger } from '../../../src/core/types.js';
 import type { IBrowserAdapter } from '../../../src/core/interfaces/browser-adapter.js';
-import type { BrowserConfig, SignetConfig } from '../../../src/config/schema.js';
+import type { BrowserConfig, SigConfig } from '../../../src/config/schema.js';
 
 // Mock SyncEngine
 const mockPush = vi.fn();
@@ -34,7 +34,7 @@ const browserConfig: BrowserConfig = {
     waitUntil: 'load',
 };
 
-const testConfig: SignetConfig = {
+const testConfig: SigConfig = {
     mode: 'browser',
     browser: browserConfig,
     storage: { credentialsDir: '~/.sig/credentials' },

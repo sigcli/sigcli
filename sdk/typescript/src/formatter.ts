@@ -2,7 +2,7 @@ import type { Credential } from './types.js';
 
 /**
  * Convert a credential into HTTP headers.
- * Matches signet CLI's strategy.applyToRequest() logic exactly.
+ * Matches sigcli's strategy.applyToRequest() logic exactly.
  */
 export function formatHeaders(credential: Credential): Record<string, string> {
     switch (credential.type) {

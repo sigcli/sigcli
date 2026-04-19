@@ -55,7 +55,7 @@ export type Credential = CookieCredential | BearerCredential | ApiKeyCredential 
 /** String literal union of credential type discriminators */
 export type CredentialType = Credential['type'];
 
-/** On-disk file format written by signet CLI (version 1) */
+/** On-disk file format written by sigcli CLI (version 1) */
 export interface ProviderFile {
     readonly version: number;
     readonly providerId: string;

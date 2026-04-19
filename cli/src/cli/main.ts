@@ -61,7 +61,7 @@ export function parseArgs(args: string[]): ParsedArgs {
     return { command, positionals, flags };
 }
 
-const HELP = `signet — authenticate once, use everywhere
+const HELP = `sig — authenticate once, use everywhere
 
 Usage: sig <command> [options]
 
@@ -166,7 +166,7 @@ export async function run(args: string[]): Promise<void> {
         const configPath = getConfigPath();
         if (!existsSync(configPath)) {
             process.stderr.write(
-                '\nWelcome to Signet!\n\n' +
+                '\nWelcome to SigCLI!\n\n' +
                     `  No config file found at ${configPath}\n` +
                     '  Run "sig init" to set up your configuration.\n\n',
             );

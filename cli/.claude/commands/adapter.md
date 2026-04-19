@@ -1,6 +1,6 @@
 # /adapter — Add New Browser Adapter
 
-You are orchestrating the signet agent team to add a new browser adapter.
+You are orchestrating the sigcli agent team to add a new browser adapter.
 The user's request: $ARGUMENTS
 
 ## Context
@@ -10,7 +10,7 @@ Browser adapters implement `IBrowserAdapter`, `IBrowserSession`, and `IBrowserPa
 
 ### Phase 1: Design
 Spawn the **architect** agent with this prompt:
-> Design a new browser adapter for the signet project: $ARGUMENTS
+> Design a new browser adapter for the sigcli project: $ARGUMENTS
 >
 > You MUST read these files first:
 > 1. `src/core/interfaces/browser-adapter.ts` — the IBrowserAdapter/IBrowserSession/IBrowserPage contract

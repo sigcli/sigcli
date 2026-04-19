@@ -206,8 +206,8 @@ describe('constants', () => {
     });
 
     describe('Application identity', () => {
-        it('APP_NAME is "signet"', () => {
-            expect(APP_NAME).toBe('signet');
+        it('APP_NAME is "sig"', () => {
+            expect(APP_NAME).toBe('sig');
         });
 
         it('APP_VERSION is a semver string', () => {

@@ -2,7 +2,7 @@ import os from 'node:os';
 import { APP_NAME, APP_VERSION } from '../core/constants.js';
 
 /**
- * Build a User-Agent string identifying signet.
+ * Build a User-Agent string identifying SigCLI.
  */
 export function buildUserAgent(): string {
     const platform = os.platform();
