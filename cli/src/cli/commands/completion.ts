@@ -113,7 +113,6 @@ _sig
 
 function fishScript(): string {
     return `# Fish shell completions for sig
-set -l commands init doctor get login request status logout providers remote sync watch rename remove completion
 
 complete -c sig -f
 complete -c sig -n "__fish_use_subcommand" -a init -d "Create ~/.sig/config.yaml"
@@ -131,26 +130,15 @@ complete -c sig -n "__fish_use_subcommand" -a rename -d "Rename a provider"
 complete -c sig -n "__fish_use_subcommand" -a remove -d "Remove provider and credentials"
 complete -c sig -n "__fish_use_subcommand" -a completion -d "Generate shell completion script"
 
-# Provider completions for commands that take a provider
 function __sig_providers
     sig providers --format json 2>/dev/null | node -e "process.stdin.resume();let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{JSON.parse(d).forEach(p=>console.log(p.id))}catch{}})" 2>/dev/null
 end
 
 complete -c sig -n "__fish_seen_subcommand_from get login status logout rename remove" -a "(__sig_providers)"
-
-# remote subcommands
 complete -c sig -n "__fish_seen_subcommand_from remote" -a "add remove list"
-
-# sync subcommands
 complete -c sig -n "__fish_seen_subcommand_from sync" -a "push pull"
-
-# watch subcommands
 complete -c sig -n "__fish_seen_subcommand_from watch" -a "add remove list start set-interval"
-
-# completion shells
 complete -c sig -n "__fish_seen_subcommand_from completion" -a "bash zsh fish"
-
-# Global flags
 complete -c sig -l verbose -d "Debug output to stderr"
 complete -c sig -l help -d "Show help"
 complete -c sig -l format -d "Output format" -a "json table yaml env plain"

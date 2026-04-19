@@ -13,7 +13,6 @@ export const Command = {
     DOCTOR: 'doctor',
     GET: 'get',
     LOGIN: 'login',
-    CASCADE: 'cascade',
     REQUEST: 'request',
     STATUS: 'status',
     LOGOUT: 'logout',
@@ -23,7 +22,6 @@ export const Command = {
     WATCH: 'watch',
     RENAME: 'rename',
     REMOVE: 'remove',
-    COMPLETION: 'completion',
     HELP: 'help',
 } as const;
 
@@ -130,15 +128,10 @@ export const AuthScheme = {
 } as const;
 
 /**
- * Output format options for CLI commands.
+ * Output format options for `sig get`.
  */
 export const OutputFormat = {
     JSON: 'json',
-    YAML: 'yaml',
-    ENV: 'env',
-    TABLE: 'table',
-    PLAIN: 'plain',
-    // Legacy aliases (keep for backward compat in sig get)
     HEADER: 'header',
     VALUE: 'value',
 } as const;
