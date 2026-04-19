@@ -93,6 +93,11 @@ Credentials:
     --format json|body|headers   Output format (default: json)
   status [provider]            Show authentication status
     --format json|yaml|env|table|plain  Output format
+  run --provider <id> -- <cmd>  Run command with credentials injected as SIG_* env vars
+    --expand-cookies             Expand individual cookies as SIG_COOKIE_<NAME>=value
+    --no-redaction               Disable credential redaction from child output
+    --mount <path>               Write credentials to file instead of env vars
+    --mount-format env|json      File format for --mount (default: env)
 
 Provider management:
   providers                    List configured providers
@@ -133,13 +138,6 @@ Setup:
     --channel <name>             Browser channel (chrome|msedge|chromium)
   doctor                       Check environment and configuration
   completion <shell>           Generate shell completion script (bash|zsh|fish)
-
-Process:
-  run --provider <id> -- <cmd>  Run command with credentials injected as SIG_* env vars
-    --expand-cookies             Expand individual cookies as SIG_COOKIE_<NAME>=value
-    --no-redaction               Disable credential redaction from child output
-    --mount <path>               Write credentials to file instead of env vars
-    --mount-format env|json      File format for --mount (default: env)
 
 Global options:
   --verbose                    Debug output to stderr

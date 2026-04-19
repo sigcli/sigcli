@@ -9,8 +9,8 @@ npm install -g @sigcli/cli
 ```bash
 sig init                              # Create config (interactive, detects browser)
 sig login https://jira.example.com    # Authenticate via browser SSO
-sig get jira                          # Get credentials as JSON
-sig request https://jira.example.com/rest/api/2/myself   # Authenticated request
+sig run --provider jira -- curl -H "Cookie: $SIG_COOKIE" https://jira.example.com/rest/api/2/myself
+sig request https://jira.example.com/rest/api/2/myself   # Or use sig request directly
 ```
 
 **Pluggable strategies** — cookie, OAuth2, API token, basic auth. **Browser adapters** — Playwright with headless-to-visible fallback. **Credential sync** — push/pull over SSH for headless machines. **Watch mode** — auto-refresh expiring credentials on a schedule.
@@ -57,20 +57,20 @@ sig request https://jira.example.com/rest/api/2/myself   # Authenticated request
 
 ### Credentials
 
-| Command                                                                   | Description                                           |
-| ------------------------------------------------------------------------- | ----------------------------------------------------- |
-| `sig get <provider\|url>`                                                 | Get credential headers (JSON default)                 |
-| `sig get <provider\|url> --format json\|header\|value`                    | Choose output format                                  |
-| `sig request <url>`                                                       | Make authenticated HTTP request                       |
-| `sig request <url> --method POST --body '{...}'`                          | POST with body                                        |
-| `sig request <url> --header "K: V" --format body`                         | Add headers, get body only                            |
-| `sig status`                                                              | Show auth status for all providers                    |
-| `sig status <provider> --format json\|yaml\|env\|table\|plain`            | Status for one provider                               |
-| `sig run --provider <id> -- <cmd>`                                        | Run command with `SIG_*` credentials in env           |
-| `sig run --provider <id> --expand-cookies -- <cmd>`                       | Also expand cookies as `SIG_COOKIE_<NAME>=value`      |
-| `sig run --provider <id> --no-redaction -- <cmd>`                         | Disable credential redaction from child output        |
-| `sig run --provider <id> --mount .env -- <cmd>`                           | Write credentials to `.env` file (deleted after exit) |
-| `sig run --provider <id> --mount creds.json --mount-format json -- <cmd>` | Write credentials as JSON file                        |
+| Command                                                                   | Description                                                  |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `sig run --provider <id> -- <cmd>`                                        | **Recommended.** Run command with `SIG_*` credentials in env |
+| `sig run --provider <id> --expand-cookies -- <cmd>`                       | Also expand cookies as `SIG_COOKIE_<NAME>=value`             |
+| `sig run --provider <id> --no-redaction -- <cmd>`                         | Disable credential redaction from child output               |
+| `sig run --provider <id> --mount .env -- <cmd>`                           | Write credentials to `.env` file (deleted after exit)        |
+| `sig run --provider <id> --mount creds.json --mount-format json -- <cmd>` | Write credentials as JSON file                               |
+| `sig request <url>`                                                       | Make authenticated HTTP request                              |
+| `sig request <url> --method POST --body '{...}'`                          | POST with body                                               |
+| `sig request <url> --header "K: V" --format body`                         | Add headers, get body only                                   |
+| `sig status`                                                              | Show auth status for all providers                           |
+| `sig status <provider> --format json\|yaml\|env\|table\|plain`            | Status for one provider                                      |
+| `sig get <provider\|url>`                                                 | Get raw credential headers (⚠️ exposes secrets in shell)     |
+| `sig get <provider\|url> --format json\|header\|value`                    | Choose output format                                         |
 
 ### Provider Management
 
