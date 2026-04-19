@@ -24,6 +24,7 @@ export const Command = {
     REMOVE: 'remove',
     COMPLETION: 'completion',
     RUN: 'run',
+    PROXY: 'proxy',
     HELP: 'help',
 } as const;
 
@@ -50,9 +51,17 @@ export const SyncSubcommand = {
 export const WatchSubcommand = {
     ADD: 'add',
     REMOVE: 'remove',
-    LIST: 'list',
-    START: 'start',
     SET_INTERVAL: 'set-interval',
+} as const;
+
+/**
+ * Subcommands for the 'proxy' command.
+ */
+export const ProxySubcommand = {
+    START: 'start',
+    STOP: 'stop',
+    STATUS: 'status',
+    TRUST: 'trust',
 } as const;
 
 /**

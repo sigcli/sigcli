@@ -20,6 +20,7 @@ import { runRename } from './commands/rename.js';
 import { runRemove } from './commands/remove.js';
 import { runCompletion } from './commands/completion.js';
 import { runRun } from './commands/run.js';
+import { runProxy } from './commands/proxy.js';
 import { ExitCode } from './exit-codes.js';
 
 interface ParsedArgs {
@@ -126,12 +127,13 @@ Watch:
   watch add <provider>         Add provider to watch list
     --auto-sync <remote>         Auto-sync to remote after refresh
   watch remove <provider>      Remove provider from watch list
-  watch list                   Show watched providers
-    --format json|table          Output format
-  watch start                  Start auto-refresh daemon
-    --interval <duration>        Override check interval (e.g. 5m, 1h)
-    --once                       Single check cycle, then exit
   watch set-interval <dur>     Set default check interval
+
+Proxy:
+  proxy start [--port 8080]    Start MITM proxy daemon in background
+  proxy stop                   Stop proxy daemon
+  proxy status                 Show proxy status and env-var hints
+  proxy trust                  Print CA cert path for OS trust setup
 
 Setup:
   init                         Create ~/.sig/config.yaml
@@ -159,6 +161,7 @@ const DEPS_COMMANDS: ReadonlySet<string> = new Set([
     Command.RENAME,
     Command.REMOVE,
     Command.RUN,
+    Command.PROXY,
 ]);
 
 export async function run(args: string[]): Promise<void> {
@@ -244,6 +247,9 @@ export async function run(args: string[]): Promise<void> {
             break;
         case Command.RUN:
             await runRun(positionals, flags, deps as AuthDeps);
+            break;
+        case Command.PROXY:
+            await runProxy(positionals, flags, deps);
             break;
         default:
             process.stderr.write(`Unknown command: ${command}\n\n`);

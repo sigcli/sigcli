@@ -117,6 +117,21 @@ export interface LocalStorageConfig {
 }
 
 // ============================================================================
+// Proxy Injection Rules
+// ============================================================================
+
+export interface ProxyInjectRule {
+    in: 'header' | 'body' | 'query';
+    action: 'set' | 'append' | 'remove';
+    name: string;
+    from?: string;
+}
+
+export interface ProxyConfig {
+    inject?: ProxyInjectRule[];
+}
+
+// ============================================================================
 // Provider Configuration
 // ============================================================================
 
@@ -133,6 +148,7 @@ export interface ProviderConfig {
     localStorage?: LocalStorageConfig[]; // localStorage values to extract during browser auth
     autoProvisioned?: boolean; // True if created by auto-provision (not from config file)
     forceVisible?: boolean; // Skip headless, go straight to visible browser mode
+    proxy?: ProxyConfig; // MITM proxy injection rules
 }
 
 // ============================================================================

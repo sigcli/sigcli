@@ -57,6 +57,7 @@ export const pageContent = {
         tocItem('#cmd-remote', 'sig remote', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-sync', 'sig sync', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-watch', 'sig watch', { level: 1, parent: '#commands', prefix: '├ ' }),
+        tocItem('#cmd-proxy', 'sig proxy', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-completion', 'sig completion', {
             level: 1,
             parent: '#commands',
@@ -384,17 +385,37 @@ sig sync push --force            # 冲突时覆盖`}</CodeBlock>
                         sig watch
                     </SectionHeading>
                     <P>
-                        按计划自动刷新凭证。将 <Code>sig watch start</Code>{' '}
-                        作为后台守护进程运行，以保持会话活跃。
+                        管理自动刷新监视列表。监视循环本身作为代理守护进程的一部分运行——使用{' '}
+                        <Code>sig proxy start</Code> 自动保持会话活跃。
                     </P>
                     <CodeBlock lang="bash">{`sig watch add my-jira           # 添加到监视列表
 sig watch add my-jira --auto-sync prod   # 刷新后自动同步
 sig watch remove my-jira        # 从监视列表移除
-sig watch list                   # 显示被监视的提供者
-sig watch start                  # 启动自动刷新守护进程
-sig watch start --interval 30m   # 每 30 分钟刷新一次
-sig watch start --once           # 单次循环后退出
-sig watch set-interval 1h        # 更改默认间隔`}</CodeBlock>
+sig watch set-interval 1h       # 更改默认间隔`}</CodeBlock>
+
+                    <SectionHeading id="cmd-proxy" level={2}>
+                        sig proxy
+                    </SectionHeading>
+                    <P>
+                        运行本地 MITM HTTP/HTTPS 代理守护进程。代理工具将 <Code>HTTP_PROXY</Code>/
+                        <Code>HTTPS_PROXY</Code> 指向代理后发起普通请求——
+                        凭证透明注入，代理工具永远不会看到令牌值。代理同时运行监视/刷新循环。
+                    </P>
+                    <CodeBlock lang="bash">{`sig proxy start                  # 启动守护进程（默认端口 7891）
+sig proxy start --port 8080      # 使用自定义端口
+sig proxy stop                   # 停止守护进程
+sig proxy status                 # 显示运行状态、端口和环境变量提示
+sig proxy trust                  # 打印 CA 证书路径和操作系统信任说明
+
+# 用法：将任意工具指向代理
+export HTTP_PROXY=http://127.0.0.1:7891
+export HTTPS_PROXY=http://127.0.0.1:7891
+curl https://jira.example.com/api/me   # 凭证自动注入`}</CodeBlock>
+                    <P>
+                        <strong>何时用代理 vs sig run：</strong>用 <Code>sig run</Code>{' '}
+                        包裹单个命令；用 <Code>sig proxy</Code>{' '}
+                        处理长期守护进程、会派生进程树的工具， 或只读取代理环境变量的工具。
+                    </P>
 
                     <SectionHeading id="cmd-completion" level={2}>
                         sig completion
@@ -406,8 +427,8 @@ sig completion fish > ~/.config/fish/completions/sig.fish`}</CodeBlock>
             ),
             aside: (
                 <P>
-                    <Code>sig watch start</Code>{' '}
-                    会无限运行——只能作为后台进程或守护进程调用，切勿在交互式循环中使用。
+                    使用 <Code>sig proxy start</Code>{' '}
+                    将监视循环作为后台守护进程运行——它同时保持凭证新鲜并处理 HTTPS 拦截。
                 </P>
             ),
         },
@@ -423,6 +444,12 @@ sig completion fish > ~/.config/fish/completions/sig.fish`}</CodeBlock>
                         <Code>sig run</Code> 将 <Code>SIG_&lt;PROVIDER&gt;_*</Code>{' '}
                         变量注入子进程。使用 <Code>sig run my-jira -- env | grep SIG_MY_JIRA_</Code>{' '}
                         来探索某个提供者可用的具体变量。
+                    </P>
+                    <P>
+                        使用代理时（<Code>sig proxy start</Code>），设置{' '}
+                        <Code>HTTP_PROXY=http://127.0.0.1:&lt;port&gt;</Code> 和{' '}
+                        <Code>HTTPS_PROXY=http://127.0.0.1:&lt;port&gt;</Code>——凭证由代理注入，
+                        无需 <Code>SIG_*</Code> 环境变量。
                     </P>
                     <CodeBlock lang="bash">{`# 始终存在（以提供者 "my-jira" 为例）
 SIG_MY_JIRA_PROVIDER          # 提供者 ID："my-jira"
@@ -687,11 +714,17 @@ result = sig.request("https://jira.example.com/api/issues/123")`}</CodeBlock>
                     </P>
                     <P>
                         推荐模式是 <Code>sig run</Code>：代理启动一个子进程，凭证已在环境中。
-                        代理永远不会看到令牌值。
+                        代理永远不会看到令牌值。对于无法包裹的工具——长期守护进程、会派生进程的工具——
+                        请改用 <Code>sig proxy start</Code>。
                     </P>
                     <CodeBlock lang="bash">{`# 推荐：sig run 将凭证排除在代理上下文之外
 sig run my-jira -- python fetch_issues.py
 sig run my-jira -- node export_sprint.js
+
+# 备选：sig proxy，适用于守护进程或只读取代理环境变量的工具
+sig proxy start
+export HTTP_PROXY=http://127.0.0.1:7891 HTTPS_PROXY=http://127.0.0.1:7891
+# 现在任何遵循代理环境变量的工具都会自动注入凭证
 
 # 探索可用的 SIG_<PROVIDER>_* 变量
 sig run my-jira -- env | grep SIG_MY_JIRA_
