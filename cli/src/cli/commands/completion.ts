@@ -110,7 +110,7 @@ function zshScript(): string {
         '    esac',
         '}',
         '',
-        '_sig',
+        'compdef _sig sig',
         '',
     ].join('\n');
 }
