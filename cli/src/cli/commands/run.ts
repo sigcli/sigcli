@@ -14,7 +14,7 @@ export async function runRun(
     const provider = positionals[0];
     if (!provider) {
         process.stderr.write(
-            'Error: provider is required\nUsage: sig run <provider|url> -- <command> [args]\n',
+            'Error: provider is required\nUsage: sig run <provider|url> -- <cmd> [args]\n',
         );
         process.exitCode = ExitCode.GENERAL_ERROR;
         return;
@@ -32,7 +32,7 @@ export async function runRun(
     const cmdArgs = positionals.slice(1);
     if (cmdArgs.length === 0) {
         process.stderr.write(
-            'Error: No command specified\nUsage: sig run <provider|url> -- <command> [args]\n',
+            'Error: No command specified\nUsage: sig run <provider|url> -- <cmd> [args]\n',
         );
         process.exitCode = ExitCode.GENERAL_ERROR;
         return;

@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ZhIndexRouteImport } from './routes/zh/index'
+import { Route as DocsIndexRouteImport } from './routes/docs/index'
+import { Route as ZhDocsIndexRouteImport } from './routes/zh/docs/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +24,49 @@ const ZhIndexRoute = ZhIndexRouteImport.update({
   path: '/zh/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsIndexRoute = DocsIndexRouteImport.update({
+  id: '/docs/',
+  path: '/docs/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZhDocsIndexRoute = ZhDocsIndexRouteImport.update({
+  id: '/zh/docs/',
+  path: '/zh/docs/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/docs/': typeof DocsIndexRoute
   '/zh/': typeof ZhIndexRoute
+  '/zh/docs/': typeof ZhDocsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/docs': typeof DocsIndexRoute
   '/zh': typeof ZhIndexRoute
+  '/zh/docs': typeof ZhDocsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/docs/': typeof DocsIndexRoute
   '/zh/': typeof ZhIndexRoute
+  '/zh/docs/': typeof ZhDocsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/zh/'
+  fullPaths: '/' | '/docs/' | '/zh/' | '/zh/docs/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/zh'
-  id: '__root__' | '/' | '/zh/'
+  to: '/' | '/docs' | '/zh' | '/zh/docs'
+  id: '__root__' | '/' | '/docs/' | '/zh/' | '/zh/docs/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DocsIndexRoute: typeof DocsIndexRoute
   ZhIndexRoute: typeof ZhIndexRoute
+  ZhDocsIndexRoute: typeof ZhDocsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +85,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZhIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/docs/': {
+      id: '/docs/'
+      path: '/docs'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DocsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zh/docs/': {
+      id: '/zh/docs/'
+      path: '/zh/docs'
+      fullPath: '/zh/docs/'
+      preLoaderRoute: typeof ZhDocsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DocsIndexRoute: DocsIndexRoute,
   ZhIndexRoute: ZhIndexRoute,
+  ZhDocsIndexRoute: ZhDocsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

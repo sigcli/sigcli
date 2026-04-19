@@ -18,14 +18,14 @@ sigcli (`sig`) is a CLI tool that stores and manages authentication credentials 
 | ---------------------------------- | --------------------------------------- | ----------------------------------------- | -------------------------------- |
 | `sig init`                         | Create/initialize config                | First-time setup                          | < 1s                             |
 | `sig doctor`                       | Validate environment and config         | Troubleshoot setup issues                 | 1–3s                             |
-| `sig login <url\|id>`              | Authenticate with a service             | No stored credentials, or expired         | 30–120s (browser) / < 1s (token) |
+| `sig login <url>`                  | Authenticate with a service             | No stored credentials, or expired         | 30–120s (browser) / < 1s (token) |
 | `sig logout [provider]`            | Clear stored credentials                | Reset auth state                          | < 1s                             |
 | `sig get <provider\|url>`          | Retrieve credential headers             | Get headers for curl or scripts           | < 1s                             |
 | `sig request <url>`                | Make authenticated HTTP request         | Test an endpoint with auth applied        | 1–5s                             |
 | `sig status [provider]`            | Show auth status for all/one provider   | Check if logged in before acting          | 1–3s                             |
 | `sig providers`                    | List configured providers               | Discover what is configured               | 1–3s                             |
 | `sig rename <old> <new>`           | Rename a provider                       | Reorganize providers                      | < 1s                             |
-| `sig remove <provider>`            | Delete provider and credentials         | Clean up                                  | < 1s                             |
+| `sig remove <provider> [...]`      | Delete provider(s) and credentials      | Clean up                                  | < 1s                             |
 | `sig remote add <name> <host>`     | Add SSH remote for credential sync      | Set up headless machine sync              | < 1s                             |
 | `sig remote remove <name>`         | Remove SSH remote                       | Clean up                                  | < 1s                             |
 | `sig remote list`                  | List configured remotes                 | Inspect sync targets                      | < 1s                             |
@@ -96,6 +96,9 @@ sig status <provider> --format json
 Use `sig run` to inject credentials as `SIG_*` environment variables without exposing them in shell history or `ps` output. Credential values are automatically redacted from child stdout/stderr.
 
 ```bash
+# Discover available environment variables for a provider
+sig run <provider> -- env | grep SIG_
+
 # Run a script with credentials available as SIG_* env vars
 sig run grafana -- python fetch_data.py
 
@@ -104,7 +107,7 @@ sig run grafana -- python fetch_data.py
 #   SIG_AUTH_HEADER — complete Authorization header value
 
 # Expand individual cookies as SIG_COOKIE_<NAME>=value
-sig run loki-orca --expand-cookies -- python script.py
+sig run my-jira --expand-cookies -- python script.py
 
 # Write credentials to a .env file (deleted after child exits)
 sig run grafana --mount .env -- node app.js

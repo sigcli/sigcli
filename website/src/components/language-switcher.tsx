@@ -1,8 +1,11 @@
-export function LanguageSwitcher({ locale }: { locale: 'en' | 'zh' }) {
+export function LanguageSwitcher({ locale, page = 'home' }: { locale: 'en' | 'zh'; page?: 'home' | 'docs' }) {
+    const enHref = page === 'docs' ? '/docs/' : '/';
+    const zhHref = page === 'docs' ? '/zh/docs/' : '/zh';
+
     return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <a
-                href="/"
+                href={enHref}
                 style={{
                     fontFamily: 'var(--font-primary)',
                     fontSize: 'var(--type-toc-size)',
@@ -24,7 +27,7 @@ export function LanguageSwitcher({ locale }: { locale: 'en' | 'zh' }) {
                 /
             </span>
             <a
-                href="/zh"
+                href={zhHref}
                 style={{
                     fontFamily: 'var(--font-primary)',
                     fontSize: 'var(--type-toc-size)',

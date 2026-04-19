@@ -122,7 +122,7 @@ Remote & sync:
 Watch:
   watch add <provider>         Add provider to watch list
     --auto-sync <remote>         Auto-sync to remote after refresh
-  watch remove <provider>      Remove from watch list
+  watch remove <provider>      Remove provider from watch list
   watch list                   Show watched providers
     --format json|table          Output format
   watch start                  Start auto-refresh daemon

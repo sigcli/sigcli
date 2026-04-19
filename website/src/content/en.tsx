@@ -1,4 +1,4 @@
-import { SectionHeading, P, Code, CodeBlock, type EditorialSection } from '../components/markdown';
+import { SectionHeading, P, Code, CodeBlock, A, List, Li, type EditorialSection } from '../components/markdown';
 import type { FlatTocItem, TocNodeType } from '../components/toc-tree';
 
 function tocItem(
@@ -29,18 +29,7 @@ export const pageContent = {
         tocItem('#install', 'Install', { level: 1, parent: '#overview' }),
         tocItem('#quick-start', 'Quick start', { level: 1, parent: '#overview' }),
         tocItem('#how-it-works', 'How it works'),
-        tocItem('#configure', 'Configure providers', { level: 1, parent: '#how-it-works' }),
-        tocItem('#login', 'Log in once', { level: 1, parent: '#how-it-works' }),
-        tocItem('#use', 'Use the credential', { level: 1, parent: '#how-it-works' }),
-        tocItem('#strategies', 'Strategies'),
-        tocItem('#cookie', 'cookie', { level: 1, parent: '#strategies', prefix: '├ ' }),
-        tocItem('#bearer', 'bearer', { level: 1, parent: '#strategies', prefix: '├ ' }),
-        tocItem('#api-key', 'api-key', { level: 1, parent: '#strategies', prefix: '├ ' }),
-        tocItem('#basic', 'basic', { level: 1, parent: '#strategies', prefix: '└ ' }),
-        tocItem('#browser-adapters', 'Browser adapters'),
-        tocItem('#sync', 'Sync & remotes'),
-        tocItem('#agents', 'AI agents'),
-        tocItem('#commands', 'Commands'),
+        tocItem('#features', 'Features'),
     ] as FlatTocItem[],
 
     hero: (
@@ -73,10 +62,10 @@ export const pageContent = {
                         Overview
                     </SectionHeading>
                     <P>
-                        Sigcli is a general-purpose authentication CLI. You describe providers in a
-                        YAML config, sign in once with a real browser, and every other tool —{' '}
-                        <Code>curl</Code>, your AI agent, a CI job — asks Sigcli for ready-to-use
-                        HTTP headers.
+                        Sigcli is a personal seal of authority. You describe providers in a YAML
+                        config, sign in once with a real browser, and every other tool —{' '}
+                        <Code>curl</Code>, your AI agent, a CI job — gets ready-to-use credentials
+                        injected directly into the process environment.
                     </P>
                     <P>No SDK wrappers, no vendor lock-in. One CLI, any site you can sign in to.</P>
 
@@ -85,10 +74,10 @@ export const pageContent = {
  │  ANY AGENT       │    │  ~/.sig               │    │  YOUR BROWSER        │
  │                  │    │                       │    │                      │
  │  ┌────────────┐  │    │  config.yaml          │    │  ┌────────────────┐  │
- │  │ sig get    ├──┼───>│  credentials/         │<───┼──┤ Playwright     │  │
- │  │ sig req    │  │    │    openai.json        │    │  │ (headless or   │  │
- │  └─────┬──────┘  │    │    slack.json         │    │  │  visible)      │  │
- │        │         │    │    notion.json        │    │  └───────┬────────┘  │
+ │  │ sig run    ├──┼───>│  credentials/         │<───┼──┤ Playwright     │  │
+ │  │ sig req    │  │    │    my-jira.json       │    │  │ (headless or   │  │
+ │  └─────┬──────┘  │    │    github.json         │    │  │  visible)      │  │
+ │        │         │    │    grafana.json        │    │  └───────┬────────┘  │
  │        v         │    │                       │    │          │           │
  │  curl, fetch,    │    │  ┌─────────────────┐  │    │  cookies, tokens,    │
  │  agents, CI      │<───┼──┤ SSH transport   │  │    │  x-headers,          │
@@ -111,21 +100,21 @@ npx @sigcli/cli sig --help`}</CodeBlock>
                     <CodeBlock lang="bash">{`# 1. generate config
 sig init
 
-# 2. sign in (opens a real browser)
-sig login https://chat.openai.com
+# 2. sign in — opens a real browser, captures credentials automatically
+sig login https://jira.example.com
 
-# 3. get headers for any HTTP client
-sig get openai --json
+# 3. run any command with credentials injected as SIG_* env vars
+sig run my-jira -- curl https://jira.example.com/api/me
 
-# 4. or let sigcli make the request
-sig request https://api.openai.com/v1/models`}</CodeBlock>
+# discover what variables are available
+sig run my-jira -- env | grep SIG_`}</CodeBlock>
                 </>
             ),
             aside: (
                 <P>
-                    Sigcli captures cookies, bearer tokens, localStorage values, and x-headers from
-                    live browser network traffic. Credentials are sealed under <Code>~/.sig</Code>{' '}
-                    with a directory lock — nothing in your repo.
+                    Credentials are captured from live browser network traffic and sealed under{' '}
+                    <Code>~/.sig</Code> with a directory lock — nothing in your repo, nothing in
+                    your shell history.
                 </P>
             ),
         },
@@ -138,56 +127,26 @@ sig request https://api.openai.com/v1/models`}</CodeBlock>
                         How it works
                     </SectionHeading>
                     <P>
-                        Three steps: configure, login, request. The auth flow runs once; every
+                        Three steps: configure, login, run. The auth flow runs once; every
                         subsequent call reads from sealed storage.
                     </P>
-                    <SectionHeading id="configure" level={2}>
-                        Configure providers
-                    </SectionHeading>
-                    <P>
-                        Each provider entry in <Code>~/.sig/config.yaml</Code> maps URL patterns to
-                        a strategy, plus options like required cookies, x-header filters, and TTLs.
-                    </P>
-                    <CodeBlock lang="bash">{`providers:
-  openai:
-    url: https://chat.openai.com
+                    <CodeBlock lang="bash">{`# 1. Describe the provider in ~/.sig/config.yaml
+providers:
+  my-jira:
+    url: https://jira.example.com
     strategy: cookie
-    requiredCookies:
-      - __Secure-next-auth.session-token
-    xHeaders:
-      - name: X-Origin
-        header: origin`}</CodeBlock>
+    requiredCookies: [SESSION]
 
-                    <SectionHeading id="login" level={2}>
-                        Log in once
-                    </SectionHeading>
-                    <P>
-                        Sigcli launches Playwright (headless first, visible on fallback when a login
-                        page is detected). It watches network traffic, captures the credential, and
-                        seals it.
-                    </P>
-                    <CodeBlock lang="bash">{`$ sig login openai
+# 2. Authenticate once — headless first, visible on login page detection
+$ sig login https://jira.example.com
 → chromium headless …
 ⚠ login page detected — opening window
-✓ captured 6 cookies · 1 bearer · 2 x-headers
-✓ sealed under ~/.sig/credentials/openai.json`}</CodeBlock>
+✓ captured 4 cookies · 2 x-headers
+✓ sealed under ~/.sig/credentials/my-jira.json
 
-                    <SectionHeading id="use" level={2}>
-                        Use the credential
-                    </SectionHeading>
-                    <CodeBlock lang="bash">{`# JSON header map
-$ sig get openai --json
-{
-  "Authorization": "Bearer sk-…",
-  "Cookie": "__Secure-next-auth…=…",
-  "X-Origin": "web"
-}
-
-# curl prefix
-$ curl $(sig get openai --curl) https://api.openai.com/…
-
-# full request
-$ sig request https://api.openai.com/v1/models`}</CodeBlock>
+# 3. Use credentials via sig run — nothing leaks to shell
+$ sig run my-jira -- python fetch_issues.py
+$ sig run my-jira -- node export_board.js`}</CodeBlock>
                 </>
             ),
             aside: (
@@ -199,193 +158,58 @@ $ sig request https://api.openai.com/v1/models`}</CodeBlock>
                     </P>
                     <P>
                         <Code>sig doctor</Code> verifies Node, Playwright, config parsing, and that
-                        the credentials directory is writeable.
+                        the credentials directory is writable.
                     </P>
                 </>
             ),
         },
 
-        /* ── Strategies ── */
+        /* ── Features ── */
         {
             content: (
                 <>
-                    <SectionHeading id="strategies" level={1}>
-                        Strategies
+                    <SectionHeading id="features" level={1}>
+                        Features
                     </SectionHeading>
+                    <List>
+                        <Li>
+                            <strong>sig run</strong> — inject <Code>SIG_*</Code> credentials
+                            directly into any child process. Values are redacted from output.
+                            The recommended way to use credentials.
+                        </Li>
+                        <Li>
+                            <strong>4 strategies</strong> — <Code>cookie</Code> (browser SSO),{' '}
+                            <Code>oauth2</Code> (Bearer/JWT), <Code>api-token</Code> (static keys),{' '}
+                            <Code>basic</Code> (username/password). Auto-detected or forced with{' '}
+                            <Code>--strategy</Code>.
+                        </Li>
+                        <Li>
+                            <strong>Browser adapters</strong> — Playwright (default) or Chrome CDP.
+                            Headless with automatic visible fallback. Pluggable for custom adapters.
+                        </Li>
+                        <Li>
+                            <strong>SSH sync</strong> — sign in on your laptop, push to CI or
+                            remote servers with <Code>sig sync push</Code>. No daemon required.
+                        </Li>
+                        <Li>
+                            <strong>AI agent ready</strong> — stable CLI surface with predictable
+                            exit codes and JSON output. No MCP server needed.
+                        </Li>
+                        <Li>
+                            <strong>TypeScript & Python SDKs</strong> — thin wrappers around the
+                            CLI for programmatic use.
+                        </Li>
+                    </List>
                     <P>
-                        A strategy implements <Code>IAuthStrategy</Code>: <Code>validate</Code>,{' '}
-                        <Code>authenticate</Code>, <Code>refresh</Code>, and{' '}
-                        <Code>applyToRequest</Code>. Four ship in the box.
-                    </P>
-
-                    <SectionHeading id="cookie" level={3}>
-                        cookie
-                    </SectionHeading>
-                    <P>
-                        Captures the cookie jar from a real browser session. Supports{' '}
-                        <Code>forceVisible</Code>, <Code>waitUntil</Code>, and{' '}
-                        <Code>requiredCookies</Code> for sites with multi-step login (QR codes,
-                        SSO).
-                    </P>
-
-                    <SectionHeading id="bearer" level={3}>
-                        bearer
-                    </SectionHeading>
-                    <P>
-                        Watches for <Code>Authorization: Bearer ...</Code> on outgoing requests, or
-                        decodes a JWT from an OAuth redirect. Auto-refreshes when a refresh token is
-                        present.
-                    </P>
-
-                    <SectionHeading id="api-key" level={3}>
-                        api-key
-                    </SectionHeading>
-                    <P>
-                        For tokens you paste in. <Code>sig login url --token xxx</Code> writes the
-                        credential directly. Ideal for CI where the key is already in an env var.
-                    </P>
-
-                    <SectionHeading id="basic" level={3}>
-                        basic
-                    </SectionHeading>
-                    <P>
-                        Username/password. Encoded to a Basic auth header at request time, never
-                        stored in plaintext outside the sealed credential file.
-                    </P>
-
-                    <CodeBlock lang="bash">{`# Adding a custom strategy:
-export class OtpStrategyFactory implements IAuthStrategyFactory {
-  readonly name = 'otp'
-  create(config: StrategyConfig) {
-    return new OtpStrategy(parseConfig(config))
-  }
-}`}</CodeBlock>
-                </>
-            ),
-            aside: (
-                <P>
-                    Strategies return <Code>{'Result<T, AuthError>'}</Code> — never throw for
-                    expected failures. Callers check <Code>isOk()</Code> / <Code>isErr()</Code> and
-                    dispatch on the typed error.
-                </P>
-            ),
-        },
-
-        /* ── Browser adapters ── */
-        {
-            content: (
-                <>
-                    <SectionHeading id="browser-adapters" level={1}>
-                        Browser adapters
-                    </SectionHeading>
-                    <P>
-                        <Code>IBrowserAdapter</Code> is three small classes:{' '}
-                        <strong>Adapter → Session → Page</strong>. Playwright ships as the default.{' '}
-                        <Code>NullBrowserAdapter</Code> powers browserless mode on servers.
-                    </P>
-                    <P>
-                        Write your own to back Puppeteer, WebKit, or Electron. Lazy-import the
-                        browser library; throw <Code>BrowserLaunchError</Code> on import failure so{' '}
-                        <Code>sig doctor</Code> can report what's missing.
-                    </P>
-                    <CodeBlock lang="bash">{`export class PuppeteerAdapter implements IBrowserAdapter {
-  readonly name = 'puppeteer'
-  async launch(options) {
-    const puppeteer = await import('puppeteer')
-    const browser = await puppeteer.launch(options)
-    return new PuppeteerSession(browser)
-  }
-}`}</CodeBlock>
-                </>
-            ),
-        },
-
-        /* ── Sync ── */
-        {
-            content: (
-                <>
-                    <SectionHeading id="sync" level={1}>
-                        Sync & remotes
-                    </SectionHeading>
-                    <P>
-                        Sync moves credential files between machines over SSH. Sign in on your
-                        laptop, push to servers. No daemon, no server to run — same locking as local
-                        storage.
-                    </P>
-                    <CodeBlock lang="bash">{`# on the server: enable browserless mode
-$ sig init --remote
-
-# on the laptop: add the server
-$ sig remote add prod ssh://deploy@example.com
-
-# push everything
-$ sig sync push prod
-
-# on the server: use immediately
-$ sig request https://api.example.com/deploy`}</CodeBlock>
-                </>
-            ),
-            aside: (
-                <P>
-                    Sync uses existing SSH auth — you get your normal key management. Credentials
-                    are copied as-is; the transport never decodes them.
-                </P>
-            ),
-        },
-
-        /* ── AI agents ── */
-        {
-            content: (
-                <>
-                    <SectionHeading id="agents" level={1}>
-                        AI agents
-                    </SectionHeading>
-                    <P>
-                        Sigcli exposes a stable CLI surface that agents shell out to. No SDK, no
-                        bespoke MCP — just commands with predictable exit codes and JSON output.
-                    </P>
-                    <CodeBlock lang="bash">{`// Claude Code / any agent
-const headers = JSON.parse(
-  await bash("sig get openai --json")
-)
-await fetch(url, { headers })
-
-// or one-liner with curl
-curl $(sig get openai --curl) \\
-     https://api.openai.com/v1/models`}</CodeBlock>
-                    <P>
-                        The bundled <Code>/auth</Code> Claude Code skill shells out to{' '}
-                        <Code>sig</Code> under the hood. No MCP server needed.
+                        <A href="/docs/">Full documentation →</A>
                     </P>
                 </>
             ),
             aside: (
                 <P>
-                    The CLI owns locking, TTL, and refresh logic. Shelling out means every caller
-                    benefits from those without re-implementing them.
+                    <Code>sig run my-jira -- env | grep SIG_</Code> is the quickest way to
+                    discover exactly which environment variables are available for a provider.
                 </P>
-            ),
-        },
-
-        /* ── Commands ── */
-        {
-            content: (
-                <>
-                    <SectionHeading id="commands" level={1}>
-                        Commands
-                    </SectionHeading>
-                    <CodeBlock lang="bash">{`sig init                   # set up config (interactive)
-sig init --remote          # headless/remote machine
-sig doctor                 # check environment and config
-sig get <provider|url>     # get credential headers
-sig login <url>            # authenticate (browser or token)
-sig request <url>          # make authenticated HTTP request
-sig status [provider]      # show auth status
-sig logout [provider]      # clear credentials
-sig providers              # list configured providers
-sig remote add|remove|list # manage remote credential stores
-sig sync push|pull [remote]# sync credentials with remote`}</CodeBlock>
-                </>
             ),
         },
     ] as EditorialSection[],

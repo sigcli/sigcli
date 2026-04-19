@@ -80,12 +80,12 @@ describe('formatTable', () => {
     });
 
     it('truncates columns exceeding maxColumnWidths', () => {
-        const longId = 'bdc-cockpit-starkiller-hc-uclformation-ga';
+        const longId = 'dashboard-analytics-prod-uclformation-ga';
         const result = formatTable([{ id: longId, status: 'ok' }], { maxColumnWidths: { id: 20 } });
         const lines = result.split('\n');
         const dataRow = lines[2];
         // Should be truncated to 19 chars + ellipsis
-        expect(dataRow).toContain('bdc-cockpit-starkil\u2026');
+        expect(dataRow).toContain('dashboard-analytics\u2026');
         expect(dataRow).not.toContain(longId);
     });
 
