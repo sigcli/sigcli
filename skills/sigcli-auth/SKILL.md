@@ -35,7 +35,7 @@ sigcli (`sig`) is a CLI tool that stores and manages authentication credentials 
 | `sig watch list`                   | Show watched providers                  | Inspect watch config                      | < 1s                             |
 | `sig watch start`                  | Start auto-refresh daemon               | Run in background for session maintenance | Continuous                       |
 | `sig watch set-interval <dur>`     | Set default watch interval              | Tune refresh frequency                    | < 1s                             |
-| `sig run --provider <id> -- <cmd>` | Run command with credentials in env     | Scripts that need SIG\_\* env vars        | < 1s + child process             |
+| `sig run <provider\|url> -- <cmd>` | Run command with credentials in env     | Scripts that need SIG\_\* env vars        | < 1s + child process             |
 
 ---
 
@@ -97,20 +97,20 @@ Use `sig run` to inject credentials as `SIG_*` environment variables without exp
 
 ```bash
 # Run a script with credentials available as SIG_* env vars
-sig run --provider grafana -- python fetch_data.py
+sig run grafana -- python fetch_data.py
 
 # The child process can read:
 #   SIG_PROVIDER, SIG_CREDENTIAL_TYPE, SIG_TOKEN / SIG_COOKIE / SIG_API_KEY etc.
 #   SIG_AUTH_HEADER — complete Authorization header value
 
 # Expand individual cookies as SIG_COOKIE_<NAME>=value
-sig run --provider loki-orca --expand-cookies -- python script.py
+sig run loki-orca --expand-cookies -- python script.py
 
 # Write credentials to a .env file (deleted after child exits)
-sig run --provider grafana --mount .env -- node app.js
+sig run grafana --mount .env -- node app.js
 
 # Disable redaction (see raw values in output — use with caution)
-sig run --provider grafana --no-redaction -- env | grep SIG_
+sig run grafana --no-redaction -- env | grep SIG_
 ```
 
 **Why prefer `sig run` over `sig get`:** `sig get` exposes credentials in shell variables visible to `ps`, shell history, and AI agent context. `sig run` injects credentials directly into the child environment and redacts them from output.

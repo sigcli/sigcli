@@ -11,10 +11,10 @@ export async function runRun(
     flags: Record<string, string | boolean | string[]>,
     deps: AuthDeps,
 ): Promise<void> {
-    const provider = flags['provider'];
-    if (!provider || typeof provider !== 'string') {
+    const provider = positionals[0];
+    if (!provider) {
         process.stderr.write(
-            'Error: --provider <id> is required\nUsage: sig run --provider <id> -- <command> [args]\n',
+            'Error: provider is required\nUsage: sig run <provider|url> -- <command> [args]\n',
         );
         process.exitCode = ExitCode.GENERAL_ERROR;
         return;
@@ -29,9 +29,10 @@ export async function runRun(
         return;
     }
 
-    if (positionals.length === 0) {
+    const cmdArgs = positionals.slice(1);
+    if (cmdArgs.length === 0) {
         process.stderr.write(
-            'Error: No command specified\nUsage: sig run --provider <id> -- <command> [args]\n',
+            'Error: No command specified\nUsage: sig run <provider|url> -- <command> [args]\n',
         );
         process.exitCode = ExitCode.GENERAL_ERROR;
         return;
@@ -74,7 +75,7 @@ export async function runRun(
         writeFileSync(mount, content, { encoding: 'utf8', mode: 0o600 });
     }
 
-    const [cmd, ...args] = positionals;
+    const [cmd, ...args] = cmdArgs;
     const secrets = noRedaction ? [] : extractSensitiveValues(credential);
     let redactionNoticeShown = false;
 

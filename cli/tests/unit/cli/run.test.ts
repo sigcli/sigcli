@@ -89,31 +89,30 @@ describe('runRun', () => {
         process.exitCode = origExitCode;
     });
 
-    it('fails with usage error when --provider is missing', async () => {
+    it('fails with usage error when provider is missing', async () => {
         const deps = createDeps();
         await runRun([], {}, deps);
-        expect(stderrData).toContain('--provider');
+        expect(stderrData).toContain('provider');
         expect(process.exitCode).toBe(1);
     });
 
-    it('fails with usage error when no command after --', async () => {
+    it('fails with usage error when no command after provider', async () => {
         const deps = createDeps();
-        await runRun([], { provider: 'test-api' }, deps);
+        await runRun(['test-api'], {}, deps);
         expect(stderrData).toMatch(/command|Usage/i);
         expect(process.exitCode).toBe(1);
     });
 
     it('fails with error message when provider not found', async () => {
         const deps = createDeps();
-        await runRun([], { provider: 'nonexistent' }, deps);
+        await runRun(['nonexistent', 'echo'], {}, deps);
         expect(stderrData).toMatch(/not found|nonexistent/i);
         expect(process.exitCode).toBe(1);
     });
 
     it('suggests sig login when no credential stored', async () => {
         const deps = createDeps();
-        // provider exists but no credential stored
-        await runRun(['echo', 'hello'], { provider: 'test-api' }, deps);
+        await runRun(['test-api', 'echo', 'hello'], {}, deps);
         expect(stderrData).toMatch(/sig login/i);
         expect(process.exitCode).toBe(1);
     });
@@ -126,7 +125,7 @@ describe('runRun', () => {
             headerName: 'Authorization',
             headerPrefix: 'Bearer',
         });
-        await runRun(['true'], { provider: 'test-api' }, deps);
+        await runRun(['test-api', 'true'], {}, deps);
         expect(process.exitCode).toBeUndefined();
     });
 
@@ -138,7 +137,7 @@ describe('runRun', () => {
             headerName: 'Authorization',
             headerPrefix: 'Bearer',
         });
-        await runRun(['sh', '-c', 'exit 42'], { provider: 'test-api' }, deps);
+        await runRun(['test-api', 'sh', '-c', 'exit 42'], {}, deps);
         expect(process.exitCode).toBe(42);
     });
 
@@ -160,8 +159,8 @@ describe('runRun', () => {
 
         try {
             await runRun(
-                ['sh', '-c', 'echo SIG_API_KEY=$SIG_API_KEY'],
-                { provider: 'test-api', 'no-redaction': true },
+                ['test-api', 'sh', '-c', 'echo SIG_API_KEY=$SIG_API_KEY'],
+                { 'no-redaction': true },
                 deps,
             );
         } finally {
@@ -188,7 +187,7 @@ describe('runRun', () => {
         };
 
         try {
-            await runRun(['sh', '-c', 'echo supersecretkey9999'], { provider: 'test-api' }, deps);
+            await runRun(['test-api', 'sh', '-c', 'echo supersecretkey9999'], {}, deps);
         } finally {
             process.stdout.write = origWrite;
         }
