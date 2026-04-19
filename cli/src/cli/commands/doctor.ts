@@ -274,6 +274,39 @@ function checkBrowserRequired(
     };
 }
 
+async function checkEncryptionKey(): Promise<CheckResult> {
+    const keyPath = path.join(expandHome('~/.sig'), 'encryption.key');
+    try {
+        const raw = await fsp.readFile(keyPath, 'utf8');
+        const key = Buffer.from(raw.trim(), 'base64');
+        if (key.length !== 32) {
+            return {
+                label: 'Encryption key',
+                ok: false,
+                hint: `Invalid key: expected 32 bytes, got ${key.length}. Delete ~/.sig/encryption.key and run "sig init".`,
+            };
+        }
+        return {
+            label: 'Encryption key',
+            ok: true,
+            detail: '~/.sig/encryption.key (AES-256-GCM)',
+        };
+    } catch (e: unknown) {
+        if ((e as NodeJS.ErrnoException).code === 'ENOENT') {
+            return {
+                label: 'Encryption key',
+                ok: false,
+                hint: 'No encryption key found. Run "sig init" to generate one.',
+            };
+        }
+        return {
+            label: 'Encryption key',
+            ok: false,
+            hint: `Cannot read encryption key: ${(e as Error).message}`,
+        };
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Main command
 // ---------------------------------------------------------------------------
@@ -310,6 +343,9 @@ export async function runDoctor(
 
     // h. Stored credentials
     results.push(await checkStoredCredentials(config));
+
+    // i. Encryption key
+    results.push(await checkEncryptionKey());
 
     printResults(results);
 

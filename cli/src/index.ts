@@ -60,6 +60,7 @@ export {
     RemoteNotFoundError,
     BrowserUnavailableError,
     SyncConflictError,
+    EncryptionError,
 } from './core/errors.js';
 
 // Interfaces (for implementing custom adapters/strategies)
@@ -142,3 +143,13 @@ export { parseDuration, formatDuration } from './utils/duration.js';
 export { buildUserAgent } from './utils/http.js';
 export { sanitizeId } from './utils/sanitize.js';
 export { expandHome } from './utils/path.js';
+
+// Crypto
+export {
+    encrypt,
+    decrypt,
+    isEncryptedEnvelope,
+    loadEncryptionKey,
+    generateEncryptionKey,
+} from './crypto/encryption.js';
+export type { EncryptedEnvelope } from './crypto/encryption.js';

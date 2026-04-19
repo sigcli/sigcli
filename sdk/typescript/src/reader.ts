@@ -3,8 +3,18 @@ import path from 'node:path';
 import os from 'node:os';
 import type { ProviderFile, ProviderInfo } from './types.js';
 import { CredentialNotFoundError, CredentialParseError } from './errors.js';
+import { isEncryptedEnvelope, decrypt, loadEncryptionKey } from './crypto.js';
 
 const DEFAULT_CREDENTIALS_DIR = path.join(os.homedir(), '.sig', 'credentials');
+
+let cachedKey: Buffer | null = null;
+
+async function getEncryptionKey(): Promise<Buffer> {
+    if (!cachedKey) {
+        cachedKey = await loadEncryptionKey();
+    }
+    return cachedKey;
+}
 
 function sanitizeId(id: string): string {
     return id.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -25,12 +35,18 @@ export async function readProviderFile(
         throw e;
     }
     try {
-        const data = JSON.parse(content) as ProviderFile;
+        let parsed: unknown = JSON.parse(content);
+        if (isEncryptedEnvelope(parsed)) {
+            const key = await getEncryptionKey();
+            parsed = JSON.parse(decrypt(parsed, key));
+        }
+        const data = parsed as ProviderFile;
         if (!data.version || !data.providerId || !data.credential) {
             throw new Error('Missing required fields');
         }
         return data;
     } catch (e) {
+        if (e instanceof CredentialNotFoundError) throw e;
         throw new CredentialParseError(filePath, e instanceof Error ? e : undefined);
     }
 }
@@ -50,7 +66,12 @@ export async function listProviderFiles(
         if (!file.endsWith('.json') || file.endsWith('.lock')) continue;
         try {
             const content = await fs.readFile(path.join(credentialsDir, file), 'utf-8');
-            const data = JSON.parse(content) as ProviderFile;
+            let parsed: unknown = JSON.parse(content);
+            if (isEncryptedEnvelope(parsed)) {
+                const key = await getEncryptionKey();
+                parsed = JSON.parse(decrypt(parsed, key));
+            }
+            const data = parsed as ProviderFile;
             if (data.providerId && data.credential) {
                 results.push({
                     providerId: data.providerId,

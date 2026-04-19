@@ -50,9 +50,10 @@ core/ (types, interfaces, Result, errors) ── zero external deps, imported by
 - **`src/strategies/`** — Each strategy: private class + exported `*StrategyFactory` (IAuthStrategyFactory).
 - **`src/browser/adapters/`** — Browser automation. Three-class pattern: Adapter → Session → Page.
 - **`src/browser/flows/`** — `runHybridFlow`, `extractOAuthTokens`, `isLoginPage`, `startHeaderCapture`.
-- **`src/storage/`** — DirectoryStorage, CachedStorage, MemoryStorage.
+- **`src/storage/`** — DirectoryStorage (per-file JSON + file lock + AES-256-GCM encryption), CachedStorage, MemoryStorage.
+- **`src/crypto/`** — Encryption at rest. AES-256-GCM encrypt/decrypt, key generation/loading. Key stored at `~/.sig/encryption.key`.
 - **`src/providers/`** — ProviderRegistry, config-loader.
-- **`src/sync/`** — SyncEngine + SshTransport.
+- **`src/sync/`** — SyncEngine + SshTransport (encrypts with remote key).
 - **`src/utils/`** — JWT decode, duration parse, HTTP helpers.
 
 ### Key Interfaces
@@ -79,6 +80,7 @@ core/ (types, interfaces, Result, errors) ── zero external deps, imported by
 8. **Credential types**: Discriminated union on `type` field: `'cookie' | 'bearer' | 'api-key' | 'basic'`.
 9. **Config**: `StrategyConfig = Record<string, unknown>` — parsed inside each strategy via a private `parseConfig()`.
 10. **Exports**: Public API through `src/index.ts`.
+11. **Encryption**: All credentials encrypted at rest with AES-256-GCM. Key at `~/.sig/encryption.key` (0o400). DirectoryStorage and SshTransport handle encrypt/decrypt transparently. Legacy unencrypted files are read but re-written encrypted.
 
 ### CLI Usage
 

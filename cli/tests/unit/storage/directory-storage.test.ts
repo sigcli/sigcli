@@ -2,10 +2,13 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { randomBytes } from 'node:crypto';
 import { DirectoryStorage } from '../../../src/storage/directory-storage.js';
+import { isEncryptedEnvelope } from '../../../src/crypto/encryption.js';
 import type { StoredCredential } from '../../../src/core/types.js';
 
 const isWindows = process.platform === 'win32';
+const testKey = randomBytes(32);
 
 describe('DirectoryStorage', () => {
     let tmpDir: string;
@@ -46,7 +49,7 @@ describe('DirectoryStorage', () => {
 
     beforeEach(async () => {
         tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'dir-storage-test-'));
-        storage = new DirectoryStorage(tmpDir);
+        storage = new DirectoryStorage(tmpDir, testKey);
     });
 
     afterEach(async () => {
@@ -68,7 +71,7 @@ describe('DirectoryStorage', () => {
 
     it('creates the directory if it does not exist', async () => {
         const nestedDir = path.join(tmpDir, 'nested', 'subdir');
-        const nestedStorage = new DirectoryStorage(nestedDir);
+        const nestedStorage = new DirectoryStorage(nestedDir, testKey);
 
         const cred: StoredCredential = { ...mockCredential, providerId: 'test' };
         await nestedStorage.set('test', cred);
@@ -132,7 +135,7 @@ describe('DirectoryStorage', () => {
     });
 
     it('returns empty array when directory does not exist', async () => {
-        const missingStorage = new DirectoryStorage(path.join(tmpDir, 'nonexistent'));
+        const missingStorage = new DirectoryStorage(path.join(tmpDir, 'nonexistent'), testKey);
         const entries = await missingStorage.list();
         expect(entries).toEqual([]);
     });
@@ -174,7 +177,7 @@ describe('DirectoryStorage', () => {
 
     it.skipIf(isWindows)('creates directory with mode 0o700', async () => {
         const nestedDir = path.join(tmpDir, 'perm-test-dir');
-        const nestedStorage = new DirectoryStorage(nestedDir);
+        const nestedStorage = new DirectoryStorage(nestedDir, testKey);
 
         const cred: StoredCredential = { ...mockCredential, providerId: 'perm-test' };
         await nestedStorage.set('perm-test', cred);
@@ -243,15 +246,13 @@ describe('DirectoryStorage', () => {
         // Filenames are human-readable provider IDs
         expect(files).toEqual(['alpha.json', 'beta.json']);
 
-        // Verify each file contains the correct provider data
+        // Verify each file contains an encrypted envelope
         const alphaContent = JSON.parse(
             await fs.readFile(path.join(tmpDir, 'alpha.json'), 'utf-8'),
         );
-        expect(alphaContent.providerId).toBe('alpha');
-        expect(alphaContent.version).toBe(1);
+        expect(isEncryptedEnvelope(alphaContent)).toBe(true);
 
         const betaContent = JSON.parse(await fs.readFile(path.join(tmpDir, 'beta.json'), 'utf-8'));
-        expect(betaContent.providerId).toBe('beta');
-        expect(betaContent.version).toBe(1);
+        expect(isEncryptedEnvelope(betaContent)).toBe(true);
     });
 });

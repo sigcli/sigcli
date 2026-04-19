@@ -23,9 +23,10 @@ core/ (types, interfaces, Result, errors) ── zero external deps, imported by
 - **`src/strategies/`** — Each strategy: private class + exported `*StrategyFactory` (IAuthStrategyFactory).
 - **`src/browser/adapters/`** — Browser automation. PlaywrightAdapter is the reference. Three-class pattern: Adapter → Session → Page.
 - **`src/browser/flows/`** — `runHybridFlow` (headless→visible fallback), `extractOAuthTokens`, `isLoginPage`, `startHeaderCapture` (x-headers).
-- **`src/storage/`** — DirectoryStorage (per-file JSON + file lock), CachedStorage (TTL decorator), MemoryStorage (tests).
+- **`src/storage/`** — DirectoryStorage (per-file JSON + file lock + AES-256-GCM encryption), CachedStorage (TTL decorator), MemoryStorage (tests).
+- **`src/crypto/`** — Encryption at rest. AES-256-GCM encrypt/decrypt, key generation/loading. Key stored at `~/.sig/encryption.key`.
 - **`src/providers/`** — ProviderRegistry (URL→provider via domain matching), config-loader (YAML/JSON).
-- **`src/sync/`** — SyncEngine + SshTransport for credential sync to remote machines. RemoteConfig in `~/.sig/config.yaml`.
+- **`src/sync/`** — SyncEngine + SshTransport for credential sync to remote machines. Encrypts with per-remote key. RemoteConfig in `~/.sig/config.yaml`.
 - **`src/utils/`** — JWT decode, duration parse, HTTP helpers.
 
 ## Key Interfaces
@@ -56,6 +57,7 @@ core/ (types, interfaces, Result, errors) ── zero external deps, imported by
 12. **Cookie strategy config**: `ttl` (duration), `forceVisible` (bool), `waitUntil` (`load`|`networkidle`|`domcontentloaded`|`commit`), `requiredCookies` (string[] — cookie names that must exist before auth is considered complete; use for sites where the entry page isn't a login page, e.g. QR code login).
 13. **Mode**: `mode: browser | browserless` config field (default `browser`). Set via `sig init --remote` on headless/remote machines. In `browserless` mode, `NullBrowserAdapter` is used and browser-dependent commands guide users to `sig sync pull`, `--cookie`, or `--token`.
 14. **localStorage**: Provider-level `localStorage` config in `config.yaml` (`LocalStorageConfig[]`). Each entry has `name` (output key), `key` (localStorage key to read), and optional `jsonPath` (dot-delimited path into parsed JSON value). Extracted after browser auth, stored on the credential as `localStorage: Record<string, string>`, included in `sig get` JSON output but NOT applied as HTTP headers. Useful for Slack (xoxc token in localStorage alongside xoxd cookie).
+15. **Encryption**: All credentials encrypted at rest with AES-256-GCM. Key at `~/.sig/encryption.key` (mode 0o400, 32 bytes). `DirectoryStorage` encrypts on write, decrypts on read; legacy unencrypted files are read transparently. `SshTransport` uses a per-remote encryption key. SDK provides decrypt-only (no key generation).
 
 ## Commands
 

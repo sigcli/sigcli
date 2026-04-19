@@ -14,6 +14,7 @@ import { PlaywrightAdapter } from './browser/adapters/playwright.adapter.js';
 import { NullBrowserAdapter } from './browser/adapters/null.adapter.js';
 import { buildStrategyConfig } from './config/validator.js';
 import { expandHome } from './utils/path.js';
+import { loadEncryptionKey } from './crypto/encryption.js';
 
 /**
  * Shared dependency graph used by the CLI and programmatic API.
@@ -59,7 +60,10 @@ export function createConsoleLogger(): ILogger {
  * Create the auth dependency graph from a validated SigConfig.
  * No env vars, no cascade — config is the single source of truth.
  */
-export function createAuthDeps(config: SigConfig, options?: { verbose?: boolean }): AuthDeps {
+export async function createAuthDeps(
+    config: SigConfig,
+    options?: { verbose?: boolean },
+): Promise<AuthDeps> {
     // 1. Convert config providers to ProviderConfig[]
     const providerConfigs: ProviderConfig[] = Object.entries(config.providers).map(
         ([id, entry]) => ({
@@ -88,7 +92,10 @@ export function createAuthDeps(config: SigConfig, options?: { verbose?: boolean 
 
     // 3. Build storage (CachedStorage wrapping DirectoryStorage)
     const credDir = expandHome(config.storage.credentialsDir);
-    const storage = new CachedStorage(new DirectoryStorage(credDir), { ttlMs: 5000 });
+    const encryptionKey = await loadEncryptionKey();
+    const storage = new CachedStorage(new DirectoryStorage(credDir, encryptionKey), {
+        ttlMs: 5000,
+    });
 
     // 4. Build browser adapter factory using config.browser
     const browserConfig = config.browser;

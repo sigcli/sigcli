@@ -5,6 +5,7 @@ import type { IStorage } from '../core/interfaces/storage.js';
 import type { StoredCredential, StoredEntry } from '../core/types.js';
 import { StorageError } from '../core/errors.js';
 import { sanitizeId } from '../utils/sanitize.js';
+import { encrypt, decrypt, isEncryptedEnvelope } from '../crypto/encryption.js';
 
 interface ProviderFile {
     version: 1;
@@ -24,7 +25,10 @@ interface ProviderFile {
  * (write to tmp + rename) for safe concurrent access.
  */
 export class DirectoryStorage implements IStorage {
-    constructor(private readonly dirPath: string) {}
+    constructor(
+        private readonly dirPath: string,
+        private readonly encryptionKey: Buffer,
+    ) {}
 
     async get(providerId: string): Promise<StoredCredential | null> {
         const filePath = this.filePathFor(providerId);
@@ -141,7 +145,16 @@ export class DirectoryStorage implements IStorage {
 
     private async readFile(filePath: string): Promise<ProviderFile> {
         const content = await fs.readFile(filePath, 'utf-8');
-        const data = JSON.parse(content) as ProviderFile;
+        const parsed: unknown = JSON.parse(content);
+
+        let data: ProviderFile;
+        if (isEncryptedEnvelope(parsed)) {
+            const plaintext = decrypt(parsed, this.encryptionKey);
+            data = JSON.parse(plaintext) as ProviderFile;
+        } else {
+            data = parsed as ProviderFile;
+        }
+
         if (!data.version || !data.providerId || !data.credential) {
             throw new StorageError('read', `Invalid provider file: ${filePath}`);
         }
@@ -160,7 +173,9 @@ export class DirectoryStorage implements IStorage {
 
     private async atomicWrite(filePath: string, data: ProviderFile): Promise<void> {
         try {
-            const content = JSON.stringify(data, null, 2);
+            const plaintext = JSON.stringify(data, null, 2);
+            const envelope = encrypt(plaintext, this.encryptionKey);
+            const content = JSON.stringify(envelope, null, 2);
             const tmpPath = `${filePath}.tmp.${process.pid}`;
             await fs.writeFile(tmpPath, content, { encoding: 'utf-8', mode: 0o600 });
             await fs.rename(tmpPath, filePath);
