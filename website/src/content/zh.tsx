@@ -78,20 +78,20 @@ export const pageContent = {
                     <P>无需 SDK 封装，不受供应商锁定。一个 CLI，适用于任何你能登录的网站。</P>
 
                     <CodeBlock lang="diagram" showLineNumbers={false}>{`
- ┌──────────────────┐    ┌───────────────────────┐    ┌──────────────────────┐
- │  ANY AGENT       │    │  ~/.sig               │    │  YOUR BROWSER        │
- │                  │    │                       │    │                      │
- │  ┌────────────┐  │    │  config.yaml          │    │  ┌────────────────┐  │
- │  │ sig run    ├──┼───>│  credentials/         │<───┼──┤ Playwright     │  │
- │  │ sig req    │  │    │    my-jira.json       │    │  │ (headless or   │  │
- │  └─────┬──────┘  │    │    github.json         │    │  │  visible)      │  │
- │        │         │    │    grafana.json        │    │  └───────┬────────┘  │
- │        v         │    │                       │    │          │           │
- │  curl, fetch,    │    │  ┌─────────────────┐  │    │  cookies, tokens,    │
- │  agents, CI      │<───┼──┤ SSH transport   │  │    │  x-headers,          │
- │                  │    │  │ sig sync push   │  │    │  localStorage        │
- │                  │    │  └─────────────────┘  │    │                      │
- └──────────────────┘    └───────────────────────┘    └──────────────────────┘
+ +------------------+    +-----------------------+    +----------------------+
+ |  ANY AGENT       |    |  ~/.sig               |    |  YOUR BROWSER        |
+ |                  |    |                       |    |                      |
+ |  +------------+  |    |  config.yaml          |    |  +----------------+  |
+ |  | sig run    |--+--->|  credentials/         |<---+--| Playwright     |  |
+ |  | sig req    |  |    |    my-jira.json       |    |  | (headless or   |  |
+ |  +-----+------+  |    |    github.json        |    |  |  visible)      |  |
+ |        |         |    |    grafana.json        |    |  +-------+--------+  |
+ |        v         |    |                       |    |          |           |
+ |  curl, fetch,    |    |  +-----------------+  |    |  cookies, tokens,    |
+ |  agents, CI      |<---+--| SSH transport   |  |    |  x-headers,          |
+ |                  |    |  | sig sync push   |  |    |  localStorage        |
+ |                  |    |  +-----------------+  |    |                      |
+ +------------------+    +-----------------------+    +----------------------+
 `}</CodeBlock>
 
                     <SectionHeading id="install" level={2}>
