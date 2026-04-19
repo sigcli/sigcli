@@ -57,15 +57,20 @@ sig request https://jira.example.com/rest/api/2/myself   # Authenticated request
 
 ### Credentials
 
-| Command                                                        | Description                           |
-| -------------------------------------------------------------- | ------------------------------------- |
-| `sig get <provider\|url>`                                      | Get credential headers (JSON default) |
-| `sig get <provider\|url> --format json\|header\|value`         | Choose output format                  |
-| `sig request <url>`                                            | Make authenticated HTTP request       |
-| `sig request <url> --method POST --body '{...}'`               | POST with body                        |
-| `sig request <url> --header "K: V" --format body`              | Add headers, get body only            |
-| `sig status`                                                   | Show auth status for all providers    |
-| `sig status <provider> --format json\|yaml\|env\|table\|plain` | Status for one provider               |
+| Command                                                                   | Description                                           |
+| ------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `sig get <provider\|url>`                                                 | Get credential headers (JSON default)                 |
+| `sig get <provider\|url> --format json\|header\|value`                    | Choose output format                                  |
+| `sig request <url>`                                                       | Make authenticated HTTP request                       |
+| `sig request <url> --method POST --body '{...}'`                          | POST with body                                        |
+| `sig request <url> --header "K: V" --format body`                         | Add headers, get body only                            |
+| `sig status`                                                              | Show auth status for all providers                    |
+| `sig status <provider> --format json\|yaml\|env\|table\|plain`            | Status for one provider                               |
+| `sig run --provider <id> -- <cmd>`                                        | Run command with `SIG_*` credentials in env           |
+| `sig run --provider <id> --expand-cookies -- <cmd>`                       | Also expand cookies as `SIG_COOKIE_<NAME>=value`      |
+| `sig run --provider <id> --no-redaction -- <cmd>`                         | Disable credential redaction from child output        |
+| `sig run --provider <id> --mount .env -- <cmd>`                           | Write credentials to `.env` file (deleted after exit) |
+| `sig run --provider <id> --mount creds.json --mount-format json -- <cmd>` | Write credentials as JSON file                        |
 
 ### Provider Management
 
@@ -101,16 +106,6 @@ sig request https://jira.example.com/rest/api/2/myself   # Authenticated request
 | `sig watch start --once`                        | Single check cycle (for cron)             |
 | `sig watch start --interval 1m`                 | Override check interval                   |
 | `sig watch set-interval <duration>`             | Set default check interval                |
-
-### Process Execution
-
-| Command                                                                   | Description                                           |
-| ------------------------------------------------------------------------- | ----------------------------------------------------- |
-| `sig run --provider <id> -- <cmd>`                                        | Run command with `SIG_*` credentials in env           |
-| `sig run --provider <id> --expand-cookies -- <cmd>`                       | Also expand cookies as `SIG_COOKIE_<NAME>=value`      |
-| `sig run --provider <id> --no-redaction -- <cmd>`                         | Disable credential redaction from child output        |
-| `sig run --provider <id> --mount .env -- <cmd>`                           | Write credentials to `.env` file (deleted after exit) |
-| `sig run --provider <id> --mount creds.json --mount-format json -- <cmd>` | Write credentials as JSON file                        |
 
 ### Global Flags
 
