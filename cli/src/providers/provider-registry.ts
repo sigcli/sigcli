@@ -58,6 +58,11 @@ export class ProviderRegistry implements IProviderRegistry {
     }
 
     register(provider: ProviderConfig): void {
+        if (!/^[a-z0-9-]+$/.test(provider.id)) {
+            throw new Error(
+                `Invalid provider ID "${provider.id}": only lowercase letters, digits, and hyphens are allowed`,
+            );
+        }
         this.providers.set(provider.id, provider);
     }
 

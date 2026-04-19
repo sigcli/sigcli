@@ -111,11 +111,11 @@ sig init
 # 2. 登录——自动打开真实浏览器，捕获凭证
 sig login https://jira.example.com
 
-# 3. 将凭证作为 SIG_* 环境变量注入任意命令
+# 3. 将凭证作为 SIG_<PROVIDER>_* 环境变量注入任意命令
 sig run my-jira -- curl https://jira.example.com/api/me
 
 # 探索可用的变量
-sig run my-jira -- env | grep SIG_`}</CodeBlock>
+sig run my-jira -- env | grep SIG_MY_JIRA_`}</CodeBlock>
                 </>
             ),
             aside: (
@@ -178,7 +178,7 @@ $ sig run my-jira -- node export_board.js`}</CodeBlock>
                     </SectionHeading>
                     <List>
                         <Li>
-                            <strong>sig run</strong> — 将 <Code>SIG_*</Code>{' '}
+                            <strong>sig run</strong> — 将 <Code>SIG_&lt;PROVIDER&gt;_*</Code>{' '}
                             凭证直接注入任意子进程，输出中的凭证值自动脱敏。这是使用凭证的推荐方式。
                         </Li>
                         <Li>
@@ -211,7 +211,7 @@ $ sig run my-jira -- node export_board.js`}</CodeBlock>
             ),
             aside: (
                 <P>
-                    <Code>sig run my-jira -- env | grep SIG_</Code>{' '}
+                    <Code>sig run my-jira -- env | grep SIG_MY_JIRA_</Code>{' '}
                     是探索某个提供者可用环境变量的最快方式。
                 </P>
             ),
