@@ -1,0 +1,38 @@
+name: Release TypeScript
+
+on:
+    push:
+        tags:
+            - 'ts-v*'
+
+jobs:
+    release:
+        name: Publish to npm
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: packages/typescript
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  registry-url: https://registry.npmjs.org
+            - name: Install dependencies
+              run: |
+                  for i in 1 2 3; do
+                    rm -rf node_modules package-lock.json
+                    npm install --prefer-online 2>&1 || true
+                    if [ -f node_modules/@types/node/index.d.ts ]; then
+                      echo "Install succeeded on attempt $i"
+                      break
+                    fi
+                    echo "Attempt $i: @types/node not installed correctly, retrying..."
+                    sleep 5
+                  done
+                  test -f node_modules/@types/node/index.d.ts || { echo "@types/node missing after 3 attempts"; exit 1; }
+            - run: npm run build
+            - run: npm test
+            - run: npm publish --access public
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
