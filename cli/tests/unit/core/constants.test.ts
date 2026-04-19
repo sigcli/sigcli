@@ -38,7 +38,7 @@ describe('constants', () => {
         });
 
         it('has exactly the expected number of commands', () => {
-            expect(Object.keys(Command)).toHaveLength(14);
+            expect(Object.keys(Command)).toHaveLength(15);
         });
 
         it('values are all lowercase strings', () => {

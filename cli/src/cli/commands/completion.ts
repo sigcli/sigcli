@@ -49,7 +49,8 @@ function bashScript(): string {
 }
 
 function zshScript(): string {
-    const nodeCmd = "process.stdin.resume();let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{JSON.parse(d).forEach(p=>console.log(p.id))}catch{}})";
+    const nodeCmd =
+        "process.stdin.resume();let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{JSON.parse(d).forEach(p=>console.log(p.id))}catch{}})";
     return [
         '#compdef sig',
         '',
@@ -137,7 +138,7 @@ function fishScript(): string {
         'complete -c sig -n "__fish_use_subcommand" -a completion -d "Generate shell completion script"',
         '',
         'function __sig_providers',
-        '    sig providers --format json 2>/dev/null | node -e "process.stdin.resume();let d=\'\';process.stdin.on(\'data\',c=>d+=c);process.stdin.on(\'end\',()=>{try{JSON.parse(d).forEach(p=>console.log(p.id))}catch{}}" 2>/dev/null',
+        "    sig providers --format json 2>/dev/null | node -e \"process.stdin.resume();let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{JSON.parse(d).forEach(p=>console.log(p.id))}catch{}}\" 2>/dev/null",
         'end',
         '',
         'complete -c sig -n "__fish_seen_subcommand_from get login status logout rename remove" -a "(__sig_providers)"',
