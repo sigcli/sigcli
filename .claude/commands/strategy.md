@@ -1,6 +1,6 @@
 # /strategy — Add New Auth Strategy
 
-You are orchestrating the signet agent team to add a new authentication strategy.
+You are orchestrating the sigcli agent team to add a new authentication strategy.
 The user's request: $ARGUMENTS
 
 ## Context
@@ -10,7 +10,7 @@ Strategies implement `IAuthStrategy` (validate, authenticate, refresh, applyToRe
 
 ### Phase 1: Design
 Spawn the **architect** agent with this prompt:
-> Design a new auth strategy for the signet project: $ARGUMENTS
+> Design a new auth strategy for the sigcli project: $ARGUMENTS
 >
 > You MUST read these files first:
 > 1. `src/core/interfaces/auth-strategy.ts` — IAuthStrategy (4 methods) + IAuthStrategyFactory

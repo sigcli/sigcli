@@ -1,10 +1,10 @@
-# Contributing to Signet
+# Contributing to SigCLI
 
 ## Setup
 
 ```bash
-git clone https://github.com/pylon/signet.git
-cd signet
+git clone https://github.com/sigcli/sigcli.git
+cd sigcli
 npm install    # also installs git hooks via husky
 ```
 

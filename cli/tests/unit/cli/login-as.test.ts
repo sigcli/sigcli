@@ -9,7 +9,7 @@ import { runLogin } from '../../../src/cli/commands/login.js';
 import type { AuthDeps } from '../../../src/deps.js';
 import type { ProviderConfig } from '../../../src/core/types.js';
 import type { IBrowserAdapter } from '../../../src/core/interfaces/browser-adapter.js';
-import type { BrowserConfig, SignetConfig } from '../../../src/config/schema.js';
+import type { BrowserConfig, SigConfig } from '../../../src/config/schema.js';
 
 // Mock addProviderToConfig to prevent tests from writing to the real ~/.sig/config.yaml
 vi.mock('../../../src/config/loader.js', () => ({
@@ -48,7 +48,7 @@ function createDeps(providers?: ProviderConfig[]): {
         browserConfig,
     });
 
-    const config: SignetConfig = {
+    const config: SigConfig = {
         browser: browserConfig,
         storage: { credentialsDir: '/tmp/test-credentials' },
         providers: {},

@@ -1,5 +1,5 @@
 /**
- * Unified configuration schema for signet.
+ * Unified configuration schema for SigCLI.
  * All config lives in ~/.sig/config.yaml — no cascade, no env vars.
  *
  * Strategy config types are defined in core/types.ts (shared vocabulary)
@@ -65,10 +65,10 @@ export interface WatchEntry {
 // Root Config
 // ============================================================================
 
-export type SignetMode = 'browser' | 'browserless';
+export type SigMode = 'browser' | 'browserless';
 
-export interface SignetConfig {
-    mode: SignetMode;
+export interface SigConfig {
+    mode: SigMode;
     browser: BrowserConfig;
     storage: StorageConfig;
     remotes?: Record<string, RemoteEntry>;

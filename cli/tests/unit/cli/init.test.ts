@@ -293,7 +293,7 @@ describe('runInit', () => {
         await runInit([], { yes: true });
 
         const [, writtenContent] = mockWriteFile.mock.calls[0] as [string, string, string];
-        expect(writtenContent).toContain('# Signet unified configuration');
+        expect(writtenContent).toContain('# SigCLI unified configuration');
         expect(writtenContent).toContain('# Browser settings');
         expect(writtenContent).toContain('# Storage settings');
         expect(writtenContent).toContain('# Provider configurations');

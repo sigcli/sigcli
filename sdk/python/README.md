@@ -1,11 +1,11 @@
-# signet-auth-sdk
+# sigcli-sdk
 
-Lightweight Python client SDK for consuming [Signet](https://github.com/signet-auth/signet) credentials.
+Lightweight Python client SDK for consuming [sigcli](https://github.com/sigcli/sigcli) credentials.
 
 ## Install
 
 ```bash
-pip install signet-auth-sdk
+pip install sigcli-sdk
 ```
 
 Requires Python >= 3.9.
@@ -13,9 +13,9 @@ Requires Python >= 3.9.
 ## Quick start
 
 ```python
-from signet_auth_sdk import SignetClient
+from sigcli_sdk import SigClient
 
-client = SignetClient()
+client = SigClient()
 
 # Get HTTP headers for an authenticated request
 headers = client.get_headers("my-jira")
@@ -25,9 +25,9 @@ response = requests.get("https://jira.example.com/rest/api/2/search", headers=he
 ## Watching for changes
 
 ```python
-from signet_auth_sdk import SignetClient
+from sigcli_sdk import SigClient
 
-client = SignetClient()
+client = SigClient()
 
 def on_change(provider_id: str, headers: dict[str, str]):
     print(f"Credentials updated for {provider_id}")
@@ -42,13 +42,13 @@ client.close()
 Or use as a context manager:
 
 ```python
-with SignetClient() as client:
+with SigClient() as client:
     headers = client.get_headers("my-jira")
 ```
 
 ## API reference
 
-### `SignetClient(credentials_dir=None)`
+### `SigClient(credentials_dir=None)`
 
 | Parameter         | Type                  | Default              | Description                   |
 | ----------------- | --------------------- | -------------------- | ----------------------------- |

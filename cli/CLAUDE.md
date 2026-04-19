@@ -1,4 +1,4 @@
-# Signet
+# SigCLI
 
 General-purpose authentication CLI with pluggable strategies and browser adapters.
 TypeScript, ES2022, strict mode, ESM (`"type": "module"`), Node >= 18.
@@ -25,7 +25,7 @@ core/ (types, interfaces, Result, errors) ── zero external deps, imported by
 - **`src/browser/flows/`** — `runHybridFlow` (headless→visible fallback), `extractOAuthTokens`, `isLoginPage`, `startHeaderCapture` (x-headers).
 - **`src/storage/`** — DirectoryStorage (per-file JSON + file lock), CachedStorage (TTL decorator), MemoryStorage (tests).
 - **`src/providers/`** — ProviderRegistry (URL→provider via domain matching), config-loader (YAML/JSON).
-- **`src/sync/`** — SyncEngine + SshTransport for credential sync to remote machines. RemoteConfig in `~/.signet/config.yaml`.
+- **`src/sync/`** — SyncEngine + SshTransport for credential sync to remote machines. RemoteConfig in `~/.sig/config.yaml`.
 - **`src/utils/`** — JWT decode, duration parse, HTTP helpers.
 
 ## Key Interfaces
@@ -88,11 +88,11 @@ sig sync push|pull [remote]# Sync credentials with remote
 - **New strategy**: Create `src/strategies/<name>.strategy.ts` (Factory + private class) → register in `deps.ts` → export in `index.ts` → test in `tests/unit/strategies/`
 - **New adapter**: Create `src/browser/adapters/<name>.adapter.ts` (Adapter + Session + Page) → export in `index.ts` → test in `tests/unit/browser/`
 - **New CLI command**: Create `src/cli/commands/<name>.ts` → add to `cli/main.ts` → test in `tests/unit/cli/`
-- **New provider**: Add entry to `~/.signet/config.yaml` providers section. Use `xHeaders` for APIs that need extra headers (anti-bot signatures, origin, referer).
+- **New provider**: Add entry to `~/.sig/config.yaml` providers section. Use `xHeaders` for APIs that need extra headers (anti-bot signatures, origin, referer).
 
 ## Claude Code Integration
 
-Use the `/auth` skill to interact with Signet from Claude Code. The skill shells out to the CLI — no MCP server needed.
+Use the `/auth` skill to interact with SigCLI from Claude Code. The skill shells out to the CLI — no MCP server needed.
 
 See the **AI Agent Integration** section in `README.md` for usage patterns (direct requests, credential pass-through, curl fallback) and skill-based setup.
 

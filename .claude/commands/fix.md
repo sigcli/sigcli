@@ -1,13 +1,13 @@
 # /fix — Bug Investigation and Fix
 
-You are orchestrating the signet agent team to investigate and fix a bug.
+You are orchestrating the sigcli agent team to investigate and fix a bug.
 The user's report: $ARGUMENTS
 
 ## Workflow
 
 ### Phase 1: Investigation
 Spawn the **architect** agent with this prompt:
-> Investigate a bug in the signet project: $ARGUMENTS
+> Investigate a bug in the sigcli project: $ARGUMENTS
 >
 > Trace the call chain from handler → AuthManager → strategy/storage/browser to locate the fault. Read relevant source files, identify the root cause, and propose a minimal fix. Include: which file(s) to change, what the fix looks like, and how to write a regression test.
 
@@ -17,7 +17,7 @@ Present the diagnosis and proposed fix to the user. **Wait for user approval bef
 Spawn the **dev** agent and **tester** agent. The dev agent fixes the code, the tester writes a regression test.
 
 **dev** agent prompt:
-> Fix this bug in the signet project:
+> Fix this bug in the sigcli project:
 > [Include the architect's diagnosis and proposed fix]
 >
 > Apply the minimal fix following project conventions. Run npm run build to verify types.

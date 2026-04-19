@@ -3,7 +3,7 @@ import { SyncEngine } from '../../../src/sync/sync-engine.js';
 import { MemoryStorage } from '../../../src/storage/memory-storage.js';
 import type { StoredCredential } from '../../../src/core/types.js';
 import type { RemoteConfig } from '../../../src/sync/types.js';
-import type { SignetConfig } from '../../../src/config/schema.js';
+import type { SigConfig } from '../../../src/config/schema.js';
 import type { ISyncTransport } from '../../../src/sync/interfaces/transport.js';
 
 // Mock transport
@@ -54,7 +54,7 @@ const testRemote: RemoteConfig = {
     user: 'testuser',
 };
 
-const testConfig: SignetConfig = {
+const testConfig: SigConfig = {
     browser: {
         browserDataDir: '~/.sig/browser-data',
         channel: 'chrome',
@@ -79,7 +79,7 @@ const testConfig: SignetConfig = {
     },
 };
 
-const remoteConfigYaml = `# Signet config
+const remoteConfigYaml = `# SigCLI config
 browser:
   browserDataDir: ~/.sig/browser-data
   channel: chrome
@@ -95,7 +95,7 @@ providers:
     strategy: cookie
 `;
 
-const localConfigYaml = `# Signet config
+const localConfigYaml = `# SigCLI config
 browser:
   browserDataDir: ~/.sig/browser-data
   channel: chrome

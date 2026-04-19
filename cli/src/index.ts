@@ -1,7 +1,7 @@
-// Public API exports for signet
+// Public API exports for SigCLI
 
 // Config types and loader
-export type { SignetConfig, BrowserConfig, StorageConfig, ProviderEntry } from './config/schema.js';
+export type { SigConfig, BrowserConfig, StorageConfig, ProviderEntry } from './config/schema.js';
 export { loadConfig, saveConfig, getConfigPath } from './config/loader.js';
 export { validateConfig, buildStrategyConfig } from './config/validator.js';
 export { generateConfigYaml } from './config/generator.js';

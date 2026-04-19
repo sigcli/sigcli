@@ -1,5 +1,5 @@
 /**
- * Error hierarchy for signet.
+ * Error hierarchy for SigCLI.
  * These are used as Result.err values, NOT thrown for control flow.
  * Only truly unexpected errors (programmer bugs, I/O failures) are thrown.
  */

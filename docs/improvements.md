@@ -1,4 +1,4 @@
-# Signet Improvements
+# SigCLI Improvements
 
 Collected from real-world usage of `sig` with SAP systems (Jira, Wiki, Teams, Grafana, BDC Cockpit, HANA canary landscapes).
 
@@ -66,7 +66,7 @@ Implement via `sig completions bash|zsh|fish` that outputs the completion script
 
 **Problem**: `src/index.ts` exports a comprehensive public API (AuthManager, strategies, storage) but has no JSDoc examples. No "Programmatic Usage" section in README.
 
-**Proposed**: Add `@example` JSDoc annotations to key exports and a README section showing how to use signet as a library (not just CLI).
+**Proposed**: Add `@example` JSDoc annotations to key exports and a README section showing how to use sigcli as a library (not just CLI).
 
 ---
 

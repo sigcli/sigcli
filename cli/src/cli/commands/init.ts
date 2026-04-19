@@ -158,7 +158,7 @@ export async function runInit(
     flags: Record<string, string | boolean | string[]>,
 ): Promise<void> {
     const configPath = getConfigPath();
-    const signetDir = path.dirname(configPath);
+    const sigDir = path.dirname(configPath);
     const force = flags.force === true;
     const remote = flags.remote === true;
     const yes = flags.yes === true || remote;
@@ -178,11 +178,11 @@ export async function runInit(
     const defaultBrowserDataDir =
         typeof flags['browser-data-dir'] === 'string'
             ? flags['browser-data-dir']
-            : path.join(signetDir, 'browser-data');
+            : path.join(sigDir, 'browser-data');
     const defaultCredentialsDir =
         typeof flags['credentials-dir'] === 'string'
             ? flags['credentials-dir']
-            : path.join(signetDir, 'credentials');
+            : path.join(sigDir, 'credentials');
 
     let channel = defaultChannel;
     const browserDataDir = defaultBrowserDataDir;
@@ -200,7 +200,7 @@ export async function runInit(
     if (isTTY && !yes) {
         const rl = createInterface({ input: process.stdin, output: process.stdout });
         try {
-            process.stderr.write("\nWelcome to Signet! Let's set up your configuration.\n\n");
+            process.stderr.write("\nWelcome to SigCLI! Let's set up your configuration.\n\n");
 
             const channelAnswer = await rl.question(`Browser channel [${defaultChannel}]: `);
             if (channelAnswer.trim()) channel = channelAnswer.trim();
@@ -251,7 +251,7 @@ export async function runInit(
     }
 
     // Create directories
-    await fsp.mkdir(signetDir, { recursive: true });
+    await fsp.mkdir(sigDir, { recursive: true });
     await fsp.mkdir(browserDataDir, { recursive: true });
     await fsp.mkdir(credentialsDir, { recursive: true });
 

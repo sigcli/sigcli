@@ -1,4 +1,4 @@
-# Signet SDK
+# SigCLI SDK
 
 > **This repository has been deprecated.** Development has moved to [sigcli/sigcli](https://github.com/sigcli/sigcli).
 >
@@ -9,21 +9,21 @@
 
 ---
 
-Client SDKs for consuming [Signet](https://github.com/sigcli/sigcli) credentials in your applications.
+Client SDKs for consuming [SigCLI](https://github.com/sigcli/sigcli) credentials in your applications.
 
-Signet handles authentication via browser automation and stores credentials locally. These SDKs let your code read those credentials and use them for authenticated HTTP requests -- no browser dependency required.
+SigCLI handles authentication via browser automation and stores credentials locally. These SDKs let your code read those credentials and use them for authenticated HTTP requests -- no browser dependency required.
 
 ## Packages
 
-| Package                                     | Language             | Install                       |
-| ------------------------------------------- | -------------------- | ----------------------------- |
-| [`signet-auth-sdk`](./packages/typescript/) | TypeScript / Node.js | `npm install signet-auth-sdk` |
-| [`signet-auth-sdk`](./packages/python/)     | Python               | `pip install signet-auth-sdk` |
+| Package                                 | Language             | Install                   |
+| --------------------------------------- | -------------------- | ------------------------- |
+| [`@sigcli/sdk`](./packages/typescript/) | TypeScript / Node.js | `npm install @sigcli/sdk` |
+| [`sigcli-sdk`](./packages/python/)      | Python               | `pip install sigcli-sdk`  |
 
 ## How it works
 
-1. Use the [Signet CLI](https://github.com/signet-auth/signet) to authenticate (`sig login <provider>`)
-2. Signet stores credentials as JSON files in `~/.signet/credentials/`
+1. Use the [SigCLI CLI](https://github.com/sigcli/sigcli) to authenticate (`sig login <provider>`)
+2. SigCLI stores credentials as JSON files in `~/.sig/credentials/`
 3. Your application uses this SDK to read credentials and get HTTP headers
 
 ## Quick example
@@ -31,9 +31,9 @@ Signet handles authentication via browser automation and stores credentials loca
 **TypeScript:**
 
 ```typescript
-import { SignetClient } from 'signet-auth-sdk';
+import { SigClient } from '@sigcli/sdk';
 
-const client = new SignetClient();
+const client = new SigClient();
 const headers = await client.getHeaders('my-jira');
 const res = await fetch('https://jira.example.com/api/search', { headers });
 ```
@@ -41,9 +41,9 @@ const res = await fetch('https://jira.example.com/api/search', { headers });
 **Python:**
 
 ```python
-from signet_auth_sdk import SignetClient
+from sigcli_sdk import SigClient
 
-client = SignetClient()
+client = SigClient()
 headers = client.get_headers("my-jira")
 resp = requests.get("https://jira.example.com/api/search", headers=headers)
 ```

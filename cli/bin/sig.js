@@ -24,17 +24,17 @@ function buildIfNeeded() {
         // If no .git directory, this is likely a global install with missing dist/
         const gitDir = join(rootDir, '.git');
         if (!existsSync(gitDir)) {
-            console.error('[signet] dist/ directory is missing and this is not a dev checkout.');
-            console.error('[signet] Please reinstall: npm install -g signet-auth');
+            console.error('[sig] dist/ directory is missing and this is not a dev checkout.');
+            console.error('[sig] Please reinstall: npm install -g @sigcli/cli');
             process.exit(1);
         }
 
         // Dev checkout: build from source
-        console.error('[signet] Building project...');
+        console.error('[sig] Building project...');
         try {
             execSync('npm run build', { cwd: rootDir, stdio: 'inherit' });
         } catch (e) {
-            console.error('[signet] Build failed:', e.message);
+            console.error('[sig] Build failed:', e.message);
             process.exit(1);
         }
     }
@@ -58,7 +58,7 @@ async function main() {
 process.on('SIGINT', () => process.exit(0));
 process.on('SIGTERM', () => process.exit(0));
 process.on('unhandledRejection', (err) => {
-    console.error('[signet] Unhandled rejection:', err);
+    console.error('[sig] Unhandled rejection:', err);
     process.exit(1);
 });
 

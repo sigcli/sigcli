@@ -347,9 +347,9 @@ describe('generateConfigYaml', () => {
 
     // ---- YAML structure / comments ----
 
-    it('includes Signet header comment', () => {
+    it('includes SigCLI header comment', () => {
         const yaml = generateConfigYaml(defaultOptions());
-        expect(yaml).toContain('# Signet unified configuration');
+        expect(yaml).toContain('# SigCLI unified configuration');
     });
 
     it('includes browser section comment', () => {

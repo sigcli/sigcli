@@ -1,5 +1,5 @@
 /**
- * Core type definitions for signet.
+ * Core type definitions for SigCLI.
  * These types have zero external dependencies — they are the shared vocabulary
  * used across all layers (strategies, storage, providers, handlers).
  */
