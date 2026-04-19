@@ -9,7 +9,7 @@ npm install -g @sigcli/cli
 ```bash
 sig init                              # Create config (interactive, detects browser)
 sig login https://jira.example.com    # Authenticate via browser SSO
-sig run --provider jira -- curl -H "Cookie: $SIG_COOKIE" https://jira.example.com/rest/api/2/myself
+sig run jira -- curl -H "Cookie: $SIG_COOKIE" https://jira.example.com/rest/api/2/myself
 sig request https://jira.example.com/rest/api/2/myself   # Or use sig request directly
 ```
 
@@ -59,11 +59,11 @@ sig request https://jira.example.com/rest/api/2/myself   # Or use sig request di
 
 | Command                                                                   | Description                                                  |
 | ------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `sig run --provider <id> -- <cmd>`                                        | **Recommended.** Run command with `SIG_*` credentials in env |
-| `sig run --provider <id> --expand-cookies -- <cmd>`                       | Also expand cookies as `SIG_COOKIE_<NAME>=value`             |
-| `sig run --provider <id> --no-redaction -- <cmd>`                         | Disable credential redaction from child output               |
-| `sig run --provider <id> --mount .env -- <cmd>`                           | Write credentials to `.env` file (deleted after exit)        |
-| `sig run --provider <id> --mount creds.json --mount-format json -- <cmd>` | Write credentials as JSON file                               |
+| `sig run <provider\|url> -- <cmd>`                                        | **Recommended.** Run command with `SIG_*` credentials in env |
+| `sig run <provider\|url> --expand-cookies -- <cmd>`                       | Also expand cookies as `SIG_COOKIE_<NAME>=value`             |
+| `sig run <provider\|url> --no-redaction -- <cmd>`                         | Disable credential redaction from child output               |
+| `sig run <provider\|url> --mount .env -- <cmd>`                           | Write credentials to `.env` file (deleted after exit)        |
+| `sig run <provider\|url> --mount creds.json --mount-format json -- <cmd>` | Write credentials as JSON file                               |
 | `sig request <url>`                                                       | Make authenticated HTTP request                              |
 | `sig request <url> --method POST --body '{...}'`                          | POST with body                                               |
 | `sig request <url> --header "K: V" --format body`                         | Add headers, get body only                                   |
