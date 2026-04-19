@@ -49,8 +49,6 @@ function bashScript(): string {
 }
 
 function zshScript(): string {
-    const nodeCmd =
-        "process.stdin.resume();let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{JSON.parse(d).forEach(p=>console.log(p.id))}catch{}})";
     return [
         '#compdef sig',
         '',
@@ -88,7 +86,7 @@ function zshScript(): string {
         '            case $words[2] in',
         '                get|login|status|logout|rename|remove)',
         '                    local providers',
-        `                    providers=($(sig providers --format json 2>/dev/null | node -e "$\{nodeCmd}" 2>/dev/null))`,
+        "                    providers=($(sig providers --format json 2>/dev/null | node -e \"process.stdin.resume();let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{JSON.parse(d).forEach(p=>console.log(p.id))}catch{}})\" 2>/dev/null))",
         "                    _describe 'providers' providers",
         '                    ;;',
         '                remote)',
