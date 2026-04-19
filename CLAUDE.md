@@ -98,6 +98,7 @@ sig remote add|remove|list # Manage remote credential stores
 sig sync push|pull [remote]# Sync credentials with remote
 sig watch add|remove|list|start  # Auto-refresh credentials
 sig completion <shell>     # Generate shell completion (bash|zsh|fish)
+sig run --provider <id> -- <cmd>  # Run command with SIG_* credentials injected
 ```
 
 ## Extension Points
