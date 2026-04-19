@@ -95,6 +95,10 @@ describe('runDoctor', () => {
 
         // Default config path
         mockGetConfigPath.mockReturnValue(EXPECTED_CONFIG_PATH);
+
+        // Default: return a valid 32-byte base64-encoded key for encryption key check
+        const validKeyBase64 = Buffer.alloc(32, 0xab).toString('base64');
+        mockReadFile.mockResolvedValue(validKeyBase64 + '\n');
     });
 
     afterEach(() => {

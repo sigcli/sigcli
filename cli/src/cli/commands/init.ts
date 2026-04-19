@@ -15,6 +15,7 @@ import { generateConfigYaml } from '../../config/generator.js';
 import { validateConfig } from '../../config/validator.js';
 import { isOk } from '../../core/result.js';
 import { findChannelBrowser } from '../../browser/detect.js';
+import { generateEncryptionKey } from '../../crypto/encryption.js';
 import { ExitCode } from '../exit-codes.js';
 import { WaitUntil, StrategyName, HttpHeader, AuthScheme } from '../../core/constants.js';
 
@@ -257,6 +258,10 @@ export async function runInit(
 
     // Write config
     await fsp.writeFile(configPath, yaml, 'utf-8');
+
+    // Generate encryption key
+    await generateEncryptionKey();
+    process.stderr.write('[sig] Generated encryption key at ~/.sig/encryption.key\n');
 
     // Success message
     process.stderr.write(`\n  Config written to ${configPath}\n`);

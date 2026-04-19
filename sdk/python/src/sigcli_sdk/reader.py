@@ -5,8 +5,17 @@ from typing import Optional
 from .types import (ProviderFile, Credential, CookieCredential, BearerCredential,
                     ApiKeyCredential, BasicCredential, Cookie, ProviderInfo)
 from .errors import CredentialNotFoundError, CredentialParseError
+from .crypto import is_encrypted_envelope, decrypt, load_encryption_key
 
 DEFAULT_CREDENTIALS_DIR = Path.home() / ".sig" / "credentials"
+
+_cached_key: Optional[bytes] = None
+
+def _get_encryption_key() -> bytes:
+    global _cached_key
+    if _cached_key is None:
+        _cached_key = load_encryption_key()
+    return _cached_key
 
 def _sanitize_id(provider_id: str) -> str:
     return re.sub(r"[^a-zA-Z0-9._-]", "_", provider_id)
@@ -35,7 +44,11 @@ def read_provider_file(provider_id: str, credentials_dir: Optional[Path] = None)
     if not file_path.exists():
         raise CredentialNotFoundError(provider_id)
     try:
-        data = json.loads(file_path.read_text(encoding="utf-8"))
+        raw_text = file_path.read_text(encoding="utf-8")
+        data = json.loads(raw_text)
+        if is_encrypted_envelope(data):
+            key = _get_encryption_key()
+            data = json.loads(decrypt(data, key))
         credential = _parse_credential(data["credential"])
         return ProviderFile(version=data["version"], providerId=data["providerId"],
                             credential=credential, strategy=data["strategy"],
@@ -52,7 +65,11 @@ def list_provider_files(credentials_dir: Optional[Path] = None) -> list[Provider
         if fp.name.endswith(".lock"):
             continue
         try:
-            data = json.loads(fp.read_text(encoding="utf-8"))
+            raw_text = fp.read_text(encoding="utf-8")
+            data = json.loads(raw_text)
+            if is_encrypted_envelope(data):
+                key = _get_encryption_key()
+                data = json.loads(decrypt(data, key))
             results.append(ProviderInfo(providerId=data["providerId"],
                                         credentialType=data["credential"]["type"],
                                         strategy=data["strategy"], updatedAt=data["updatedAt"]))

@@ -9,6 +9,7 @@ description = "Lightweight client SDK for consuming sigcli credentials"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
+dependencies = ["cryptography>=41.0"]
 keywords = ["sigcli", "auth", "sdk", "credentials"]
 classifiers = [
     "Development Status :: 3 - Alpha",

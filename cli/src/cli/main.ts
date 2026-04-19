@@ -139,7 +139,7 @@ Setup:
     --yes                        Accept defaults, skip prompts
     --force                      Overwrite existing config
     --channel <name>             Browser channel (chrome|msedge|chromium)
-  doctor                       Check environment and configuration
+  doctor                       Check environment, config, and encryption key
   completion <shell>           Generate shell completion script (bash|zsh|fish)
 
 Global options:
@@ -205,7 +205,7 @@ export async function run(args: string[]): Promise<void> {
         }
         const config = configResult.value;
         const verbose = flags.verbose === true;
-        deps = createAuthDeps(config, { verbose });
+        deps = await createAuthDeps(config, { verbose });
     }
 
     switch (command) {

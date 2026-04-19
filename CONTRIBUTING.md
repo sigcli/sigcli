@@ -38,6 +38,7 @@ The pre-commit hook runs `lint-staged` automatically, which applies ESLint and P
 - **Result pattern** — use `ok()`/`err()` from `src/core/result.ts`, never throw for expected failures
 - **Interface prefix** — `IStorage`, `IAuthStrategy`, `IBrowserAdapter`
 - **Strategy pattern** — private class + exported factory
+- **Encryption** — all credentials encrypted at rest (AES-256-GCM). Key at `~/.sig/encryption.key`. `DirectoryStorage` handles encrypt/decrypt transparently.
 
 See [CLAUDE.md](CLAUDE.md) for detailed architecture and extension points.
 

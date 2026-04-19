@@ -5,12 +5,73 @@ import os from 'node:os';
 import type { RemoteConfig } from '../types.js';
 import type { StoredCredential } from '../../core/types.js';
 import type { ISyncTransport, RemoteEntry } from '../interfaces/transport.js';
+import { encrypt, decrypt, isEncryptedEnvelope } from '../../crypto/encryption.js';
 
 const execFileAsync = promisify(execFile);
 
 const DEFAULT_REMOTE_PATH = '~/.sig';
 
 export class SshTransport implements ISyncTransport {
+    private remoteKeyCache = new Map<string, Buffer>();
+
+    private remoteKeyCacheKey(remote: RemoteConfig): string {
+        return `${remote.host}:${remote.user ?? 'default'}`;
+    }
+
+    async fetchRemoteKey(remote: RemoteConfig): Promise<Buffer> {
+        const cacheKey = this.remoteKeyCacheKey(remote);
+        const cached = this.remoteKeyCache.get(cacheKey);
+        if (cached) return cached;
+
+        const target = this.remoteTarget(remote);
+        const rpath = this.remotePath(remote);
+        const keyFile = `${rpath}/encryption.key`;
+
+        try {
+            const { stdout } = await execFileAsync('ssh', [
+                ...this.sshArgs(remote),
+                target,
+                `cat "${keyFile}"`,
+            ]);
+            const key = Buffer.from(stdout.trim(), 'base64');
+            if (key.length !== 32) {
+                throw new Error(
+                    `Invalid remote encryption key: expected 32 bytes, got ${key.length}`,
+                );
+            }
+            this.remoteKeyCache.set(cacheKey, key);
+            return key;
+        } catch (e: unknown) {
+            const msg = (e as Error).message ?? '';
+            if (
+                msg.includes('No such file') ||
+                msg.includes('ENOENT') ||
+                msg.includes('exit code')
+            ) {
+                // Generate key on remote
+                await execFileAsync('ssh', [
+                    ...this.sshArgs(remote),
+                    target,
+                    `mkdir -p "${rpath}" && head -c 32 /dev/urandom | base64 > "${keyFile}" && chmod 400 "${keyFile}"`,
+                ]);
+                const { stdout: newKeyRaw } = await execFileAsync('ssh', [
+                    ...this.sshArgs(remote),
+                    target,
+                    `cat "${keyFile}"`,
+                ]);
+                const key = Buffer.from(newKeyRaw.trim(), 'base64');
+                if (key.length !== 32) {
+                    throw new Error(`Generated remote key has wrong length: ${key.length}`, {
+                        cause: e,
+                    });
+                }
+                this.remoteKeyCache.set(cacheKey, key);
+                return key;
+            }
+            throw e;
+        }
+    }
+
     private sshArgs(remote: RemoteConfig): string[] {
         const args: string[] = [];
         if (remote.sshKey) args.push('-i', remote.sshKey);
@@ -54,7 +115,12 @@ export class SshTransport implements ISyncTransport {
                         target,
                         `cat "${file}"`,
                     ]);
-                    const data = JSON.parse(content) as {
+                    let parsed: unknown = JSON.parse(content);
+                    if (isEncryptedEnvelope(parsed)) {
+                        const remoteKey = await this.fetchRemoteKey(remote);
+                        parsed = JSON.parse(decrypt(parsed, remoteKey));
+                    }
+                    const data = parsed as {
                         providerId: string;
                         updatedAt: string;
                     };
@@ -85,7 +151,12 @@ export class SshTransport implements ISyncTransport {
                 target,
                 `cat ${rpath}/"${filename}"`,
             ]);
-            const data = JSON.parse(stdout) as StoredCredential & {
+            let parsed: unknown = JSON.parse(stdout);
+            if (isEncryptedEnvelope(parsed)) {
+                const remoteKey = await this.fetchRemoteKey(remote);
+                parsed = JSON.parse(decrypt(parsed, remoteKey));
+            }
+            const data = parsed as StoredCredential & {
                 version?: number;
                 metadata?: Record<string, unknown>;
             };
@@ -118,10 +189,11 @@ export class SshTransport implements ISyncTransport {
             ...(stored.metadata ? { metadata: stored.metadata } : {}),
         };
 
-        const content = JSON.stringify(data, null, 2);
+        const remoteKey = await this.fetchRemoteKey(remote);
+        const plaintext = JSON.stringify(data, null, 2);
+        const envelope = encrypt(plaintext, remoteKey);
+        const content = JSON.stringify(envelope, null, 2);
 
-        // Write via ssh stdin pipe — avoids scp's tilde expansion issues
-        // The remote shell handles ~ expansion in mkdir and cat redirect
         await this.sshWrite(remote, `mkdir -p ${rpath} && cat > ${rpath}/"${filename}"`, content);
     }
 
