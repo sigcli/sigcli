@@ -1,5 +1,5 @@
 /**
- * Watch configuration — reads/writes from the unified ~/.signet/config.yaml.
+ * Watch configuration — reads/writes from the unified ~/.sig/config.yaml.
  */
 
 import YAML from 'yaml';

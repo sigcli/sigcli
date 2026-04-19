@@ -6,7 +6,7 @@ from .types import (ProviderFile, Credential, CookieCredential, BearerCredential
                     ApiKeyCredential, BasicCredential, Cookie, ProviderInfo)
 from .errors import CredentialNotFoundError, CredentialParseError
 
-DEFAULT_CREDENTIALS_DIR = Path.home() / ".signet" / "credentials"
+DEFAULT_CREDENTIALS_DIR = Path.home() / ".sig" / "credentials"
 
 def _sanitize_id(provider_id: str) -> str:
     return re.sub(r"[^a-zA-Z0-9._-]", "_", provider_id)

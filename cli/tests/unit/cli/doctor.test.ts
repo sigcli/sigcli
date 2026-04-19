@@ -52,7 +52,7 @@ const mockReadFile = vi.mocked(fsp.readFile);
 const mockGetConfigPath = vi.mocked(getConfigPath);
 const mockLoadConfig = vi.mocked(loadConfig);
 
-const EXPECTED_CONFIG_PATH = path.join(os.homedir(), '.signet', 'config.yaml');
+const EXPECTED_CONFIG_PATH = path.join(os.homedir(), '.sig', 'config.yaml');
 
 function validConfig(overrides: Partial<SignetConfig> = {}): SignetConfig {
     return <SignetConfig>{

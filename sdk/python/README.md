@@ -50,9 +50,9 @@ with SignetClient() as client:
 
 ### `SignetClient(credentials_dir=None)`
 
-| Parameter         | Type                  | Default                 | Description                   |
-| ----------------- | --------------------- | ----------------------- | ----------------------------- |
-| `credentials_dir` | `str \| Path \| None` | `~/.signet/credentials` | Path to credentials directory |
+| Parameter         | Type                  | Default              | Description                   |
+| ----------------- | --------------------- | -------------------- | ----------------------------- |
+| `credentials_dir` | `str \| Path \| None` | `~/.sig/credentials` | Path to credentials directory |
 
 ### `client.get_headers(provider_id) -> dict[str, str]`
 

@@ -131,7 +131,7 @@ export {
     AuthScheme,
     APP_NAME,
     APP_VERSION,
-    SIGNET_DIR,
+    SIG_DIR,
     CONFIG_FILENAME,
 } from './core/constants.js';
 export type { WaitUntilValue } from './core/constants.js';

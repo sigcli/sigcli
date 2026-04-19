@@ -6,7 +6,7 @@ from .reader import read_provider_file, list_provider_files
 from .formatter import format_headers, extract_local_storage
 from .watcher import CredentialWatcher
 
-DEFAULT_CREDENTIALS_DIR = Path.home() / ".signet" / "credentials"
+DEFAULT_CREDENTIALS_DIR = Path.home() / ".sig" / "credentials"
 
 class SignetClient:
     """Client for reading Signet credentials from the local filesystem.
@@ -16,7 +16,7 @@ class SignetClient:
 
     Example::
 
-        from signet_auth_sdk import SignetClient
+        from sigcli_sdk import SignetClient
 
         client = SignetClient()
         headers = client.get_headers("my-jira")

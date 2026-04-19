@@ -126,7 +126,7 @@ storage:
 #     type: ssh
 #     host: dev.example.com
 #     user: deploy
-#     path: ~/.signet
+#     path: ~/.sig
 #     sshKey: ~/.ssh/id_ed25519
 
 # Provider configurations

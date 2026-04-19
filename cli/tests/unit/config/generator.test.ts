@@ -12,8 +12,8 @@ function defaultOptions(overrides: Partial<InitOptions> = {}): InitOptions {
     return {
         mode: 'browser',
         channel: 'chrome',
-        browserDataDir: '~/.signet/browser-data',
-        credentialsDir: '~/.signet/credentials',
+        browserDataDir: '~/.sig/browser-data',
+        credentialsDir: '~/.sig/credentials',
         headlessTimeout: 30_000,
         visibleTimeout: 120_000,
         waitUntil: 'load',
@@ -39,7 +39,7 @@ describe('generateConfigYaml', () => {
 
         expect(parsed.browser).toBeDefined();
         expect(parsed.browser.channel).toBe('chrome');
-        expect(parsed.browser.browserDataDir).toBe('~/.signet/browser-data');
+        expect(parsed.browser.browserDataDir).toBe('~/.sig/browser-data');
         expect(parsed.browser.headlessTimeout).toBe(30_000);
         expect(parsed.browser.visibleTimeout).toBe(120_000);
         expect(parsed.browser.waitUntil).toBe('load');
@@ -52,7 +52,7 @@ describe('generateConfigYaml', () => {
         const parsed = YAML.parse(yaml);
 
         expect(parsed.storage).toBeDefined();
-        expect(parsed.storage.credentialsDir).toBe('~/.signet/credentials');
+        expect(parsed.storage.credentialsDir).toBe('~/.sig/credentials');
     });
 
     // ---- different channels ----
@@ -314,7 +314,7 @@ describe('generateConfigYaml', () => {
 
         if (result.ok) {
             expect(result.value.browser.channel).toBe('chrome');
-            expect(result.value.storage.credentialsDir).toBe('~/.signet/credentials');
+            expect(result.value.storage.credentialsDir).toBe('~/.sig/credentials');
             expect(Object.keys(result.value.providers)).toHaveLength(2);
         }
     });

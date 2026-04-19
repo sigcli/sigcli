@@ -37,7 +37,7 @@ const browserConfig: BrowserConfig = {
 const testConfig: SignetConfig = {
     mode: 'browser',
     browser: browserConfig,
-    storage: { credentialsDir: '~/.signet/credentials' },
+    storage: { credentialsDir: '~/.sig/credentials' },
     providers: {},
 };
 

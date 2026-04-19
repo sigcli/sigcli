@@ -13,7 +13,7 @@ import {
     AuthScheme,
     APP_NAME,
     APP_VERSION,
-    SIGNET_DIR,
+    SIG_DIR,
     CONFIG_FILENAME,
 } from '../../../src/core/constants.js';
 import type { WaitUntilValue } from '../../../src/core/constants.js';
@@ -216,8 +216,8 @@ describe('constants', () => {
     });
 
     describe('Configuration paths', () => {
-        it('SIGNET_DIR is ".signet"', () => {
-            expect(SIGNET_DIR).toBe('.signet');
+        it('SIG_DIR is ".sig"', () => {
+            expect(SIG_DIR).toBe('.sig');
         });
 
         it('CONFIG_FILENAME is "config.yaml"', () => {

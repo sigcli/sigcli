@@ -45,7 +45,7 @@ export class PlaywrightAdapter implements IBrowserAdapter {
             const msg = (e as Error).message;
             const hint =
                 msg.includes('executable') || msg.includes('Failed to launch')
-                    ? `${msg}. Ensure a system browser is installed, or check browser.channel in ~/.signet/config.yaml.`
+                    ? `${msg}. Ensure a system browser is installed, or check browser.channel in ~/.sig/config.yaml.`
                     : msg;
             throw new BrowserLaunchError(hint);
         }
