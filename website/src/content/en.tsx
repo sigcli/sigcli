@@ -124,8 +124,8 @@ sig request https://api.openai.com/v1/models`}</CodeBlock>
             aside: (
                 <P>
                     Sigcli captures cookies, bearer tokens, localStorage values, and x-headers from
-                    live browser network traffic. Credentials are sealed under{' '}
-                    <Code>~/.sig</Code> with a directory lock — nothing in your repo.
+                    live browser network traffic. Credentials are sealed under <Code>~/.sig</Code>{' '}
+                    with a directory lock — nothing in your repo.
                 </P>
             ),
         },
@@ -145,9 +145,8 @@ sig request https://api.openai.com/v1/models`}</CodeBlock>
                         Configure providers
                     </SectionHeading>
                     <P>
-                        Each provider entry in <Code>~/.sig/config.yaml</Code> maps URL patterns
-                        to a strategy, plus options like required cookies, x-header filters, and
-                        TTLs.
+                        Each provider entry in <Code>~/.sig/config.yaml</Code> maps URL patterns to
+                        a strategy, plus options like required cookies, x-header filters, and TTLs.
                     </P>
                     <CodeBlock lang="bash">{`providers:
   openai:
