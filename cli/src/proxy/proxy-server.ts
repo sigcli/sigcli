@@ -43,8 +43,17 @@ async function injectHeaders(
     const credResult = await deps.authManager.getCredentials(provider.id);
     if (!isOk(credResult)) return baseHeaders;
 
-    const injected = deps.authManager.applyToRequest(provider.id, credResult.value);
-    return { ...baseHeaders, ...injected };
+    const cred = credResult.value;
+    const injected = deps.authManager.applyToRequest(provider.id, cred);
+    const headers = { ...baseHeaders, ...injected };
+
+    if ('localStorage' in cred && cred.localStorage) {
+        for (const [key, value] of Object.entries(cred.localStorage)) {
+            headers[`x-sig-local-${key}`] = value;
+        }
+    }
+
+    return headers;
 }
 
 async function handlePlainHttp(
