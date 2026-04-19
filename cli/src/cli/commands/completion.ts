@@ -156,13 +156,19 @@ export async function runCompletion(
     positionals: string[],
     _flags: Record<string, string | boolean | string[]>,
 ): Promise<void> {
-    const shell = positionals[0];
+    let shell = positionals[0];
 
     if (!shell) {
-        process.stderr.write('Usage: sig completion <shell>\n');
-        process.stderr.write('Supported shells: bash, zsh, fish\n');
-        process.exitCode = ExitCode.GENERAL_ERROR;
-        return;
+        const envShell = process.env.SHELL ?? '';
+        if (envShell.endsWith('/bash')) shell = 'bash';
+        else if (envShell.endsWith('/zsh')) shell = 'zsh';
+        else if (envShell.endsWith('/fish')) shell = 'fish';
+        else {
+            process.stderr.write('Usage: sig completion <shell>\n');
+            process.stderr.write('Supported shells: bash, zsh, fish\n');
+            process.exitCode = ExitCode.GENERAL_ERROR;
+            return;
+        }
     }
 
     switch (shell) {
