@@ -37,10 +37,30 @@ const apiTokenProvider: ProviderConfig = {
     strategyConfig: { strategy: 'api-token' },
 };
 
+const cookieProvider: ProviderConfig = {
+    id: 'test-cookie',
+    name: 'Test Cookie',
+    domains: ['cookie.test.com'],
+    entryUrl: 'https://cookie.test.com/',
+    strategy: 'cookie',
+    strategyConfig: { strategy: 'cookie' },
+};
+
+const bearerProvider: ProviderConfig = {
+    id: 'test-bearer',
+    name: 'Test Bearer',
+    domains: ['bearer.test.com'],
+    entryUrl: 'https://bearer.test.com/',
+    strategy: 'oauth2',
+    strategyConfig: { strategy: 'oauth2' },
+};
+
 function createDeps(overrides: Partial<AuthDeps> = {}): AuthDeps {
     const storage = new MemoryStorage();
     const providerRegistry = new ProviderRegistry();
     providerRegistry.register(apiTokenProvider);
+    providerRegistry.register(cookieProvider);
+    providerRegistry.register(bearerProvider);
     const strategyRegistry = new StrategyRegistry();
     strategyRegistry.register(new CookieStrategyFactory());
     strategyRegistry.register(new OAuth2StrategyFactory());
@@ -92,7 +112,7 @@ describe('runRun', () => {
     it('fails with usage error when provider is missing', async () => {
         const deps = createDeps();
         await runRun([], {}, deps);
-        expect(stderrData).toContain('provider');
+        expect(stderrData).toMatch(/No command specified|No valid credentials/i);
         expect(process.exitCode).toBe(1);
     });
 
@@ -105,8 +125,9 @@ describe('runRun', () => {
 
     it('fails with error message when provider not found', async () => {
         const deps = createDeps();
+        // 'nonexistent' is not in registry → zero-provider mode → no credentials → error
         await runRun(['nonexistent', 'echo'], {}, deps);
-        expect(stderrData).toMatch(/not found|nonexistent/i);
+        expect(stderrData).toMatch(/No valid credentials found/i);
         expect(process.exitCode).toBe(1);
     });
 
@@ -159,15 +180,15 @@ describe('runRun', () => {
 
         try {
             await runRun(
-                ['test-api', 'sh', '-c', 'echo SIG_API_KEY=$SIG_API_KEY'],
-                { 'no-redaction': true },
+                ['test-api', 'sh', '-c', 'echo "HAS_KEY=${SIG_TEST_API_API_KEY:+yes}"'],
+                {},
                 deps,
             );
         } finally {
             process.stdout.write = origWrite;
         }
 
-        expect(capturedOutput).toContain('SIG_API_KEY=test-key-12345');
+        expect(capturedOutput).toContain('HAS_KEY=yes');
     });
 
     it('redacts credential values from child output by default', async () => {
@@ -194,5 +215,140 @@ describe('runRun', () => {
 
         expect(capturedOutput).not.toContain('supersecretkey9999');
         expect(capturedOutput).toContain('****');
+    });
+
+    it('injects multiple providers with prefixed env vars', async () => {
+        const deps = createDeps();
+        await deps.authManager.setCredential('test-api', {
+            type: 'api-key',
+            key: 'apikey-abc',
+            headerName: 'Authorization',
+            headerPrefix: 'Bearer',
+        });
+        await deps.authManager.setCredential('test-bearer', {
+            type: 'bearer',
+            accessToken: 'bearer-xyz',
+        });
+
+        let capturedOutput = '';
+        const origWrite = process.stdout.write.bind(process.stdout);
+        process.stdout.write = (chunk: string | Uint8Array) => {
+            capturedOutput += chunk.toString();
+            return true;
+        };
+
+        try {
+            await runRun(
+                [
+                    'test-api',
+                    'test-bearer',
+                    'sh',
+                    '-c',
+                    'echo "API=${SIG_TEST_API_API_KEY:+yes} TEAMS=${SIG_TEST_BEARER_TOKEN:+yes}"',
+                ],
+                {},
+                deps,
+            );
+        } finally {
+            process.stdout.write = origWrite;
+        }
+
+        expect(capturedOutput).toContain('API=yes');
+        expect(capturedOutput).toContain('TEAMS=yes');
+    });
+
+    it('zero-provider mode injects all valid providers', async () => {
+        const deps = createDeps();
+        await deps.authManager.setCredential('test-api', {
+            type: 'api-key',
+            key: 'apikey-abc',
+            headerName: 'Authorization',
+            headerPrefix: 'Bearer',
+        });
+        await deps.authManager.setCredential('test-bearer', {
+            type: 'bearer',
+            accessToken: 'bearer-xyz',
+        });
+
+        let capturedOutput = '';
+        const origWrite = process.stdout.write.bind(process.stdout);
+        process.stdout.write = (chunk: string | Uint8Array) => {
+            capturedOutput += chunk.toString();
+            return true;
+        };
+
+        try {
+            await runRun(
+                [
+                    'sh',
+                    '-c',
+                    'echo "API=${SIG_TEST_API_API_KEY:+yes} TEAMS=${SIG_TEST_BEARER_TOKEN:+yes}"',
+                ],
+                {},
+                deps,
+            );
+        } finally {
+            process.stdout.write = origWrite;
+        }
+
+        expect(capturedOutput).toContain('API=yes');
+        expect(capturedOutput).toContain('TEAMS=yes');
+    });
+
+    it('zero-provider mode skips providers without credentials', async () => {
+        const deps = createDeps();
+        await deps.authManager.setCredential('test-api', {
+            type: 'api-key',
+            key: 'apikey-abc',
+            headerName: 'Authorization',
+            headerPrefix: 'Bearer',
+        });
+        // test-bearer has no credential stored
+
+        let capturedOutput = '';
+        const origWrite = process.stdout.write.bind(process.stdout);
+        process.stdout.write = (chunk: string | Uint8Array) => {
+            capturedOutput += chunk.toString();
+            return true;
+        };
+
+        try {
+            await runRun(
+                [
+                    'sh',
+                    '-c',
+                    'echo "API=${SIG_TEST_API_API_KEY:+yes} TEAMS=${SIG_TEST_BEARER_TOKEN:+yes}"',
+                ],
+                {},
+                deps,
+            );
+        } finally {
+            process.stdout.write = origWrite;
+        }
+
+        expect(capturedOutput).toContain('API=yes');
+        expect(capturedOutput).not.toContain('TEAMS=yes');
+    });
+
+    it('zero-provider mode errors when no valid credentials', async () => {
+        const deps = createDeps();
+        // No credentials stored for any provider
+        await runRun(['sh', '-c', 'echo hello'], {}, deps);
+        expect(stderrData).toMatch(/No valid credentials found/i);
+        expect(process.exitCode).toBe(1);
+    });
+
+    it('rejects provider IDs with invalid characters at registration', () => {
+        const deps = createDeps();
+        expect(() =>
+            deps.providerRegistry.register({
+                id: 'foo_bar',
+                name: 'Foo_Bar',
+                domains: ['foobar.com'],
+                entryUrl: 'https://foobar.com/',
+                strategy: 'api-token',
+                strategyConfig: { strategy: 'api-token' },
+            }),
+        ).toThrow(/only lowercase letters, digits, and hyphens/);
     });
 });

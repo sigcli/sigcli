@@ -85,8 +85,8 @@ export const pageContent = {
  │  ┌────────────┐  │    │  config.yaml          │    │  ┌────────────────┐  │
  │  │ sig run    ├──┼───>│  credentials/         │<───┼──┤ Playwright     │  │
  │  │ sig req    │  │    │    my-jira.json       │    │  │ (headless or   │  │
- │  └─────┬──────┘  │    │    github.json         │    │  │  visible)      │  │
- │        │         │    │    grafana.json        │    │  └───────┬────────┘  │
+ │  └─────┬──────┘  │    │    github.json        │    │  │  visible)      │  │
+ │        │         │    │    grafana.json       │    │  └───────┬────────┘  │
  │        v         │    │                       │    │          │           │
  │  curl, fetch,    │    │  ┌─────────────────┐  │    │  cookies, tokens,    │
  │  agents, CI      │<───┼──┤ SSH transport   │  │    │  x-headers,          │
@@ -112,11 +112,11 @@ sig init
 # 2. sign in — opens a real browser, captures credentials automatically
 sig login https://jira.example.com
 
-# 3. run any command with credentials injected as SIG_* env vars
+# 3. run any command with credentials injected as SIG_<PROVIDER>_* env vars
 sig run my-jira -- curl https://jira.example.com/api/me
 
 # discover what variables are available
-sig run my-jira -- env | grep SIG_`}</CodeBlock>
+sig run my-jira -- env | grep SIG_MY_JIRA_`}</CodeBlock>
                 </>
             ),
             aside: (
@@ -182,9 +182,9 @@ $ sig run my-jira -- node export_board.js`}</CodeBlock>
                     </SectionHeading>
                     <List>
                         <Li>
-                            <strong>sig run</strong> — inject <Code>SIG_*</Code> credentials
-                            directly into any child process. Values are redacted from output. The
-                            recommended way to use credentials.
+                            <strong>sig run</strong> — inject <Code>SIG_&lt;PROVIDER&gt;_*</Code>{' '}
+                            credentials directly into any child process. Values are redacted from
+                            output. The recommended way to use credentials.
                         </Li>
                         <Li>
                             <strong>4 strategies</strong> — <Code>cookie</Code> (browser SSO),{' '}
@@ -216,8 +216,8 @@ $ sig run my-jira -- node export_board.js`}</CodeBlock>
             ),
             aside: (
                 <P>
-                    <Code>sig run my-jira -- env | grep SIG_</Code> is the quickest way to discover
-                    exactly which environment variables are available for a provider.
+                    <Code>sig run my-jira -- env | grep SIG_MY_JIRA_</Code> is the quickest way to
+                    discover exactly which environment variables are available for a provider.
                 </P>
             ),
         },

@@ -148,8 +148,9 @@ sig status my-jira`}</CodeBlock>
                         首次 sig run
                     </SectionHeading>
                     <P>
-                        <Code>sig run</Code> 是使用凭证的推荐方式。它将 <Code>SIG_*</Code>{' '}
-                        环境变量直接注入子进程——不会泄露到 shell 历史记录或进程列表中。
+                        <Code>sig run</Code> 是使用凭证的推荐方式。它将{' '}
+                        <Code>SIG_&lt;PROVIDER&gt;_*</Code> 环境变量直接注入子进程——不会泄露到 shell
+                        历史记录或进程列表中。
                     </P>
                     <CodeBlock lang="bash">{`# 探索可用的变量
 sig run my-jira -- env | grep SIG_
@@ -208,28 +209,30 @@ sig init --channel chrome   # 指定浏览器（chrome|msedge|chromium）`}</Cod
                     </SectionHeading>
                     <P>
                         <strong>使用凭证的推荐方式。</strong>运行任意命令，同时注入{' '}
-                        <Code>SIG_*</Code> 环境变量。子进程的 stdout 和 stderr
+                        <Code>SIG_&lt;PROVIDER&gt;_*</Code> 环境变量。子进程的 stdout 和 stderr
                         中的凭证值会被自动脱敏。
                     </P>
-                    <CodeBlock lang="bash">{`sig run <provider|url> -- <cmd>
+                    <CodeBlock lang="bash">{`sig run [provider...] -- <cmd>
 
-# 探索可用的 SIG_* 变量
-sig run my-jira -- env | grep SIG_
+# 探索可用的 SIG_<PROVIDER>_* 变量
+sig run my-jira -- env | grep SIG_MY_JIRA_
 
 # 注入凭证并运行
 sig run my-jira -- python fetch_issues.py
 sig run my-jira -- node export_board.js
-sig run jira.example.com -- curl https://jira.example.com/api/me
 
-# 将单个 cookie 展开为 SIG_COOKIE_<NAME>=value
+# 同时注入多个提供者
+sig run provider-a provider-b -- python cross_tool.py
+
+# 不指定提供者——注入所有有效凭证
+sig run -- python script.py
+
+# 将单个 cookie 展开为 SIG_<PROVIDER>_COOKIE_<NAME>=value
 sig run my-jira --expand-cookies -- python script.py
 
 # 将凭证写入 .env 文件（子进程退出后自动删除）
 sig run my-jira --mount .env -- node app.js
-sig run my-jira --mount creds.json --mount-format json -- node app.js
-
-# 禁用脱敏（输出中显示原始值——谨慎使用）
-sig run my-jira --no-redaction -- env | grep SIG_`}</CodeBlock>
+sig run my-jira --mount creds.json --mount-format json -- node app.js`}</CodeBlock>
                 </>
             ),
             aside: (
@@ -417,36 +420,36 @@ sig completion fish > ~/.config/fish/completions/sig.fish`}</CodeBlock>
                         环境变量
                     </SectionHeading>
                     <P>
-                        <Code>sig run</Code> 将 <Code>SIG_*</Code> 变量注入子进程。使用{' '}
-                        <Code>sig run my-jira -- env | grep SIG_</Code>{' '}
+                        <Code>sig run</Code> 将 <Code>SIG_&lt;PROVIDER&gt;_*</Code>{' '}
+                        变量注入子进程。使用 <Code>sig run my-jira -- env | grep SIG_MY_JIRA_</Code>{' '}
                         来探索某个提供者可用的具体变量。
                     </P>
-                    <CodeBlock lang="bash">{`# 始终存在
-SIG_PROVIDER          # 提供者 ID，例如 "my-jira"
-SIG_AUTH_TYPE         # 凭证类型：cookie | bearer | api-key | basic
+                    <CodeBlock lang="bash">{`# 始终存在（以提供者 "my-jira" 为例）
+SIG_MY_JIRA_PROVIDER          # 提供者 ID："my-jira"
+SIG_MY_JIRA_CREDENTIAL_TYPE   # 凭证类型：cookie | bearer | api-key | basic
 
 # Bearer / OAuth2 令牌
-SIG_TOKEN             # 原始令牌值，例如 "eyJ..."
-SIG_AUTH_HEADER       # 完整的 Authorization 请求头值
+SIG_MY_JIRA_TOKEN             # 原始令牌值，例如 "eyJ..."
+SIG_MY_JIRA_AUTH_HEADER       # 完整的 Authorization 请求头值
 
 # Cookie 凭证
-SIG_COOKIE            # 完整 cookie 字符串，例如 "SESSION=abc; ..."
+SIG_MY_JIRA_COOKIE            # 完整 cookie 字符串，例如 "SESSION=abc; ..."
 
 # 使用 --expand-cookies 时：单独的 cookie
-SIG_COOKIE_SESSION=abc123
-SIG_COOKIE_CSRF_TOKEN=xyz
+SIG_MY_JIRA_COOKIE_SESSION=abc123
+SIG_MY_JIRA_COOKIE_CSRF_TOKEN=xyz
 
 # 从浏览器流量捕获的自定义 x-header
-SIG_HEADER_X_AUSERNAME=alice
-SIG_HEADER_X_ATTOKEN=xyz`}</CodeBlock>
+SIG_MY_JIRA_HEADER_X_AUSERNAME=alice
+SIG_MY_JIRA_HEADER_X_ATTOKEN=xyz`}</CodeBlock>
 
                     <P>Python 脚本中读取凭证的示例：</P>
                     <CodeBlock lang="bash">{`import os
 
 # 通过以下方式运行：sig run my-jira -- python fetch.py
-token = os.environ.get("SIG_TOKEN")
-cookie = os.environ.get("SIG_COOKIE")
-auth_type = os.environ.get("SIG_AUTH_TYPE")
+token = os.environ.get("SIG_MY_JIRA_TOKEN")
+cookie = os.environ.get("SIG_MY_JIRA_COOKIE")
+auth_type = os.environ.get("SIG_MY_JIRA_CREDENTIAL_TYPE")
 
 if auth_type == "cookie":
     headers = {"Cookie": cookie}
@@ -690,8 +693,8 @@ result = sig.request("https://jira.example.com/api/issues/123")`}</CodeBlock>
 sig run my-jira -- python fetch_issues.py
 sig run my-jira -- node export_sprint.js
 
-# 探索可用的 SIG_* 变量
-sig run my-jira -- env | grep SIG_
+# 探索可用的 SIG_<PROVIDER>_* 变量
+sig run my-jira -- env | grep SIG_MY_JIRA_
 
 # 备选：sig request（凭证保持内部）
 sig request https://jira.example.com/api/me`}</CodeBlock>

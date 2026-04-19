@@ -14,28 +14,28 @@ sigcli (`sig`) is a CLI tool that stores and manages authentication credentials 
 
 ## Available Commands
 
-| Command                            | Description                             | When to Use                               | Typical Latency                  |
-| ---------------------------------- | --------------------------------------- | ----------------------------------------- | -------------------------------- |
-| `sig init`                         | Create/initialize config                | First-time setup                          | < 1s                             |
-| `sig doctor`                       | Validate environment and config         | Troubleshoot setup issues                 | 1–3s                             |
-| `sig login <url>`                  | Authenticate with a service             | No stored credentials, or expired         | 30–120s (browser) / < 1s (token) |
-| `sig logout [provider]`            | Clear stored credentials                | Reset auth state                          | < 1s                             |
-| `sig get <provider\|url>`          | Retrieve credential headers             | Get headers for curl or scripts           | < 1s                             |
-| `sig request <url>`                | Make authenticated HTTP request         | Test an endpoint with auth applied        | 1–5s                             |
-| `sig status [provider]`            | Show auth status for all/one provider   | Check if logged in before acting          | 1–3s                             |
-| `sig providers`                    | List configured providers               | Discover what is configured               | 1–3s                             |
-| `sig rename <old> <new>`           | Rename a provider                       | Reorganize providers                      | < 1s                             |
-| `sig remove <provider> [...]`      | Delete provider(s) and credentials      | Clean up                                  | < 1s                             |
-| `sig remote add <name> <host>`     | Add SSH remote for credential sync      | Set up headless machine sync              | < 1s                             |
-| `sig remote remove <name>`         | Remove SSH remote                       | Clean up                                  | < 1s                             |
-| `sig remote list`                  | List configured remotes                 | Inspect sync targets                      | < 1s                             |
-| `sig sync push\|pull [remote]`     | Sync credentials over SSH               | Share credentials with headless machines  | 5–30s                            |
-| `sig watch add <provider>`         | Add provider to auto-refresh watch list | Keep long-lived sessions alive            | < 1s                             |
-| `sig watch remove <provider>`      | Remove from watch list                  | Stop auto-refresh                         | < 1s                             |
-| `sig watch list`                   | Show watched providers                  | Inspect watch config                      | < 1s                             |
-| `sig watch start`                  | Start auto-refresh daemon               | Run in background for session maintenance | Continuous                       |
-| `sig watch set-interval <dur>`     | Set default watch interval              | Tune refresh frequency                    | < 1s                             |
-| `sig run <provider\|url> -- <cmd>` | Run command with credentials in env     | Scripts that need SIG\_\* env vars        | < 1s + child process             |
+| Command                          | Description                             | When to Use                                     | Typical Latency                  |
+| -------------------------------- | --------------------------------------- | ----------------------------------------------- | -------------------------------- |
+| `sig init`                       | Create/initialize config                | First-time setup                                | < 1s                             |
+| `sig doctor`                     | Validate environment and config         | Troubleshoot setup issues                       | 1–3s                             |
+| `sig login <url>`                | Authenticate with a service             | No stored credentials, or expired               | 30–120s (browser) / < 1s (token) |
+| `sig logout [provider]`          | Clear stored credentials                | Reset auth state                                | < 1s                             |
+| `sig get <provider\|url>`        | Retrieve credential headers             | Get headers for curl or scripts                 | < 1s                             |
+| `sig request <url>`              | Make authenticated HTTP request         | Test an endpoint with auth applied              | 1–5s                             |
+| `sig status [provider]`          | Show auth status for all/one provider   | Check if logged in before acting                | 1–3s                             |
+| `sig providers`                  | List configured providers               | Discover what is configured                     | 1–3s                             |
+| `sig rename <old> <new>`         | Rename a provider                       | Reorganize providers                            | < 1s                             |
+| `sig remove <provider> [...]`    | Delete provider(s) and credentials      | Clean up                                        | < 1s                             |
+| `sig remote add <name> <host>`   | Add SSH remote for credential sync      | Set up headless machine sync                    | < 1s                             |
+| `sig remote remove <name>`       | Remove SSH remote                       | Clean up                                        | < 1s                             |
+| `sig remote list`                | List configured remotes                 | Inspect sync targets                            | < 1s                             |
+| `sig sync push\|pull [remote]`   | Sync credentials over SSH               | Share credentials with headless machines        | 5–30s                            |
+| `sig watch add <provider>`       | Add provider to auto-refresh watch list | Keep long-lived sessions alive                  | < 1s                             |
+| `sig watch remove <provider>`    | Remove from watch list                  | Stop auto-refresh                               | < 1s                             |
+| `sig watch list`                 | Show watched providers                  | Inspect watch config                            | < 1s                             |
+| `sig watch start`                | Start auto-refresh daemon               | Run in background for session maintenance       | Continuous                       |
+| `sig watch set-interval <dur>`   | Set default watch interval              | Tune refresh frequency                          | < 1s                             |
+| `sig run [provider...] -- <cmd>` | Run command with credentials in env     | Scripts that need SIG\_<PROVIDER\>\_\* env vars | < 1s + child process             |
 
 ---
 
@@ -93,20 +93,27 @@ sig status <provider> --format json
 
 ### Run scripts with credentials injected (recommended for scripts)
 
-Use `sig run` to inject credentials as `SIG_*` environment variables without exposing them in shell history or `ps` output. Credential values are automatically redacted from child stdout/stderr.
+Use `sig run` to inject credentials as `SIG_<PROVIDER>_*` environment variables without exposing them in shell history or `ps` output. Credential values are automatically redacted from child stdout/stderr.
 
 ```bash
 # Discover available environment variables for a provider
-sig run <provider> -- env | grep SIG_
+sig run grafana -- env | grep SIG_GRAFANA_
 
-# Run a script with credentials available as SIG_* env vars
+# Run a script with credentials available as SIG_<PROVIDER>_* env vars
 sig run grafana -- python fetch_data.py
 
-# The child process can read:
-#   SIG_PROVIDER, SIG_CREDENTIAL_TYPE, SIG_TOKEN / SIG_COOKIE / SIG_API_KEY etc.
-#   SIG_AUTH_HEADER — complete Authorization header value
+# The child process can read (e.g. for provider "grafana"):
+#   SIG_GRAFANA_PROVIDER, SIG_GRAFANA_CREDENTIAL_TYPE
+#   SIG_GRAFANA_TOKEN / SIG_GRAFANA_COOKIE / SIG_GRAFANA_API_KEY etc.
+#   SIG_GRAFANA_AUTH_HEADER — complete Authorization header value
 
-# Expand individual cookies as SIG_COOKIE_<NAME>=value
+# Multiple providers at once
+sig run provider-a provider-b -- python cross_tool.py
+
+# No providers — inject all valid credentials
+sig run -- python script.py
+
+# Expand individual cookies as SIG_<PROVIDER>_COOKIE_<NAME>=value
 sig run my-jira --expand-cookies -- python script.py
 
 # Write credentials to a .env file (deleted after child exits)

@@ -155,8 +155,8 @@ sig status my-jira`}</CodeBlock>
                     </SectionHeading>
                     <P>
                         <Code>sig run</Code> is the recommended way to use credentials. It injects{' '}
-                        <Code>SIG_*</Code> environment variables directly into the child process —
-                        nothing leaks into shell history or process lists.
+                        <Code>SIG_&lt;PROVIDER&gt;_*</Code> environment variables directly into the
+                        child process — nothing leaks into shell history or process lists.
                     </P>
                     <CodeBlock lang="bash">{`# Discover what variables are available
 sig run my-jira -- env | grep SIG_
@@ -216,28 +216,31 @@ sig init --channel chrome   # use a specific browser (chrome|msedge|chromium)`}<
                     </SectionHeading>
                     <P>
                         <strong>The recommended way to use credentials.</strong> Runs any command
-                        with <Code>SIG_*</Code> environment variables injected. Credential values
-                        are automatically redacted from the child's stdout and stderr.
+                        with <Code>SIG_&lt;PROVIDER&gt;_*</Code> environment variables injected.
+                        Credential values are automatically redacted from the child's stdout and
+                        stderr.
                     </P>
-                    <CodeBlock lang="bash">{`sig run <provider|url> -- <cmd>
+                    <CodeBlock lang="bash">{`sig run [provider...] -- <cmd>
 
-# Discover available SIG_* variables
-sig run my-jira -- env | grep SIG_
+# Discover available SIG_<PROVIDER>_* variables
+sig run my-jira -- env | grep SIG_MY_JIRA_
 
 # Run with credentials injected
 sig run my-jira -- python fetch_issues.py
 sig run my-jira -- node export_board.js
-sig run jira.example.com -- curl https://jira.example.com/api/me
 
-# Expand individual cookies as SIG_COOKIE_<NAME>=value
+# Multiple providers at once
+sig run provider-a provider-b -- python cross_tool.py
+
+# No providers — inject all valid credentials
+sig run -- python script.py
+
+# Expand individual cookies as SIG_<PROVIDER>_COOKIE_<NAME>=value
 sig run my-jira --expand-cookies -- python script.py
 
 # Write credentials to a .env file (auto-deleted after child exits)
 sig run my-jira --mount .env -- node app.js
-sig run my-jira --mount creds.json --mount-format json -- node app.js
-
-# Disable redaction (raw values visible in output — use with caution)
-sig run my-jira --no-redaction -- env | grep SIG_`}</CodeBlock>
+sig run my-jira --mount creds.json --mount-format json -- node app.js`}</CodeBlock>
                 </>
             ),
             aside: (
@@ -431,36 +434,37 @@ sig completion fish > ~/.config/fish/completions/sig.fish`}</CodeBlock>
                         Environment Variables
                     </SectionHeading>
                     <P>
-                        <Code>sig run</Code> injects <Code>SIG_*</Code> variables into the child
-                        process. Use <Code>sig run my-jira -- env | grep SIG_</Code> to discover
-                        exactly what's available for a provider.
+                        <Code>sig run</Code> injects <Code>SIG_&lt;PROVIDER&gt;_*</Code> variables
+                        into the child process. Use{' '}
+                        <Code>sig run my-jira -- env | grep SIG_MY_JIRA_</Code> to discover exactly
+                        what's available for a provider.
                     </P>
-                    <CodeBlock lang="bash">{`# Always present
-SIG_PROVIDER          # provider ID, e.g. "my-jira"
-SIG_AUTH_TYPE         # credential type: cookie | bearer | api-key | basic
+                    <CodeBlock lang="bash">{`# Always present (example: provider "my-jira")
+SIG_MY_JIRA_PROVIDER          # provider ID: "my-jira"
+SIG_MY_JIRA_CREDENTIAL_TYPE   # credential type: cookie | bearer | api-key | basic
 
 # Bearer / OAuth2 token
-SIG_TOKEN             # raw token value, e.g. "eyJ..."
-SIG_AUTH_HEADER       # complete Authorization header value
+SIG_MY_JIRA_TOKEN             # raw token value, e.g. "eyJ..."
+SIG_MY_JIRA_AUTH_HEADER       # complete Authorization header value
 
 # Cookie credentials
-SIG_COOKIE            # full cookie string, e.g. "SESSION=abc; ..."
+SIG_MY_JIRA_COOKIE            # full cookie string, e.g. "SESSION=abc; ..."
 
 # With --expand-cookies: individual cookies
-SIG_COOKIE_SESSION=abc123
-SIG_COOKIE_CSRF_TOKEN=xyz
+SIG_MY_JIRA_COOKIE_SESSION=abc123
+SIG_MY_JIRA_COOKIE_CSRF_TOKEN=xyz
 
 # Custom x-headers captured from browser traffic
-SIG_HEADER_X_AUSERNAME=alice
-SIG_HEADER_X_ATTOKEN=xyz`}</CodeBlock>
+SIG_MY_JIRA_HEADER_X_AUSERNAME=alice
+SIG_MY_JIRA_HEADER_X_ATTOKEN=xyz`}</CodeBlock>
 
                     <P>Example: reading credentials inside a Python script:</P>
                     <CodeBlock lang="bash">{`import os
 
 # Python script run via: sig run my-jira -- python fetch.py
-token = os.environ.get("SIG_TOKEN")
-cookie = os.environ.get("SIG_COOKIE")
-auth_type = os.environ.get("SIG_AUTH_TYPE")
+token = os.environ.get("SIG_MY_JIRA_TOKEN")
+cookie = os.environ.get("SIG_MY_JIRA_COOKIE")
+auth_type = os.environ.get("SIG_MY_JIRA_CREDENTIAL_TYPE")
 
 if auth_type == "cookie":
     headers = {"Cookie": cookie}
@@ -719,8 +723,8 @@ result = sig.request("https://jira.example.com/api/issues/123")`}</CodeBlock>
 sig run my-jira -- python fetch_issues.py
 sig run my-jira -- node export_sprint.js
 
-# Discovery: find out what SIG_* vars are available
-sig run my-jira -- env | grep SIG_
+# Discovery: find out what SIG_<PROVIDER>_* vars are available
+sig run my-jira -- env | grep SIG_MY_JIRA_
 
 # Alternative: sig request (credentials stay internal)
 sig request https://jira.example.com/api/me`}</CodeBlock>
