@@ -27,6 +27,9 @@ const testProvider: ProviderConfig = {
     domains: ['127.0.0.1'],
     strategy: 'api-token',
     strategyConfig: { strategy: 'api-token', headerName: 'Authorization', headerPrefix: 'Bearer' },
+    proxy: {
+        inject: [{ in: 'header', action: 'set', name: 'authorization', from: 'credential.key' }],
+    },
 };
 
 function makeMinimalConfig(): SigConfig {
@@ -187,7 +190,7 @@ describe('ProxyServer', () => {
         expect(result.status).toBe(200);
 
         const body = JSON.parse(result.body) as { receivedHeaders: Record<string, string> };
-        expect(body.receivedHeaders['authorization']).toBe('Bearer test-token-xyz');
+        expect(body.receivedHeaders['authorization']).toBe('test-token-xyz');
 
         await proxy.stop();
     });

@@ -67,7 +67,7 @@ export function applyInjectRules(
     let outUrl = url;
 
     for (const rule of rules) {
-        const action = rule.action ?? 'set';
+        const { action } = rule;
         const value = rule.from ? resolveFrom(credential, rule.from) : null;
 
         if (rule.in === 'header') {

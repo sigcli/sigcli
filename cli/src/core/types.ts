@@ -122,7 +122,7 @@ export interface LocalStorageConfig {
 
 export interface ProxyInjectRule {
     in: 'header' | 'body' | 'query';
-    action?: 'set' | 'append' | 'remove';
+    action: 'set' | 'append' | 'remove';
     name: string;
     from?: string;
 }

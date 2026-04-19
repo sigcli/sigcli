@@ -41,34 +41,19 @@ async function applyInjection(
     deps: AuthDeps,
 ): Promise<{ headers: http.OutgoingHttpHeaders; body: Buffer | undefined; url: string }> {
     const provider = resolveProvider(url, deps);
-    if (!provider) return { headers: baseHeaders, body: bodyBuffer, url };
+    if (!provider?.proxy?.inject?.length) return { headers: baseHeaders, body: bodyBuffer, url };
 
     const credResult = await deps.authManager.getCredentials(provider.id);
     if (!isOk(credResult)) return { headers: baseHeaders, body: bodyBuffer, url };
 
-    const cred = credResult.value;
-
-    if (provider.proxy?.inject) {
-        return applyInjectRules(
-            provider.proxy.inject,
-            cred,
-            baseHeaders,
-            bodyBuffer,
-            contentType,
-            url,
-        );
-    }
-
-    const injected = deps.authManager.applyToRequest(provider.id, cred);
-    const headers = { ...baseHeaders, ...injected };
-
-    if ('localStorage' in cred && cred.localStorage) {
-        for (const [key, value] of Object.entries(cred.localStorage)) {
-            headers[`x-sig-local-${key}`] = value;
-        }
-    }
-
-    return { headers, body: bodyBuffer, url };
+    return applyInjectRules(
+        provider.proxy.inject,
+        credResult.value,
+        baseHeaders,
+        bodyBuffer,
+        contentType,
+        url,
+    );
 }
 
 async function handlePlainHttp(

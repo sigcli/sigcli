@@ -429,9 +429,7 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
                                 >
                             ).map((r) => ({
                                 in: r.in as 'header' | 'body' | 'query',
-                                ...(r.action !== undefined
-                                    ? { action: r.action as 'set' | 'append' | 'remove' }
-                                    : {}),
+                                action: r.action as 'set' | 'append' | 'remove',
                                 name: r.name as string,
                                 ...(r.from !== undefined ? { from: r.from as string } : {}),
                             }))
