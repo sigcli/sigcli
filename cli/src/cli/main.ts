@@ -18,6 +18,7 @@ import { runInit } from './commands/init.js';
 import { runDoctor } from './commands/doctor.js';
 import { runRename } from './commands/rename.js';
 import { runRemove } from './commands/remove.js';
+import { runCompletion } from './commands/completion.js';
 import { ExitCode } from './exit-codes.js';
 
 interface ParsedArgs {
@@ -123,6 +124,7 @@ Setup:
     --force                      Overwrite existing config
     --channel <name>             Browser channel (chrome|msedge|chromium)
   doctor                       Check environment and configuration
+  completion <shell>           Generate shell completion script (bash|zsh|fish)
 
 Global options:
   --verbose                    Debug output to stderr
@@ -157,6 +159,10 @@ export async function run(args: string[]): Promise<void> {
     }
     if (command === Command.DOCTOR) {
         await runDoctor(positionals, flags);
+        return;
+    }
+    if (command === Command.COMPLETION) {
+        await runCompletion(positionals, flags);
         return;
     }
 
