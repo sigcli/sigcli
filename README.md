@@ -71,6 +71,10 @@ Run `sig --help` or `sig <command> --help` for full options.
 
 Full docs, configuration reference, and examples at **[sigcli.ai](https://sigcli.ai)**.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, architecture overview, conventions, and how to add new strategies, adapters, or commands.
+
 ## License
 
 [MIT](LICENSE)
