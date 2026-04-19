@@ -217,7 +217,53 @@ export async function runLogin(
         return;
     }
 
-    // Check if browser is available for strategies that require it
+    // Cascade: check stored → refresh → browser (unless --force skips to browser)
+    if (flags.force !== true) {
+        process.stderr.write(`  [1/3] Checking stored credentials...`);
+        const status = await deps.authManager.getStatus(provider.id);
+
+        if (status.valid) {
+            process.stderr.write(` ✓ valid (skipping login)\n`);
+            const credResult = await deps.authManager.getCredentials(provider.id);
+            if (isOk(credResult)) {
+                process.stdout.write(
+                    formatJson({
+                        provider: provider.id,
+                        type: credResult.value.type,
+                        ...(status.expiresAt ? { expiresAt: status.expiresAt } : {}),
+                        source: 'stored',
+                    }) + '\n',
+                );
+                return;
+            }
+        }
+
+        if (status.configured && !status.valid) {
+            process.stderr.write(` expired\n`);
+            process.stderr.write(`  [2/3] Refreshing credentials...`);
+            const refreshResult = await deps.authManager.getCredentials(provider.id);
+            if (isOk(refreshResult)) {
+                const refreshedStatus = await deps.authManager.getStatus(provider.id);
+                process.stderr.write(` ✓ refreshed\n`);
+                process.stdout.write(
+                    formatJson({
+                        provider: provider.id,
+                        type: refreshResult.value.type,
+                        ...(refreshedStatus.expiresAt
+                            ? { expiresAt: refreshedStatus.expiresAt }
+                            : {}),
+                        source: 'refreshed',
+                    }) + '\n',
+                );
+                return;
+            }
+            process.stderr.write(` ✗ failed\n`);
+        } else if (!status.configured) {
+            process.stderr.write(` not found\n`);
+        }
+    }
+
+    // Step 3: Browser fallback
     if (!deps.browserAvailable && BROWSER_REQUIRED_STRATEGIES.has(provider.strategy)) {
         process.stderr.write(
             `Browser is not available on this machine.\n` +
@@ -235,6 +281,7 @@ export async function runLogin(
         return;
     }
 
+    process.stderr.write(`  [3/3] Opening browser...\n`);
     process.stderr.write(`Authenticating with "${provider.name}" via browser...\n`);
     const result = await deps.authManager.forceReauth(provider.id);
     if (!isOk(result)) {
