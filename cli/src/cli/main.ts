@@ -117,7 +117,7 @@ Watch:
   watch set-interval <dur>     Set default check interval
 
 Setup:
-  init                         Create ~/.signet/config.yaml
+  init                         Create ~/.sig/config.yaml
     --remote                     Headless machine setup (mode: browserless)
     --yes                        Accept defaults, skip prompts
     --force                      Overwrite existing config

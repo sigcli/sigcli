@@ -1,5 +1,5 @@
 /**
- * Shared YAML document helpers for reading/writing ~/.signet/config.yaml.
+ * Shared YAML document helpers for reading/writing ~/.sig/config.yaml.
  * Used by sync/remote-config.ts and watch/watch-config.ts.
  */
 

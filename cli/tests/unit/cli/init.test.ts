@@ -44,7 +44,7 @@ const mockExistsSync = vi.mocked(fs.existsSync);
 const mockMkdir = vi.mocked(fsp.mkdir);
 const mockWriteFile = vi.mocked(fsp.writeFile);
 
-const EXPECTED_CONFIG_DIR = path.join(os.homedir(), '.signet');
+const EXPECTED_CONFIG_DIR = path.join(os.homedir(), '.sig');
 const EXPECTED_CONFIG_PATH = path.join(EXPECTED_CONFIG_DIR, 'config.yaml');
 
 describe('runInit', () => {
@@ -144,7 +144,7 @@ describe('runInit', () => {
 
     // ---- generates config at correct path ----
 
-    it('generates config file at ~/.signet/config.yaml', async () => {
+    it('generates config file at ~/.sig/config.yaml', async () => {
         await runInit([], { yes: true });
 
         expect(mockWriteFile).toHaveBeenCalledTimes(1);
@@ -164,16 +164,16 @@ describe('runInit', () => {
 
     // ---- creates necessary directories ----
 
-    it('creates necessary directories (signet, browser-data, credentials)', async () => {
+    it('creates necessary directories (sig, browser-data, credentials)', async () => {
         await runInit([], { yes: true });
 
-        // Should create at least 3 directories: signet dir, browser-data, credentials
+        // Should create at least 3 directories: sig dir, browser-data, credentials
         expect(mockMkdir).toHaveBeenCalledTimes(3);
 
         const mkdirPaths = mockMkdir.mock.calls.map((call) => call[0]);
-        // Signet dir
+        // Sig dir
         expect(mkdirPaths).toContain(EXPECTED_CONFIG_DIR);
-        // Browser data and credentials dirs (default paths under ~/.signet/)
+        // Browser data and credentials dirs (default paths under ~/.sig/)
         const expectedBrowserDataDir = path.join(EXPECTED_CONFIG_DIR, 'browser-data');
         const expectedCredentialsDir = path.join(EXPECTED_CONFIG_DIR, 'credentials');
         expect(mkdirPaths).toContain(expectedBrowserDataDir);

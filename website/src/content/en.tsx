@@ -81,7 +81,7 @@ export const pageContent = {
                     <P>No SDK wrappers, no vendor lock-in. One CLI, any site you can sign in to.</P>
 
                     <CodeBlock lang="diagram">{`┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────────┐
-│  ANY AGENT      │     │   ~/.signet          │     │   YOUR BROWSER      │
+│  ANY AGENT      │     │   ~/.sig             │     │   YOUR BROWSER      │
 │                 │     │                      │     │                     │
 │  ┌───────────┐  │     │  config.yaml         │     │  ┌───────────────┐  │
 │  │ sig get   │──────>│  credentials/         │<──────│  Playwright   │  │
@@ -123,7 +123,7 @@ sig request https://api.openai.com/v1/models`}</CodeBlock>
                 <P>
                     Signet captures cookies, bearer tokens, localStorage values, and x-headers from
                     live browser network traffic. Credentials are sealed under{' '}
-                    <Code>~/.signet</Code> with a directory lock — nothing in your repo.
+                    <Code>~/.sig</Code> with a directory lock — nothing in your repo.
                 </P>
             ),
         },
@@ -143,7 +143,7 @@ sig request https://api.openai.com/v1/models`}</CodeBlock>
                         Configure providers
                     </SectionHeading>
                     <P>
-                        Each provider entry in <Code>~/.signet/config.yaml</Code> maps URL patterns
+                        Each provider entry in <Code>~/.sig/config.yaml</Code> maps URL patterns
                         to a strategy, plus options like required cookies, x-header filters, and
                         TTLs.
                     </P>
@@ -169,7 +169,7 @@ sig request https://api.openai.com/v1/models`}</CodeBlock>
 → chromium headless …
 ⚠ login page detected — opening window
 ✓ captured 6 cookies · 1 bearer · 2 x-headers
-✓ sealed under ~/.signet/credentials/openai.json`}</CodeBlock>
+✓ sealed under ~/.sig/credentials/openai.json`}</CodeBlock>
 
                     <SectionHeading id="use" level={2}>
                         Use the credential
