@@ -14,6 +14,11 @@ sig login https://jira.example.com            # Authenticate via browser SSO
 
 sig request https://jira.example.com/rest/api/2/myself                                   # Authenticated request
 sig run my-jira -- bash -c 'python fetch.py --cookie "$SIG_MY_JIRA_COOKIE"'              # Credentials as env vars
+
+# Or use a local MITM proxy — agents set HTTP_PROXY and credentials are injected transparently
+sig proxy start
+export HTTP_PROXY=http://127.0.0.1:7891 HTTPS_PROXY=http://127.0.0.1:7891
+curl https://jira.example.com/api/me   # credentials injected by proxy, agent never sees them
 ```
 
 Credentials are injected as `SIG_<PROVIDER>_*` env vars and never appear in your shell or logs. All credential files are encrypted at rest (AES-256-GCM).
@@ -61,9 +66,18 @@ Credentials are injected as `SIG_<PROVIDER>_*` env vars and never appear in your
 
 **Watch**
 
-| Command                              | Description              |
-| ------------------------------------ | ------------------------ |
-| `sig watch add\|remove\|list\|start` | Auto-refresh credentials |
+| Command                               | Description              |
+| ------------------------------------- | ------------------------ |
+| `sig watch add\|remove\|set-interval` | Auto-refresh credentials |
+
+**Proxy**
+
+| Command                      | Description                        |
+| ---------------------------- | ---------------------------------- |
+| `sig proxy start [--port N]` | Start MITM proxy daemon            |
+| `sig proxy stop`             | Stop proxy daemon                  |
+| `sig proxy status`           | Show proxy status                  |
+| `sig proxy trust`            | Print CA cert path for trust setup |
 
 Run `sig --help` or `sig <command> --help` for full options.
 

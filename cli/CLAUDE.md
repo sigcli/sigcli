@@ -19,7 +19,7 @@ core/ (types, interfaces, Result, errors) ── zero external deps, imported by
 - **`src/deps.ts`** — Composition root. Creates registries, storage, browser factory, AuthManager. No singletons. Shared by CLI and programmatic API.
 - **`src/auth-manager.ts`** — Orchestrator. Flow: stored cred → validate → refresh → authenticate. All methods return `Result<T, AuthError>`.
 - **`src/core/`** — Shared vocabulary. Zero external dependencies.
-- **`src/cli/`** — CLI commands (init, doctor, get, login, request, status, logout, providers, remote, sync, watch, rename, remove, completion). Each command is a standalone module. `init`, `doctor`, and `completion` run without deps (before config exists).
+- **`src/cli/`** — CLI commands (init, doctor, get, login, request, status, logout, providers, remote, sync, watch, rename, remove, completion, proxy). Each command is a standalone module. `init`, `doctor`, and `completion` run without deps (before config exists).
 - **`src/strategies/`** — Each strategy: private class + exported `*StrategyFactory` (IAuthStrategyFactory).
 - **`src/browser/adapters/`** — Browser automation. PlaywrightAdapter is the reference. Three-class pattern: Adapter → Session → Page.
 - **`src/browser/flows/`** — `runHybridFlow` (headless→visible fallback), `extractOAuthTokens`, `isLoginPage`, `startHeaderCapture` (x-headers).
@@ -27,6 +27,7 @@ core/ (types, interfaces, Result, errors) ── zero external deps, imported by
 - **`src/crypto/`** — Encryption at rest. AES-256-GCM encrypt/decrypt, key generation/loading. Key stored at `~/.sig/encryption.key`.
 - **`src/providers/`** — ProviderRegistry (URL→provider via domain matching), config-loader (YAML/JSON).
 - **`src/sync/`** — SyncEngine + SshTransport for credential sync to remote machines. Encrypts with per-remote key. RemoteConfig in `~/.sig/config.yaml`.
+- **`src/proxy/`** — MITM proxy daemon. CaManager (ECDSA P-256 CA + per-hostname leaf certs), ProxyServer (HTTP/HTTPS CONNECT with credential injection), daemon (proxy + watch loop), proxy-state (PID/port files at `~/.sig/proxy/`).
 - **`src/utils/`** — JWT decode, duration parse, HTTP helpers.
 
 ## Key Interfaces
@@ -85,7 +86,8 @@ sig rename <old> <new>     # Rename a provider
 sig remove <provider>      # Remove provider and credentials
 sig remote add|remove|list # Manage remote credential stores
 sig sync push|pull [remote]# Sync credentials with remote
-sig watch add|remove|list|start  # Auto-refresh credentials
+sig watch add|remove|set-interval  # Auto-refresh credentials
+sig proxy start|stop|status|trust  # MITM proxy daemon for zero-trust credential injection
 sig completion <shell>     # Generate shell completion (bash|zsh|fish)
 sig run [provider...] -- <cmd>  # Run command with SIG_<PROVIDER>_* credentials injected
 ```

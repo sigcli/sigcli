@@ -90,6 +90,10 @@ export const pageContent = {
  │  curl, fetch,    │    │  ┌─────────────────┐  │    │  cookies, tokens,    │
  │  agents, CI      │<───┼──┤ SSH transport   │  │    │  x-headers,          │
  │                  │    │  │ sig sync push   │  │    │  localStorage        │
+ │  ┌────────────┐  │    │  └─────────────────┘  │    │                      │
+ │  │HTTP_PROXY= ├──┼──> │  ┌─────────────────┐  │    │                      │
+ │  │sig proxy   │  │    │  │ MITM proxy      │  │    │                      │
+ │  └────────────┘  │    │  │ sig proxy start │  │    │                      │
  │                  │    │  └─────────────────┘  │    │                      │
  └──────────────────┘    └───────────────────────┘    └──────────────────────┘
 `}</CodeBlock>
@@ -177,6 +181,13 @@ $ sig run my-jira -- node export_board.js`}</CodeBlock>
                         功能特性
                     </SectionHeading>
                     <List>
+                        <Li>
+                            <strong>MITM 代理</strong> — <Code>sig proxy start</Code>{' '}
+                            在本地 <Code>127.0.0.1</Code> 启动 HTTPS 代理。代理设置{' '}
+                            <Code>HTTP_PROXY</Code>/<Code>HTTPS_PROXY</Code>，凭证透明注入——
+                            代理工具永远不会看到令牌。适用于无法用 <Code>sig run</Code>{' '}
+                            包裹的长期守护进程或工具。
+                        </Li>
                         <Li>
                             <strong>sig run</strong> — 将 <Code>SIG_&lt;PROVIDER&gt;_*</Code>{' '}
                             凭证直接注入任意子进程，输出中的凭证值自动脱敏。这是使用凭证的推荐方式。
