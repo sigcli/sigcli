@@ -7,6 +7,7 @@ import { Command } from '../core/constants.js';
 
 import { runGet } from './commands/get.js';
 import { runLogin } from './commands/login.js';
+import { runCascade } from './commands/cascade.js';
 import { runStatus } from './commands/status.js';
 import { runLogout } from './commands/logout.js';
 import { runProviders } from './commands/providers.js';
@@ -18,6 +19,7 @@ import { runInit } from './commands/init.js';
 import { runDoctor } from './commands/doctor.js';
 import { runRename } from './commands/rename.js';
 import { runRemove } from './commands/remove.js';
+import { runCompletion } from './commands/completion.js';
 import { ExitCode } from './exit-codes.js';
 
 interface ParsedArgs {
@@ -72,6 +74,7 @@ Authentication:
     --cookie "k=v; k2=v2"       Cookies from DevTools (no browser)
     --username <u> --password <p>  Basic auth (no browser)
     --strategy <name>            Force strategy (cookie|oauth2|api-token|basic)
+  cascade <url>                Auto-detect and try auth methods in order
   logout [provider]            Clear credentials (all if none specified)
 
 Credentials:
@@ -123,6 +126,7 @@ Setup:
     --force                      Overwrite existing config
     --channel <name>             Browser channel (chrome|msedge|chromium)
   doctor                       Check environment and configuration
+  completion <shell>           Generate shell completion script (bash|zsh|fish)
 
 Global options:
   --verbose                    Debug output to stderr
@@ -132,6 +136,7 @@ Global options:
 const DEPS_COMMANDS: ReadonlySet<string> = new Set([
     Command.GET,
     Command.LOGIN,
+    Command.CASCADE,
     Command.STATUS,
     Command.LOGOUT,
     Command.PROVIDERS,
@@ -159,6 +164,10 @@ export async function run(args: string[]): Promise<void> {
         await runDoctor(positionals, flags);
         return;
     }
+    if (command === Command.COMPLETION) {
+        await runCompletion(positionals, flags);
+        return;
+    }
 
     let deps: AuthDeps | undefined;
     if (DEPS_COMMANDS.has(command)) {
@@ -170,14 +179,14 @@ export async function run(args: string[]): Promise<void> {
                     `  No config file found at ${configPath}\n` +
                     '  Run "sig init" to set up your configuration.\n\n',
             );
-            process.exitCode = ExitCode.GENERAL_ERROR;
+            process.exitCode = ExitCode.CONFIG_ERROR;
             return;
         }
 
         const configResult = await loadConfig();
         if (!isOk(configResult)) {
             process.stderr.write(`Config error: ${configResult.error.message}\n`);
-            process.exitCode = ExitCode.GENERAL_ERROR;
+            process.exitCode = ExitCode.CONFIG_ERROR;
             return;
         }
         const config = configResult.value;
@@ -191,6 +200,9 @@ export async function run(args: string[]): Promise<void> {
             break;
         case Command.LOGIN:
             await runLogin(positionals, flags, deps as AuthDeps);
+            break;
+        case Command.CASCADE:
+            await runCascade(positionals, flags, deps as AuthDeps);
             break;
         case Command.REQUEST:
             await runRequest(positionals, flags, deps as AuthDeps);
@@ -222,6 +234,6 @@ export async function run(args: string[]): Promise<void> {
         default:
             process.stderr.write(`Unknown command: ${command}\n\n`);
             process.stdout.write(HELP);
-            process.exitCode = ExitCode.GENERAL_ERROR;
+            process.exitCode = ExitCode.USAGE_ERROR;
     }
 }
