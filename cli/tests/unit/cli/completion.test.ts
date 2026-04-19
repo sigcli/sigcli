@@ -48,22 +48,10 @@ describe('runCompletion', () => {
         expect(process.exitCode).toBeUndefined();
     });
 
-    it('auto-detects shell from $SHELL when no arg given', async () => {
-        const origShell = process.env.SHELL;
-        process.env.SHELL = '/bin/zsh';
-        await runCompletion([], {});
-        expect(stdoutData).toContain('compdef');
-        expect(process.exitCode).toBeUndefined();
-        process.env.SHELL = origShell;
-    });
-
-    it('writes error when no shell specified and $SHELL is unset', async () => {
-        const origShell = process.env.SHELL;
-        delete process.env.SHELL;
+    it('writes error to stderr when no shell specified', async () => {
         await runCompletion([], {});
         expect(stderrData).toContain('Usage');
         expect(process.exitCode).toBe(1);
-        process.env.SHELL = origShell;
     });
 
     it('writes error to stderr for unknown shell', async () => {

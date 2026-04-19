@@ -113,13 +113,9 @@ sig request https://jira.example.com/rest/api/2/myself   # Authenticated request
 Tab completion for commands, providers, and flags.
 
 ```bash
-# Auto-detect shell from $SHELL
-eval "$(sig completion)"
-
-# Or specify explicitly
-eval "$(sig completion bash)"    # Bash
-eval "$(sig completion zsh)"     # Zsh
-source <(sig completion fish)    # Fish
+sig completion bash     # Bash
+sig completion zsh      # Zsh
+sig completion fish     # Fish
 ```
 
 **Permanent install — add to your shell profile:**
