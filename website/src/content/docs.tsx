@@ -414,8 +414,8 @@ sig watch set-interval 1h       # change default interval`}</CodeBlock>
                     <P>
                         Runs a local MITM HTTP/HTTPS proxy daemon. Agents point{' '}
                         <Code>HTTP_PROXY</Code>/<Code>HTTPS_PROXY</Code> at the proxy and make
-                        normal requests — credentials are injected transparently and the agent
-                        never sees token values. The proxy also runs the watch/refresh loop.
+                        normal requests — credentials are injected transparently and the agent never
+                        sees token values. The proxy also runs the watch/refresh loop.
                     </P>
                     <CodeBlock lang="bash">{`sig proxy start                  # start daemon (default port 7891)
 sig proxy start --port 8080      # use custom port
@@ -444,8 +444,8 @@ sig completion fish > ~/.config/fish/completions/sig.fish`}</CodeBlock>
             ),
             aside: (
                 <P>
-                    Use <Code>sig proxy start</Code> to run the watch loop as a background daemon
-                    — it keeps credentials fresh and handles HTTPS interception simultaneously.
+                    Use <Code>sig proxy start</Code> to run the watch loop as a background daemon —
+                    it keeps credentials fresh and handles HTTPS interception simultaneously.
                 </P>
             ),
         },

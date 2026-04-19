@@ -397,8 +397,8 @@ sig watch set-interval 1h       # 更改默认间隔`}</CodeBlock>
                         sig proxy
                     </SectionHeading>
                     <P>
-                        运行本地 MITM HTTP/HTTPS 代理守护进程。代理工具将{' '}
-                        <Code>HTTP_PROXY</Code>/<Code>HTTPS_PROXY</Code> 指向代理后发起普通请求——
+                        运行本地 MITM HTTP/HTTPS 代理守护进程。代理工具将 <Code>HTTP_PROXY</Code>/
+                        <Code>HTTPS_PROXY</Code> 指向代理后发起普通请求——
                         凭证透明注入，代理工具永远不会看到令牌值。代理同时运行监视/刷新循环。
                     </P>
                     <CodeBlock lang="bash">{`sig proxy start                  # 启动守护进程（默认端口 7891）
@@ -413,8 +413,8 @@ export HTTPS_PROXY=http://127.0.0.1:7891
 curl https://jira.example.com/api/me   # 凭证自动注入`}</CodeBlock>
                     <P>
                         <strong>何时用代理 vs sig run：</strong>用 <Code>sig run</Code>{' '}
-                        包裹单个命令；用 <Code>sig proxy</Code> 处理长期守护进程、会派生进程树的工具，
-                        或只读取代理环境变量的工具。
+                        包裹单个命令；用 <Code>sig proxy</Code>{' '}
+                        处理长期守护进程、会派生进程树的工具， 或只读取代理环境变量的工具。
                     </P>
 
                     <SectionHeading id="cmd-completion" level={2}>

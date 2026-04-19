@@ -182,9 +182,9 @@ $ sig run my-jira -- node export_board.js`}</CodeBlock>
                     </SectionHeading>
                     <List>
                         <Li>
-                            <strong>MITM 代理</strong> — <Code>sig proxy start</Code>{' '}
-                            在本地 <Code>127.0.0.1</Code> 启动 HTTPS 代理。代理设置{' '}
-                            <Code>HTTP_PROXY</Code>/<Code>HTTPS_PROXY</Code>，凭证透明注入——
+                            <strong>MITM 代理</strong> — <Code>sig proxy start</Code> 在本地{' '}
+                            <Code>127.0.0.1</Code> 启动 HTTPS 代理。代理设置 <Code>HTTP_PROXY</Code>
+                            /<Code>HTTPS_PROXY</Code>，凭证透明注入——
                             代理工具永远不会看到令牌。适用于无法用 <Code>sig run</Code>{' '}
                             包裹的长期守护进程或工具。
                         </Li>
