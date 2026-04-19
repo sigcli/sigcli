@@ -123,7 +123,7 @@ describe('CLI help text grouping (#9)', () => {
     it('no arguments shows help text', async () => {
         await run([]);
         const output = stdoutChunks.join('');
-        expect(output).toContain('signet');
+        expect(output).toContain('sig');
         expect(output).toContain('Authentication:');
     });
 

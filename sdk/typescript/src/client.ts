@@ -6,21 +6,21 @@ import { readProviderFile, listProviderFiles } from './reader.js';
 import { formatHeaders, extractLocalStorage } from './formatter.js';
 import { CredentialWatcher } from './watcher.js';
 
-export interface SignetClientOptions {
+export interface SigClientOptions {
     /** Path to credentials directory. Defaults to ~/.sig/credentials */
     credentialsDir?: string;
 }
 
-export interface SignetClientEvents {
+export interface SigClientEvents {
     change: [providerId: string, headers: Record<string, string>];
     error: [error: Error];
 }
 
-export class SignetClient extends EventEmitter<SignetClientEvents> {
+export class SigClient extends EventEmitter<SigClientEvents> {
     private readonly credentialsDir: string;
     private watcher: CredentialWatcher | null = null;
 
-    constructor(opts?: SignetClientOptions) {
+    constructor(opts?: SigClientOptions) {
         super();
         this.credentialsDir =
             opts?.credentialsDir ?? path.join(os.homedir(), '.sig', 'credentials');

@@ -1,5 +1,5 @@
 /**
- * Standard CLI exit codes for signet commands.
+ * Standard CLI exit codes for SigCLI commands.
  */
 export const ExitCode = {
     SUCCESS: 0,

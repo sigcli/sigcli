@@ -1,6 +1,6 @@
 # Sigcli
 
-Monorepo for Signet authentication tools. pnpm workspaces, ESM, Node >= 18.
+Monorepo for SigCLI authentication tools. pnpm workspaces, ESM, Node >= 18.
 
 When you make this project, do not add you as an author in commit. e.g. DO NOT add this in commit message "Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 
@@ -8,12 +8,12 @@ When you make this project, do not add you as an author in commit. e.g. DO NOT a
 
 ```
 sigcli/
-├── cli/           # signet-auth — CLI with pluggable strategies and browser adapters
+├── cli/           # @sigcli/cli — CLI with pluggable strategies and browser adapters
 ├── sdk/
-│   ├── typescript/  # signet-auth-sdk — lightweight client SDK (npm)
-│   └── python/      # signet-auth-sdk — lightweight client SDK (PyPI)
+│   ├── typescript/  # @sigcli/sdk — lightweight client SDK (npm)
+│   └── python/      # sigcli-sdk — lightweight client SDK (PyPI)
 ├── website/       # sigcli.ai — TanStack Start + React 19
-├── skills/        # AI agent skills using Signet (any language)
+├── skills/        # AI agent skills using SigCLI (any language)
 ├── docs/          # Documentation
 └── pitch/         # Pitch materials
 ```

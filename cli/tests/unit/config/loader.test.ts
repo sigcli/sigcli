@@ -140,7 +140,7 @@ describe('loadConfig', () => {
         }
     });
 
-    it('correctly converts provider entries with config to SignetConfig', async () => {
+    it('correctly converts provider entries with config to SigConfig', async () => {
         mockFs.readFile.mockResolvedValue(VALID_YAML_WITH_REMOTES);
 
         const result = await loadConfig();

@@ -1,11 +1,11 @@
-# signet-auth-sdk
+# @sigcli/sdk
 
-Lightweight TypeScript/Node.js client SDK for consuming [Signet](https://github.com/signet-auth/signet) credentials.
+Lightweight TypeScript/Node.js client SDK for consuming [sigcli](https://github.com/sigcli/sigcli) credentials.
 
 ## Install
 
 ```bash
-npm install signet-auth-sdk
+npm install @sigcli/sdk
 ```
 
 Requires Node.js >= 18.
@@ -13,9 +13,9 @@ Requires Node.js >= 18.
 ## Quick start
 
 ```typescript
-import { SignetClient } from 'signet-auth-sdk';
+import { SigClient } from '@sigcli/sdk';
 
-const client = new SignetClient();
+const client = new SigClient();
 
 // Get HTTP headers for an authenticated request
 const headers = await client.getHeaders('my-jira');
@@ -25,7 +25,7 @@ const res = await fetch('https://jira.example.com/rest/api/2/search', { headers 
 ## Watching for changes
 
 ```typescript
-const client = new SignetClient();
+const client = new SigClient();
 
 client.on('change', (providerId, headers) => {
     console.log(`Credentials updated for ${providerId}`);
@@ -39,7 +39,7 @@ client.close();
 
 ## API reference
 
-### `new SignetClient(options?)`
+### `new SigClient(options?)`
 
 | Option           | Type     | Default              | Description                   |
 | ---------------- | -------- | -------------------- | ----------------------------- |

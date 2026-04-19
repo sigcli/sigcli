@@ -8,7 +8,7 @@ import { runRename } from '../../../src/cli/commands/rename.js';
 import type { AuthDeps } from '../../../src/deps.js';
 import type { ProviderConfig, StoredCredential } from '../../../src/core/types.js';
 import type { IBrowserAdapter } from '../../../src/core/interfaces/browser-adapter.js';
-import type { BrowserConfig, SignetConfig } from '../../../src/config/schema.js';
+import type { BrowserConfig, SigConfig } from '../../../src/config/schema.js';
 
 const browserConfig: BrowserConfig = {
     browserDataDir: '/tmp/test-browser-data',
@@ -46,7 +46,7 @@ function createDeps(providers?: ProviderConfig[]): {
         browserConfig,
     });
 
-    const config: SignetConfig = {
+    const config: SigConfig = {
         browser: browserConfig,
         storage: { credentialsDir: '/tmp/test-credentials' },
         providers: {},

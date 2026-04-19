@@ -10,7 +10,7 @@ const FIXTURES_DIR = path.join(import.meta.dirname, 'fixtures');
 let tmpDir: string;
 
 beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'signet-reader-test-'));
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sigcli-reader-test-'));
 });
 
 afterEach(async () => {

@@ -1,13 +1,13 @@
 /**
- * Runtime validation for the unified signet config.
- * Returns Result<SignetConfig, AuthError>.
+ * Runtime validation for the unified SigCLI config.
+ * Returns Result<SigConfig, AuthError>.
  */
 
 import type { Result } from '../core/result.js';
 import { ok, err } from '../core/result.js';
 import { ConfigError, type AuthError } from '../core/errors.js';
 import type {
-    SignetConfig,
+    SigConfig,
     BrowserConfig,
     StorageConfig,
     ProviderEntry,
@@ -35,7 +35,7 @@ const VALID_WAIT_UNTIL: readonly string[] = [
 /**
  * Validate a raw config object parsed from YAML.
  */
-export function validateConfig(raw: Record<string, unknown>): Result<SignetConfig, AuthError> {
+export function validateConfig(raw: Record<string, unknown>): Result<SigConfig, AuthError> {
     const errors: string[] = [];
 
     // --- mode ---
@@ -236,7 +236,7 @@ export function validateConfig(raw: Record<string, unknown>): Result<SignetConfi
         };
     }
 
-    const config: SignetConfig = {
+    const config: SigConfig = {
         mode,
         browser,
         storage,

@@ -7,7 +7,7 @@ import { CredentialWatcher } from '../src/watcher.js';
 let tmpDir: string;
 
 beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'signet-watcher-test-'));
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sigcli-watcher-test-'));
 });
 
 afterEach(async () => {

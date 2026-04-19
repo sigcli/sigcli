@@ -20,9 +20,9 @@ import { extractLocalStorage } from './localstorage-capture.js';
 /** Fallback logger used when callers pass the default stderr logger. */
 export const stderrLogger: ILogger = {
     debug: () => {},
-    info: (msg: string) => process.stderr.write(`[signet] ${msg}\n`),
-    warn: (msg: string) => process.stderr.write(`[signet] ${msg}\n`),
-    error: (msg: string) => process.stderr.write(`[signet] ${msg}\n`),
+    info: (msg: string) => process.stderr.write(`[sig] ${msg}\n`),
+    warn: (msg: string) => process.stderr.write(`[sig] ${msg}\n`),
+    error: (msg: string) => process.stderr.write(`[sig] ${msg}\n`),
 };
 
 export interface HybridFlowOptions {

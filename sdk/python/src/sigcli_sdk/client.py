@@ -8,23 +8,23 @@ from .watcher import CredentialWatcher
 
 DEFAULT_CREDENTIALS_DIR = Path.home() / ".sig" / "credentials"
 
-class SignetClient:
-    """Client for reading Signet credentials from the local filesystem.
+class SigClient:
+    """Client for reading sigcli credentials from the local filesystem.
 
     Reads credential files written by the ``sig`` CLI and converts them into
     HTTP headers, raw credential objects, or localStorage dictionaries.
 
     Example::
 
-        from sigcli_sdk import SignetClient
+        from sigcli_sdk import SigClient
 
-        client = SignetClient()
+        client = SigClient()
         headers = client.get_headers("my-jira")
         response = requests.get("https://jira.example.com/rest/api/2/search", headers=headers)
 
     Can also be used as a context manager::
 
-        with SignetClient() as client:
+        with SigClient() as client:
             headers = client.get_headers("my-jira")
     """
 
@@ -206,7 +206,7 @@ class SignetClient:
             except Exception:
                 pass
 
-    def __enter__(self) -> SignetClient:
+    def __enter__(self) -> SigClient:
         return self
 
     def __exit__(self, *args: object) -> None:

@@ -11,7 +11,7 @@ import path from 'node:path';
 import { getConfigPath, loadConfig } from '../../config/loader.js';
 import { isOk } from '../../core/result.js';
 import { findChannelBrowser } from '../../browser/detect.js';
-import type { SignetConfig } from '../../config/schema.js';
+import type { SigConfig } from '../../config/schema.js';
 import { BROWSER_REQUIRED_STRATEGIES } from '../../core/constants.js';
 import { expandHome } from '../../utils/path.js';
 import { ExitCode } from '../exit-codes.js';
@@ -65,7 +65,7 @@ function checkConfigExists(): CheckResult {
     };
 }
 
-async function checkConfigValid(): Promise<CheckResult & { config?: SignetConfig }> {
+async function checkConfigValid(): Promise<CheckResult & { config?: SigConfig }> {
     const configResult = await loadConfig();
     if (!isOk(configResult)) {
         return {
@@ -81,7 +81,7 @@ async function checkConfigValid(): Promise<CheckResult & { config?: SignetConfig
     };
 }
 
-async function checkCredentialsDir(config: SignetConfig | undefined): Promise<CheckResult> {
+async function checkCredentialsDir(config: SigConfig | undefined): Promise<CheckResult> {
     if (!config) {
         return {
             label: 'Credentials directory exists',
@@ -107,7 +107,7 @@ async function checkCredentialsDir(config: SignetConfig | undefined): Promise<Ch
     }
 }
 
-async function checkBrowserDataDir(config: SignetConfig | undefined): Promise<CheckResult> {
+async function checkBrowserDataDir(config: SigConfig | undefined): Promise<CheckResult> {
     if (!config) {
         return {
             label: 'Browser data directory exists',
@@ -126,7 +126,7 @@ async function checkBrowserDataDir(config: SignetConfig | undefined): Promise<Ch
     };
 }
 
-async function checkBrowserAvailable(config: SignetConfig | undefined): Promise<CheckResult> {
+async function checkBrowserAvailable(config: SigConfig | undefined): Promise<CheckResult> {
     if (!config) {
         return {
             label: 'Browser available',
@@ -177,7 +177,7 @@ function checkNodeVersion(): CheckResult {
     };
 }
 
-async function checkStoredCredentials(config: SignetConfig | undefined): Promise<CheckResult> {
+async function checkStoredCredentials(config: SigConfig | undefined): Promise<CheckResult> {
     if (!config) {
         return {
             label: 'Stored credentials',
@@ -234,7 +234,7 @@ async function checkStoredCredentials(config: SignetConfig | undefined): Promise
 }
 
 function checkBrowserRequired(
-    config: SignetConfig | undefined,
+    config: SigConfig | undefined,
     browserAvailable: boolean,
 ): CheckResult {
     if (!config) {

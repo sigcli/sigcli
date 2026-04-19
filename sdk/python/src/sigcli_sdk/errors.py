@@ -3,15 +3,15 @@ from __future__ import annotations
 from typing import Optional
 
 
-class SignetSdkError(Exception):
+class SigSdkError(Exception):
     pass
 
-class CredentialNotFoundError(SignetSdkError):
+class CredentialNotFoundError(SigSdkError):
     def __init__(self, provider_id: str) -> None:
         self.provider_id = provider_id
         super().__init__(f'No credential found for provider "{provider_id}"')
 
-class CredentialParseError(SignetSdkError):
+class CredentialParseError(SigSdkError):
     def __init__(self, file_path: str, cause: Optional[Exception] = None) -> None:
         self.file_path = file_path
         self.__cause__ = cause

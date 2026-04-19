@@ -1,6 +1,6 @@
 # Sigcli
 
-`sig` is a CLI powered by the signet auth engine. Authenticate via browser SSO, store tokens, and make authenticated requests to any web service.
+`sig` is a CLI powered by the SigCLI auth engine. Authenticate via browser SSO, store tokens, and make authenticated requests to any web service.
 
 ```bash
 npm install -g @sigcli/cli
@@ -398,7 +398,7 @@ sig login https://api.example.com --token ghp_xxxxxxxxxxxxx
 
 ## SDK
 
-Use the SDK to consume Signet credentials programmatically — credentials never leave the process.
+Use the SDK to consume SigCLI credentials programmatically — credentials never leave the process.
 
 ### TypeScript
 
@@ -407,9 +407,9 @@ npm install @sigcli/sdk
 ```
 
 ```typescript
-import { SignetClient } from '@sigcli/sdk';
+import { SigClient } from '@sigcli/sdk';
 
-const client = new SignetClient();
+const client = new SigClient();
 const headers = await client.getHeaders('my-jira');
 const res = await fetch('https://jira.example.com/rest/api/2/myself', { headers });
 ```
@@ -421,22 +421,22 @@ pip install sigcli-sdk
 ```
 
 ```python
-from sigcli_sdk import SignetClient
+from sigcli_sdk import SigClient
 
-client = SignetClient()
+client = SigClient()
 headers = client.get_headers("my-jira")
 ```
 
 ## AI Agent Integration
 
-Signet works as an auth layer for AI coding agents (Claude Code, Cursor, Windsurf). Two approaches are available, with the SDK strongly recommended for security.
+SigCLI works as an auth layer for AI coding agents (Claude Code, Cursor, Windsurf). Two approaches are available, with the SDK strongly recommended for security.
 
-### Recommended: Signet SDK (credentials never leave the process)
+### Recommended: SigCLI SDK (credentials never leave the process)
 
 ```python
-from sigcli_sdk import SignetClient
+from sigcli_sdk import SigClient
 
-client = SignetClient()
+client = SigClient()
 headers = client.get_headers("my-jira")
 response = requests.get("https://jira.example.com/rest/api/2/myself", headers=headers)
 ```

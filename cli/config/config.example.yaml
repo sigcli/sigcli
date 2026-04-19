@@ -1,4 +1,4 @@
-# Signet unified configuration
+# SigCLI unified configuration
 # Copy this to ~/.sig/config.yaml and customize for your services.
 #
 # All configuration lives in this single file — no env vars, no cascade.

@@ -1,6 +1,6 @@
 import type { IStorage } from './core/interfaces/storage.js';
 import type { ILogger, ProviderConfig } from './core/types.js';
-import type { SignetConfig } from './config/schema.js';
+import type { SigConfig } from './config/schema.js';
 import { AuthManager } from './auth-manager.js';
 import { StrategyRegistry } from './strategies/registry.js';
 import { CookieStrategyFactory } from './strategies/cookie.strategy.js';
@@ -23,7 +23,7 @@ export interface AuthDeps {
     storage: IStorage;
     providerRegistry: ProviderRegistry;
     strategyRegistry: StrategyRegistry;
-    config: SignetConfig;
+    config: SigConfig;
     browserAvailable: boolean;
 }
 
@@ -56,10 +56,10 @@ export function createConsoleLogger(): ILogger {
 }
 
 /**
- * Create the auth dependency graph from a validated SignetConfig.
+ * Create the auth dependency graph from a validated SigConfig.
  * No env vars, no cascade — config is the single source of truth.
  */
-export function createAuthDeps(config: SignetConfig, options?: { verbose?: boolean }): AuthDeps {
+export function createAuthDeps(config: SigConfig, options?: { verbose?: boolean }): AuthDeps {
     // 1. Convert config providers to ProviderConfig[]
     const providerConfigs: ProviderConfig[] = Object.entries(config.providers).map(
         ([id, entry]) => ({

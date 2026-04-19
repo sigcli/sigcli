@@ -43,7 +43,7 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import { ok, err, ConfigError, getConfigPath, loadConfig } from '../../../src/index.js';
 import { runDoctor } from '../../../src/cli/commands/doctor.js';
-import type { SignetConfig } from '../../../src/index.js';
+import type { SigConfig } from '../../../src/index.js';
 
 const mockExistsSync = vi.mocked(fs.existsSync);
 const mockAccess = vi.mocked(fsp.access);
@@ -54,8 +54,8 @@ const mockLoadConfig = vi.mocked(loadConfig);
 
 const EXPECTED_CONFIG_PATH = path.join(os.homedir(), '.sig', 'config.yaml');
 
-function validConfig(overrides: Partial<SignetConfig> = {}): SignetConfig {
-    return <SignetConfig>{
+function validConfig(overrides: Partial<SigConfig> = {}): SigConfig {
+    return <SigConfig>{
         browser: {
             browserDataDir: '/tmp/test-browser-data',
             channel: 'chrome',

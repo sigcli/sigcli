@@ -1,7 +1,7 @@
 import pkg from '../../package.json' with { type: 'json' };
 
 /**
- * Shared constants for signet.
+ * Shared constants for SigCLI.
  * Centralizes magic strings and patterns to avoid duplication across modules.
  */
 
@@ -141,7 +141,7 @@ export type OutputFormatValue = (typeof OutputFormat)[keyof typeof OutputFormat]
 /**
  * Application identity.
  */
-export const APP_NAME = 'signet';
+export const APP_NAME = 'sig';
 export const APP_VERSION = pkg.version;
 
 /**

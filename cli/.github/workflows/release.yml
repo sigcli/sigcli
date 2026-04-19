@@ -56,7 +56,7 @@ jobs:
                     const { execSync } = require('child_process');
                     let versions = [];
                     try {
-                      const out = execSync('npm view signet-auth versions --json', { encoding: 'utf8' });
+                      const out = execSync('npm view @sigcli/cli versions --json', { encoding: 'utf8' });
                       const parsed = JSON.parse(out);
                       versions = Array.isArray(parsed) ? parsed : [parsed];
                     } catch {}
@@ -71,7 +71,7 @@ jobs:
                   BETA_VERSION="${BASE_VERSION%-*}-beta.${NEXT_BETA}"
                   npm version "${BETA_VERSION}" --no-git-tag-version
                   npm publish --tag beta
-                  echo "## Published \`signet-auth@${BETA_VERSION}\` (beta)" >> "$GITHUB_STEP_SUMMARY"
+                  echo "## Published \`@sigcli/cli@${BETA_VERSION}\` (beta)" >> "$GITHUB_STEP_SUMMARY"
 
             - name: Publish stable
               if: inputs.release_type == 'stable'
@@ -87,7 +87,7 @@ jobs:
                   fi
 
                   # Check if version is already published
-                  if npm view "signet-auth@${VERSION}" version 2>/dev/null; then
+                  if npm view "@sigcli/cli@${VERSION}" version 2>/dev/null; then
                     echo "::error::Version ${VERSION} is already published to npm."
                     exit 1
                   fi
@@ -98,4 +98,4 @@ jobs:
                     --title "v${VERSION}" \
                     --generate-notes
 
-                  echo "## Published \`signet-auth@${VERSION}\` (stable)" >> "$GITHUB_STEP_SUMMARY"
+                  echo "## Published \`@sigcli/cli@${VERSION}\` (stable)" >> "$GITHUB_STEP_SUMMARY"

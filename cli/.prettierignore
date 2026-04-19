@@ -2,6 +2,6 @@ dist/
 node_modules/
 *.tgz
 package-lock.json
-.signet/
+.sig/
 .claude/
 website/src/routeTree.gen.ts

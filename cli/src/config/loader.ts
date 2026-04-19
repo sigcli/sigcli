@@ -1,5 +1,5 @@
 /**
- * Single config file loader for signet.
+ * Single config file loader for SigCLI.
  * Reads ONLY ~/.sig/config.yaml — no cascade, no env vars.
  */
 
@@ -10,16 +10,16 @@ import YAML from 'yaml';
 import type { Result } from '../core/result.js';
 import { err } from '../core/result.js';
 import { ConfigError, type AuthError } from '../core/errors.js';
-import type { SignetConfig, ProviderEntry } from './schema.js';
+import type { SigConfig, ProviderEntry } from './schema.js';
 import { validateConfig } from './validator.js';
 
 const CONFIG_PATH = path.join(os.homedir(), '.sig', 'config.yaml');
 
 /**
  * Load and validate the unified config from ~/.sig/config.yaml.
- * Returns Result<SignetConfig, AuthError>.
+ * Returns Result<SigConfig, AuthError>.
  */
-export async function loadConfig(): Promise<Result<SignetConfig, AuthError>> {
+export async function loadConfig(): Promise<Result<SigConfig, AuthError>> {
     let content: string;
     try {
         content = await fs.readFile(CONFIG_PATH, 'utf-8');
@@ -56,7 +56,7 @@ export async function loadConfig(): Promise<Result<SignetConfig, AuthError>> {
  * Used by remote add/remove commands to persist changes.
  * Auto-provisioned providers are filtered out — they should not be persisted.
  */
-export async function saveConfig(config: SignetConfig): Promise<void> {
+export async function saveConfig(config: SigConfig): Promise<void> {
     const filtered = {
         ...config,
         providers: Object.fromEntries(
