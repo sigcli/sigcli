@@ -80,10 +80,6 @@ jobs:
     website:
         name: Website
         runs-on: ubuntu-latest
-        if: |
-            github.event_name == 'push' ||
-            contains(join(github.event.pull_request.labels.*.name, ','), 'website') ||
-            true  # We check paths in the steps below
 
         steps:
             - name: Checkout
