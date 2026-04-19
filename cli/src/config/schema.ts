@@ -11,6 +11,7 @@ import type {
     XHeaderConfig,
     LocalStorageConfig,
     StrategyName,
+    ProxyConfig,
 } from '../core/types.js';
 import type { WaitUntilValue } from '../core/constants.js';
 
@@ -22,6 +23,8 @@ export type {
     BasicStrategyConfig,
     StrategyConfig,
     StrategyName,
+    ProxyConfig,
+    ProxyInjectRule,
 } from '../core/types.js';
 
 // ============================================================================
@@ -91,4 +94,5 @@ export interface ProviderEntry {
     xHeaders?: XHeaderConfig[];
     localStorage?: LocalStorageConfig[];
     forceVisible?: boolean;
+    proxy?: ProxyConfig;
 }

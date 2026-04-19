@@ -5,6 +5,7 @@ import * as tls from 'node:tls';
 import { isOk } from '../core/result.js';
 import type { AuthDeps } from '../deps.js';
 import type { CaManager } from './ca-manager.js';
+import { applyInjectRules } from './inject.js';
 
 const HOP_BY_HOP = new Set([
     'connection',
@@ -32,18 +33,32 @@ function resolveProvider(url: string, deps: AuthDeps) {
     return deps.providerRegistry.resolve(url);
 }
 
-async function injectHeaders(
+async function applyInjection(
     url: string,
     baseHeaders: http.OutgoingHttpHeaders,
+    bodyBuffer: Buffer | undefined,
+    contentType: string | undefined,
     deps: AuthDeps,
-): Promise<http.OutgoingHttpHeaders> {
+): Promise<{ headers: http.OutgoingHttpHeaders; body: Buffer | undefined; url: string }> {
     const provider = resolveProvider(url, deps);
-    if (!provider) return baseHeaders;
+    if (!provider) return { headers: baseHeaders, body: bodyBuffer, url };
 
     const credResult = await deps.authManager.getCredentials(provider.id);
-    if (!isOk(credResult)) return baseHeaders;
+    if (!isOk(credResult)) return { headers: baseHeaders, body: bodyBuffer, url };
 
     const cred = credResult.value;
+
+    if (provider.proxy?.inject) {
+        return applyInjectRules(
+            provider.proxy.inject,
+            cred,
+            baseHeaders,
+            bodyBuffer,
+            contentType,
+            url,
+        );
+    }
+
     const injected = deps.authManager.applyToRequest(provider.id, cred);
     const headers = { ...baseHeaders, ...injected };
 
@@ -53,7 +68,7 @@ async function injectHeaders(
         }
     }
 
-    return headers;
+    return { headers, body: bodyBuffer, url };
 }
 
 async function handlePlainHttp(
@@ -63,9 +78,8 @@ async function handlePlainHttp(
 ): Promise<void> {
     const rawUrl = req.url ?? '/';
     const targetUrl = rawUrl.startsWith('http') ? rawUrl : `http://${req.headers.host}${rawUrl}`;
-    let parsed: URL;
     try {
-        parsed = new URL(targetUrl);
+        new URL(targetUrl);
     } catch {
         res.writeHead(400);
         res.end('Bad Request');
@@ -73,28 +87,79 @@ async function handlePlainHttp(
     }
 
     const baseHeaders = stripHopByHop(req.headers);
-    const headers = await injectHeaders(targetUrl, baseHeaders, deps);
+    const contentType = req.headers['content-type'];
 
-    const options: http.RequestOptions = {
-        hostname: parsed.hostname,
-        port: parsed.port || 80,
-        path: parsed.pathname + parsed.search,
-        method: req.method,
-        headers,
-    };
+    const provider = resolveProvider(targetUrl, deps);
+    const hasBodyRule = provider?.proxy?.inject?.some((r) => r.in === 'body') ?? false;
 
-    const proxyReq = http.request(options, (proxyRes) => {
-        const outHeaders = stripHopByHop(proxyRes.headers);
-        res.writeHead(proxyRes.statusCode ?? 200, outHeaders);
-        proxyRes.pipe(res, { end: true });
-    });
+    if (hasBodyRule) {
+        const chunks: Buffer[] = [];
+        req.on('data', (chunk: Buffer) => chunks.push(chunk));
+        await new Promise<void>((resolve) => req.on('end', resolve));
+        const bodyBuffer = Buffer.concat(chunks);
 
-    proxyReq.on('error', () => {
-        if (!res.headersSent) res.writeHead(502);
-        res.end('Bad Gateway');
-    });
+        const {
+            headers,
+            body,
+            url: injectedUrl,
+        } = await applyInjection(targetUrl, baseHeaders, bodyBuffer, contentType, deps);
 
-    req.pipe(proxyReq, { end: true });
+        const injParsed = new URL(injectedUrl);
+        const outHeaders =
+            body !== undefined ? { ...headers, 'content-length': String(body.length) } : headers;
+
+        const options: http.RequestOptions = {
+            hostname: injParsed.hostname,
+            port: injParsed.port || 80,
+            path: injParsed.pathname + injParsed.search,
+            method: req.method,
+            headers: outHeaders,
+        };
+
+        const proxyReq = http.request(options, (proxyRes) => {
+            const outResHeaders = stripHopByHop(proxyRes.headers);
+            res.writeHead(proxyRes.statusCode ?? 200, outResHeaders);
+            proxyRes.pipe(res, { end: true });
+        });
+
+        proxyReq.on('error', () => {
+            if (!res.headersSent) res.writeHead(502);
+            res.end('Bad Gateway');
+        });
+
+        if (body && body.length > 0) proxyReq.write(body);
+        proxyReq.end();
+    } else {
+        const { headers, url: injectedUrl } = await applyInjection(
+            targetUrl,
+            baseHeaders,
+            undefined,
+            contentType,
+            deps,
+        );
+
+        const injParsed = new URL(injectedUrl);
+        const options: http.RequestOptions = {
+            hostname: injParsed.hostname,
+            port: injParsed.port || 80,
+            path: injParsed.pathname + injParsed.search,
+            method: req.method,
+            headers,
+        };
+
+        const proxyReq = http.request(options, (proxyRes) => {
+            const outHeaders = stripHopByHop(proxyRes.headers);
+            res.writeHead(proxyRes.statusCode ?? 200, outHeaders);
+            proxyRes.pipe(res, { end: true });
+        });
+
+        proxyReq.on('error', () => {
+            if (!res.headersSent) res.writeHead(502);
+            res.end('Bad Gateway');
+        });
+
+        req.pipe(proxyReq, { end: true });
+    }
 }
 
 async function handleConnectMitm(
@@ -147,7 +212,7 @@ async function handleConnectMitm(
             }
 
             const baseHeaders = stripHopByHop(parsedHeaders);
-            const headers = await injectHeaders(targetUrl, baseHeaders, deps);
+            const contentType = parsedHeaders['content-type'];
 
             const bodyStart = raw.indexOf('\r\n\r\n');
             const bodyBuf =
@@ -155,10 +220,59 @@ async function handleConnectMitm(
                     ? chunk.slice(Buffer.byteLength(raw.slice(0, bodyStart + 4)))
                     : undefined;
 
+            const provider = resolveProvider(targetUrl, deps);
+            const hasBodyRule = provider?.proxy?.inject?.some((r) => r.in === 'body') ?? false;
+
+            if (hasBodyRule && bodyBuf !== undefined && bodyBuf.length > 0) {
+                const result = await applyInjection(
+                    targetUrl,
+                    baseHeaders,
+                    bodyBuf,
+                    contentType,
+                    deps,
+                );
+                const outHeaders = {
+                    ...result.headers,
+                    'content-length': String(result.body?.length ?? 0),
+                };
+                const options: https.RequestOptions = {
+                    hostname,
+                    port,
+                    path,
+                    method,
+                    headers: outHeaders,
+                    rejectUnauthorized: false,
+                };
+                const proxyReq = https.request(options, (proxyRes) => {
+                    const outResHeaders = stripHopByHop(proxyRes.headers);
+                    let statusLine = `HTTP/1.1 ${proxyRes.statusCode ?? 200} ${proxyRes.statusMessage ?? 'OK'}\r\n`;
+                    for (const [k, v] of Object.entries(outResHeaders)) {
+                        const val = Array.isArray(v) ? v.join(', ') : v;
+                        if (val !== undefined) statusLine += `${k}: ${val}\r\n`;
+                    }
+                    statusLine += '\r\n';
+                    tlsServer.write(statusLine);
+                    proxyRes.pipe(tlsServer, { end: true });
+                });
+                proxyReq.on('error', () => tlsServer.destroy());
+                if (result.body && result.body.length > 0) proxyReq.write(result.body);
+                proxyReq.end();
+                return;
+            }
+
+            const { headers, url: injectedUrl } = await applyInjection(
+                targetUrl,
+                baseHeaders,
+                undefined,
+                contentType,
+                deps,
+            );
+            const injPath = new URL(injectedUrl).pathname + new URL(injectedUrl).search;
+
             const options: https.RequestOptions = {
                 hostname,
                 port,
-                path,
+                path: injPath,
                 method,
                 headers,
                 rejectUnauthorized: false,

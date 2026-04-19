@@ -419,5 +419,25 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
         ...(Array.isArray(raw.xHeaders) ? { xHeaders: raw.xHeaders } : {}),
         ...(Array.isArray(raw.localStorage) ? { localStorage: raw.localStorage } : {}),
         ...(typeof raw.forceVisible === 'boolean' ? { forceVisible: raw.forceVisible } : {}),
+        ...(raw.proxy && typeof raw.proxy === 'object'
+            ? {
+                  proxy: {
+                      inject: Array.isArray((raw.proxy as Record<string, unknown>).inject)
+                          ? (
+                                (raw.proxy as Record<string, unknown>).inject as Array<
+                                    Record<string, unknown>
+                                >
+                            ).map((r) => ({
+                                in: r.in as 'header' | 'body' | 'query',
+                                ...(r.action !== undefined
+                                    ? { action: r.action as 'set' | 'append' | 'remove' }
+                                    : {}),
+                                name: r.name as string,
+                                ...(r.from !== undefined ? { from: r.from as string } : {}),
+                            }))
+                          : undefined,
+                  },
+              }
+            : {}),
     };
 }
