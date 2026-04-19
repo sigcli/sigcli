@@ -125,8 +125,14 @@ source <(sig completion fish)    # Fish
 **Permanent install — add to your shell profile:**
 
 ```bash
-# ~/.zshrc (or ~/.bashrc)
-eval "$(sig completion)"
+# ~/.zshrc
+eval "$(sig completion zsh)"
+
+# ~/.bashrc or ~/.bash_profile
+eval "$(sig completion bash)"
+
+# ~/.config/fish/config.fish
+sig completion fish | source
 ```
 
 Completions include all subcommands, dynamic provider IDs (via `sig providers`), and subcommands for `remote`, `sync`, and `watch`.
