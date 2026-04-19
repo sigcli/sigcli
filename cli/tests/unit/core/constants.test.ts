@@ -34,11 +34,13 @@ describe('constants', () => {
             expect(Command.WATCH).toBe('watch');
             expect(Command.RENAME).toBe('rename');
             expect(Command.REMOVE).toBe('remove');
+            expect(Command.COMPLETION).toBe('completion');
+            expect(Command.RUN).toBe('run');
             expect(Command.HELP).toBe('help');
         });
 
         it('has exactly the expected number of commands', () => {
-            expect(Object.keys(Command)).toHaveLength(15);
+            expect(Object.keys(Command)).toHaveLength(16);
         });
 
         it('values are all lowercase strings', () => {

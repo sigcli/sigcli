@@ -102,6 +102,16 @@ sig request https://jira.example.com/rest/api/2/myself   # Authenticated request
 | `sig watch start --interval 1m`                 | Override check interval                   |
 | `sig watch set-interval <duration>`             | Set default check interval                |
 
+### Process Execution
+
+| Command                                                                   | Description                                           |
+| ------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `sig run --provider <id> -- <cmd>`                                        | Run command with `SIG_*` credentials in env           |
+| `sig run --provider <id> --expand-cookies -- <cmd>`                       | Also expand cookies as `SIG_COOKIE_<NAME>=value`      |
+| `sig run --provider <id> --no-redaction -- <cmd>`                         | Disable credential redaction from child output        |
+| `sig run --provider <id> --mount .env -- <cmd>`                           | Write credentials to `.env` file (deleted after exit) |
+| `sig run --provider <id> --mount creds.json --mount-format json -- <cmd>` | Write credentials as JSON file                        |
+
 ### Global Flags
 
 | Flag        | Description             |
