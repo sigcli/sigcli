@@ -1,4 +1,10 @@
-export function LanguageSwitcher({ locale, page = 'home' }: { locale: 'en' | 'zh'; page?: 'home' | 'docs' }) {
+export function LanguageSwitcher({
+    locale,
+    page = 'home',
+}: {
+    locale: 'en' | 'zh';
+    page?: 'home' | 'docs';
+}) {
     const enHref = page === 'docs' ? '/docs/' : '/';
     const zhHref = page === 'docs' ? '/zh/docs/' : '/zh';
 

@@ -1,4 +1,13 @@
-import { SectionHeading, P, Code, CodeBlock, A, List, Li, type EditorialSection } from '../components/markdown';
+import {
+    SectionHeading,
+    P,
+    Code,
+    CodeBlock,
+    A,
+    List,
+    Li,
+    type EditorialSection,
+} from '../components/markdown';
 import type { FlatTocItem, TocNodeType } from '../components/toc-tree';
 
 function tocItem(
@@ -174,8 +183,8 @@ $ sig run my-jira -- node export_board.js`}</CodeBlock>
                     <List>
                         <Li>
                             <strong>sig run</strong> — inject <Code>SIG_*</Code> credentials
-                            directly into any child process. Values are redacted from output.
-                            The recommended way to use credentials.
+                            directly into any child process. Values are redacted from output. The
+                            recommended way to use credentials.
                         </Li>
                         <Li>
                             <strong>4 strategies</strong> — <Code>cookie</Code> (browser SSO),{' '}
@@ -188,16 +197,16 @@ $ sig run my-jira -- node export_board.js`}</CodeBlock>
                             Headless with automatic visible fallback. Pluggable for custom adapters.
                         </Li>
                         <Li>
-                            <strong>SSH sync</strong> — sign in on your laptop, push to CI or
-                            remote servers with <Code>sig sync push</Code>. No daemon required.
+                            <strong>SSH sync</strong> — sign in on your laptop, push to CI or remote
+                            servers with <Code>sig sync push</Code>. No daemon required.
                         </Li>
                         <Li>
                             <strong>AI agent ready</strong> — stable CLI surface with predictable
                             exit codes and JSON output. No MCP server needed.
                         </Li>
                         <Li>
-                            <strong>TypeScript & Python SDKs</strong> — thin wrappers around the
-                            CLI for programmatic use.
+                            <strong>TypeScript & Python SDKs</strong> — thin wrappers around the CLI
+                            for programmatic use.
                         </Li>
                     </List>
                     <P>
@@ -207,8 +216,8 @@ $ sig run my-jira -- node export_board.js`}</CodeBlock>
             ),
             aside: (
                 <P>
-                    <Code>sig run my-jira -- env | grep SIG_</Code> is the quickest way to
-                    discover exactly which environment variables are available for a provider.
+                    <Code>sig run my-jira -- env | grep SIG_</Code> is the quickest way to discover
+                    exactly which environment variables are available for a provider.
                 </P>
             ),
         },
