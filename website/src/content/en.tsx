@@ -19,7 +19,7 @@ function tocItem(
 
 export const pageContent = {
     meta: {
-        title: 'Signet — Log in once. Request anywhere.',
+        title: 'Sigcli — Log in once. Request anywhere.',
         description:
             'General-purpose authentication CLI with pluggable strategies and browser adapters. Capture cookies, tokens and x-headers from a real browser and sync them everywhere.',
     },
@@ -73,35 +73,37 @@ export const pageContent = {
                         Overview
                     </SectionHeading>
                     <P>
-                        Signet is a general-purpose authentication CLI. You describe providers in a
+                        Sigcli is a general-purpose authentication CLI. You describe providers in a
                         YAML config, sign in once with a real browser, and every other tool —{' '}
-                        <Code>curl</Code>, your AI agent, a CI job — asks Signet for ready-to-use
+                        <Code>curl</Code>, your AI agent, a CI job — asks Sigcli for ready-to-use
                         HTTP headers.
                     </P>
                     <P>No SDK wrappers, no vendor lock-in. One CLI, any site you can sign in to.</P>
 
-                    <CodeBlock lang="diagram">{`┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────────┐
-│  ANY AGENT      │     │   ~/.sig             │     │   YOUR BROWSER      │
-│                 │     │                      │     │                     │
-│  ┌───────────┐  │     │  config.yaml         │     │  ┌───────────────┐  │
-│  │ sig get   │──────>│  credentials/         │<──────│  Playwright   │  │
-│  │ sig req   │  │     │    openai.json        │     │  │  (headless or │  │
-│  └───────────┘  │     │    slack.json         │     │  │   visible)    │  │
-│       │         │     │    notion.json        │     │  └───────────────┘  │
-│       v         │     │                      │     │         │           │
-│  curl, fetch,   │     │  ┌────────────────┐  │     │   cookies, tokens,  │
-│  agents, CI     │<──────│  SSH transport  │  │     │   x-headers,        │
-│                 │     │  │  sig sync push  │  │     │   localStorage      │
-│                 │     │  └────────────────┘  │     │                     │
-└─────────────────┘     └──────────────────────┘     └─────────────────────┘`}</CodeBlock>
+                    <CodeBlock lang="diagram" showLineNumbers={false}>{`
+ ┌──────────────────┐    ┌───────────────────────┐    ┌──────────────────────┐
+ │  ANY AGENT       │    │  ~/.sig               │    │  YOUR BROWSER        │
+ │                  │    │                       │    │                      │
+ │  ┌────────────┐  │    │  config.yaml          │    │  ┌────────────────┐  │
+ │  │ sig get    ├──┼───>│  credentials/         │<───┼──┤ Playwright     │  │
+ │  │ sig req    │  │    │    openai.json        │    │  │ (headless or   │  │
+ │  └─────┬──────┘  │    │    slack.json         │    │  │  visible)      │  │
+ │        │         │    │    notion.json        │    │  └───────┬────────┘  │
+ │        v         │    │                       │    │          │           │
+ │  curl, fetch,    │    │  ┌─────────────────┐  │    │  cookies, tokens,    │
+ │  agents, CI      │<───┼──┤ SSH transport   │  │    │  x-headers,          │
+ │                  │    │  │ sig sync push   │  │    │  localStorage        │
+ │                  │    │  └─────────────────┘  │    │                      │
+ └──────────────────┘    └───────────────────────┘    └──────────────────────┘
+`}</CodeBlock>
 
                     <SectionHeading id="install" level={2}>
                         Install
                     </SectionHeading>
-                    <CodeBlock lang="bash">{`npm install -g signet-cli
+                    <CodeBlock lang="bash">{`npm install -g @sigcli/cli
 
 # or without global install:
-npx signet-cli sig --help`}</CodeBlock>
+npx @sigcli/cli sig --help`}</CodeBlock>
 
                     <SectionHeading id="quick-start" level={2}>
                         Quick start
@@ -115,13 +117,13 @@ sig login https://chat.openai.com
 # 3. get headers for any HTTP client
 sig get openai --json
 
-# 4. or let signet make the request
+# 4. or let sigcli make the request
 sig request https://api.openai.com/v1/models`}</CodeBlock>
                 </>
             ),
             aside: (
                 <P>
-                    Signet captures cookies, bearer tokens, localStorage values, and x-headers from
+                    Sigcli captures cookies, bearer tokens, localStorage values, and x-headers from
                     live browser network traffic. Credentials are sealed under{' '}
                     <Code>~/.sig</Code> with a directory lock — nothing in your repo.
                 </P>
@@ -161,7 +163,7 @@ sig request https://api.openai.com/v1/models`}</CodeBlock>
                         Log in once
                     </SectionHeading>
                     <P>
-                        Signet launches Playwright (headless first, visible on fallback when a login
+                        Sigcli launches Playwright (headless first, visible on fallback when a login
                         page is detected). It watches network traffic, captures the credential, and
                         seals it.
                     </P>
@@ -193,7 +195,7 @@ $ sig request https://api.openai.com/v1/models`}</CodeBlock>
                 <>
                     <P>
                         The hybrid browser flow is the key insight — headless is fast and invisible,
-                        but real login pages need a visible window. Signet detects the difference
+                        but real login pages need a visible window. Sigcli detects the difference
                         automatically.
                     </P>
                     <P>
@@ -340,7 +342,7 @@ $ sig request https://api.example.com/deploy`}</CodeBlock>
                         AI agents
                     </SectionHeading>
                     <P>
-                        Signet exposes a stable CLI surface that agents shell out to. No SDK, no
+                        Sigcli exposes a stable CLI surface that agents shell out to. No SDK, no
                         bespoke MCP — just commands with predictable exit codes and JSON output.
                     </P>
                     <CodeBlock lang="bash">{`// Claude Code / any agent
