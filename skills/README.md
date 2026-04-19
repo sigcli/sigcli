@@ -23,8 +23,8 @@ AI agent skills for authenticated access to web services via sigcli.
 
 ## Available Skills
 
-| Skill | Description |
-|-------|-------------|
+| Skill         | Description                                                                           |
+| ------------- | ------------------------------------------------------------------------------------- |
 | `sigcli-auth` | Authenticate with any web service — strategy guide, command reference, error recovery |
 
 ## Adding Skills
