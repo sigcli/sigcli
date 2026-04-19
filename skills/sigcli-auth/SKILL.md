@@ -90,17 +90,28 @@ sig status <provider> --format json
 # Exit 0 + expired        → run: sig logout <provider> && sig login <url>
 ```
 
-### Get auth headers for curl / external tools
+### Make authenticated requests (preferred — no credential leakage)
+
+```bash
+# Use sig request instead of sig get + curl — credentials stay internal
+sig request <url>
+sig request <url> --method POST --body '{"key":"value"}'
+```
+
+### Get auth headers (use with caution — credentials visible in shell)
+
+> **Security note:** Prefer `sig request` over `sig get` + curl. The commands below
+> expose raw credentials in shell history and process lists. Use only when you must
+> pass headers to an external tool, and never log the output.
 
 ```bash
 # JSON output (default)
 sig get <provider> --format json
 
-# HTTP header format — pipe directly into curl
+# HTTP header format — pipe directly into curl (credential visible in output)
 sig get <provider> --format header
-# Output: Authorization: Bearer eyJ...
 
-# Value only
+# Value only (credential visible in output)
 sig get <provider> --format value
 # Output: eyJ...
 
