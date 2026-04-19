@@ -1,6 +1,6 @@
 {
-    "short_name": "Signet",
-    "name": "Signet — Auth CLI",
+    "short_name": "Sigcli",
+    "name": "Sigcli — Auth CLI",
     "icons": [
         {
             "src": "favicon.svg",

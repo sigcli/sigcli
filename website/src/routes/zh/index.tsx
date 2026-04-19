@@ -24,7 +24,7 @@ function ZhIndexPage() {
             toc={pageContent.toc}
             sections={pageContent.sections}
             hero={pageContent.hero}
-            logo="/signet-logo.svg"
+            logo="/sigcli-logo.svg"
             languageSwitcher={<LanguageSwitcher locale="zh" />}
         />
     );

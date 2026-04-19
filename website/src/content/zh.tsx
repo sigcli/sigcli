@@ -19,7 +19,7 @@ function tocItem(
 
 export const pageContent = {
     meta: {
-        title: 'Signet — 登录一次，随处请求。',
+        title: 'Sigcli — 登录一次，随处请求。',
         description:
             '通用身份认证 CLI，支持可插拔策略和浏览器适配器。从真实浏览器中捕获 cookie、令牌和 x-header，并同步到任何地方。',
     },
@@ -73,35 +73,37 @@ export const pageContent = {
                         概述
                     </SectionHeading>
                     <P>
-                        Signet 是一个通用身份认证 CLI。你在 YAML
+                        Sigcli 是一个通用身份认证 CLI。你在 YAML
                         配置中描述提供者，使用真实浏览器登录一次，然后其他所有工具——
-                        <Code>curl</Code>、你的 AI 代理、CI 任务——都可以向 Signet 索取即用的 HTTP
+                        <Code>curl</Code>、你的 AI 代理、CI 任务——都可以向 Sigcli 索取即用的 HTTP
                         请求头。
                     </P>
                     <P>无需 SDK 封装，不受供应商锁定。一个 CLI，适用于任何你能登录的网站。</P>
 
-                    <CodeBlock lang="diagram">{`┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────────┐
-│  ANY AGENT      │     │   ~/.sig             │     │   YOUR BROWSER      │
-│                 │     │                      │     │                     │
-│  ┌───────────┐  │     │  config.yaml         │     │  ┌───────────────┐  │
-│  │ sig get   │──────>│  credentials/         │<──────│  Playwright   │  │
-│  │ sig req   │  │     │    openai.json        │     │  │  (headless or │  │
-│  └───────────┘  │     │    slack.json         │     │  │   visible)    │  │
-│       │         │     │    notion.json        │     │  └───────────────┘  │
-│       v         │     │                      │     │         │           │
-│  curl, fetch,   │     │  ┌────────────────┐  │     │   cookies, tokens,  │
-│  agents, CI     │<──────│  SSH transport  │  │     │   x-headers,        │
-│                 │     │  │  sig sync push  │  │     │   localStorage      │
-│                 │     │  └────────────────┘  │     │                     │
-└─────────────────┘     └──────────────────────┘     └─────────────────────┘`}</CodeBlock>
+                    <CodeBlock lang="diagram" showLineNumbers={false}>{`
+ ┌──────────────────┐    ┌───────────────────────┐    ┌──────────────────────┐
+ │  ANY AGENT       │    │  ~/.sig               │    │  YOUR BROWSER        │
+ │                  │    │                       │    │                      │
+ │  ┌────────────┐  │    │  config.yaml          │    │  ┌────────────────┐  │
+ │  │ sig get    ├──┼───>│  credentials/         │<───┼──┤ Playwright     │  │
+ │  │ sig req    │  │    │    openai.json        │    │  │ (headless or   │  │
+ │  └─────┬──────┘  │    │    slack.json         │    │  │  visible)      │  │
+ │        │         │    │    notion.json        │    │  └───────┬────────┘  │
+ │        v         │    │                       │    │          │           │
+ │  curl, fetch,    │    │  ┌─────────────────┐  │    │  cookies, tokens,    │
+ │  agents, CI      │<───┼──┤ SSH transport   │  │    │  x-headers,          │
+ │                  │    │  │ sig sync push   │  │    │  localStorage        │
+ │                  │    │  └─────────────────┘  │    │                      │
+ └──────────────────┘    └───────────────────────┘    └──────────────────────┘
+`}</CodeBlock>
 
                     <SectionHeading id="install" level={2}>
                         安装
                     </SectionHeading>
-                    <CodeBlock lang="bash">{`npm install -g signet-cli
+                    <CodeBlock lang="bash">{`npm install -g @sigcli/cli
 
 # 或者无需全局安装：
-npx signet-cli sig --help`}</CodeBlock>
+npx @sigcli/cli sig --help`}</CodeBlock>
 
                     <SectionHeading id="quick-start" level={2}>
                         快速开始
@@ -115,13 +117,13 @@ sig login https://chat.openai.com
 # 3. 获取任意 HTTP 客户端的请求头
 sig get openai --json
 
-# 4. 或让 signet 直接发送请求
+# 4. 或让 sigcli 直接发送请求
 sig request https://api.openai.com/v1/models`}</CodeBlock>
                 </>
             ),
             aside: (
                 <P>
-                    Signet 从实时浏览器网络流量中捕获 cookie、bearer 令牌、localStorage 值和
+                    Sigcli 从实时浏览器网络流量中捕获 cookie、bearer 令牌、localStorage 值和
                     x-header。凭证密封存储在 <Code>~/.sig</Code>{' '}
                     下并使用目录锁——不会在你的代码仓库中留下任何内容。
                 </P>
@@ -159,7 +161,7 @@ sig request https://api.openai.com/v1/models`}</CodeBlock>
                         登录一次
                     </SectionHeading>
                     <P>
-                        Signet 启动
+                        Sigcli 启动
                         Playwright（优先无头模式，检测到登录页面时回退为可视窗口）。它监控网络流量，捕获凭证并密封存储。
                     </P>
                     <CodeBlock lang="bash">{`$ sig login openai
@@ -189,7 +191,7 @@ $ sig request https://api.openai.com/v1/models`}</CodeBlock>
             aside: (
                 <>
                     <P>
-                        混合浏览器流程是核心洞察——无头模式快速且不可见，但真实的登录页面需要可视窗口。Signet
+                        混合浏览器流程是核心洞察——无头模式快速且不可见，但真实的登录页面需要可视窗口。Sigcli
                         会自动检测差异。
                     </P>
                     <P>
@@ -333,7 +335,7 @@ $ sig request https://api.example.com/deploy`}</CodeBlock>
                         AI 代理
                     </SectionHeading>
                     <P>
-                        Signet 提供稳定的 CLI 接口供代理调用。无需 SDK，无需定制
+                        Sigcli 提供稳定的 CLI 接口供代理调用。无需 SDK，无需定制
                         MCP——只需具有可预测退出码和 JSON 输出的命令。
                     </P>
                     <CodeBlock lang="bash">{`// Claude Code / 任意代理

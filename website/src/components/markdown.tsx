@@ -1614,7 +1614,7 @@ export function EditorialPage({
                         {languageSwitcher}
                         {/* GitHub button */}
                         <a
-                            href="https://github.com/signet-auth/signet"
+                            href="https://github.com/sigcli/sigcli"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="no-underline flex items-center gap-1.5 px-3 py-1 rounded-md text-(length:--type-toc-size) font-[475] [font-family:var(--font-primary)] transition-colors duration-150"
