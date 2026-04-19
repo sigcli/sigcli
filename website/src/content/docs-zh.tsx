@@ -37,7 +37,11 @@ export const pageContent = {
         tocItem('#getting-started', '快速上手'),
         tocItem('#install', '安装', { level: 1, parent: '#getting-started', prefix: '├ ' }),
         tocItem('#first-login', '首次登录', { level: 1, parent: '#getting-started', prefix: '├ ' }),
-        tocItem('#first-run', '首次 sig run', { level: 1, parent: '#getting-started', prefix: '└ ' }),
+        tocItem('#first-run', '首次 sig run', {
+            level: 1,
+            parent: '#getting-started',
+            prefix: '└ ',
+        }),
         tocItem('#commands', '命令参考'),
         tocItem('#cmd-init', 'sig init', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-doctor', 'sig doctor', { level: 1, parent: '#commands', prefix: '├ ' }),
@@ -53,11 +57,23 @@ export const pageContent = {
         tocItem('#cmd-remote', 'sig remote', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-sync', 'sig sync', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-watch', 'sig watch', { level: 1, parent: '#commands', prefix: '├ ' }),
-        tocItem('#cmd-completion', 'sig completion', { level: 1, parent: '#commands', prefix: '└ ' }),
+        tocItem('#cmd-completion', 'sig completion', {
+            level: 1,
+            parent: '#commands',
+            prefix: '└ ',
+        }),
         tocItem('#env-vars', '环境变量'),
         tocItem('#configuration', '配置'),
-        tocItem('#config-file', 'config.yaml', { level: 1, parent: '#configuration', prefix: '├ ' }),
-        tocItem('#config-providers', '提供者选项', { level: 1, parent: '#configuration', prefix: '└ ' }),
+        tocItem('#config-file', 'config.yaml', {
+            level: 1,
+            parent: '#configuration',
+            prefix: '├ ',
+        }),
+        tocItem('#config-providers', '提供者选项', {
+            level: 1,
+            parent: '#configuration',
+            prefix: '└ ',
+        }),
         tocItem('#strategies', '认证策略'),
         tocItem('#strat-cookie', 'cookie', { level: 1, parent: '#strategies', prefix: '├ ' }),
         tocItem('#strat-oauth2', 'oauth2', { level: 1, parent: '#strategies', prefix: '├ ' }),
@@ -182,7 +198,8 @@ sig init --channel chrome   # 指定浏览器（chrome|msedge|chromium）`}</Cod
                         sig doctor
                     </SectionHeading>
                     <P>
-                        检查 Node 版本、Playwright 安装、配置解析以及凭证目录是否可写。出现问题时首先运行此命令。
+                        检查 Node 版本、Playwright
+                        安装、配置解析以及凭证目录是否可写。出现问题时首先运行此命令。
                     </P>
                     <CodeBlock lang="bash">{`sig doctor`}</CodeBlock>
 
@@ -191,7 +208,8 @@ sig init --channel chrome   # 指定浏览器（chrome|msedge|chromium）`}</Cod
                     </SectionHeading>
                     <P>
                         <strong>使用凭证的推荐方式。</strong>运行任意命令，同时注入{' '}
-                        <Code>SIG_*</Code> 环境变量。子进程的 stdout 和 stderr 中的凭证值会被自动脱敏。
+                        <Code>SIG_*</Code> 环境变量。子进程的 stdout 和 stderr
+                        中的凭证值会被自动脱敏。
                     </P>
                     <CodeBlock lang="bash">{`sig run <provider|url> -- <cmd>
 
@@ -218,8 +236,8 @@ sig run my-jira --no-redaction -- env | grep SIG_`}</CodeBlock>
                 <>
                     <P>
                         <strong>为什么选 sig run 而非 sig get？</strong> <Code>sig get</Code>{' '}
-                        会将原始令牌暴露在 shell 变量、<Code>ps</Code> 输出和 AI
-                        代理上下文中。<Code>sig run</Code>{' '}
+                        会将原始令牌暴露在 shell 变量、<Code>ps</Code> 输出和 AI 代理上下文中。
+                        <Code>sig run</Code>{' '}
                         直接将凭证注入子进程环境并从输出中脱敏——不会有任何泄露。
                     </P>
                 </>
@@ -233,7 +251,8 @@ sig run my-jira --no-redaction -- env | grep SIG_`}</CodeBlock>
                         sig login
                     </SectionHeading>
                     <P>
-                        向提供者进行认证。接受 URL 或提供者 ID。默认启动 Playwright 无头模式；检测到登录页面时回退为可视窗口。
+                        向提供者进行认证。接受 URL 或提供者 ID。默认启动 Playwright
+                        无头模式；检测到登录页面时回退为可视窗口。
                     </P>
                     <CodeBlock lang="bash">{`sig login <url>
 
@@ -398,8 +417,8 @@ sig completion fish > ~/.config/fish/completions/sig.fish`}</CodeBlock>
                         环境变量
                     </SectionHeading>
                     <P>
-                        <Code>sig run</Code> 将 <Code>SIG_*</Code>{' '}
-                        变量注入子进程。使用 <Code>sig run my-jira -- env | grep SIG_</Code>{' '}
+                        <Code>sig run</Code> 将 <Code>SIG_*</Code> 变量注入子进程。使用{' '}
+                        <Code>sig run my-jira -- env | grep SIG_</Code>{' '}
                         来探索某个提供者可用的具体变量。
                     </P>
                     <CodeBlock lang="bash">{`# 始终存在
@@ -494,8 +513,8 @@ providers:
             ),
             aside: (
                 <P>
-                    提供者 ID（例如 <Code>my-jira</Code>）是在所有命令中引用提供者的方式。
-                    当你向 <Code>sig login</Code> 传入 URL 时，它会自动创建提供者条目；使用{' '}
+                    提供者 ID（例如 <Code>my-jira</Code>）是在所有命令中引用提供者的方式。 当你向{' '}
+                    <Code>sig login</Code> 传入 URL 时，它会自动创建提供者条目；使用{' '}
                     <Code>--as</Code> 设置自定义 ID。
                 </P>
             ),
@@ -519,10 +538,9 @@ providers:
                         cookie
                     </SectionHeading>
                     <P>
-                        从真实浏览器会话中捕获 cookie。适合任何
-                        等 SSO 网站或多步骤登录（二维码、SAML、MFA）。
-                        支持 <Code>forceVisible</Code>、<Code>waitUntil</Code> 和{' '}
-                        <Code>requiredCookies</Code>。
+                        从真实浏览器会话中捕获 cookie。适合任何 等 SSO
+                        网站或多步骤登录（二维码、SAML、MFA）。 支持 <Code>forceVisible</Code>、
+                        <Code>waitUntil</Code> 和 <Code>requiredCookies</Code>。
                     </P>
                     <CodeBlock lang="bash">{`sig login https://jira.example.com --strategy cookie`}</CodeBlock>
 
@@ -538,9 +556,7 @@ providers:
                     <SectionHeading id="strat-api-token" level={3}>
                         api-token
                     </SectionHeading>
-                    <P>
-                        适用于你已有的静态 API 密钥或个人访问令牌。无需浏览器——非常适合 CI/CD。
-                    </P>
+                    <P>适用于你已有的静态 API 密钥或个人访问令牌。无需浏览器——非常适合 CI/CD。</P>
                     <CodeBlock lang="bash">{`sig login https://jira.example.com --token <your-pat>`}</CodeBlock>
 
                     <SectionHeading id="strat-basic" level={3}>

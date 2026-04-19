@@ -1,4 +1,13 @@
-import { SectionHeading, P, Code, CodeBlock, A, List, Li, type EditorialSection } from '../components/markdown';
+import {
+    SectionHeading,
+    P,
+    Code,
+    CodeBlock,
+    A,
+    List,
+    Li,
+    type EditorialSection,
+} from '../components/markdown';
 import type { FlatTocItem, TocNodeType } from '../components/toc-tree';
 
 function tocItem(
@@ -46,7 +55,8 @@ export const pageContent = {
                     margin: 0,
                 }}
             >
-                通用身份认证 CLI，支持可插拔策略和浏览器适配器。在浏览器中登录一次，即可在任何地方使用凭证——你的
+                通用身份认证
+                CLI，支持可插拔策略和浏览器适配器。在浏览器中登录一次，即可在任何地方使用凭证——你的
                 AI 代理、你的脚本、你的服务器。
             </p>
         </div>
@@ -61,9 +71,9 @@ export const pageContent = {
                         概述
                     </SectionHeading>
                     <P>
-                        Sigcli 是你的个人凭证印章。你在 YAML 配置中描述提供者，使用真实浏览器登录一次，
-                        然后其他所有工具——<Code>curl</Code>、你的 AI 代理、CI
-                        任务——都能将凭证直接注入进程环境。
+                        Sigcli 是你的个人凭证印章。你在 YAML
+                        配置中描述提供者，使用真实浏览器登录一次， 然后其他所有工具——
+                        <Code>curl</Code>、你的 AI 代理、CI 任务——都能将凭证直接注入进程环境。
                     </P>
                     <P>无需 SDK 封装，不受供应商锁定。一个 CLI，适用于任何你能登录的网站。</P>
 
@@ -123,7 +133,9 @@ sig run my-jira -- env | grep SIG_`}</CodeBlock>
                     <SectionHeading id="how-it-works" level={1}>
                         工作原理
                     </SectionHeading>
-                    <P>三个步骤：配置、登录、运行。认证流程只执行一次，后续所有调用都从密封存储中读取。</P>
+                    <P>
+                        三个步骤：配置、登录、运行。认证流程只执行一次，后续所有调用都从密封存储中读取。
+                    </P>
                     <CodeBlock lang="bash">{`# 1. 在 ~/.sig/config.yaml 中描述提供者
 providers:
   my-jira:
@@ -184,8 +196,8 @@ $ sig run my-jira -- node export_board.js`}</CodeBlock>
                             <Code>sig sync push</Code> 推送到 CI 或远程服务器。无需守护进程。
                         </Li>
                         <Li>
-                            <strong>AI 代理就绪</strong> — 具有可预测退出码和 JSON
-                            输出的稳定 CLI 接口，无需 MCP 服务器。
+                            <strong>AI 代理就绪</strong> — 具有可预测退出码和 JSON 输出的稳定 CLI
+                            接口，无需 MCP 服务器。
                         </Li>
                         <Li>
                             <strong>TypeScript & Python SDK</strong> — CLI

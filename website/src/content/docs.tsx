@@ -35,8 +35,16 @@ export const pageContent = {
     toc: [
         tocItem('#getting-started', 'Getting Started'),
         tocItem('#install', 'Install', { level: 1, parent: '#getting-started', prefix: '├ ' }),
-        tocItem('#first-login', 'First login', { level: 1, parent: '#getting-started', prefix: '├ ' }),
-        tocItem('#first-run', 'First sig run', { level: 1, parent: '#getting-started', prefix: '└ ' }),
+        tocItem('#first-login', 'First login', {
+            level: 1,
+            parent: '#getting-started',
+            prefix: '├ ',
+        }),
+        tocItem('#first-run', 'First sig run', {
+            level: 1,
+            parent: '#getting-started',
+            prefix: '└ ',
+        }),
         tocItem('#commands', 'Commands'),
         tocItem('#cmd-init', 'sig init', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-doctor', 'sig doctor', { level: 1, parent: '#commands', prefix: '├ ' }),
@@ -52,11 +60,23 @@ export const pageContent = {
         tocItem('#cmd-remote', 'sig remote', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-sync', 'sig sync', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-watch', 'sig watch', { level: 1, parent: '#commands', prefix: '├ ' }),
-        tocItem('#cmd-completion', 'sig completion', { level: 1, parent: '#commands', prefix: '└ ' }),
+        tocItem('#cmd-completion', 'sig completion', {
+            level: 1,
+            parent: '#commands',
+            prefix: '└ ',
+        }),
         tocItem('#env-vars', 'Environment Variables'),
         tocItem('#configuration', 'Configuration'),
-        tocItem('#config-file', 'config.yaml', { level: 1, parent: '#configuration', prefix: '├ ' }),
-        tocItem('#config-providers', 'Providers', { level: 1, parent: '#configuration', prefix: '└ ' }),
+        tocItem('#config-file', 'config.yaml', {
+            level: 1,
+            parent: '#configuration',
+            prefix: '├ ',
+        }),
+        tocItem('#config-providers', 'Providers', {
+            level: 1,
+            parent: '#configuration',
+            prefix: '└ ',
+        }),
         tocItem('#strategies', 'Auth Strategies'),
         tocItem('#strat-cookie', 'cookie', { level: 1, parent: '#strategies', prefix: '├ ' }),
         tocItem('#strat-oauth2', 'oauth2', { level: 1, parent: '#strategies', prefix: '├ ' }),
@@ -100,9 +120,9 @@ export const pageContent = {
                         Getting Started
                     </SectionHeading>
                     <P>
-                        Sigcli (<Code>sig</Code>) is a personal seal of authority. It handles browser
-                        SSO, stores tokens, and injects credentials into any command — so you log in
-                        once and every tool just works.
+                        Sigcli (<Code>sig</Code>) is a personal seal of authority. It handles
+                        browser SSO, stores tokens, and injects credentials into any command — so
+                        you log in once and every tool just works.
                     </P>
 
                     <SectionHeading id="install" level={2}>
@@ -118,8 +138,8 @@ npx @sigcli/cli sig --help`}</CodeBlock>
                     </SectionHeading>
                     <P>
                         Run <Code>sig init</Code> to create <Code>~/.sig/config.yaml</Code>, then
-                        sign in to your provider. Sign in with a real browser — credentials are captured automatically
-                        via browser SSO.
+                        sign in to your provider. Sign in with a real browser — credentials are
+                        captured automatically via browser SSO.
                     </P>
                     <CodeBlock lang="bash">{`# 1. Create config (interactive)
 sig init
@@ -186,7 +206,8 @@ sig init --channel chrome   # use a specific browser (chrome|msedge|chromium)`}<
                     </SectionHeading>
                     <P>
                         Checks Node version, Playwright installation, config parsing, and that the
-                        credentials directory is writable. Run this first when something doesn't work.
+                        credentials directory is writable. Run this first when something doesn't
+                        work.
                     </P>
                     <CodeBlock lang="bash">{`sig doctor`}</CodeBlock>
 
@@ -195,8 +216,8 @@ sig init --channel chrome   # use a specific browser (chrome|msedge|chromium)`}<
                     </SectionHeading>
                     <P>
                         <strong>The recommended way to use credentials.</strong> Runs any command
-                        with <Code>SIG_*</Code> environment variables injected. Credential values are
-                        automatically redacted from the child's stdout and stderr.
+                        with <Code>SIG_*</Code> environment variables injected. Credential values
+                        are automatically redacted from the child's stdout and stderr.
                     </P>
                     <CodeBlock lang="bash">{`sig run <provider|url> -- <cmd>
 
@@ -239,8 +260,8 @@ sig run my-jira --no-redaction -- env | grep SIG_`}</CodeBlock>
                     </SectionHeading>
                     <P>
                         Authenticates with a provider. Accepts a URL or provider ID. By default
-                        launches Playwright headless; falls back to a visible window when a login page
-                        is detected.
+                        launches Playwright headless; falls back to a visible window when a login
+                        page is detected.
                     </P>
                     <CodeBlock lang="bash">{`sig login <url>
 
@@ -292,8 +313,8 @@ sig get jira.example.com                  # by URL`}</CodeBlock>
             aside: (
                 <P>
                     Strategy selection: use <Code>--token</Code>, <Code>--cookie</Code>, or{' '}
-                    <Code>--username/--password</Code> when you already have credentials — no browser
-                    needed. Only launch the browser for SSO sites.
+                    <Code>--username/--password</Code> when you already have credentials — no
+                    browser needed. Only launch the browser for SSO sites.
                 </P>
             ),
         },
@@ -305,8 +326,8 @@ sig get jira.example.com                  # by URL`}</CodeBlock>
                         sig request
                     </SectionHeading>
                     <P>
-                        Makes an authenticated HTTP request. Credentials stay internal — never appear
-                        in shell history.
+                        Makes an authenticated HTTP request. Credentials stay internal — never
+                        appear in shell history.
                     </P>
                     <CodeBlock lang="bash">{`sig request <url>
 
@@ -374,8 +395,8 @@ sig sync push --force            # overwrite on conflict`}</CodeBlock>
                         sig watch
                     </SectionHeading>
                     <P>
-                        Auto-refreshes credentials on a schedule. Run{' '}
-                        <Code>sig watch start</Code> as a background daemon to keep sessions alive.
+                        Auto-refreshes credentials on a schedule. Run <Code>sig watch start</Code>{' '}
+                        as a background daemon to keep sessions alive.
                     </P>
                     <CodeBlock lang="bash">{`sig watch add my-jira           # add to watch list
 sig watch add my-jira --auto-sync prod   # auto-sync after refresh
@@ -507,9 +528,9 @@ providers:
             ),
             aside: (
                 <P>
-                    Provider IDs (e.g. <Code>my-jira</Code>) are how you reference a provider in
-                    all commands. <Code>sig login</Code> auto-creates a provider entry when you pass
-                    a URL; use <Code>--as</Code> to set a custom ID.
+                    Provider IDs (e.g. <Code>my-jira</Code>) are how you reference a provider in all
+                    commands. <Code>sig login</Code> auto-creates a provider entry when you pass a
+                    URL; use <Code>--as</Code> to set a custom ID.
                 </P>
             ),
         },
@@ -524,8 +545,8 @@ providers:
                     <P>
                         A strategy implements <Code>IAuthStrategy</Code>: <Code>validate</Code>,{' '}
                         <Code>authenticate</Code>, <Code>refresh</Code>, and{' '}
-                        <Code>applyToRequest</Code>. Sigcli ships four built-in strategies. Auto-detection
-                        picks the right one; use <Code>--strategy</Code> to override.
+                        <Code>applyToRequest</Code>. Sigcli ships four built-in strategies.
+                        Auto-detection picks the right one; use <Code>--strategy</Code> to override.
                     </P>
 
                     <SectionHeading id="strat-cookie" level={3}>
@@ -533,8 +554,8 @@ providers:
                     </SectionHeading>
                     <P>
                         Captures the cookie jar from a real browser session. Best for SSO sites like
-                        Any site with multi-step login (QR codes, SAML, MFA).
-                        Supports <Code>forceVisible</Code>, <Code>waitUntil</Code>, and{' '}
+                        Any site with multi-step login (QR codes, SAML, MFA). Supports{' '}
+                        <Code>forceVisible</Code>, <Code>waitUntil</Code>, and{' '}
                         <Code>requiredCookies</Code>.
                     </P>
                     <CodeBlock lang="bash">{`sig login https://jira.example.com --strategy cookie`}</CodeBlock>
@@ -593,13 +614,13 @@ providers:
 
                     <List>
                         <Li>
-                            <strong>playwright</strong> — Default. Uses{' '}
-                            <Code>playwright-core</Code> with Chromium, Chrome, or Edge. Supports
-                            headless and visible modes. Required for browser SSO.
+                            <strong>playwright</strong> — Default. Uses <Code>playwright-core</Code>{' '}
+                            with Chromium, Chrome, or Edge. Supports headless and visible modes.
+                            Required for browser SSO.
                         </Li>
                         <Li>
-                            <strong>chrome-cdp</strong> — Connects to an existing Chrome instance via
-                            the Chrome DevTools Protocol. Useful when you want to attach to your
+                            <strong>chrome-cdp</strong> — Connects to an existing Chrome instance
+                            via the Chrome DevTools Protocol. Useful when you want to attach to your
                             already-open browser without launching a new one.
                         </Li>
                     </List>
@@ -765,9 +786,7 @@ sig run my-jira -- python deploy.py`}</CodeBlock>
                     <CodeBlock lang="bash">{`sig sync pull prod                # pull all
 sig sync pull prod --force        # overwrite on conflict`}</CodeBlock>
 
-                    <P>
-                        Keep credentials fresh on the server by pairing watch with auto-sync:
-                    </P>
+                    <P>Keep credentials fresh on the server by pairing watch with auto-sync:</P>
                     <CodeBlock lang="bash">{`# On laptop: refresh my-jira every hour and auto-push to prod
 sig watch add my-jira --auto-sync prod
 sig watch start --interval 1h`}</CodeBlock>
@@ -796,7 +815,9 @@ sig watch start --interval 1h`}</CodeBlock>
 3   CREDENTIAL_NOT_FOUND — no stored credentials → run sig login
 4   REMOTE_NOT_FOUND    — SSH remote not configured → run sig remote add`}</CodeBlock>
 
-                    <P>Auth error codes from <Code>--verbose</Code> stderr:</P>
+                    <P>
+                        Auth error codes from <Code>--verbose</Code> stderr:
+                    </P>
                     <CodeBlock lang="bash">{`CREDENTIAL_EXPIRED        # token/cookie expired, refresh failed
                           # fix: sig logout <p> && sig login <url>
 
