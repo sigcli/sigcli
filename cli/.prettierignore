@@ -1,0 +1,7 @@
+dist/
+node_modules/
+*.tgz
+package-lock.json
+.signet/
+.claude/
+website/src/routeTree.gen.ts
