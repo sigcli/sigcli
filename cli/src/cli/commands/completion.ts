@@ -155,7 +155,7 @@ export async function runCompletion(
     if (!shell) {
         process.stderr.write('Usage: sig completion <shell>\n');
         process.stderr.write('Supported shells: bash, zsh, fish\n');
-        process.exitCode = ExitCode.GENERAL_ERROR;
+        process.exitCode = ExitCode.USAGE_ERROR;
         return;
     }
 
@@ -172,6 +172,6 @@ export async function runCompletion(
         default:
             process.stderr.write(`Unknown shell: ${shell}\n`);
             process.stderr.write('Supported shells: bash, zsh, fish\n');
-            process.exitCode = ExitCode.GENERAL_ERROR;
+            process.exitCode = ExitCode.USAGE_ERROR;
     }
 }
