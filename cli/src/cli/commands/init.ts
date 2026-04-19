@@ -1,6 +1,6 @@
 /**
  * sig init — Interactive setup command.
- * Creates ~/.signet/config.yaml with sensible defaults.
+ * Creates ~/.sig/config.yaml with sensible defaults.
  * Does NOT take deps (runs before config exists).
  */
 

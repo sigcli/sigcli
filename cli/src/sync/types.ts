@@ -3,7 +3,7 @@ export interface RemoteConfig {
     type: 'ssh';
     host: string;
     user?: string;
-    path?: string; // defaults to ~/.signet (base dir)
+    path?: string; // defaults to ~/.sig (base dir)
     sshKey?: string; // path to SSH key
 }
 

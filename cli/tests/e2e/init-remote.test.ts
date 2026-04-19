@@ -33,7 +33,7 @@ function sig(args: string): { stdout: string; stderr: string; exitCode: number }
 
 describe('E2E: sig init --remote', () => {
     beforeAll(async () => {
-        tmpHome = await fsp.mkdtemp(path.join(os.tmpdir(), 'signet-e2e-'));
+        tmpHome = await fsp.mkdtemp(path.join(os.tmpdir(), 'sig-e2e-'));
     });
 
     afterAll(async () => {
@@ -44,7 +44,7 @@ describe('E2E: sig init --remote', () => {
         const result = sig('init --remote');
         expect(result.exitCode).toBe(0);
 
-        const configPath = path.join(tmpHome, '.signet', 'config.yaml');
+        const configPath = path.join(tmpHome, '.sig', 'config.yaml');
         expect(fs.existsSync(configPath)).toBe(true);
 
         const content = fs.readFileSync(configPath, 'utf-8');
@@ -57,7 +57,7 @@ describe('E2E: sig init --remote', () => {
     });
 
     it('credentials directory is created', () => {
-        const credDir = path.join(tmpHome, '.signet', 'credentials');
+        const credDir = path.join(tmpHome, '.sig', 'credentials');
         expect(fs.existsSync(credDir)).toBe(true);
     });
 

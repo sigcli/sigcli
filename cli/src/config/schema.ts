@@ -1,6 +1,6 @@
 /**
  * Unified configuration schema for signet.
- * All config lives in ~/.signet/config.yaml — no cascade, no env vars.
+ * All config lives in ~/.sig/config.yaml — no cascade, no env vars.
  *
  * Strategy config types are defined in core/types.ts (shared vocabulary)
  * and re-exported here for convenience.

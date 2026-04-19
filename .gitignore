@@ -11,7 +11,7 @@ dist/
 *.tgz
 
 # Credentials and local auth state (SECURITY CRITICAL)
-.signet/
+.sig/
 credentials.json
 browser-data/
 

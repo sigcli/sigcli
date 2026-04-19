@@ -8,7 +8,7 @@ import type { ISyncTransport, RemoteEntry } from '../interfaces/transport.js';
 
 const execFileAsync = promisify(execFile);
 
-const DEFAULT_REMOTE_PATH = '~/.signet';
+const DEFAULT_REMOTE_PATH = '~/.sig';
 
 export class SshTransport implements ISyncTransport {
     private sshArgs(remote: RemoteConfig): string[] {

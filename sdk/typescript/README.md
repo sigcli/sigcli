@@ -41,9 +41,9 @@ client.close();
 
 ### `new SignetClient(options?)`
 
-| Option           | Type     | Default                 | Description                   |
-| ---------------- | -------- | ----------------------- | ----------------------------- |
-| `credentialsDir` | `string` | `~/.signet/credentials` | Path to credentials directory |
+| Option           | Type     | Default              | Description                   |
+| ---------------- | -------- | -------------------- | ----------------------------- |
+| `credentialsDir` | `string` | `~/.sig/credentials` | Path to credentials directory |
 
 ### `client.getHeaders(providerId): Promise<Record<string, string>>`
 

@@ -61,7 +61,7 @@ function checkConfigExists(): CheckResult {
         label: 'Config file exists',
         ok: exists,
         detail: exists ? configPath.replace(os.homedir(), '~') : undefined,
-        hint: exists ? undefined : 'Run "sig init" to create ~/.signet/config.yaml',
+        hint: exists ? undefined : 'Run "sig init" to create ~/.sig/config.yaml',
     };
 }
 

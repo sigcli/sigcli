@@ -7,7 +7,7 @@ import { formatHeaders, extractLocalStorage } from './formatter.js';
 import { CredentialWatcher } from './watcher.js';
 
 export interface SignetClientOptions {
-    /** Path to credentials directory. Defaults to ~/.signet/credentials */
+    /** Path to credentials directory. Defaults to ~/.sig/credentials */
     credentialsDir?: string;
 }
 
@@ -23,7 +23,7 @@ export class SignetClient extends EventEmitter<SignetClientEvents> {
     constructor(opts?: SignetClientOptions) {
         super();
         this.credentialsDir =
-            opts?.credentialsDir ?? path.join(os.homedir(), '.signet', 'credentials');
+            opts?.credentialsDir ?? path.join(os.homedir(), '.sig', 'credentials');
     }
 
     /**

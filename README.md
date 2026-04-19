@@ -1,6 +1,6 @@
-# Signet
+# Sigcli
 
-General-purpose authentication CLI. Authenticate via browser SSO, store tokens, and make authenticated requests to any web service.
+`sig` is a CLI powered by the signet auth engine. Authenticate via browser SSO, store tokens, and make authenticated requests to any web service.
 
 ```bash
 npm install -g @sigcli/cli
@@ -34,7 +34,7 @@ sig request https://jira.example.com/rest/api/2/myself   # Authenticated request
 
 | Command                     | Description                                                     |
 | --------------------------- | --------------------------------------------------------------- |
-| `sig init`                  | Interactive setup -- creates `~/.signet/config.yaml`            |
+| `sig init`                  | Interactive setup -- creates `~/.sig/config.yaml`               |
 | `sig init --remote`         | Setup for headless machines (sets `mode: browserless`)          |
 | `sig init --yes`            | Accept all defaults (non-interactive)                           |
 | `sig init --force`          | Overwrite existing config                                       |
@@ -109,7 +109,7 @@ sig request https://jira.example.com/rest/api/2/myself   # Authenticated request
 
 ## Configuration
 
-All config lives in `~/.signet/config.yaml`. No env vars, no cascading, no project-local overrides. Run `sig init` to generate it.
+All config lives in `~/.sig/config.yaml`. No env vars, no cascading, no project-local overrides. Run `sig init` to generate it.
 
 ### `mode`
 
@@ -134,7 +134,7 @@ Browser automation settings for cookie and OAuth2 authentication.
 
 ```yaml
 browser:
-    browserDataDir: ~/.signet/browser-data
+    browserDataDir: ~/.sig/browser-data
     channel: chrome
     headlessTimeout: 30000
     visibleTimeout: 120000
@@ -149,7 +149,7 @@ browser:
 
 ```yaml
 storage:
-    credentialsDir: ~/.signet/credentials
+    credentialsDir: ~/.sig/credentials
 ```
 
 ### `providers`
@@ -185,13 +185,13 @@ providers:
 
 SSH remotes for syncing credentials to other machines.
 
-| Field    | Required | Default                 | Description                  |
-| -------- | -------- | ----------------------- | ---------------------------- |
-| `type`   | **yes**  | --                      | Only `ssh` supported         |
-| `host`   | **yes**  | --                      | Remote hostname or IP        |
-| `user`   | no       | current user            | SSH username                 |
-| `path`   | no       | `~/.signet/credentials` | Remote credentials directory |
-| `sshKey` | no       | system SSH config       | Path to SSH private key      |
+| Field    | Required | Default              | Description                  |
+| -------- | -------- | -------------------- | ---------------------------- |
+| `type`   | **yes**  | --                   | Only `ssh` supported         |
+| `host`   | **yes**  | --                   | Remote hostname or IP        |
+| `user`   | no       | current user         | SSH username                 |
+| `path`   | no       | `~/.sig/credentials` | Remote credentials directory |
+| `sshKey` | no       | system SSH config    | Path to SSH private key      |
 
 ```yaml
 remotes:
@@ -227,14 +227,14 @@ watch:
 mode: browser
 
 browser:
-    browserDataDir: ~/.signet/browser-data
+    browserDataDir: ~/.sig/browser-data
     channel: chrome
     headlessTimeout: 30000
     visibleTimeout: 120000
     waitUntil: load
 
 storage:
-    credentialsDir: ~/.signet/credentials
+    credentialsDir: ~/.sig/credentials
 
 remotes:
     dev-server:

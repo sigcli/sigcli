@@ -70,7 +70,7 @@ describe('validateConfig', () => {
                         type: 'ssh',
                         host: 'dev.example.com',
                         user: 'alice',
-                        path: '/home/alice/.signet',
+                        path: '/home/alice/.sig',
                         sshKey: '~/.ssh/id_ed25519',
                     },
                 },
@@ -81,7 +81,7 @@ describe('validateConfig', () => {
             expect(result.value.remotes).toBeDefined();
             expect(result.value.remotes!.dev.host).toBe('dev.example.com');
             expect(result.value.remotes!.dev.user).toBe('alice');
-            expect(result.value.remotes!.dev.path).toBe('/home/alice/.signet');
+            expect(result.value.remotes!.dev.path).toBe('/home/alice/.sig');
             expect(result.value.remotes!.dev.sshKey).toBe('~/.ssh/id_ed25519');
         }
     });

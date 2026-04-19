@@ -18,7 +18,7 @@ import { isOk, isErr } from '../../../src/core/result.js';
 
 const mockFs = vi.mocked(fs);
 
-const EXPECTED_CONFIG_PATH = path.join(os.homedir(), '.signet', 'config.yaml');
+const EXPECTED_CONFIG_PATH = path.join(os.homedir(), '.sig', 'config.yaml');
 
 const VALID_YAML = `
 browser:
@@ -239,8 +239,8 @@ describe('getConfigPath', () => {
         expect(getConfigPath()).toBe(EXPECTED_CONFIG_PATH);
     });
 
-    it('path ends with config.yaml under .signet', () => {
+    it('path ends with config.yaml under .sig', () => {
         const p = getConfigPath();
-        expect(p).toMatch(/\.signet[/\\]config\.yaml$/);
+        expect(p).toMatch(/\.sig[/\\]config\.yaml$/);
     });
 });

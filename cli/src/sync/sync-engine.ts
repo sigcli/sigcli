@@ -164,14 +164,14 @@ export class SyncEngine {
                 doc = new YAML.Document({
                     mode: 'browserless',
                     browser: {
-                        browserDataDir: '~/.signet/browser-data',
+                        browserDataDir: '~/.sig/browser-data',
                         channel: 'chrome',
                         headlessTimeout: 30000,
                         visibleTimeout: 120000,
                         waitUntil: 'load',
                     },
                     storage: {
-                        credentialsDir: '~/.signet/credentials',
+                        credentialsDir: '~/.sig/credentials',
                     },
                     providers: localProviders,
                 });
@@ -195,7 +195,7 @@ export class SyncEngine {
                     doc.setIn(
                         ['browser'],
                         doc.createNode({
-                            browserDataDir: '~/.signet/browser-data',
+                            browserDataDir: '~/.sig/browser-data',
                             channel: 'chrome',
                             headlessTimeout: 30000,
                             visibleTimeout: 120000,
@@ -207,7 +207,7 @@ export class SyncEngine {
                     doc.setIn(
                         ['storage'],
                         doc.createNode({
-                            credentialsDir: '~/.signet/credentials',
+                            credentialsDir: '~/.sig/credentials',
                         }),
                     );
                 }

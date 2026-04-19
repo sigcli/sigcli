@@ -11,7 +11,7 @@ describe('expandHome', () => {
     });
 
     it('expands ~/ with nested path segments', () => {
-        expect(expandHome('~/.signet/config.yaml')).toBe(path.join(home, '.signet/config.yaml'));
+        expect(expandHome('~/.sig/config.yaml')).toBe(path.join(home, '.sig/config.yaml'));
     });
 
     it('expands bare ~ to the home directory', () => {

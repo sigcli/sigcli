@@ -1,6 +1,6 @@
 import base64
-from signet_auth_sdk.formatter import format_headers, extract_local_storage
-from signet_auth_sdk.types import (CookieCredential, BearerCredential,
+from sigcli_sdk.formatter import format_headers, extract_local_storage
+from sigcli_sdk.types import (CookieCredential, BearerCredential,
                                ApiKeyCredential, BasicCredential, Cookie)
 
 

@@ -35,7 +35,7 @@ vi.mock('node:fs/promises', () => ({
 
 // Mock getConfigPath
 vi.mock('../../../src/config/loader.js', () => ({
-    getConfigPath: () => '/home/testuser/.signet/config.yaml',
+    getConfigPath: () => '/home/testuser/.sig/config.yaml',
 }));
 
 function makeCredential(providerId: string, updatedAt: string): StoredCredential {
@@ -56,14 +56,14 @@ const testRemote: RemoteConfig = {
 
 const testConfig: SignetConfig = {
     browser: {
-        browserDataDir: '~/.signet/browser-data',
+        browserDataDir: '~/.sig/browser-data',
         channel: 'chrome',
         headlessTimeout: 30000,
         visibleTimeout: 120000,
         waitUntil: 'load',
     },
     storage: {
-        credentialsDir: '~/.signet/credentials',
+        credentialsDir: '~/.sig/credentials',
     },
     providers: {
         jira: {
@@ -81,13 +81,13 @@ const testConfig: SignetConfig = {
 
 const remoteConfigYaml = `# Signet config
 browser:
-  browserDataDir: ~/.signet/browser-data
+  browserDataDir: ~/.sig/browser-data
   channel: chrome
   headlessTimeout: 30000
   visibleTimeout: 120000
   waitUntil: load
 storage:
-  credentialsDir: ~/.signet/credentials
+  credentialsDir: ~/.sig/credentials
 providers:
   existing-remote:
     domains:
@@ -97,13 +97,13 @@ providers:
 
 const localConfigYaml = `# Signet config
 browser:
-  browserDataDir: ~/.signet/browser-data
+  browserDataDir: ~/.sig/browser-data
   channel: chrome
   headlessTimeout: 30000
   visibleTimeout: 120000
   waitUntil: load
 storage:
-  credentialsDir: ~/.signet/credentials
+  credentialsDir: ~/.sig/credentials
 providers:
   local-only:
     domains:

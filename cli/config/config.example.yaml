@@ -1,5 +1,5 @@
 # Signet unified configuration
-# Copy this to ~/.signet/config.yaml and customize for your services.
+# Copy this to ~/.sig/config.yaml and customize for your services.
 #
 # All configuration lives in this single file — no env vars, no cascade.
 
@@ -9,7 +9,7 @@ mode: browser
 
 # Browser settings (required)
 browser:
-    browserDataDir: ~/.signet/browser-data # Persistent browser profile directory
+    browserDataDir: ~/.sig/browser-data # Persistent browser profile directory
     channel: chrome # Browser channel (chrome, msedge, chromium)
     headlessTimeout: 30000 # Timeout for headless auth attempt (ms)
     visibleTimeout: 120000 # Timeout for visible/user-assisted auth (ms)
@@ -17,7 +17,7 @@ browser:
 
 # Storage settings (required)
 storage:
-    credentialsDir: ~/.signet/credentials # Per-provider credential files directory
+    credentialsDir: ~/.sig/credentials # Per-provider credential files directory
 
 # Remote credential stores (optional)
 # remotes:
@@ -25,7 +25,7 @@ storage:
 #     type: ssh
 #     host: dev.example.com
 #     user: deploy
-#     path: ~/.signet
+#     path: ~/.sig
 #     sshKey: ~/.ssh/id_ed25519
 
 # Watch — auto-refresh credentials on a schedule.

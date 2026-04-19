@@ -4,7 +4,7 @@ import os from 'node:os';
 import type { ProviderFile, ProviderInfo } from './types.js';
 import { CredentialNotFoundError, CredentialParseError } from './errors.js';
 
-const DEFAULT_CREDENTIALS_DIR = path.join(os.homedir(), '.signet', 'credentials');
+const DEFAULT_CREDENTIALS_DIR = path.join(os.homedir(), '.sig', 'credentials');
 
 function sanitizeId(id: string): string {
     return id.replace(/[^a-zA-Z0-9._-]/g, '_');

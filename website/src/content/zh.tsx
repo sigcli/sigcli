@@ -81,7 +81,7 @@ export const pageContent = {
                     <P>无需 SDK 封装，不受供应商锁定。一个 CLI，适用于任何你能登录的网站。</P>
 
                     <CodeBlock lang="diagram">{`┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────────┐
-│  ANY AGENT      │     │   ~/.signet          │     │   YOUR BROWSER      │
+│  ANY AGENT      │     │   ~/.sig             │     │   YOUR BROWSER      │
 │                 │     │                      │     │                     │
 │  ┌───────────┐  │     │  config.yaml         │     │  ┌───────────────┐  │
 │  │ sig get   │──────>│  credentials/         │<──────│  Playwright   │  │
@@ -122,7 +122,7 @@ sig request https://api.openai.com/v1/models`}</CodeBlock>
             aside: (
                 <P>
                     Signet 从实时浏览器网络流量中捕获 cookie、bearer 令牌、localStorage 值和
-                    x-header。凭证密封存储在 <Code>~/.signet</Code>{' '}
+                    x-header。凭证密封存储在 <Code>~/.sig</Code>{' '}
                     下并使用目录锁——不会在你的代码仓库中留下任何内容。
                 </P>
             ),
@@ -142,7 +142,7 @@ sig request https://api.openai.com/v1/models`}</CodeBlock>
                         配置提供者
                     </SectionHeading>
                     <P>
-                        <Code>~/.signet/config.yaml</Code> 中的每个提供者条目将 URL
+                        <Code>~/.sig/config.yaml</Code> 中的每个提供者条目将 URL
                         模式映射到一个策略，并附带必需 cookie、x-header 过滤器和 TTL 等选项。
                     </P>
                     <CodeBlock lang="bash">{`providers:
@@ -166,7 +166,7 @@ sig request https://api.openai.com/v1/models`}</CodeBlock>
 → chromium 无头模式 …
 ⚠ 检测到登录页面 — 打开窗口
 ✓ 捕获 6 个 cookie · 1 个 bearer · 2 个 x-header
-✓ 密封存储至 ~/.signet/credentials/openai.json`}</CodeBlock>
+✓ 密封存储至 ~/.sig/credentials/openai.json`}</CodeBlock>
 
                     <SectionHeading id="use" level={2}>
                         使用凭证

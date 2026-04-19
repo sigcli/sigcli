@@ -147,5 +147,5 @@ export const APP_VERSION = pkg.version;
 /**
  * Default configuration directory and filename.
  */
-export const SIGNET_DIR = '.signet';
+export const SIG_DIR = '.sig';
 export const CONFIG_FILENAME = 'config.yaml';

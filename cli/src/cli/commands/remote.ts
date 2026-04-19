@@ -70,7 +70,7 @@ export async function runRemote(
                     type: r.type,
                     host: r.host,
                     user: r.user ?? '-',
-                    path: r.path ?? '~/.signet',
+                    path: r.path ?? '~/.sig',
                 }));
                 process.stdout.write(formatTable(rows) + '\n');
             }
