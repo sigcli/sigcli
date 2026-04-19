@@ -165,6 +165,8 @@ sig get <provider> --format header  # use in pipelines
 
 ### Machine-readable output for scripts
 
+Available formats for `sig status`, `sig providers`, `sig remote list`, `sig watch list`: `json`, `yaml`, `env`, `table`, `plain`.
+
 ```bash
 sig status --format json    # structured JSON, not a TTY table
 sig providers --format json
