@@ -43,6 +43,9 @@ export function parseArgs(args: string[]): ParsedArgs {
                 positionals.push(args[j]);
             }
             break;
+        } else if (arg === '-h') {
+            flags['help'] = true;
+            i += 1;
         } else if (arg.startsWith('--')) {
             const key = arg.slice(2);
             const next = args[i + 1];
@@ -93,11 +96,11 @@ Credentials:
     --format json|body|headers   Output format (default: json)
   status [provider]            Show authentication status
     --format json|yaml|env|table|plain  Output format
-  run <provider|url> -- <cmd>  Run command with credentials injected as SIG_* env vars
+  run [provider...] -- <cmd>   Run command with SIG_<PROVIDER>_* env vars injected
     --expand-cookies             Expand individual cookies as SIG_COOKIE_<NAME>=value
-    --no-redaction               Disable credential redaction from child output
     --mount <path>               Write credentials to file instead of env vars
     --mount-format env|json      File format for --mount (default: env)
+    No providers: injects all valid credentials. Vars always prefixed: SIG_<PROVIDER>_*
 
 Provider management:
   providers                    List configured providers
