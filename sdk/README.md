@@ -1,6 +1,15 @@
 # Signet SDK
 
-Client SDKs for consuming [Signet](https://github.com/signet-auth/signet) credentials in your applications.
+> **This repository has been deprecated.** Development has moved to [sigcli/sigcli](https://github.com/sigcli/sigcli).
+>
+> ```bash
+> npm install @sigcli/sdk    # TypeScript
+> pip install sigcli-sdk     # Python
+> ```
+
+---
+
+Client SDKs for consuming [Signet](https://github.com/sigcli/sigcli) credentials in your applications.
 
 Signet handles authentication via browser automation and stores credentials locally. These SDKs let your code read those credentials and use them for authenticated HTTP requests -- no browser dependency required.
 
