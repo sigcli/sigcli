@@ -31,7 +31,7 @@ export class SshTransport implements ISyncTransport {
             const { stdout } = await execFileAsync('ssh', [
                 ...this.sshArgs(remote),
                 target,
-                `cat "${keyFile}"`,
+                `cat ${keyFile}`,
             ]);
             const key = Buffer.from(stdout.trim(), 'base64');
             if (key.length !== 32) {
@@ -46,25 +46,16 @@ export class SshTransport implements ISyncTransport {
             if (
                 msg.includes('No such file') ||
                 msg.includes('ENOENT') ||
-                msg.includes('exit code')
+                msg.includes('Command failed')
             ) {
-                // Generate key on remote
-                await execFileAsync('ssh', [
-                    ...this.sshArgs(remote),
-                    target,
-                    `mkdir -p "${rpath}" && head -c 32 /dev/urandom | base64 > "${keyFile}" && chmod 400 "${keyFile}"`,
-                ]);
-                const { stdout: newKeyRaw } = await execFileAsync('ssh', [
-                    ...this.sshArgs(remote),
-                    target,
-                    `cat "${keyFile}"`,
-                ]);
-                const key = Buffer.from(newKeyRaw.trim(), 'base64');
-                if (key.length !== 32) {
-                    throw new Error(`Generated remote key has wrong length: ${key.length}`, {
-                        cause: e,
-                    });
-                }
+                const { randomBytes } = await import('node:crypto');
+                const key = randomBytes(32);
+                const keyBase64 = key.toString('base64') + '\n';
+                await this.sshWrite(
+                    remote,
+                    `mkdir -p ${rpath} && cat > ${rpath}/encryption.key && chmod 400 ${rpath}/encryption.key`,
+                    keyBase64,
+                );
                 this.remoteKeyCache.set(cacheKey, key);
                 return key;
             }
