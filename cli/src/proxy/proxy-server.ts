@@ -174,99 +174,46 @@ async function handleConnectMitm(
 
     tlsServer.on('error', () => tlsServer.destroy());
 
-    tlsServer.once('data', (chunk: Buffer) => {
-        void (async () => {
-            const raw = chunk.toString();
-            const lines = raw.split('\r\n');
-            const requestLine = lines[0] ?? '';
-            const [method, path] = requestLine.split(' ');
+    const chunks: Buffer[] = [];
+    let headersParsed = false;
+    let method = '';
+    let path = '';
+    const parsedHeaders: http.IncomingHttpHeaders = {};
+    let expectedBodyLen = 0;
+    let headerEndOffset = 0;
 
-            if (!method || !path) {
-                tlsServer.destroy();
-                return;
-            }
+    const processRequest = async (bodyBuf: Buffer | undefined) => {
+        const targetUrl = `https://${hostname}${path}`;
+        const baseHeaders = stripHopByHop(parsedHeaders);
+        const contentType = parsedHeaders['content-type'];
 
-            const targetUrl = `https://${hostname}${path}`;
-            const parsedHeaders: http.IncomingHttpHeaders = {};
-            for (let i = 1; i < lines.length; i++) {
-                const colonIdx = lines[i].indexOf(':');
-                if (colonIdx === -1) break;
-                const name = lines[i].slice(0, colonIdx).trim().toLowerCase();
-                const value = lines[i].slice(colonIdx + 1).trim();
-                parsedHeaders[name] = value;
-            }
+        const provider = resolveProvider(targetUrl, deps);
+        const hasBodyRule = provider?.proxy?.inject?.some((r) => r.in === 'body') ?? false;
 
-            const baseHeaders = stripHopByHop(parsedHeaders);
-            const contentType = parsedHeaders['content-type'];
-
-            const bodyStart = raw.indexOf('\r\n\r\n');
-            const bodyBuf =
-                bodyStart >= 0
-                    ? chunk.slice(Buffer.byteLength(raw.slice(0, bodyStart + 4)))
-                    : undefined;
-
-            const provider = resolveProvider(targetUrl, deps);
-            const hasBodyRule = provider?.proxy?.inject?.some((r) => r.in === 'body') ?? false;
-
-            if (hasBodyRule && bodyBuf !== undefined && bodyBuf.length > 0) {
-                const result = await applyInjection(
-                    targetUrl,
-                    baseHeaders,
-                    bodyBuf,
-                    contentType,
-                    deps,
-                );
-                const outHeaders = {
-                    ...result.headers,
-                    'content-length': String(result.body?.length ?? 0),
-                };
-                const options: https.RequestOptions = {
-                    hostname,
-                    port,
-                    path,
-                    method,
-                    headers: outHeaders,
-                    rejectUnauthorized: false,
-                };
-                const proxyReq = https.request(options, (proxyRes) => {
-                    const outResHeaders = stripHopByHop(proxyRes.headers);
-                    let statusLine = `HTTP/1.1 ${proxyRes.statusCode ?? 200} ${proxyRes.statusMessage ?? 'OK'}\r\n`;
-                    for (const [k, v] of Object.entries(outResHeaders)) {
-                        const val = Array.isArray(v) ? v.join(', ') : v;
-                        if (val !== undefined) statusLine += `${k}: ${val}\r\n`;
-                    }
-                    statusLine += '\r\n';
-                    tlsServer.write(statusLine);
-                    proxyRes.pipe(tlsServer, { end: true });
-                });
-                proxyReq.on('error', () => tlsServer.destroy());
-                if (result.body && result.body.length > 0) proxyReq.write(result.body);
-                proxyReq.end();
-                return;
-            }
-
-            const { headers, url: injectedUrl } = await applyInjection(
+        if (hasBodyRule) {
+            const result = await applyInjection(
                 targetUrl,
                 baseHeaders,
-                undefined,
+                bodyBuf ?? Buffer.alloc(0),
                 contentType,
                 deps,
             );
-            const injPath = new URL(injectedUrl).pathname + new URL(injectedUrl).search;
-
+            const outHeaders = {
+                ...result.headers,
+                'content-length': String(result.body?.length ?? 0),
+            };
             const options: https.RequestOptions = {
                 hostname,
                 port,
-                path: injPath,
+                path,
                 method,
-                headers,
+                headers: outHeaders,
                 rejectUnauthorized: false,
             };
-
             const proxyReq = https.request(options, (proxyRes) => {
-                const outHeaders = stripHopByHop(proxyRes.headers);
+                const outResHeaders = stripHopByHop(proxyRes.headers);
                 let statusLine = `HTTP/1.1 ${proxyRes.statusCode ?? 200} ${proxyRes.statusMessage ?? 'OK'}\r\n`;
-                for (const [k, v] of Object.entries(outHeaders)) {
+                for (const [k, v] of Object.entries(outResHeaders)) {
                     const val = Array.isArray(v) ? v.join(', ') : v;
                     if (val !== undefined) statusLine += `${k}: ${val}\r\n`;
                 }
@@ -274,12 +221,90 @@ async function handleConnectMitm(
                 tlsServer.write(statusLine);
                 proxyRes.pipe(tlsServer, { end: true });
             });
-
             proxyReq.on('error', () => tlsServer.destroy());
-
-            if (bodyBuf && bodyBuf.length > 0) proxyReq.write(bodyBuf);
+            if (result.body && result.body.length > 0) proxyReq.write(result.body);
             proxyReq.end();
-        })();
+            return;
+        }
+
+        const { headers, url: injectedUrl } = await applyInjection(
+            targetUrl,
+            baseHeaders,
+            undefined,
+            contentType,
+            deps,
+        );
+        const injPath = new URL(injectedUrl).pathname + new URL(injectedUrl).search;
+
+        const options: https.RequestOptions = {
+            hostname,
+            port,
+            path: injPath,
+            method,
+            headers,
+            rejectUnauthorized: false,
+        };
+
+        const proxyReq = https.request(options, (proxyRes) => {
+            const outHeaders = stripHopByHop(proxyRes.headers);
+            let statusLine = `HTTP/1.1 ${proxyRes.statusCode ?? 200} ${proxyRes.statusMessage ?? 'OK'}\r\n`;
+            for (const [k, v] of Object.entries(outHeaders)) {
+                const val = Array.isArray(v) ? v.join(', ') : v;
+                if (val !== undefined) statusLine += `${k}: ${val}\r\n`;
+            }
+            statusLine += '\r\n';
+            tlsServer.write(statusLine);
+            proxyRes.pipe(tlsServer, { end: true });
+        });
+
+        proxyReq.on('error', () => tlsServer.destroy());
+
+        if (bodyBuf && bodyBuf.length > 0) proxyReq.write(bodyBuf);
+        proxyReq.end();
+    };
+
+    tlsServer.on('data', (chunk: Buffer) => {
+        chunks.push(chunk);
+        const accumulated = Buffer.concat(chunks);
+
+        if (!headersParsed) {
+            const headerEnd = accumulated.indexOf('\r\n\r\n');
+            if (headerEnd === -1) return;
+
+            headersParsed = true;
+            headerEndOffset = headerEnd + 4;
+            const headerStr = accumulated.slice(0, headerEnd).toString();
+            const lines = headerStr.split('\r\n');
+            const requestLine = lines[0] ?? '';
+            const parts = requestLine.split(' ');
+            method = parts[0] ?? '';
+            path = parts[1] ?? '';
+
+            if (!method || !path) {
+                tlsServer.destroy();
+                return;
+            }
+
+            for (let i = 1; i < lines.length; i++) {
+                const colonIdx = lines[i].indexOf(':');
+                if (colonIdx === -1) continue;
+                const name = lines[i].slice(0, colonIdx).trim().toLowerCase();
+                const value = lines[i].slice(colonIdx + 1).trim();
+                parsedHeaders[name] = value;
+            }
+
+            expectedBodyLen = parseInt(parsedHeaders['content-length'] ?? '0', 10);
+        }
+
+        const bodyReceived = accumulated.length - headerEndOffset;
+        if (bodyReceived >= expectedBodyLen) {
+            tlsServer.removeAllListeners('data');
+            const bodyBuf =
+                expectedBodyLen > 0
+                    ? accumulated.slice(headerEndOffset, headerEndOffset + expectedBodyLen)
+                    : undefined;
+            processRequest(bodyBuf).catch(() => tlsServer.destroy());
+        }
     });
 }
 
