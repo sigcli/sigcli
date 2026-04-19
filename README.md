@@ -16,17 +16,17 @@ sig request https://jira.example.com/rest/api/2/myself                          
 sig run my-jira -- bash -c 'python fetch.py --cookie "$SIG_MY_JIRA_COOKIE"'              # Credentials as env vars
 ```
 
-Credentials are injected as `SIG_<PROVIDER>_*` env vars and never appear in your shell or logs.
+Credentials are injected as `SIG_<PROVIDER>_*` env vars and never appear in your shell or logs. All credential files are encrypted at rest (AES-256-GCM).
 
 ## Commands
 
 **Setup**
 
-| Command                  | Description                               |
-| ------------------------ | ----------------------------------------- |
-| `sig init`               | Create `~/.sig/config.yaml` (interactive) |
-| `sig doctor`             | Check environment and config              |
-| `sig completion <shell>` | Shell completion (bash\|zsh\|fish)        |
+| Command                  | Description                                   |
+| ------------------------ | --------------------------------------------- |
+| `sig init`               | Create `~/.sig/config.yaml` (interactive)     |
+| `sig doctor`             | Check environment, config, and encryption key |
+| `sig completion <shell>` | Shell completion (bash\|zsh\|fish)            |
 
 **Authentication**
 

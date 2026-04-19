@@ -32,6 +32,10 @@ vi.mock('../../../src/config/validator.js', () => ({
     validateConfig: vi.fn(),
 }));
 
+vi.mock('../../../src/crypto/encryption.js', () => ({
+    generateEncryptionKey: vi.fn().mockResolvedValue(Buffer.alloc(32)),
+}));
+
 // Import after mocking
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';

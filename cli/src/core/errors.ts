@@ -20,7 +20,8 @@ export type AuthErrorCode =
     | 'SYNC_ERROR'
     | 'REMOTE_NOT_FOUND'
     | 'BROWSER_UNAVAILABLE'
-    | 'SYNC_CONFLICT';
+    | 'SYNC_CONFLICT'
+    | 'ENCRYPTION_ERROR';
 
 export class AuthError extends Error {
     constructor(
@@ -179,5 +180,12 @@ export class SyncConflictError extends AuthError {
             providerId,
         );
         this.name = 'SyncConflictError';
+    }
+}
+
+export class EncryptionError extends AuthError {
+    constructor(message: string) {
+        super(message, 'ENCRYPTION_ERROR');
+        this.name = 'EncryptionError';
     }
 }

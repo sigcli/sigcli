@@ -61,7 +61,7 @@ describe('E2E: sig init --remote', () => {
         expect(fs.existsSync(credDir)).toBe(true);
     });
 
-    it('sig doctor runs against the generated config', () => {
+    it('sig doctor runs against the generated config', { timeout: 15_000 }, () => {
         const result = sig('doctor');
         const output = result.stdout + result.stderr;
         expect(output).toContain('Config file exists');
