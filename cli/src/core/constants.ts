@@ -13,6 +13,7 @@ export const Command = {
     DOCTOR: 'doctor',
     GET: 'get',
     LOGIN: 'login',
+    CASCADE: 'cascade',
     REQUEST: 'request',
     STATUS: 'status',
     LOGOUT: 'logout',
@@ -22,6 +23,7 @@ export const Command = {
     WATCH: 'watch',
     RENAME: 'rename',
     REMOVE: 'remove',
+    COMPLETION: 'completion',
     HELP: 'help',
 } as const;
 

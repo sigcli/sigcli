@@ -20,6 +20,7 @@ import {
     CredentialTypeName,
 } from '../../core/constants.js';
 import { ExitCode } from '../exit-codes.js';
+import { runCascade } from './cascade.js';
 
 /** Convert runtime ProviderConfig to the YAML ProviderEntry format. */
 function toProviderEntry(pc: ProviderConfig): ProviderEntry {
@@ -66,7 +67,7 @@ export async function runLogin(
     const url = positionals[0];
     if (!url) {
         process.stderr.write('Usage: sig login <provider|url>\n');
-        process.exitCode = ExitCode.GENERAL_ERROR;
+        process.exitCode = ExitCode.USAGE_ERROR;
         return;
     }
 
@@ -78,7 +79,7 @@ export async function runLogin(
             process.stderr.write(
                 `Error: No provider found matching "${url}". Run "sig providers" to see configured providers.\n`,
             );
-            process.exitCode = ExitCode.GENERAL_ERROR;
+            process.exitCode = ExitCode.CONFIG_ERROR;
             return;
         }
         throw e;
@@ -86,6 +87,12 @@ export async function runLogin(
 
     const hasOverrides = flags.strategy !== undefined || typeof flags.as === 'string';
     const provider = hasOverrides ? { ...baseProvider } : baseProvider;
+
+    // --cascade: delegate to cascade flow (stored → refresh → browser)
+    if (flags.cascade === true) {
+        await runCascade(positionals, flags, deps);
+        return;
+    }
 
     // --as <id>: override the provider ID (useful for auto-provisioned providers)
     if (typeof flags.as === 'string') {
@@ -231,11 +238,9 @@ export async function runLogin(
                 `  2. Then: sig remote add <name> <this-host>\n` +
                 `  3. Then: sig sync push <name>\n`,
         );
-        process.exitCode = ExitCode.GENERAL_ERROR;
+        process.exitCode = ExitCode.SERVICE_UNAVAILABLE;
         return;
     }
-
-    process.stderr.write(`Authenticating with "${provider.name}" via browser...\n`);
     const result = await deps.authManager.forceReauth(provider.id);
     if (!isOk(result)) {
         process.stderr.write(`Authentication failed: ${result.error.message}\n`);
