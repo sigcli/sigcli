@@ -44,10 +44,10 @@ Credentials are injected as `SIG_<PROVIDER>_*` env vars and never appear in your
 
 | Command                          | Description                                                              |
 | -------------------------------- | ------------------------------------------------------------------------ |
+| `sig request <url>`              | Make an authenticated HTTP request (credentials stay internal)           |
 | `sig run [provider...] -- <cmd>` | **Run command with credentials injected as `SIG_<PROVIDER>_*` env vars** |
-| `sig request <url>`              | Make an authenticated HTTP request                                       |
 | `sig status [provider]`          | Show auth status                                                         |
-| `sig get <provider\|url>`        | Get raw credential headers                                               |
+| `sig get <provider\|url>`        | Retrieve credential headers (prints to stdout — see Security)            |
 
 **Provider management**
 
@@ -80,6 +80,23 @@ Credentials are injected as `SIG_<PROVIDER>_*` env vars and never appear in your
 | `sig proxy trust`            | Print CA cert path for trust setup |
 
 Run `sig --help` or `sig <command> --help` for full options.
+
+## Security
+
+Sigcli offers four ways to use credentials, ranked by isolation level:
+
+| Method        | How                                                            | Security               |
+| ------------- | -------------------------------------------------------------- | ---------------------- |
+| `sig proxy`   | MITM daemon on localhost; credentials never leave proxy memory | Highest                |
+| `sig request` | Direct authenticated HTTP; credentials in-process only         | High                   |
+| `sig run`     | Injects `SIG_*` env vars into child process; redacts output    | Moderate               |
+| `sig get`     | Prints credentials to stdout                                   | Low — use with caution |
+
+All credentials are encrypted at rest (AES-256-GCM). Every access is logged to `~/.sig/audit.log`.
+
+**For AI agents**, use `sig proxy` (best) or `sig run`. Never pipe `sig get` output into agent context.
+
+See the [full security documentation](https://sigcli.ai/docs/#security) for threat models and recommendations.
 
 ## Documentation
 

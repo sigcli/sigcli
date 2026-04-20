@@ -12,11 +12,15 @@ import { logAuditEvent, AuditAction, AuditStatus } from '../../audit/audit-log.j
 
 const USAGE = `Usage: sig proxy <subcommand>
 
+Most secure credential method — credentials never leave the proxy process.
+Runs a local MITM daemon on 127.0.0.1 that intercepts HTTPS and injects
+credentials transparently. Client apps just set HTTP_PROXY.
+
 Subcommands:
   start [--port 8080]    Start proxy daemon in background
   stop                   Stop proxy daemon
-  status                 Show proxy daemon status
-  trust                  Print CA certificate path (add to system trust)
+  status                 Show proxy status and env-var hints
+  trust                  Print CA certificate path for OS trust setup
 `;
 
 export async function runProxy(

@@ -40,6 +40,52 @@ export const pageContent = {
         tocItem('#first-run', '首次 sig run', {
             level: 1,
             parent: '#getting-started',
+            prefix: '├ ',
+        }),
+        tocItem('#onboard-proxy', '试试: sig proxy', {
+            level: 1,
+            parent: '#getting-started',
+            prefix: '├ ',
+        }),
+        tocItem('#onboard-request', '试试: sig request', {
+            level: 1,
+            parent: '#getting-started',
+            prefix: '├ ',
+        }),
+        tocItem('#onboard-choosing', '选择方法', {
+            level: 1,
+            parent: '#getting-started',
+            prefix: '└ ',
+        }),
+        tocItem('#security', '安全模型'),
+        tocItem('#security-hierarchy', '凭证访问方式', {
+            level: 1,
+            parent: '#security',
+            prefix: '├ ',
+        }),
+        tocItem('#security-proxy', 'sig proxy', {
+            level: 2,
+            parent: '#security',
+            prefix: '│  ├ ',
+        }),
+        tocItem('#security-request', 'sig request', {
+            level: 2,
+            parent: '#security',
+            prefix: '│  ├ ',
+        }),
+        tocItem('#security-run', 'sig run', {
+            level: 2,
+            parent: '#security',
+            prefix: '│  ├ ',
+        }),
+        tocItem('#security-get', 'sig get', {
+            level: 2,
+            parent: '#security',
+            prefix: '│  └ ',
+        }),
+        tocItem('#security-shared', '共享安全特性', {
+            level: 1,
+            parent: '#security',
             prefix: '└ ',
         }),
         tocItem('#commands', '命令参考'),
@@ -167,6 +213,614 @@ sig run my-jira -- python fetch_issues.py`}</CodeBlock>
                 <P>
                     凭证以密封 JSON 文件的形式存储在 <Code>~/.sig/credentials/</Code>{' '}
                     中。默认情况下，不会有任何内容进入你的代码仓库、shell 历史记录或环境变量。
+                </P>
+            ),
+        },
+
+        /* ── 快速上手（续）── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="onboard-proxy" level={2}>
+                        试试: sig proxy
+                    </SectionHeading>
+                    <P>
+                        代理是<strong>最安全</strong>的凭证使用方式。它在本地运行一个 MITM
+                        守护进程，拦截 HTTPS 流量并透明注入凭证——你的工具永远不会看到令牌。
+                    </P>
+                    <CodeBlock lang="bash">{`# 启动代理守护进程
+sig proxy start
+
+# 信任 CA 证书（首次使用时）
+sig proxy trust    # 打印 CA 证书路径——添加到系统信任存储
+
+# 设置代理环境变量
+export HTTP_PROXY=http://127.0.0.1:7891
+export HTTPS_PROXY=http://127.0.0.1:7891
+
+# 任何 HTTP 客户端都会自动获得凭证注入
+curl https://jira.example.com/rest/api/2/myself
+
+# 完成后
+sig proxy stop`}</CodeBlock>
+
+                    <SectionHeading id="onboard-request" level={2}>
+                        试试: sig request
+                    </SectionHeading>
+                    <P>
+                        对于一次性 API 调用，<Code>sig request</Code> 直接发起认证的 HTTP
+                        请求。凭证保持在 CLI 进程内部，不会暴露到子进程或 shell 历史记录中。
+                    </P>
+                    <CodeBlock lang="bash">{`# 简单 GET 请求
+sig request https://jira.example.com/rest/api/2/myself
+
+# POST 请求
+sig request https://api.example.com/data --method POST --body '{"key": "value"}'
+
+# 只获取响应体
+sig request https://api.example.com/me --format body`}</CodeBlock>
+
+                    <SectionHeading id="onboard-choosing" level={2}>
+                        选择方法
+                    </SectionHeading>
+                    <P>根据你的使用场景选择合适的方法。如有疑问，优先选择更安全的方式。</P>
+                    <div
+                        style={{
+                            width: '100%',
+                            overflowX: 'auto',
+                            padding: '8px 0',
+                        }}
+                    >
+                        <table
+                            style={{
+                                width: '100%',
+                                borderCollapse: 'collapse',
+                                fontFamily: 'var(--font-primary)',
+                                fontSize: 'var(--type-table-size)',
+                            }}
+                        >
+                            <thead>
+                                <tr>
+                                    <th
+                                        style={{
+                                            textAlign: 'left',
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            fontWeight: 600,
+                                            color: 'var(--text-primary)',
+                                        }}
+                                    >
+                                        使用场景
+                                    </th>
+                                    <th
+                                        style={{
+                                            textAlign: 'left',
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            fontWeight: 600,
+                                            color: 'var(--text-primary)',
+                                        }}
+                                    >
+                                        推荐方法
+                                    </th>
+                                    <th
+                                        style={{
+                                            textAlign: 'left',
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            fontWeight: 600,
+                                            color: 'var(--text-primary)',
+                                        }}
+                                    >
+                                        原因
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        长期运行的守护进程或 AI 代理
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                            fontFamily: 'var(--font-code)',
+                                        }}
+                                    >
+                                        sig proxy
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        凭证永远不会离开代理进程
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        一次性 API 调用或脚本
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                            fontFamily: 'var(--font-code)',
+                                        }}
+                                    >
+                                        sig request
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        凭证仅在进程内，不涉及磁盘或环境变量
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        包装需要读取环境变量的工具
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                            fontFamily: 'var(--font-code)',
+                                        }}
+                                    >
+                                        sig run
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        注入 SIG_* 环境变量，自动脱敏输出
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        调试凭证值
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            color: 'var(--text-secondary)',
+                                            fontFamily: 'var(--font-code)',
+                                        }}
+                                    >
+                                        sig get
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        输出到标准输出——谨慎使用
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </>
+            ),
+        },
+
+        /* ── 安全模型 ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="security" level={1}>
+                        安全模型
+                    </SectionHeading>
+                    <P>
+                        Sigcli 提供四种凭证访问方式，每种在安全性和便捷性之间有不同的权衡。
+                        按安全级别从高到低排列：
+                    </P>
+
+                    <SectionHeading id="security-hierarchy" level={2}>
+                        凭证访问方式
+                    </SectionHeading>
+                    <div
+                        style={{
+                            width: '100%',
+                            overflowX: 'auto',
+                            padding: '8px 0',
+                        }}
+                    >
+                        <table
+                            style={{
+                                width: '100%',
+                                borderCollapse: 'collapse',
+                                fontFamily: 'var(--font-primary)',
+                                fontSize: 'var(--type-table-size)',
+                            }}
+                        >
+                            <thead>
+                                <tr>
+                                    <th
+                                        style={{
+                                            textAlign: 'left',
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            fontWeight: 600,
+                                            color: 'var(--text-primary)',
+                                        }}
+                                    >
+                                        方法
+                                    </th>
+                                    <th
+                                        style={{
+                                            textAlign: 'left',
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            fontWeight: 600,
+                                            color: 'var(--text-primary)',
+                                        }}
+                                    >
+                                        凭证暴露
+                                    </th>
+                                    <th
+                                        style={{
+                                            textAlign: 'left',
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            fontWeight: 600,
+                                            color: 'var(--text-primary)',
+                                        }}
+                                    >
+                                        内存生命周期
+                                    </th>
+                                    <th
+                                        style={{
+                                            textAlign: 'left',
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            fontWeight: 600,
+                                            color: 'var(--text-primary)',
+                                        }}
+                                    >
+                                        可见于
+                                    </th>
+                                    <th
+                                        style={{
+                                            textAlign: 'left',
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            fontWeight: 600,
+                                            color: 'var(--text-primary)',
+                                        }}
+                                    >
+                                        安全级别
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            fontFamily: 'var(--font-code)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        sig proxy
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        永远不会离开代理进程
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        代理守护进程生命周期
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        无外部可见
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        ●●●●● 最高
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            fontFamily: 'var(--font-code)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        sig request
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        仅在进程内存中
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        每次请求约 100ms
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        无外部可见
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        ●●●●○ 高
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            fontFamily: 'var(--font-code)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        sig run
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        子进程环境变量
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        子进程生命周期
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        /proc/PID/environ、子进程
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderBottom: '1px solid var(--page-border)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        ●●●○○ 中等
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            fontFamily: 'var(--font-code)',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        sig get
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        输出到标准输出
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        N/A（被 shell 捕获）
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        终端、shell 历史、管道
+                                    </td>
+                                    <td
+                                        style={{
+                                            padding: '8px 12px',
+                                            color: 'var(--text-secondary)',
+                                        }}
+                                    >
+                                        ●●○○○ 低
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <SectionHeading id="security-proxy" level={3}>
+                        sig proxy — 凭证永远不会离开进程
+                    </SectionHeading>
+                    <P>
+                        MITM 代理守护进程运行在本地（127.0.0.1）。客户端应用设置 HTTP_PROXY
+                        并正常发起请求。代理拦截 HTTPS 连接，将凭证作为 HTTP
+                        头注入，然后转发到上游服务器。
+                    </P>
+                    <P>
+                        凭证从存储中解密后仅保存在代理进程的内存中。客户端应用、子进程和环境变量都不会包含令牌。TLS
+                        拦截使用为每个主机名生成的 ECDSA P-256 证书。
+                    </P>
+                    <CodeBlock lang="bash">{`sig proxy start
+export HTTP_PROXY=http://127.0.0.1:7891 HTTPS_PROXY=http://127.0.0.1:7891`}</CodeBlock>
+                    <P>
+                        <strong>适用场景：</strong>AI 代理、CI/CD
+                        流水线、长期运行的守护进程、任何支持 HTTP_PROXY 的工具。
+                    </P>
+
+                    <SectionHeading id="security-request" level={3}>
+                        sig request — 凭证保持在内部
+                    </SectionHeading>
+                    <P>
+                        <Code>sig request</Code> 将凭证加载到进程内存中，发起一次 HTTP
+                        请求，然后丢弃。凭证永远不会写入环境变量、文件或标准输出。
+                        暴露窗口约为每次请求 100ms。
+                    </P>
+                    <CodeBlock lang="bash">{`sig request https://api.example.com/me --format body`}</CodeBlock>
+                    <P>
+                        <strong>适用场景：</strong>一次性 API 调用、shell 脚本、需要单个 HTTP
+                        响应的流水线步骤。
+                    </P>
+
+                    <SectionHeading id="security-run" level={3}>
+                        sig run — 凭证在环境变量中
+                    </SectionHeading>
+                    <P>
+                        <Code>sig run</Code> 将 <Code>SIG_&lt;PROVIDER&gt;_*</Code>{' '}
+                        环境变量注入子进程。这对于从环境变量读取配置的工具很方便，但在 Linux
+                        上环境变量可以通过 <Code>/proc</Code>{' '}
+                        读取，并且会被所有子进程继承。子进程的输出会自动脱敏（凭证值替换为{' '}
+                        <Code>****</Code>），但脱敏是尽力而为的。
+                    </P>
+                    <CodeBlock lang="bash">{`sig run my-jira -- curl https://jira.example.com/api/me`}</CodeBlock>
+                    <P>
+                        <strong>适用场景：</strong>包装读取 SIG_*
+                        环境变量的工具、本地开发、快速脚本编写。
+                    </P>
+
+                    <SectionHeading id="security-get" level={3}>
+                        sig get — 凭证输出到标准输出
+                    </SectionHeading>
+                    <P>
+                        <Code>sig get</Code> 将凭证头输出到标准输出。默认情况下值会被脱敏（
+                        <Code>****</Code>），但 <Code>--no-redaction</Code>{' '}
+                        会显示原始令牌。原始值在终端回滚、shell 历史记录（
+                        <Code>~/.bash_history</Code>、<Code>~/.zsh_history</Code>
+                        ）和管道命令中可见。
+                    </P>
+                    <CodeBlock lang="bash">{`# 默认脱敏
+sig get my-jira
+# 原始值（谨慎使用）
+sig get my-jira --no-redaction`}</CodeBlock>
+                    <P>
+                        <strong>适用场景：</strong>调试凭证格式、手动 API 测试。切勿将原始输出传入
+                        AI 代理上下文或日志。
+                    </P>
+
+                    <SectionHeading id="security-shared" level={2}>
+                        共享安全特性
+                    </SectionHeading>
+                    <P>所有四种方式共享以下安全保护：</P>
+                    <List>
+                        <Li>
+                            <strong>AES-256-GCM 静态加密</strong> — <Code>~/.sig/credentials/</Code>{' '}
+                            中的所有凭证文件都经过加密。加密密钥存储在{' '}
+                            <Code>~/.sig/encryption.key</Code>（权限 0o400，仅所有者可读）。
+                        </Li>
+                        <Li>
+                            <strong>审计日志</strong> —
+                            每次凭证访问、登录、登出、同步以及代理启动/停止都记录在{' '}
+                            <Code>~/.sig/audit.log</Code> 中（JSON Lines 格式）。
+                        </Li>
+                        <Li>
+                            <strong>基于 Result 的错误处理</strong> — 认证失败返回类型化错误（
+                            <Code>{'Result<T, AuthError>'}</Code>
+                            ），永远不会抛出异常。错误信息中不会暴露凭证。
+                        </Li>
+                        <Li>
+                            <strong>自动刷新</strong> —
+                            过期凭证在使用前会透明地刷新。不会有过期令牌通过错误路径泄露。
+                        </Li>
+                    </List>
+                </>
+            ),
+            aside: (
+                <P>
+                    对于 AI 代理，优先使用 <Code>sig proxy</Code> 或 <Code>sig run</Code>。 切勿将{' '}
+                    <Code>sig get</Code> 的输出传入代理上下文。
                 </P>
             ),
         },

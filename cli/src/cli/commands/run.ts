@@ -29,7 +29,7 @@ export async function runRun(
 
     if (cmdArgs.length === 0) {
         process.stderr.write(
-            'Error: No command specified\nUsage: sig run [provider...] -- <cmd> [args]\n',
+            'Error: No command specified\nUsage: sig run [provider...] -- <cmd> [args]\n\nInjects SIG_<PROVIDER>_* env vars into the child process. Credential values\nare redacted from stdout/stderr. Note: env vars are readable via /proc on Linux\nand inherited by child processes. For stronger isolation, use "sig proxy".\n',
         );
         process.exitCode = ExitCode.GENERAL_ERROR;
         return;

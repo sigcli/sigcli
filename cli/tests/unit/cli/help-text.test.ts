@@ -35,10 +35,10 @@ describe('CLI help text grouping (#9)', () => {
         expect(output).toContain('Authentication:');
     });
 
-    it('help output contains "Credentials:" section header', async () => {
+    it('help output contains "Credentials" section header', async () => {
         await run(['help']);
         const output = stdoutChunks.join('');
-        expect(output).toContain('Credentials:');
+        expect(output).toContain('Credentials (most');
     });
 
     it('help output contains "Remote & sync:" section header', async () => {
@@ -126,15 +126,14 @@ describe('CLI help text grouping (#9)', () => {
         expect(output).toContain('Authentication:');
     });
 
-    it('sections appear in correct order: Auth > Credentials > Provider > Remote > Watch > Proxy > Setup > Global', async () => {
+    it('sections appear in correct order: Auth > Credentials > Provider > Remote > Watch > Setup > Global', async () => {
         await run(['help']);
         const output = stdoutChunks.join('');
         const authIdx = output.indexOf('Authentication:');
-        const credIdx = output.indexOf('Credentials:');
+        const credIdx = output.indexOf('Credentials (most');
         const providerIdx = output.indexOf('Provider management:');
         const remoteIdx = output.indexOf('Remote & sync:');
         const watchIdx = output.indexOf('Watch:');
-        const proxyIdx = output.indexOf('Proxy:');
         const setupIdx = output.indexOf('Setup:');
         const globalIdx = output.indexOf('Global options:');
 
@@ -143,8 +142,7 @@ describe('CLI help text grouping (#9)', () => {
         expect(providerIdx).toBeGreaterThan(credIdx);
         expect(remoteIdx).toBeGreaterThan(providerIdx);
         expect(watchIdx).toBeGreaterThan(remoteIdx);
-        expect(proxyIdx).toBeGreaterThan(watchIdx);
-        expect(setupIdx).toBeGreaterThan(proxyIdx);
+        expect(setupIdx).toBeGreaterThan(watchIdx);
         expect(globalIdx).toBeGreaterThan(setupIdx);
     });
 });

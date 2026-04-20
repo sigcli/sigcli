@@ -15,7 +15,7 @@ export async function runRequest(
     const url = positionals[0];
     if (!url) {
         process.stderr.write(
-            'Usage: sig request <url> [--method GET] [--header "Name: Value"] [--body \'{}\']\n',
+            'Usage: sig request <url> [--method GET] [--header "Name: Value"] [--body \'{}\']\n\nCredentials stay internal — never exposed to subprocesses, env vars, or shell history.\nMore secure than "sig run" or "sig get" for one-off API calls.\n',
         );
         process.exitCode = ExitCode.GENERAL_ERROR;
         return;
