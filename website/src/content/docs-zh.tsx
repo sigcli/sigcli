@@ -416,6 +416,62 @@ curl https://jira.example.com/api/me   # 凭证自动注入`}</CodeBlock>
                         包裹单个命令；用 <Code>sig proxy</Code>{' '}
                         处理长期守护进程、会派生进程树的工具， 或只读取代理环境变量的工具。
                     </P>
+                    <P>
+                        <strong>注入规则：</strong>
+                        对于需要在非标准位置（请求体字段、查询参数、自定义标头） 注入凭证的
+                        API，可在 Provider 配置中添加 <Code>proxy.inject</Code> 规则。 代理和{' '}
+                        <Code>sig request</Code> 会在标准凭证标头之后应用这些规则。
+                    </P>
+                    <CodeBlock lang="yaml">{`# Example: inject xoxc token from localStorage as form body parameter
+providers:
+  app-slack:
+    # ... domains, strategy, etc.
+    proxy:
+      inject:
+        - in: body           # header | body | query
+          action: set         # set | append | remove
+          name: token
+          from: credential.localStorage.xoxc-token`}</CodeBlock>
+                    <P>
+                        <Code>from</Code> 字段对已存储凭证中的路径进行解析：{' '}
+                        <Code>credential.cookies</Code>、<Code>credential.accessToken</Code>、{' '}
+                        <Code>credential.localStorage.&lt;key&gt;</Code>、
+                        <Code>credential.xHeaders.&lt;key&gt;</Code>。 请求体注入支持{' '}
+                        <Code>application/json</Code> 和{' '}
+                        <Code>application/x-www-form-urlencoded</Code> 内容类型。
+                    </P>
+                    <P>
+                        <strong>自动刷新：</strong>代理守护进程会自动运行监视/刷新循环。 在{' '}
+                        <Code>config.yaml</Code> 中配置需要监视的 Provider：
+                    </P>
+                    <CodeBlock lang="yaml">{`watch:
+  interval: 5m           # check interval (default: 5m)
+  providers:
+    sap-jira:
+      autoSync:            # optional: sync to remotes after refresh
+        - dev-server
+    ms-teams:`}</CodeBlock>
+                    <P>
+                        凭证会在过期前刷新。使用 <Code>sig watch add &lt;provider&gt;</Code>{' '}
+                        管理监视列表，或直接编辑配置文件。 代理内置的监视循环无需单独运行{' '}
+                        <Code>sig watch start</Code> 进程。
+                    </P>
+                    <P>
+                        <strong>信任 CA 证书：</strong>进行 HTTPS 拦截时，代理会生成本地 CA 证书。
+                        将其添加到系统信任存储：
+                    </P>
+                    <CodeBlock lang="bash">{`sig proxy trust                  # show CA cert path + instructions
+
+# macOS
+sudo security add-trusted-cert -d -r trustRoot \\
+  -k /Library/Keychains/System.keychain ~/.sig/proxy/ca.crt
+
+# Ubuntu/Debian
+sudo cp ~/.sig/proxy/ca.crt /usr/local/share/ca-certificates/sigcli-proxy.crt
+sudo update-ca-certificates
+
+# Per-command (no system trust)
+curl --cacert ~/.sig/proxy/ca.crt https://api.example.com`}</CodeBlock>
 
                     <SectionHeading id="cmd-completion" level={2}>
                         sig completion

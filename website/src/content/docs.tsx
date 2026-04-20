@@ -433,6 +433,65 @@ curl https://jira.example.com/api/me   # credentials injected automatically`}</C
                         daemons, tools that fork process trees, or tools that only read proxy env
                         vars.
                     </P>
+                    <P>
+                        <strong>Inject rules:</strong> For APIs that need credentials in
+                        non-standard locations (body fields, query parameters, custom headers), add{' '}
+                        <Code>proxy.inject</Code> rules to the provider config. The proxy and{' '}
+                        <Code>sig request</Code> apply these rules after standard credential
+                        headers.
+                    </P>
+                    <CodeBlock lang="yaml">{`# Example: inject xoxc token from localStorage as form body parameter
+providers:
+  app-slack:
+    # ... domains, strategy, etc.
+    proxy:
+      inject:
+        - in: body           # header | body | query
+          action: set         # set | append | remove
+          name: token
+          from: credential.localStorage.xoxc-token`}</CodeBlock>
+                    <P>
+                        The <Code>from</Code> field resolves paths against the stored credential:{' '}
+                        <Code>credential.cookies</Code>, <Code>credential.accessToken</Code>,{' '}
+                        <Code>credential.localStorage.&lt;key&gt;</Code>,{' '}
+                        <Code>credential.xHeaders.&lt;key&gt;</Code>. Body injection supports{' '}
+                        <Code>application/json</Code> and{' '}
+                        <Code>application/x-www-form-urlencoded</Code> content types.
+                    </P>
+                    <P>
+                        <strong>Auto-refresh:</strong> The proxy daemon runs the watch/refresh loop
+                        automatically. Configure which providers to watch in{' '}
+                        <Code>config.yaml</Code>:
+                    </P>
+                    <CodeBlock lang="yaml">{`watch:
+  interval: 5m           # check interval (default: 5m)
+  providers:
+    sap-jira:
+      autoSync:            # optional: sync to remotes after refresh
+        - dev-server
+    ms-teams:`}</CodeBlock>
+                    <P>
+                        Credentials are refreshed before they expire. Use{' '}
+                        <Code>sig watch add &lt;provider&gt;</Code> to manage the watch list, or
+                        edit the config directly. The proxy's built-in watch loop replaces the need
+                        for a separate <Code>sig watch start</Code> process.
+                    </P>
+                    <P>
+                        <strong>Trusting the CA:</strong> For HTTPS interception, the proxy
+                        generates a local CA certificate. Add it to your system trust store:
+                    </P>
+                    <CodeBlock lang="bash">{`sig proxy trust                  # show CA cert path + instructions
+
+# macOS
+sudo security add-trusted-cert -d -r trustRoot \\
+  -k /Library/Keychains/System.keychain ~/.sig/proxy/ca.crt
+
+# Ubuntu/Debian
+sudo cp ~/.sig/proxy/ca.crt /usr/local/share/ca-certificates/sigcli-proxy.crt
+sudo update-ca-certificates
+
+# Per-command (no system trust)
+curl --cacert ~/.sig/proxy/ca.crt https://api.example.com`}</CodeBlock>
 
                     <SectionHeading id="cmd-completion" level={2}>
                         sig completion
