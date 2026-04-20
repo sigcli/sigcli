@@ -59,6 +59,18 @@ export const pageContent = {
             >
                 AI 代理的认证层。在浏览器中登录一次——剩下的交给 AI。
             </p>
+            <div style={{ margin: '24px 0 0' }}>
+                <img
+                    src="/demo.gif"
+                    alt="sig 演示 — 登录、状态、请求、运行、代理"
+                    style={{
+                        width: '100%',
+                        maxWidth: '720px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-primary)',
+                    }}
+                />
+            </div>
         </div>
     ),
 
@@ -89,18 +101,6 @@ export const pageContent = {
                         捕获 cookie、令牌和请求头，加密存储——然后注入到 AI
                         代理运行的任何进程中。代理顺利完成任务，但永远看不到你的秘密。
                     </P>
-                    <div style={{ margin: '24px 0' }}>
-                        <img
-                            src="/demo.gif"
-                            alt="sig 演示 — 登录、状态、请求、运行、代理"
-                            style={{
-                                width: '100%',
-                                maxWidth: '720px',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-primary)',
-                            }}
-                        />
-                    </div>
 
                     <CodeBlock lang="diagram" showLineNumbers={false}>{`
  ┌──────────────────┐    ┌───────────────────────┐    ┌──────────────────────┐
