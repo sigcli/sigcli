@@ -5,6 +5,7 @@ import { formatJson, formatCredentialHeaders } from '../formatters.js';
 import { ExitCode } from '../exit-codes.js';
 import { CredentialTypeName, HttpHeader, OutputFormat } from '../../core/constants.js';
 import { logAuditEvent, AuditAction, AuditStatus } from '../../audit/audit-log.js';
+import { extractSensitiveValues, redactOutput } from '../../utils/redact.js';
 
 const PRIMARY_HEADERS = [HttpHeader.COOKIE.toLowerCase(), HttpHeader.AUTHORIZATION.toLowerCase()];
 
@@ -91,11 +92,12 @@ export async function runGet(
     }
 
     const headers = deps.authManager.applyToRequest(providerId, credential);
+    const noRedaction = flags['no-redaction'] === true;
     await logAuditEvent({
         action: AuditAction.CREDENTIAL_ACCESS,
         status: AuditStatus.SUCCESS,
         provider: providerId,
-        metadata: { credentialType: credential.type },
+        metadata: { credentialType: credential.type, redacted: !noRedaction },
     });
     const entries = Object.entries(headers);
 
@@ -117,17 +119,36 @@ export async function runGet(
     }
 
     const format = (flags.format as string) ?? OutputFormat.JSON;
+    if (noRedaction) {
+        process.stderr.write(
+            'Warning: Outputting raw credential values — do not expose to untrusted processes.\n',
+        );
+    }
+    const secrets = noRedaction ? [] : extractSensitiveValues(credential);
+    const redact = (text: string): string => (noRedaction ? text : redactOutput(text, secrets));
 
     switch (format) {
         case OutputFormat.JSON: {
             const credentialObj: Record<string, unknown> = {
                 type: credential.type,
                 headerName: primaryHeaderName,
-                value: primaryHeaderValue,
+                value: redact(primaryHeaderValue),
             };
-            if (Object.keys(xHeaders).length > 0) credentialObj.xHeaders = xHeaders;
+            if (Object.keys(xHeaders).length > 0) {
+                const redactedXHeaders: Record<string, string> = {};
+                for (const [k, v] of Object.entries(xHeaders)) {
+                    redactedXHeaders[k] = redact(v);
+                }
+                credentialObj.xHeaders = redactedXHeaders;
+            }
             const ls = getLocalStorage(credential);
-            if (ls) credentialObj.localStorage = ls;
+            if (ls) {
+                const redactedLs: Record<string, string> = {};
+                for (const [k, v] of Object.entries(ls)) {
+                    redactedLs[k] = redact(v);
+                }
+                credentialObj.localStorage = redactedLs;
+            }
             const output = {
                 provider: providerId,
                 credential: credentialObj,
@@ -136,18 +157,22 @@ export async function runGet(
             break;
         }
         case OutputFormat.HEADER: {
-            process.stdout.write(formatCredentialHeaders(headers) + '\n');
+            const redactedHeaders: Record<string, string> = {};
+            for (const [k, v] of Object.entries(headers)) {
+                redactedHeaders[k] = redact(v);
+            }
+            process.stdout.write(formatCredentialHeaders(redactedHeaders) + '\n');
             break;
         }
         case OutputFormat.VALUE: {
-            process.stdout.write(primaryHeaderValue + '\n');
+            process.stdout.write(redact(primaryHeaderValue) + '\n');
             for (const [name, value] of Object.entries(xHeaders)) {
-                process.stdout.write(`${name}=${value}\n`);
+                process.stdout.write(`${name}=${redact(value)}\n`);
             }
             const ls = getLocalStorage(credential);
             if (ls) {
                 for (const [name, value] of Object.entries(ls)) {
-                    process.stdout.write(`${name}=${value}\n`);
+                    process.stdout.write(`${name}=${redact(value)}\n`);
                 }
             }
             break;

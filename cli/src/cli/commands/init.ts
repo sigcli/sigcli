@@ -54,11 +54,11 @@ const STRATEGY_TEMPLATES: Record<string, StrategyTemplate> = {
 // ---------------------------------------------------------------------------
 
 function detectBrowserChannel(): string {
-    const channels = ['chrome', 'msedge', 'chromium'];
+    const channels = ['msedge', 'chrome', 'chromium'];
     for (const ch of channels) {
         if (findChannelBrowser(ch) !== null) return ch;
     }
-    return 'chrome';
+    return 'msedge';
 }
 
 // ---------------------------------------------------------------------------
@@ -174,7 +174,7 @@ export async function runInit(
     }
 
     // Detect defaults
-    const detectedChannel = remote ? 'chrome' : detectBrowserChannel();
+    const detectedChannel = remote ? 'msedge' : detectBrowserChannel();
     const defaultChannel = typeof flags.channel === 'string' ? flags.channel : detectedChannel;
     const defaultBrowserDataDir =
         typeof flags['browser-data-dir'] === 'string'
@@ -203,8 +203,28 @@ export async function runInit(
         try {
             process.stderr.write("\nWelcome to SigCLI! Let's set up your configuration.\n\n");
 
-            const channelAnswer = await rl.question(`Browser channel [${defaultChannel}]: `);
-            if (channelAnswer.trim()) channel = channelAnswer.trim();
+            const browserOptions = ['msedge', 'chrome', 'chromium'];
+            const browserStatus = browserOptions.map((ch) => ({
+                name: ch,
+                found: findChannelBrowser(ch) !== null,
+            }));
+            const defaultIndex = browserOptions.indexOf(defaultChannel);
+            const defaultMenuChoice = defaultIndex >= 0 ? String(defaultIndex + 1) : '1';
+            process.stderr.write('Available browsers:\n');
+            browserStatus.forEach((b, i) => {
+                const mark = b.found ? '✓ (detected)' : '✗ (not found)';
+                process.stderr.write(`  ${i + 1}. ${b.name} ${mark}\n`);
+            });
+            const channelAnswer = await rl.question(`Browser channel [${defaultMenuChoice}]: `);
+            const trimmed = channelAnswer.trim();
+            if (trimmed) {
+                const asNumber = parseInt(trimmed, 10);
+                if (!isNaN(asNumber) && asNumber >= 1 && asNumber <= browserOptions.length) {
+                    channel = browserOptions[asNumber - 1];
+                } else if (browserOptions.includes(trimmed)) {
+                    channel = trimmed;
+                }
+            }
 
             providers = await promptProviders(rl);
         } finally {

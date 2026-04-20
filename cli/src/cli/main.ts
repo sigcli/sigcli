@@ -90,6 +90,7 @@ Authentication:
 Credentials:
   get <provider|url>           Retrieve credential headers
     --format json|header|value   Output format (default: json)
+    --no-redaction               Output raw (unredacted) credential values
   request <url>                Make an authenticated HTTP request
     --method <METHOD>            HTTP method (default: GET)
     --body <json>                Request body
@@ -140,7 +141,7 @@ Setup:
     --remote                     Headless machine setup (mode: browserless)
     --yes                        Accept defaults, skip prompts
     --force                      Overwrite existing config
-    --channel <name>             Browser channel (chrome|msedge|chromium)
+    --channel <name>             Browser channel (msedge|chrome|chromium)
   doctor                       Check environment, config, and encryption key
   completion <shell>           Generate shell completion script (bash|zsh|fish)
 
