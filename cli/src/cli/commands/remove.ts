@@ -3,6 +3,7 @@ import type { AuthDeps } from '../../deps.js';
 import type { ProviderConfig } from '../../core/types.js';
 import { removeProviderFromConfig } from '../../config/loader.js';
 import { ExitCode } from '../exit-codes.js';
+import { logAuditEvent, AuditAction, AuditStatus } from '../../audit/audit-log.js';
 
 export async function runRemove(
     positionals: string[],
@@ -76,8 +77,19 @@ export async function runRemove(
             if (!keepConfig) {
                 await removeProviderFromConfig(provider.id);
             }
+            await logAuditEvent({
+                action: AuditAction.PROVIDER_REMOVE,
+                status: AuditStatus.SUCCESS,
+                provider: provider.id,
+            });
             removed++;
         } catch (e) {
+            await logAuditEvent({
+                action: AuditAction.PROVIDER_REMOVE,
+                status: AuditStatus.FAILURE,
+                provider: provider.id,
+                metadata: { error: e instanceof Error ? e.message : String(e) },
+            });
             errors.push(`${provider.id}: ${e instanceof Error ? e.message : String(e)}`);
         }
     }

@@ -41,19 +41,31 @@ async function applyInjection(
     deps: AuthDeps,
 ): Promise<{ headers: http.OutgoingHttpHeaders; body: Buffer | undefined; url: string }> {
     const provider = resolveProvider(url, deps);
-    if (!provider?.proxy?.inject?.length) return { headers: baseHeaders, body: bodyBuffer, url };
+    if (!provider) return { headers: baseHeaders, body: bodyBuffer, url };
 
     const credResult = await deps.authManager.getCredentials(provider.id);
     if (!isOk(credResult)) return { headers: baseHeaders, body: bodyBuffer, url };
 
-    return applyInjectRules(
-        provider.proxy.inject,
-        credResult.value,
-        baseHeaders,
-        bodyBuffer,
-        contentType,
-        url,
-    );
+    // Always apply strategy-level credential headers (Cookie, Authorization, etc.)
+    const authHeaders = deps.authManager.applyToRequest(provider.id, credResult.value);
+    const mergedHeaders: http.OutgoingHttpHeaders = { ...baseHeaders };
+    for (const [key, value] of Object.entries(authHeaders)) {
+        mergedHeaders[key.toLowerCase()] = value;
+    }
+
+    // Then layer inject rules on top if configured
+    if (provider.proxy?.inject?.length) {
+        return applyInjectRules(
+            provider.proxy.inject,
+            credResult.value,
+            mergedHeaders,
+            bodyBuffer,
+            contentType,
+            url,
+        );
+    }
+
+    return { headers: mergedHeaders, body: bodyBuffer, url };
 }
 
 async function handlePlainHttp(

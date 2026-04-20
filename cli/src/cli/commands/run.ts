@@ -5,6 +5,7 @@ import { isOk } from '../../core/result.js';
 import { ExitCode } from '../exit-codes.js';
 import { credentialToEnvVars } from '../../utils/credential-env.js';
 import { extractSensitiveValues, redactOutput } from '../../utils/redact.js';
+import { logAuditEvent, AuditAction, AuditStatus } from '../../audit/audit-log.js';
 
 export async function runRun(
     positionals: string[],
@@ -96,6 +97,12 @@ export async function runRun(
         }
         writeFileSync(mount, content, { encoding: 'utf8', mode: 0o600 });
     }
+
+    await logAuditEvent({
+        action: AuditAction.RUN,
+        status: AuditStatus.SUCCESS,
+        metadata: { providers, command: cmdArgs[0], providerCount: providers.length },
+    });
 
     const [cmd, ...args] = cmdArgs;
     let redactionNoticeShown = false;
