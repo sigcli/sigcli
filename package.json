@@ -36,6 +36,13 @@
     },
     "author": "pylon <pylon.peng@gmail.com>",
     "license": "MIT",
+    "packageManager": "pnpm@10.33.0",
+    "pnpm": {
+        "onlyBuiltDependencies": [
+            "esbuild",
+            "lightningcss"
+        ]
+    },
     "repository": {
         "type": "git",
         "url": "https://github.com/sigcli/sigcli.git"
