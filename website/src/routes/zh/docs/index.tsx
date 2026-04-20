@@ -24,6 +24,7 @@ function ZhDocsPage() {
             sections={pageContent.sections}
             hero={pageContent.hero}
             logo="/sigcli-logo.svg"
+            locale="zh"
             languageSwitcher={<LanguageSwitcher locale="zh" page="docs" />}
         />
     );
