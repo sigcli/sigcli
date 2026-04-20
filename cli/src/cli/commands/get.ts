@@ -4,6 +4,7 @@ import { isOk } from '../../core/result.js';
 import { formatJson, formatCredentialHeaders } from '../formatters.js';
 import { ExitCode } from '../exit-codes.js';
 import { CredentialTypeName, HttpHeader, OutputFormat } from '../../core/constants.js';
+import { logAuditEvent, AuditAction, AuditStatus } from '../../audit/audit-log.js';
 
 const PRIMARY_HEADERS = [HttpHeader.COOKIE.toLowerCase(), HttpHeader.AUTHORIZATION.toLowerCase()];
 
@@ -39,6 +40,12 @@ export async function runGet(
         providerId = resolved.id;
         const result = await deps.authManager.getCredentials(providerId);
         if (!isOk(result)) {
+            await logAuditEvent({
+                action: AuditAction.CREDENTIAL_ACCESS,
+                status: AuditStatus.FAILURE,
+                provider: providerId,
+                metadata: { error: result.error.message },
+            });
             process.stderr.write(`Error: ${result.error.message}\n`);
             if (result.error.code === 'BROWSER_UNAVAILABLE') {
                 process.stderr.write(
@@ -62,6 +69,11 @@ export async function runGet(
         }
         const result = await deps.authManager.getCredentialsByUrl(target);
         if (!isOk(result)) {
+            await logAuditEvent({
+                action: AuditAction.CREDENTIAL_ACCESS,
+                status: AuditStatus.FAILURE,
+                metadata: { target, error: result.error.message },
+            });
             process.stderr.write(`Error: ${result.error.message}\n`);
             if (result.error.code === 'BROWSER_UNAVAILABLE') {
                 process.stderr.write(
@@ -79,6 +91,12 @@ export async function runGet(
     }
 
     const headers = deps.authManager.applyToRequest(providerId, credential);
+    await logAuditEvent({
+        action: AuditAction.CREDENTIAL_ACCESS,
+        status: AuditStatus.SUCCESS,
+        provider: providerId,
+        metadata: { credentialType: credential.type },
+    });
     const entries = Object.entries(headers);
 
     if (entries.length === 0) {

@@ -1,6 +1,7 @@
 import type { AuthDeps } from '../../deps.js';
 import { renameProviderInConfig } from '../../config/loader.js';
 import { ExitCode } from '../exit-codes.js';
+import { logAuditEvent, AuditAction, AuditStatus } from '../../audit/audit-log.js';
 
 export async function runRename(
     positionals: string[],
@@ -53,5 +54,11 @@ export async function runRename(
     // Update config.yaml
     await renameProviderInConfig(resolvedOldId, newId);
 
+    await logAuditEvent({
+        action: AuditAction.PROVIDER_RENAME,
+        status: AuditStatus.SUCCESS,
+        provider: newId,
+        metadata: { oldId: resolvedOldId },
+    });
     process.stderr.write(`Renamed "${resolvedOldId}" → "${newId}".\n`);
 }

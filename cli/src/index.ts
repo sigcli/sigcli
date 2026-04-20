@@ -153,3 +153,12 @@ export {
     generateEncryptionKey,
 } from './crypto/encryption.js';
 export type { EncryptedEnvelope } from './crypto/encryption.js';
+
+// Audit
+export { logAuditEvent, AuditAction, AuditStatus } from './audit/audit-log.js';
+export type {
+    AuditEntry,
+    AuditEventParams,
+    AuditActionValue,
+    AuditStatusValue,
+} from './audit/audit-log.js';

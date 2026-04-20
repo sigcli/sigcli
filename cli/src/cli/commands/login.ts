@@ -20,6 +20,7 @@ import {
     CredentialTypeName,
 } from '../../core/constants.js';
 import { ExitCode } from '../exit-codes.js';
+import { logAuditEvent, AuditAction, AuditStatus } from '../../audit/audit-log.js';
 
 /** Convert runtime ProviderConfig to the YAML ProviderEntry format. */
 function toProviderEntry(pc: ProviderConfig): ProviderEntry {
@@ -34,7 +35,9 @@ function toProviderEntry(pc: ProviderConfig): ProviderEntry {
             ? { acceptedCredentialTypes: pc.acceptedCredentialTypes }
             : {}),
         ...(pc.xHeaders ? { xHeaders: pc.xHeaders } : {}),
+        ...(pc.localStorage ? { localStorage: pc.localStorage } : {}),
         ...(pc.forceVisible !== undefined ? { forceVisible: pc.forceVisible } : {}),
+        ...(pc.proxy ? { proxy: pc.proxy } : {}),
     };
 }
 
@@ -131,6 +134,12 @@ export async function runLogin(
         };
         const result = await deps.authManager.setCredential(provider.id, credential);
         if (!isOk(result)) {
+            await logAuditEvent({
+                action: AuditAction.LOGIN,
+                status: AuditStatus.FAILURE,
+                provider: provider.id,
+                metadata: { method: 'token', error: result.error.message },
+            });
             process.stderr.write(`Error: ${result.error.message}\n`);
             process.exitCode = ExitCode.GENERAL_ERROR;
             return;
@@ -138,6 +147,12 @@ export async function runLogin(
         if (provider.autoProvisioned) {
             await addProviderToConfig(provider.id, toProviderEntry(provider));
         }
+        await logAuditEvent({
+            action: AuditAction.LOGIN,
+            status: AuditStatus.SUCCESS,
+            provider: provider.id,
+            metadata: { method: 'token', credentialType: CredentialTypeName.API_KEY },
+        });
         process.stderr.write(`Token stored for "${provider.name}" (${provider.id}).\n`);
         process.stdout.write(
             formatJson({ provider: provider.id, type: CredentialTypeName.API_KEY }) + '\n',
@@ -167,6 +182,12 @@ export async function runLogin(
         };
         const result = await deps.authManager.setCredential(provider.id, credential);
         if (!isOk(result)) {
+            await logAuditEvent({
+                action: AuditAction.LOGIN,
+                status: AuditStatus.FAILURE,
+                provider: provider.id,
+                metadata: { method: 'cookie', error: result.error.message },
+            });
             process.stderr.write(`Error: ${result.error.message}\n`);
             process.exitCode = ExitCode.GENERAL_ERROR;
             return;
@@ -174,6 +195,16 @@ export async function runLogin(
         if (provider.autoProvisioned) {
             await addProviderToConfig(provider.id, toProviderEntry(provider));
         }
+        await logAuditEvent({
+            action: AuditAction.LOGIN,
+            status: AuditStatus.SUCCESS,
+            provider: provider.id,
+            metadata: {
+                method: 'cookie',
+                credentialType: CredentialTypeName.COOKIE,
+                cookieCount: cookies.length,
+            },
+        });
         process.stderr.write(
             `Cookie stored for "${provider.name}" (${provider.id}) — ${cookies.length} cookie(s).\n`,
         );
@@ -201,6 +232,12 @@ export async function runLogin(
         };
         const result = await deps.authManager.setCredential(provider.id, credential);
         if (!isOk(result)) {
+            await logAuditEvent({
+                action: AuditAction.LOGIN,
+                status: AuditStatus.FAILURE,
+                provider: provider.id,
+                metadata: { method: 'basic', error: result.error.message },
+            });
             process.stderr.write(`Error: ${result.error.message}\n`);
             process.exitCode = ExitCode.GENERAL_ERROR;
             return;
@@ -208,6 +245,12 @@ export async function runLogin(
         if (provider.autoProvisioned) {
             await addProviderToConfig(provider.id, toProviderEntry(provider));
         }
+        await logAuditEvent({
+            action: AuditAction.LOGIN,
+            status: AuditStatus.SUCCESS,
+            provider: provider.id,
+            metadata: { method: 'basic', credentialType: CredentialTypeName.BASIC },
+        });
         process.stderr.write(
             `Basic auth credentials stored for "${provider.name}" (${provider.id}).\n`,
         );
@@ -285,6 +328,12 @@ export async function runLogin(
     process.stderr.write(`Authenticating with "${provider.name}" via browser...\n`);
     const result = await deps.authManager.forceReauth(provider.id);
     if (!isOk(result)) {
+        await logAuditEvent({
+            action: AuditAction.LOGIN,
+            status: AuditStatus.FAILURE,
+            provider: provider.id,
+            metadata: { method: 'browser', error: result.error.message },
+        });
         process.stderr.write(`Authentication failed: ${result.error.message}\n`);
         process.exitCode = ExitCode.GENERAL_ERROR;
         return;
@@ -296,6 +345,12 @@ export async function runLogin(
     }
 
     const status = await deps.authManager.getStatus(provider.id);
+    await logAuditEvent({
+        action: AuditAction.LOGIN,
+        status: AuditStatus.SUCCESS,
+        provider: provider.id,
+        metadata: { method: 'browser', credentialType: result.value.type },
+    });
     process.stderr.write(`Authenticated with "${provider.name}".\n`);
     process.stdout.write(
         formatJson({

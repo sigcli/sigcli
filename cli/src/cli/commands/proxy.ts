@@ -6,6 +6,7 @@ import { expandHome } from '../../utils/path.js';
 import { ExitCode } from '../exit-codes.js';
 import type { AuthDeps } from '../../deps.js';
 import { ProxySubcommand } from '../../core/constants.js';
+import { logAuditEvent, AuditAction, AuditStatus } from '../../audit/audit-log.js';
 
 const USAGE = `Usage: sig proxy <subcommand>
 
@@ -86,6 +87,11 @@ async function handleStart(
     });
 
     child.unref();
+    await logAuditEvent({
+        action: AuditAction.PROXY_START,
+        status: AuditStatus.SUCCESS,
+        metadata: { port: port || 'auto' },
+    });
     process.stderr.write('Proxy daemon started in background.\n');
     process.stderr.write('Run "sig proxy status" to check, "sig proxy stop" to stop.\n');
 }
@@ -105,8 +111,18 @@ async function handleStop(): Promise<void> {
 
     try {
         process.kill(state.pid, 'SIGTERM');
+        await logAuditEvent({
+            action: AuditAction.PROXY_STOP,
+            status: AuditStatus.SUCCESS,
+            metadata: { pid: state.pid },
+        });
         process.stderr.write(`Proxy stopped (pid=${state.pid}).\n`);
     } catch {
+        await logAuditEvent({
+            action: AuditAction.PROXY_STOP,
+            status: AuditStatus.FAILURE,
+            metadata: { pid: state.pid },
+        });
         process.stderr.write(`Failed to stop proxy (pid=${state.pid}).\n`);
         process.exitCode = ExitCode.GENERAL_ERROR;
     }
