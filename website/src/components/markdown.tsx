@@ -763,11 +763,11 @@ export function Caption({ children }: { children: React.ReactNode }) {
 }
 
 export function A({ href, children }: { href: string; children: React.ReactNode }) {
+    const isExternal = href.startsWith('http://') || href.startsWith('https://');
     return (
         <a
             href={href}
-            target="_blank"
-            rel="noopener noreferrer"
+            {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
             style={{
                 color: 'var(--link-accent, #0969da)',
                 fontWeight: WEIGHT.heading,
@@ -1588,7 +1588,10 @@ export function EditorialPage({
             {/* Header: single row — logo + GitHub button, border aligned with content grid */}
             <div className="slot-navbar">
                 <div className="mx-auto flex items-center justify-between px-(--mobile-padding) py-(--header-padding-y) lg:max-w-(--grid-max-width) lg:px-0">
-                    <a href={locale === 'zh' ? '/zh/' : '/'} className="slot-logo no-underline flex items-center">
+                    <a
+                        href={locale === 'zh' ? '/zh/' : '/'}
+                        className="slot-logo no-underline flex items-center"
+                    >
                         <span
                             style={{
                                 fontFamily: "'Bubblegum Sans', cursive",
@@ -1618,7 +1621,16 @@ export function EditorialPage({
                                 e.currentTarget.style.borderColor = 'var(--page-border)';
                             }}
                         >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
                                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                                 <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
                             </svg>
