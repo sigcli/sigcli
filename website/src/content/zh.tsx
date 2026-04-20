@@ -28,17 +28,19 @@ function tocItem(
 
 export const pageContent = {
     meta: {
-        title: 'Sigcli — 登录一次，随处请求。',
+        title: 'sig — 连接你的系统，让 AI 替你工作。',
         description:
-            '通用身份认证 CLI，支持可插拔策略和浏览器适配器。从真实浏览器中捕获 cookie、令牌和 x-header，并同步到任何地方。',
+            'AI 代理的认证层。通过浏览器 SSO 登录一次，让 AI 代理代你访问 Jira、Wiki、日历和内部 API——无需暴露凭证。',
     },
 
     toc: [
         tocItem('#overview', '概述'),
-        tocItem('#install', '安装', { level: 1, parent: '#overview' }),
-        tocItem('#quick-start', '快速开始', { level: 1, parent: '#overview' }),
+        tocItem('#pain', '痛点', { level: 1, parent: '#overview' }),
+        tocItem('#solution', '解决方案', { level: 1, parent: '#overview' }),
+        tocItem('#quick-start', '快速开始'),
         tocItem('#how-it-works', '工作原理'),
         tocItem('#features', '功能特性'),
+        tocItem('#security', '安全模型'),
     ] as FlatTocItem[],
 
     hero: (
@@ -55,9 +57,7 @@ export const pageContent = {
                     margin: 0,
                 }}
             >
-                通用身份认证
-                CLI，支持可插拔策略和浏览器适配器。在浏览器中登录一次，即可在任何地方使用凭证——你的
-                AI 代理、你的脚本、你的服务器。
+                AI 代理的认证层。在浏览器中登录一次——剩下的交给 AI。
             </p>
         </div>
     ),
@@ -70,12 +70,25 @@ export const pageContent = {
                     <SectionHeading id="overview" level={1}>
                         概述
                     </SectionHeading>
+
+                    <SectionHeading id="pain" level={2}>
+                        痛点
+                    </SectionHeading>
                     <P>
-                        Sigcli 是你的个人凭证印章。你在 YAML
-                        配置中描述提供者，使用真实浏览器登录一次， 然后其他所有工具——
-                        <Code>curl</Code>、你的 AI 代理、CI 任务——都能将凭证直接注入进程环境。
+                        AI 编程代理（Claude Code、Cursor、Copilot）越来越需要调用你的工作 API——查
+                        Jira、读 Wiki、查日历、访问内部接口。但凭证管理是个难题：密钥会泄露到 shell
+                        历史、<Code>ps</Code> 输出和代理的上下文窗口。你不可能把 SSO 密码直接交给
+                        AI，也没法在每个脚本里手动粘贴 cookie。
                     </P>
-                    <P>无需 SDK 封装，不受供应商锁定。一个 CLI，适用于任何你能登录的网站。</P>
+
+                    <SectionHeading id="solution" level={2}>
+                        解决方案
+                    </SectionHeading>
+                    <P>
+                        sig 位于你的浏览器和 AI 代理之间。你通过真实浏览器完成一次 SSO 认证，sig
+                        捕获 cookie、令牌和请求头，加密存储——然后注入到 AI
+                        代理运行的任何进程中。代理顺利完成任务，但永远看不到你的秘密。
+                    </P>
 
                     <CodeBlock lang="diagram" showLineNumbers={false}>{`
  ┌──────────────────┐    ┌───────────────────────┐    ┌──────────────────────┐
@@ -97,35 +110,43 @@ export const pageContent = {
  │                  │    │  └─────────────────┘  │    │                      │
  └──────────────────┘    └───────────────────────┘    └──────────────────────┘
 `}</CodeBlock>
-
-                    <SectionHeading id="install" level={2}>
-                        安装
-                    </SectionHeading>
-                    <CodeBlock lang="bash">{`npm install -g @sigcli/cli
-
-# 或者无需全局安装：
-npx @sigcli/cli sig --help`}</CodeBlock>
-
-                    <SectionHeading id="quick-start" level={2}>
-                        快速开始
-                    </SectionHeading>
-                    <CodeBlock lang="bash">{`# 1. 生成配置
-sig init
-
-# 2. 登录——自动打开真实浏览器，捕获凭证
-sig login https://jira.example.com
-
-# 3. 将凭证作为 SIG_<PROVIDER>_* 环境变量注入任意命令
-sig run my-jira -- curl https://jira.example.com/api/me
-
-# 探索可用的变量
-sig run my-jira -- env | grep SIG_MY_JIRA_`}</CodeBlock>
                 </>
             ),
             aside: (
                 <P>
-                    凭证从实时浏览器网络流量中捕获，并使用目录锁密封存储在 <Code>~/.sig</Code>{' '}
-                    下——不会出现在你的代码仓库或 shell 历史记录中。
+                    sig 的定位是：<strong>连接你的系统，让 AI 替你工作。</strong>
+                    你登录一次，sig 处理认证，你的 AI 代理完成工作。
+                </P>
+            ),
+        },
+
+        /* ── 快速开始 ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="quick-start" level={1}>
+                        快速开始
+                    </SectionHeading>
+                    <CodeBlock lang="bash">{`# 安装
+npm install -g @sigcli/cli
+
+# 1. 初始化配置
+sig init
+
+# 2. 登录——自动打开浏览器，捕获凭证
+sig login https://jira.example.com
+
+# 3. 发起认证请求——凭证始终在进程内部，不会泄露
+sig request https://jira.example.com/rest/api/2/myself
+
+# 或启动 MITM 代理——代理自动注入凭证，AI 代理无需接触秘密
+sig proxy start`}</CodeBlock>
+                </>
+            ),
+            aside: (
+                <P>
+                    凭证从实时浏览器网络流量中捕获，使用 AES-256-GCM 加密后存储在{' '}
+                    <Code>~/.sig</Code> 下——不会出现在代码仓库或 shell 历史记录中。
                 </P>
             ),
         },
@@ -137,37 +158,42 @@ sig run my-jira -- env | grep SIG_MY_JIRA_`}</CodeBlock>
                     <SectionHeading id="how-it-works" level={1}>
                         工作原理
                     </SectionHeading>
-                    <P>
-                        三个步骤：配置、登录、运行。认证流程只执行一次，后续所有调用都从密封存储中读取。
-                    </P>
-                    <CodeBlock lang="bash">{`# 1. 在 ~/.sig/config.yaml 中描述提供者
+                    <P>三步搞定：配置提供者、认证一次、让 AI 代理替你工作。</P>
+                    <CodeBlock lang="bash">{`# 步骤一：在 ~/.sig/config.yaml 中配置提供者
 providers:
   my-jira:
     url: https://jira.example.com
     strategy: cookie
     requiredCookies: [SESSION]
+  grafana:
+    url: https://grafana.example.com
+    strategy: bearer
+  my-api:
+    url: https://api.example.com
+    strategy: api-token
 
-# 2. 一次认证——优先无头模式，检测到登录页面时切换为可视模式
+# 步骤二：认证一次（浏览器 SSO，无头→可视自动切换）
 $ sig login https://jira.example.com
-→ chromium 无头模式 …
-⚠ 检测到登录页面 — 打开窗口
+→ chromium 无头模式启动 …
+⚠ 检测到登录页面 — 切换为可视模式
 ✓ 捕获 4 个 cookie · 2 个 x-header
-✓ 密封存储至 ~/.sig/credentials/my-jira.json
+✓ 加密存储至 ~/.sig/credentials/my-jira.json
 
-# 3. 通过 sig run 使用凭证——不会泄露到 shell
-$ sig run my-jira -- python fetch_issues.py
-$ sig run my-jira -- node export_board.js`}</CodeBlock>
+# 步骤三：AI 代理替你工作
+$ sig run my-jira -- claude "把所有 P1 Bug 整理成摘要发给我"
+$ sig run grafana -- python analyze_metrics.py
+$ sig run my-api -- node sync_data.js`}</CodeBlock>
                 </>
             ),
             aside: (
                 <>
                     <P>
-                        混合浏览器流程是核心洞察——无头模式快速且不可见，但真实的登录页面需要可视窗口。Sigcli
-                        会自动检测差异。
+                        混合浏览器流程是核心能力——无头模式快速且静默，但遇到真实登录页面时自动弹出可视窗口。sig
+                        会自动识别并切换，无需手动干预。
                     </P>
                     <P>
-                        <Code>sig doctor</Code> 验证
-                        Node、Playwright、配置解析以及凭证目录是否可写。
+                        <Code>sig doctor</Code> 可以验证
+                        Node、Playwright、配置解析及凭证目录是否就绪。
                     </P>
                 </>
             ),
@@ -183,47 +209,128 @@ $ sig run my-jira -- node export_board.js`}</CodeBlock>
                     <List>
                         <Li>
                             <strong>MITM 代理</strong> — <Code>sig proxy start</Code> 在本地{' '}
-                            <Code>127.0.0.1</Code> 启动 HTTPS 代理。代理设置 <Code>HTTP_PROXY</Code>
-                            /<Code>HTTPS_PROXY</Code>，凭证透明注入——
-                            代理工具永远不会看到令牌。适用于无法用 <Code>sig run</Code>{' '}
-                            包裹的长期守护进程或工具。
+                            <Code>127.0.0.1</Code> 启动 HTTPS 代理，零信任凭证注入。设置{' '}
+                            <Code>HTTP_PROXY</Code>/<Code>HTTPS_PROXY</Code>{' '}
+                            后，凭证透明注入到所有出站请求——代理工具永远看不到令牌。适合无法用{' '}
+                            <Code>sig run</Code> 包裹的长期守护进程。
                         </Li>
                         <Li>
                             <strong>sig run</strong> — 将 <Code>SIG_&lt;PROVIDER&gt;_*</Code>{' '}
-                            凭证直接注入任意子进程，输出中的凭证值自动脱敏。这是使用凭证的推荐方式。
+                            凭证直接注入任意子进程环境，输出中的凭证值自动脱敏。这是推荐的使用方式，让
+                            AI 代理既能完成任务又无法窃取秘密。
                         </Li>
                         <Li>
-                            <strong>4 种策略</strong> — <Code>cookie</Code>（浏览器 SSO）、
+                            <strong>4 种认证策略</strong> — <Code>cookie</Code>（浏览器 SSO）、
                             <Code>oauth2</Code>（Bearer/JWT）、<Code>api-token</Code>（静态密钥）、
-                            <Code>basic</Code>（用户名/密码）。自动检测或用 <Code>--strategy</Code>{' '}
-                            强制指定。
+                            <Code>basic</Code>（用户名/密码）。自动检测或通过{' '}
+                            <Code>--strategy</Code> 手动指定。
                         </Li>
                         <Li>
-                            <strong>浏览器适配器</strong> — Playwright（默认）或 Chrome
-                            CDP。无头模式附带自动可视回退，支持自定义适配器插件。
+                            <strong>加密存储</strong> — 所有凭证使用 AES-256-GCM
+                            加密存储，密钥存放于 <Code>~/.sig/encryption.key</Code>
+                            （权限 0o400）。每次访问生成审计记录，历史未加密文件自动迁移。
                         </Li>
                         <Li>
-                            <strong>SSH 同步</strong> — 在笔记本上登录，通过{' '}
-                            <Code>sig sync push</Code> 推送到 CI 或远程服务器。无需守护进程。
-                        </Li>
-                        <Li>
-                            <strong>AI 代理就绪</strong> — 具有可预测退出码和 JSON 输出的稳定 CLI
-                            接口，无需 MCP 服务器。
+                            <strong>SSH 同步</strong> — 在笔记本上完成登录，通过{' '}
+                            <Code>sig sync push</Code> 推送到 CI
+                            服务器或远程机器。无需守护进程，一条命令搞定。
                         </Li>
                         <Li>
                             <strong>TypeScript & Python SDK</strong> — CLI
-                            的轻量级封装，供程序化使用。
+                            的轻量级封装，供程序化集成使用。
                         </Li>
                     </List>
-                    <P>
-                        <A href="/zh/docs/">完整文档 →</A>
-                    </P>
                 </>
             ),
             aside: (
                 <P>
                     <Code>sig run my-jira -- env | grep SIG_MY_JIRA_</Code>{' '}
-                    是探索某个提供者可用环境变量的最快方式。
+                    是查看某个提供者注入了哪些环境变量的最快方式。
+                </P>
+            ),
+        },
+
+        /* ── 安全模型 ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="security" level={1}>
+                        安全模型
+                    </SectionHeading>
+                    <P>sig 采用四层安全设计，确保凭证在整个生命周期内不暴露给 AI 代理。</P>
+                    <table
+                        style={{
+                            width: '100%',
+                            borderCollapse: 'collapse',
+                            fontSize: '14px',
+                            lineHeight: 1.6,
+                        }}
+                    >
+                        <thead>
+                            <tr
+                                style={{
+                                    borderBottom: '2px solid var(--border-color, #e5e7eb)',
+                                    textAlign: 'left',
+                                }}
+                            >
+                                <th style={{ padding: '8px 12px 8px 0', fontWeight: 600 }}>层级</th>
+                                <th style={{ padding: '8px 12px', fontWeight: 600 }}>机制</th>
+                                <th style={{ padding: '8px 0 8px 12px', fontWeight: 600 }}>效果</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style={{ borderBottom: '1px solid var(--border-color, #e5e7eb)' }}>
+                                <td style={{ padding: '8px 12px 8px 0', verticalAlign: 'top' }}>
+                                    <strong>加密存储</strong>
+                                </td>
+                                <td style={{ padding: '8px 12px', verticalAlign: 'top' }}>
+                                    AES-256-GCM，密钥存于 <Code>~/.sig/encryption.key</Code>
+                                </td>
+                                <td style={{ padding: '8px 0 8px 12px', verticalAlign: 'top' }}>
+                                    凭证文件即使被读取也无法解密
+                                </td>
+                            </tr>
+                            <tr style={{ borderBottom: '1px solid var(--border-color, #e5e7eb)' }}>
+                                <td style={{ padding: '8px 12px 8px 0', verticalAlign: 'top' }}>
+                                    <strong>进程隔离</strong>
+                                </td>
+                                <td style={{ padding: '8px 12px', verticalAlign: 'top' }}>
+                                    <Code>sig run</Code> 通过环境变量注入，子进程退出后自动清理
+                                </td>
+                                <td style={{ padding: '8px 0 8px 12px', verticalAlign: 'top' }}>
+                                    凭证不出现在 shell 历史或 <Code>ps</Code> 输出中
+                                </td>
+                            </tr>
+                            <tr style={{ borderBottom: '1px solid var(--border-color, #e5e7eb)' }}>
+                                <td style={{ padding: '8px 12px 8px 0', verticalAlign: 'top' }}>
+                                    <strong>输出脱敏</strong>
+                                </td>
+                                <td style={{ padding: '8px 12px', verticalAlign: 'top' }}>
+                                    stdout/stderr 中的凭证值自动替换为 <Code>[REDACTED]</Code>
+                                </td>
+                                <td style={{ padding: '8px 0 8px 12px', verticalAlign: 'top' }}>
+                                    AI 代理的上下文窗口中不会出现真实令牌
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style={{ padding: '8px 12px 8px 0', verticalAlign: 'top' }}>
+                                    <strong>零信任代理</strong>
+                                </td>
+                                <td style={{ padding: '8px 12px', verticalAlign: 'top' }}>
+                                    MITM 代理在网络层注入，应用层不感知
+                                </td>
+                                <td style={{ padding: '8px 0 8px 12px', verticalAlign: 'top' }}>
+                                    AI 工具无需读取凭证即可完成认证请求
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </>
+            ),
+            aside: (
+                <P>
+                    凭证从不出现在 AI 代理的上下文窗口中。sig
+                    在网络层或进程环境层完成注入，代理只看到请求结果，看不到秘密本身。
                 </P>
             ),
         },

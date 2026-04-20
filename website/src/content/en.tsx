@@ -28,17 +28,19 @@ function tocItem(
 
 export const pageContent = {
     meta: {
-        title: 'Sigcli — Log in once. Request anywhere.',
+        title: 'sig — Connect your systems. Let AI do the rest.',
         description:
-            'General-purpose authentication CLI with pluggable strategies and browser adapters. Capture cookies, tokens and x-headers from a real browser and sync them everywhere.',
+            'The authentication layer for AI agents. Log in once via browser SSO, then let your AI agent access Jira, wikis, calendars, and internal APIs — without ever seeing your credentials.',
     },
 
     toc: [
         tocItem('#overview', 'Overview'),
-        tocItem('#install', 'Install', { level: 1, parent: '#overview' }),
-        tocItem('#quick-start', 'Quick start', { level: 1, parent: '#overview' }),
+        tocItem('#the-problem', 'The problem', { level: 1, parent: '#overview' }),
+        tocItem('#the-solution', 'The solution', { level: 1, parent: '#overview' }),
+        tocItem('#quick-start', 'Quick start'),
         tocItem('#how-it-works', 'How it works'),
         tocItem('#features', 'Features'),
+        tocItem('#security', 'Security'),
     ] as FlatTocItem[],
 
     hero: (
@@ -55,9 +57,8 @@ export const pageContent = {
                     margin: 0,
                 }}
             >
-                General-purpose authentication CLI with pluggable strategies and browser adapters.
-                Log in once in your browser, use those credentials everywhere — your agents, your
-                scripts, your servers.
+                The authentication layer for AI agents. Log in once in your browser — your AI agent
+                handles the rest.
             </p>
         </div>
     ),
@@ -70,13 +71,84 @@ export const pageContent = {
                     <SectionHeading id="overview" level={1}>
                         Overview
                     </SectionHeading>
+
+                    <SectionHeading id="the-problem" level={2}>
+                        The problem
+                    </SectionHeading>
                     <P>
-                        Sigcli is a personal seal of authority. You describe providers in a YAML
-                        config, sign in once with a real browser, and every other tool —{' '}
-                        <Code>curl</Code>, your AI agent, a CI job — gets ready-to-use credentials
-                        injected directly into the process environment.
+                        AI coding agents (Claude Code, Cursor, Copilot) need to call your work APIs.
+                        But credentials leak into shell history, <Code>ps</Code> output, and agent
+                        context windows. You can't give an agent your SSO password. You can't paste
+                        cookies into every script.
                     </P>
-                    <P>No SDK wrappers, no vendor lock-in. One CLI, any site you can sign in to.</P>
+
+                    <SectionHeading id="the-solution" level={2}>
+                        The solution
+                    </SectionHeading>
+                    <P>
+                        sig sits between your browser and your AI agent. You authenticate once via
+                        real browser SSO. sig captures cookies, tokens, and headers — encrypts them
+                        — and injects them into any process your agent runs. The agent
+                        authenticates. It never sees secrets.
+                    </P>
+                </>
+            ),
+            aside: (
+                <P>
+                    Credentials are captured from live browser network traffic and sealed under{' '}
+                    <Code>~/.sig</Code> with AES-256-GCM encryption — nothing in your repo, nothing
+                    in your shell history, nothing in your agent context window.
+                </P>
+            ),
+        },
+
+        /* ── Quick start ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="quick-start" level={1}>
+                        Quick start
+                    </SectionHeading>
+                    <CodeBlock lang="bash">{`# 1. Install
+npm install -g @sigcli/cli
+
+# or without global install:
+npx @sigcli/cli sig --help`}</CodeBlock>
+
+                    <CodeBlock lang="bash">{`# 2. Generate config
+sig init
+
+# 3. Sign in — opens a real browser, captures credentials automatically
+sig login https://my-jira.example.com
+
+# 4. Make authenticated requests — credentials stay internal, never leak to agents
+sig request https://my-jira.example.com/rest/api/2/myself
+
+# Or start the MITM proxy — agents set HTTP_PROXY and credentials inject automatically
+sig proxy start
+export HTTP_PROXY=http://127.0.0.1:$(sig proxy status --port)
+curl https://my-jira.example.com/rest/api/2/myself`}</CodeBlock>
+                </>
+            ),
+            aside: (
+                <P>
+                    <Code>sig run my-jira -- env | grep SIG_MY_JIRA_</Code> is the quickest way to
+                    discover exactly which environment variables are available for a provider.
+                </P>
+            ),
+        },
+
+        /* ── How it works ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="how-it-works" level={1}>
+                        How it works
+                    </SectionHeading>
+                    <P>
+                        Three steps: configure, authenticate once, let your AI agent operate. The
+                        auth flow runs once; every subsequent call reads from encrypted storage.
+                    </P>
 
                     <CodeBlock lang="diagram" showLineNumbers={false}>{`
  ┌──────────────────┐    ┌───────────────────────┐    ┌──────────────────────┐
@@ -99,74 +171,44 @@ export const pageContent = {
  └──────────────────┘    └───────────────────────┘    └──────────────────────┘
 `}</CodeBlock>
 
-                    <SectionHeading id="install" level={2}>
-                        Install
-                    </SectionHeading>
-                    <CodeBlock lang="bash">{`npm install -g @sigcli/cli
-
-# or without global install:
-npx @sigcli/cli sig --help`}</CodeBlock>
-
-                    <SectionHeading id="quick-start" level={2}>
-                        Quick start
-                    </SectionHeading>
-                    <CodeBlock lang="bash">{`# 1. generate config
-sig init
-
-# 2. sign in — opens a real browser, captures credentials automatically
-sig login https://jira.example.com
-
-# 3. run any command with credentials injected as SIG_<PROVIDER>_* env vars
-sig run my-jira -- curl https://jira.example.com/api/me
-
-# discover what variables are available
-sig run my-jira -- env | grep SIG_MY_JIRA_`}</CodeBlock>
-                </>
-            ),
-            aside: (
-                <P>
-                    Credentials are captured from live browser network traffic and sealed under{' '}
-                    <Code>~/.sig</Code> with a directory lock — nothing in your repo, nothing in
-                    your shell history.
-                </P>
-            ),
-        },
-
-        /* ── How it works ── */
-        {
-            content: (
-                <>
-                    <SectionHeading id="how-it-works" level={1}>
-                        How it works
-                    </SectionHeading>
                     <P>
-                        Three steps: configure, login, run. The auth flow runs once; every
-                        subsequent call reads from sealed storage.
+                        <strong>Step 1 — Configure providers in YAML:</strong>
                     </P>
-                    <CodeBlock lang="bash">{`# 1. Describe the provider in ~/.sig/config.yaml
-providers:
+                    <CodeBlock lang="yaml">{`providers:
   my-jira:
-    url: https://jira.example.com
+    url: https://my-jira.example.com
     strategy: cookie
-    requiredCookies: [SESSION]
+    requiredCookies: [SESSION]`}</CodeBlock>
 
-# 2. Authenticate once — headless first, visible on login page detection
-$ sig login https://jira.example.com
+                    <P>
+                        <strong>
+                            Step 2 — Authenticate once (browser SSO, headless → visible):
+                        </strong>
+                    </P>
+                    <CodeBlock lang="bash">{`$ sig login https://my-jira.example.com
 → chromium headless …
 ⚠ login page detected — opening window
 ✓ captured 4 cookies · 2 x-headers
-✓ sealed under ~/.sig/credentials/my-jira.json
+✓ sealed under ~/.sig/credentials/my-jira.json`}</CodeBlock>
 
-# 3. Use credentials via sig run — nothing leaks to shell
+                    <P>
+                        <strong>Step 3 — Your AI agent operates:</strong>
+                    </P>
+                    <CodeBlock lang="bash">{`# sig run — inject credentials as env vars
 $ sig run my-jira -- python fetch_issues.py
-$ sig run my-jira -- node export_board.js`}</CodeBlock>
+
+# sig proxy — zero-trust MITM injection
+$ HTTP_PROXY=http://127.0.0.1:8080 claude "fetch all open issues from my-jira"
+
+# sig request — direct authenticated HTTP
+$ sig request https://my-jira.example.com/rest/api/2/myself`}</CodeBlock>
                 </>
             ),
             aside: (
                 <>
                     <P>
                         The hybrid browser flow is the key insight — headless is fast and invisible,
-                        but real login pages need a visible window. Sigcli detects the difference
+                        but real login pages need a visible window. sig detects the difference
                         automatically.
                     </P>
                     <P>
@@ -186,41 +228,72 @@ $ sig run my-jira -- node export_board.js`}</CodeBlock>
                     </SectionHeading>
                     <List>
                         <Li>
-                            <strong>MITM proxy</strong> — <Code>sig proxy start</Code> runs a local
-                            HTTPS proxy at <Code>127.0.0.1</Code>. Agents set{' '}
-                            <Code>HTTP_PROXY</Code>/<Code>HTTPS_PROXY</Code> and credentials are
-                            injected transparently — the agent never sees tokens. Ideal for
-                            long-lived daemons or tools that can't be wrapped with{' '}
-                            <Code>sig run</Code>.
+                            <strong>MITM proxy</strong> — zero-trust credential injection.{' '}
+                            <Code>sig proxy start</Code> runs a local HTTPS proxy at{' '}
+                            <Code>127.0.0.1</Code>. Your agent sets <Code>HTTP_PROXY</Code>/
+                            <Code>HTTPS_PROXY</Code> and sig handles the rest. The agent
+                            authenticates — it never sees tokens.
                         </Li>
                         <Li>
                             <strong>sig run</strong> — inject <Code>SIG_&lt;PROVIDER&gt;_*</Code>{' '}
-                            credentials directly into any child process. Values are redacted from
-                            output. The recommended way to use credentials.
+                            env vars into any process. Multi-provider. Output redacted. The simplest
+                            way to give an agent access to a single service.
                         </Li>
                         <Li>
-                            <strong>4 strategies</strong> — <Code>cookie</Code> (browser SSO),{' '}
+                            <strong>4 auth strategies</strong> — <Code>cookie</Code> (browser SSO),{' '}
                             <Code>oauth2</Code> (Bearer/JWT), <Code>api-token</Code> (static keys),{' '}
                             <Code>basic</Code> (username/password). Auto-detected or forced with{' '}
                             <Code>--strategy</Code>.
                         </Li>
                         <Li>
-                            <strong>Browser adapters</strong> — Playwright (default) or Chrome CDP.
-                            Headless with automatic visible fallback. Pluggable for custom adapters.
+                            <strong>Encrypted at rest</strong> — AES-256-GCM. Every credential
+                            access is audit-logged. Legacy unencrypted files are automatically
+                            re-encrypted on read.
                         </Li>
                         <Li>
-                            <strong>SSH sync</strong> — sign in on your laptop, push to CI or remote
-                            servers with <Code>sig sync push</Code>. No daemon required.
-                        </Li>
-                        <Li>
-                            <strong>AI agent ready</strong> — stable CLI surface with predictable
-                            exit codes and JSON output. No MCP server needed.
+                            <strong>SSH sync</strong> — log in on your laptop, push credentials to
+                            CI or remote servers with <Code>sig sync push</Code>. No daemon
+                            required.
                         </Li>
                         <Li>
                             <strong>TypeScript & Python SDKs</strong> — thin wrappers around the CLI
-                            for programmatic use.
+                            for programmatic use in agents and scripts.
                         </Li>
                     </List>
+                </>
+            ),
+            aside: (
+                <P>
+                    sig works with any AI agent that can run shell commands or set environment
+                    variables — Claude Code, Cursor, Copilot, custom scripts. No MCP server, no SDK
+                    required.
+                </P>
+            ),
+        },
+
+        /* ── Security ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="security" level={1}>
+                        Security
+                    </SectionHeading>
+                    <P>
+                        sig provides four ways for agents to use credentials, ordered from most to
+                        least secure:
+                    </P>
+                    <CodeBlock lang="diagram" showLineNumbers={false}>{`
+ Method          Security    How
+ ─────────────────────────────────────────────────────────────────────────────
+ sig proxy       Highest     MITM daemon — credentials never leave proxy memory
+ sig request     High        Direct authenticated HTTP — credentials in-process only
+ sig run         Moderate    Env vars injected — output redacted
+ sig get         Low         Prints to stdout — use with caution
+`}</CodeBlock>
+                    <P>
+                        For AI agents, use <Code>sig proxy</Code> (best) or <Code>sig request</Code>
+                        . Never pipe <Code>sig get</Code> output into agent context.
+                    </P>
                     <P>
                         <A href="/docs/">Full documentation →</A>
                     </P>
@@ -228,8 +301,9 @@ $ sig run my-jira -- node export_board.js`}</CodeBlock>
             ),
             aside: (
                 <P>
-                    <Code>sig run my-jira -- env | grep SIG_MY_JIRA_</Code> is the quickest way to
-                    discover exactly which environment variables are available for a provider.
+                    The encryption key lives at <Code>~/.sig/encryption.key</Code> (mode{' '}
+                    <Code>0400</Code>). Every credential file is encrypted with a unique nonce —
+                    even if one file is compromised, others remain safe.
                 </P>
             ),
         },

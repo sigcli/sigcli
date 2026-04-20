@@ -82,7 +82,7 @@ export const pageContent = {
         tocItem('#commands', 'Commands'),
         tocItem('#cmd-init', 'sig init', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-doctor', 'sig doctor', { level: 1, parent: '#commands', prefix: '├ ' }),
-        tocItem('#cmd-run', 'sig run ★', { level: 1, parent: '#commands', prefix: '├ ' }),
+        tocItem('#cmd-run', 'sig run', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-login', 'sig login', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-logout', 'sig logout', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-get', 'sig get', { level: 1, parent: '#commands', prefix: '├ ' }),
@@ -635,7 +635,7 @@ sig init --channel chrome   # use a specific browser (chrome|msedge|chromium)`}<
                     <CodeBlock lang="bash">{`sig doctor`}</CodeBlock>
 
                     <SectionHeading id="cmd-run" level={2}>
-                        sig run ★
+                        sig run
                     </SectionHeading>
                     <P>
                         <strong>The recommended way to use credentials.</strong> Runs any command

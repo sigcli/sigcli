@@ -91,7 +91,7 @@ export const pageContent = {
         tocItem('#commands', '命令参考'),
         tocItem('#cmd-init', 'sig init', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-doctor', 'sig doctor', { level: 1, parent: '#commands', prefix: '├ ' }),
-        tocItem('#cmd-run', 'sig run ★', { level: 1, parent: '#commands', prefix: '├ ' }),
+        tocItem('#cmd-run', 'sig run', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-login', 'sig login', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-logout', 'sig logout', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-get', 'sig get', { level: 1, parent: '#commands', prefix: '├ ' }),
@@ -860,7 +860,7 @@ sig init --channel chrome   # 指定浏览器（chrome|msedge|chromium）`}</Cod
                     <CodeBlock lang="bash">{`sig doctor`}</CodeBlock>
 
                     <SectionHeading id="cmd-run" level={2}>
-                        sig run ★
+                        sig run
                     </SectionHeading>
                     <P>
                         <strong>使用凭证的推荐方式。</strong>运行任意命令，同时注入{' '}
