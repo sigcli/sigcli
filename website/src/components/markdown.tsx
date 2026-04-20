@@ -1563,6 +1563,7 @@ export function EditorialPage({
     sections,
     hero,
     languageSwitcher,
+    locale = 'en',
 }: {
     toc: FlatTocItem[];
     logo?: string;
@@ -1575,6 +1576,7 @@ export function EditorialPage({
     hero?: React.ReactNode;
     /** Language switcher rendered in the header */
     languageSwitcher?: React.ReactNode;
+    locale?: 'en' | 'zh';
 }) {
     return (
         <div
@@ -1586,32 +1588,42 @@ export function EditorialPage({
             {/* Header: single row — logo + GitHub button, border aligned with content grid */}
             <div className="slot-navbar">
                 <div className="mx-auto flex items-center justify-between px-(--mobile-padding) py-(--header-padding-y) lg:max-w-(--grid-max-width) lg:px-0">
-                    <a href="/" className="slot-logo no-underline flex items-center">
-                        {logo ? (
-                            <div
-                                role="img"
-                                aria-label="playwriter"
-                                style={{
-                                    height: 'var(--logo-height)',
-                                    aspectRatio: '730 / 201',
-                                    backgroundColor: 'var(--logo-color)',
-                                    maskImage: `url(${logo})`,
-                                    maskSize: 'contain',
-                                    maskRepeat: 'no-repeat',
-                                    WebkitMaskImage: `url(${logo})`,
-                                    WebkitMaskSize: 'contain',
-                                    WebkitMaskRepeat: 'no-repeat',
-                                }}
-                            />
-                        ) : (
-                            <span className="text-[15px] font-bold [font-family:var(--font-code)] lowercase tracking-[-0.01em]">
-                                index
-                            </span>
-                        )}
+                    <a href={locale === 'zh' ? '/zh/' : '/'} className="slot-logo no-underline flex items-center">
+                        <span
+                            style={{
+                                fontFamily: "'Bubblegum Sans', cursive",
+                                fontSize: '22px',
+                                color: 'var(--text-primary)',
+                            }}
+                        >
+                            Sigcli
+                        </span>
                     </a>
 
                     <div className="flex items-center gap-4">
-                        {languageSwitcher}
+                        {/* Docs button */}
+                        <a
+                            href={locale === 'zh' ? '/zh/docs/' : '/docs/'}
+                            className="no-underline flex items-center gap-1.5 px-3 py-1 rounded-md text-(length:--type-toc-size) font-[475] [font-family:var(--font-primary)] transition-colors duration-150"
+                            style={{
+                                color: 'var(--text-secondary)',
+                                border: '1px solid var(--page-border)',
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.color = 'var(--text-primary)';
+                                e.currentTarget.style.borderColor = 'var(--text-tertiary)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.color = 'var(--text-secondary)';
+                                e.currentTarget.style.borderColor = 'var(--page-border)';
+                            }}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                            </svg>
+                            Docs
+                        </a>
                         {/* GitHub button */}
                         <a
                             href="https://github.com/sigcli/sigcli"
@@ -1636,6 +1648,7 @@ export function EditorialPage({
                             </svg>
                             GitHub
                         </a>
+                        {languageSwitcher}
                         {/* Icon links */}
                         {headerLinks && headerLinks.length > 0 && (
                             <div className="flex items-center gap-3">
