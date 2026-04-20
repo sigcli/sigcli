@@ -1,6 +1,10 @@
 # Sigcli
 
-**Connect your systems. Let AI do the rest.**
+**Sign in your way. AI works on your behalf.**
+
+<p align="center">
+  <img src="website/public/demo.gif" alt="sig demo" width="720" />
+</p>
 
 AI agents need access to your work systems — Jira, wikis, calendars, internal APIs. But passing credentials through shell history, environment variables, and agent context windows is a security nightmare.
 
