@@ -60,6 +60,18 @@ export const pageContent = {
                 The authentication layer for AI agents. Log in once in your browser — your AI agent
                 handles the rest.
             </p>
+            <div style={{ margin: '24px 0 0' }}>
+                <img
+                    src="/demo.gif"
+                    alt="sig demo — login, status, request, run, proxy"
+                    style={{
+                        width: '100%',
+                        maxWidth: '720px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-primary)',
+                    }}
+                />
+            </div>
         </div>
     ),
 
@@ -149,18 +161,6 @@ curl https://my-jira.example.com/rest/api/2/myself`}</CodeBlock>
                         Three steps: configure, authenticate once, let your AI agent operate. The
                         auth flow runs once; every subsequent call reads from encrypted storage.
                     </P>
-                    <div style={{ margin: '24px 0' }}>
-                        <img
-                            src="/demo.gif"
-                            alt="sig demo — login, status, request, run, proxy"
-                            style={{
-                                width: '100%',
-                                maxWidth: '720px',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-primary)',
-                            }}
-                        />
-                    </div>
 
                     <CodeBlock lang="diagram" showLineNumbers={false}>{`
  ┌──────────────────┐    ┌───────────────────────┐    ┌──────────────────────┐
