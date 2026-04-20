@@ -53,7 +53,6 @@ export const pageContent = {
                     fontWeight: 400,
                     lineHeight: 1.55,
                     color: 'var(--text-primary)',
-                    opacity: 0.72,
                     margin: 0,
                 }}
             >
@@ -309,6 +308,7 @@ $ sig request https://my-jira.example.com/rest/api/2/myself`}</CodeBlock>
                     <P>
                         <A href="/docs/">Full documentation →</A>
                     </P>
+                    <div style={{ paddingBottom: '80px' }} />
                 </>
             ),
             aside: (

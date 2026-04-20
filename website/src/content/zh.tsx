@@ -53,7 +53,6 @@ export const pageContent = {
                     fontWeight: 400,
                     lineHeight: 1.55,
                     color: 'var(--text-primary)',
-                    opacity: 0.72,
                     margin: 0,
                 }}
             >
@@ -337,6 +336,7 @@ $ sig run my-api -- node sync_data.js`}</CodeBlock>
                             </tr>
                         </tbody>
                     </table>
+                    <div style={{ paddingBottom: '80px' }} />
                 </>
             ),
             aside: (
