@@ -1,6 +1,10 @@
-# Sigcli
+# sig
 
-**sig** — short for _signet_, a personal seal of authority. `sig` signs requests on your behalf: it handles browser SSO, stores tokens, and injects credentials into any command — so your tools authenticate without ever seeing secrets.
+**Connect your systems. Let AI do the rest.**
+
+AI agents need access to your work systems — Jira, wikis, calendars, internal APIs. But passing credentials through shell history, environment variables, and agent context windows is a security nightmare.
+
+**sig** handles browser SSO, encrypts credentials at rest, and injects them into any process — so your agents authenticate without ever seeing secrets.
 
 ```bash
 npm install -g @sigcli/cli
@@ -9,102 +13,33 @@ npm install -g @sigcli/cli
 ## Quick Start
 
 ```bash
-sig init                                      # Create ~/.sig/config.yaml
-sig login https://jira.example.com            # Authenticate via browser SSO
+sig init                              # create ~/.sig/config.yaml
+sig login https://jira.example.com    # authenticate via browser SSO — once
 
-sig request https://jira.example.com/rest/api/2/myself                                   # Authenticated request
-sig run my-jira -- bash -c 'python fetch.py --cookie "$SIG_MY_JIRA_COOKIE"'              # Credentials as env vars
-
-# Or use a local MITM proxy — agents set HTTP_PROXY and credentials are injected transparently
-sig proxy start
-export HTTP_PROXY=http://127.0.0.1:7891 HTTPS_PROXY=http://127.0.0.1:7891
-curl https://jira.example.com/api/me   # credentials injected by proxy, agent never sees them
+# now your AI agent can work on your behalf:
+sig request https://jira.example.com/rest/api/2/myself
+sig request https://jira.example.com/rest/api/2/search --method POST --body '{"jql":"assignee=currentUser()"}'
 ```
 
-Credentials are injected as `SIG_<PROVIDER>_*` env vars and never appear in your shell or logs. All credential files are encrypted at rest (AES-256-GCM).
+## Why sig
 
-## Commands
+- **Browser SSO** — signs in through a real browser. Works with any website, any login flow.
+- **Encrypted at rest** — AES-256-GCM encryption. Every access is audit-logged.
+- **Multi-provider** — inject credentials from multiple systems in a single command.
+- **MITM proxy** — agents set `HTTP_PROXY` and credentials are injected transparently. Zero-trust.
+- **AI-native** — stable CLI with predictable exit codes and JSON output. Built for agents.
 
-**Setup**
+## How It Works
 
-| Command                  | Description                                   |
-| ------------------------ | --------------------------------------------- |
-| `sig init`               | Create `~/.sig/config.yaml` (interactive)     |
-| `sig doctor`             | Check environment, config, and encryption key |
-| `sig completion <shell>` | Shell completion (bash\|zsh\|fish)            |
-
-**Authentication**
-
-| Command                 | Description                  |
-| ----------------------- | ---------------------------- |
-| `sig login <url>`       | Authenticate via browser SSO |
-| `sig logout [provider]` | Clear credentials            |
-
-**Credentials**
-
-| Command                          | Description                                                              |
-| -------------------------------- | ------------------------------------------------------------------------ |
-| `sig request <url>`              | Make an authenticated HTTP request (credentials stay internal)           |
-| `sig run [provider...] -- <cmd>` | **Run command with credentials injected as `SIG_<PROVIDER>_*` env vars** |
-| `sig status [provider]`          | Show auth status                                                         |
-| `sig get <provider\|url>`        | Retrieve credential headers (prints to stdout — see Security)            |
-
-**Provider management**
-
-| Command                  | Description               |
-| ------------------------ | ------------------------- |
-| `sig providers`          | List configured providers |
-| `sig rename <old> <new>` | Rename a provider         |
-| `sig remove <provider>`  | Remove a provider         |
-
-**Remote & sync**
-
-| Command                        | Description               |
-| ------------------------------ | ------------------------- |
-| `sig remote add\|remove\|list` | Manage SSH remotes        |
-| `sig sync push\|pull [remote]` | Sync credentials over SSH |
-
-**Watch**
-
-| Command                               | Description              |
-| ------------------------------------- | ------------------------ |
-| `sig watch add\|remove\|set-interval` | Auto-refresh credentials |
-
-**Proxy**
-
-| Command                      | Description                        |
-| ---------------------------- | ---------------------------------- |
-| `sig proxy start [--port N]` | Start MITM proxy daemon            |
-| `sig proxy stop`             | Stop proxy daemon                  |
-| `sig proxy status`           | Show proxy status                  |
-| `sig proxy trust`            | Print CA cert path for trust setup |
-
-Run `sig --help` or `sig <command> --help` for full options.
-
-## Security
-
-Sigcli offers four ways to use credentials, ranked by isolation level:
-
-| Method        | How                                                            | Security               |
-| ------------- | -------------------------------------------------------------- | ---------------------- |
-| `sig proxy`   | MITM daemon on localhost; credentials never leave proxy memory | Highest                |
-| `sig request` | Direct authenticated HTTP; credentials in-process only         | High                   |
-| `sig run`     | Injects `SIG_*` env vars into child process; redacts output    | Moderate               |
-| `sig get`     | Prints credentials to stdout                                   | Low — use with caution |
-
-All credentials are encrypted at rest (AES-256-GCM). Every access is logged to `~/.sig/audit.log`.
-
-**For AI agents**, use `sig proxy` (best) or `sig run`. Never pipe `sig get` output into agent context.
-
-See the [full security documentation](https://sigcli.ai/docs/#security) for threat models and recommendations.
+```
+You log in once               sig stores & encrypts             AI agent operates
+in your browser         -->   credentials locally          -->  on your behalf
+(browser SSO)                 (~/.sig/credentials/)             (sig request / sig proxy)
+```
 
 ## Documentation
 
-Full docs, configuration reference, and examples at **[sigcli.ai](https://sigcli.ai)**.
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, architecture overview, conventions, and how to add new strategies, adapters, or commands.
+Full docs, configuration, strategies, SDK, and AI agent integration guide at **[sigcli.ai](https://sigcli.ai)**.
 
 ## License
 

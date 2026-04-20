@@ -763,11 +763,11 @@ export function Caption({ children }: { children: React.ReactNode }) {
 }
 
 export function A({ href, children }: { href: string; children: React.ReactNode }) {
+    const isExternal = href.startsWith('http://') || href.startsWith('https://');
     return (
         <a
             href={href}
-            target="_blank"
-            rel="noopener noreferrer"
+            {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
             style={{
                 color: 'var(--link-accent, #0969da)',
                 fontWeight: WEIGHT.heading,
