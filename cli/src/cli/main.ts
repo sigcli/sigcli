@@ -87,22 +87,26 @@ Authentication:
     --force                      Skip stored/refresh check, go straight to browser
   logout [provider]            Clear credentials (all if none specified)
 
-Credentials:
-  get <provider|url>           Retrieve credential headers
-    --format json|header|value   Output format (default: json)
-    --no-redaction               Output raw (unredacted) credential values
-  request <url>                Make an authenticated HTTP request
+Credentials (most → least secure):
+  proxy start [--port 8080]    Start MITM proxy daemon (credentials never leave proxy process)
+  proxy stop                   Stop proxy daemon
+  proxy status                 Show proxy status and env-var hints
+  proxy trust                  Print CA cert path for OS trust setup
+  request <url>                Make authenticated HTTP request (credentials in-process only)
     --method <METHOD>            HTTP method (default: GET)
     --body <json>                Request body
     --header "Name: Value"       Custom header (repeatable)
     --format json|body|headers   Output format (default: json)
-  status [provider]            Show authentication status
-    --format json|yaml|env|table|plain  Output format
-  run [provider...] -- <cmd>   Run command with SIG_<PROVIDER>_* env vars injected
+  run [provider...] -- <cmd>   Run command with SIG_* env vars (redacted output)
     --expand-cookies             Expand individual cookies as SIG_COOKIE_<NAME>=value
     --mount <path>               Write credentials to file instead of env vars
     --mount-format env|json      File format for --mount (default: env)
     No providers: injects all valid credentials. Vars always prefixed: SIG_<PROVIDER>_*
+  get <provider|url>           Retrieve credential headers (⚠ prints to stdout)
+    --format json|header|value   Output format (default: json)
+    --no-redaction               Output raw (unredacted) credential values
+  status [provider]            Show authentication status
+    --format json|yaml|env|table|plain  Output format
 
 Provider management:
   providers                    List configured providers
@@ -130,12 +134,6 @@ Watch:
   watch remove <provider>      Remove provider from watch list
   watch set-interval <dur>     Set default check interval
 
-Proxy:
-  proxy start [--port 8080]    Start MITM proxy daemon in background
-  proxy stop                   Stop proxy daemon
-  proxy status                 Show proxy status and env-var hints
-  proxy trust                  Print CA cert path for OS trust setup
-
 Setup:
   init                         Create ~/.sig/config.yaml
     --remote                     Headless machine setup (mode: browserless)
@@ -144,6 +142,8 @@ Setup:
     --channel <name>             Browser channel (msedge|chrome|chromium)
   doctor                       Check environment, config, and encryption key
   completion <shell>           Generate shell completion script (bash|zsh|fish)
+
+Security: proxy ≥ request > run > get. Full docs at https://sigcli.ai/docs/#security
 
 Global options:
   --verbose                    Debug output to stderr

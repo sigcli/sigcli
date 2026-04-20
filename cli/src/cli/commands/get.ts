@@ -27,7 +27,9 @@ export async function runGet(
 ): Promise<void> {
     const target = positionals[0];
     if (!target) {
-        process.stderr.write('Usage: sig get <provider|url>\n');
+        process.stderr.write(
+            'Usage: sig get <provider|url>\n\n⚠ Least secure method — credentials may appear in stdout, shell history, and pipes.\nValues are redacted by default. Use --no-redaction only when needed.\nPrefer "sig request" or "sig run" for automation.\n',
+        );
         process.exitCode = ExitCode.GENERAL_ERROR;
         return;
     }
