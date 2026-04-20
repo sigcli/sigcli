@@ -1,0 +1,89 @@
+name: Unrelease
+
+on:
+    workflow_dispatch:
+        inputs:
+            package:
+                description: Package to unrelease
+                required: true
+                type: choice
+                options:
+                    - '@sigcli/cli'
+                    - '@sigcli/sdk'
+            version:
+                description: Version to unrelease (e.g. 1.1.1)
+                required: true
+                type: string
+            action:
+                description: Action to take
+                required: true
+                type: choice
+                options:
+                    - deprecate
+                    - unpublish
+                default: deprecate
+
+jobs:
+    unrelease:
+        name: Unrelease ${{ inputs.package }}@${{ inputs.version }} (${{ inputs.action }})
+        runs-on: ubuntu-latest
+
+        if: github.ref == 'refs/heads/main'
+
+        permissions:
+            contents: write
+
+        steps:
+            - name: Setup Node.js 22
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  registry-url: https://registry.npmjs.org
+
+            - name: Verify version exists
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+              run: |
+                  PKG="${{ inputs.package }}"
+                  VER="${{ inputs.version }}"
+                  if ! npm view "${PKG}@${VER}" version 2>/dev/null; then
+                    echo "::error::${PKG}@${VER} not found on npm."
+                    exit 1
+                  fi
+                  echo "Found ${PKG}@${VER} on npm."
+
+            - name: Deprecate version
+              if: inputs.action == 'deprecate'
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+              run: |
+                  PKG="${{ inputs.package }}"
+                  VER="${{ inputs.version }}"
+                  npm deprecate "${PKG}@${VER}" "This version has been deprecated. Please use a newer version."
+                  echo "## Deprecated \`${PKG}@${VER}\`" >> "$GITHUB_STEP_SUMMARY"
+
+            - name: Unpublish version
+              if: inputs.action == 'unpublish'
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+              run: |
+                  PKG="${{ inputs.package }}"
+                  VER="${{ inputs.version }}"
+                  npm unpublish "${PKG}@${VER}" --force
+                  echo "## Unpublished \`${PKG}@${VER}\`" >> "$GITHUB_STEP_SUMMARY"
+                  echo ""
+                  echo "::warning::npm will not allow re-publishing this exact version for 24 hours."
+
+            - name: Delete GitHub release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  PKG="${{ inputs.package }}"
+                  VER="${{ inputs.version }}"
+                  TAG="${PKG//\//-}-v${VER}"
+                  if gh release view "${TAG}" --repo "${{ github.repository }}" 2>/dev/null; then
+                    gh release delete "${TAG}" --repo "${{ github.repository }}" --yes
+                    echo "Deleted GitHub release ${TAG}"
+                  else
+                    echo "No GitHub release found for ${TAG} (skipping)"
+                  fi
