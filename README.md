@@ -1,4 +1,4 @@
-# sig
+# Sigcli
 
 **Connect your systems. Let AI do the rest.**
 
