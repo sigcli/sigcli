@@ -45,16 +45,40 @@ export const pageContent = {
             parent: '#getting-started',
             prefix: '├ ',
         }),
-        tocItem('#onboard-proxy', 'Try: sig proxy', { level: 1, parent: '#getting-started', prefix: '├ ' }),
-        tocItem('#onboard-request', 'Try: sig request', { level: 1, parent: '#getting-started', prefix: '├ ' }),
-        tocItem('#onboard-choosing', 'Choosing a method', { level: 1, parent: '#getting-started', prefix: '└ ' }),
+        tocItem('#onboard-proxy', 'Try: sig proxy', {
+            level: 1,
+            parent: '#getting-started',
+            prefix: '├ ',
+        }),
+        tocItem('#onboard-request', 'Try: sig request', {
+            level: 1,
+            parent: '#getting-started',
+            prefix: '├ ',
+        }),
+        tocItem('#onboard-choosing', 'Choosing a method', {
+            level: 1,
+            parent: '#getting-started',
+            prefix: '└ ',
+        }),
         tocItem('#security', 'Security Model'),
-        tocItem('#security-hierarchy', 'Credential access methods', { level: 1, parent: '#security', prefix: '├ ' }),
+        tocItem('#security-hierarchy', 'Credential access methods', {
+            level: 1,
+            parent: '#security',
+            prefix: '├ ',
+        }),
         tocItem('#security-proxy', 'sig proxy', { level: 2, parent: '#security', prefix: '│  ├ ' }),
-        tocItem('#security-request', 'sig request', { level: 2, parent: '#security', prefix: '│  ├ ' }),
+        tocItem('#security-request', 'sig request', {
+            level: 2,
+            parent: '#security',
+            prefix: '│  ├ ',
+        }),
         tocItem('#security-run', 'sig run', { level: 2, parent: '#security', prefix: '│  ├ ' }),
         tocItem('#security-get', 'sig get', { level: 2, parent: '#security', prefix: '│  └ ' }),
-        tocItem('#security-shared', 'Shared protections', { level: 1, parent: '#security', prefix: '└ ' }),
+        tocItem('#security-shared', 'Shared protections', {
+            level: 1,
+            parent: '#security',
+            prefix: '└ ',
+        }),
         tocItem('#commands', 'Commands'),
         tocItem('#cmd-init', 'sig init', { level: 1, parent: '#commands', prefix: '├ ' }),
         tocItem('#cmd-doctor', 'sig doctor', { level: 1, parent: '#commands', prefix: '├ ' }),
@@ -178,10 +202,13 @@ sig run my-jira -- curl https://jira.example.com/api/me
 # Run a Python script
 sig run my-jira -- python fetch_issues.py`}</CodeBlock>
 
-                    <SectionHeading id="onboard-proxy" level={2}>Try: sig proxy</SectionHeading>
+                    <SectionHeading id="onboard-proxy" level={2}>
+                        Try: sig proxy
+                    </SectionHeading>
                     <P>
-                        The proxy is the <strong>most secure</strong> way to use credentials. It runs a local MITM daemon
-                        that intercepts HTTPS traffic and injects credentials transparently — your tools never see the tokens.
+                        The proxy is the <strong>most secure</strong> way to use credentials. It
+                        runs a local MITM daemon that intercepts HTTPS traffic and injects
+                        credentials transparently — your tools never see the tokens.
                     </P>
                     <CodeBlock lang="bash">{`# Start the proxy daemon
 sig proxy start
@@ -199,10 +226,13 @@ curl https://jira.example.com/rest/api/2/myself
 # When done
 sig proxy stop`}</CodeBlock>
 
-                    <SectionHeading id="onboard-request" level={2}>Try: sig request</SectionHeading>
+                    <SectionHeading id="onboard-request" level={2}>
+                        Try: sig request
+                    </SectionHeading>
                     <P>
-                        For one-off API calls, <Code>sig request</Code> makes an authenticated HTTP request directly.
-                        Credentials stay inside the CLI process and are never exposed to subprocesses or shell history.
+                        For one-off API calls, <Code>sig request</Code> makes an authenticated HTTP
+                        request directly. Credentials stay inside the CLI process and are never
+                        exposed to subprocesses or shell history.
                     </P>
                     <CodeBlock lang="bash">{`# Simple GET request
 sig request https://jira.example.com/rest/api/2/myself
@@ -213,9 +243,12 @@ sig request https://api.example.com/data --method POST --body '{"key": "value"}'
 # Just the response body
 sig request https://api.example.com/me --format body`}</CodeBlock>
 
-                    <SectionHeading id="onboard-choosing" level={2}>Choosing a method</SectionHeading>
+                    <SectionHeading id="onboard-choosing" level={2}>
+                        Choosing a method
+                    </SectionHeading>
                     <P>
-                        Pick the method that matches your use case. When in doubt, prefer higher security.
+                        Pick the method that matches your use case. When in doubt, prefer higher
+                        security.
                     </P>
                     <div className="w-full max-w-full overflow-x-auto" style={{ padding: '8px 0' }}>
                         <table
@@ -244,15 +277,65 @@ sig request https://api.example.com/me --format body`}</CodeBlock>
                             </thead>
                             <tbody>
                                 {[
-                                    ['Long-lived daemon or AI agent', 'sig proxy', 'Credentials never leave proxy process'],
-                                    ['One-off API call or script', 'sig request', 'Credentials in-process only, never on disk/env'],
-                                    ['Wrapping a tool that reads env vars', 'sig run', 'Injects SIG_* env vars, redacts output'],
-                                    ['Debugging credential values', 'sig get', 'Prints to stdout — use with caution'],
+                                    [
+                                        'Long-lived daemon or AI agent',
+                                        'sig proxy',
+                                        'Credentials never leave proxy process',
+                                    ],
+                                    [
+                                        'One-off API call or script',
+                                        'sig request',
+                                        'Credentials in-process only, never on disk/env',
+                                    ],
+                                    [
+                                        'Wrapping a tool that reads env vars',
+                                        'sig run',
+                                        'Injects SIG_* env vars, redacts output',
+                                    ],
+                                    [
+                                        'Debugging credential values',
+                                        'sig get',
+                                        'Prints to stdout — use with caution',
+                                    ],
                                 ].map(([useCase, recommended, why]) => (
                                     <tr key={useCase}>
-                                        <td style={{ padding: '4px 12px 4px 0', fontSize: 'var(--type-table-size)', fontFamily: 'var(--font-primary)', fontWeight: 475, color: 'var(--text-primary)', borderBottom: '1px solid var(--page-border)' }}>{useCase}</td>
-                                        <td style={{ padding: '4px 12px 4px 0', fontSize: 'var(--type-table-size)', fontFamily: 'var(--font-code)', fontWeight: 475, color: 'var(--text-primary)', borderBottom: '1px solid var(--page-border)', whiteSpace: 'nowrap' }}>{recommended}</td>
-                                        <td style={{ padding: '4px 12px 4px 0', fontSize: 'var(--type-table-size)', fontFamily: 'var(--font-primary)', fontWeight: 475, color: 'var(--text-primary)', borderBottom: '1px solid var(--page-border)' }}>{why}</td>
+                                        <td
+                                            style={{
+                                                padding: '4px 12px 4px 0',
+                                                fontSize: 'var(--type-table-size)',
+                                                fontFamily: 'var(--font-primary)',
+                                                fontWeight: 475,
+                                                color: 'var(--text-primary)',
+                                                borderBottom: '1px solid var(--page-border)',
+                                            }}
+                                        >
+                                            {useCase}
+                                        </td>
+                                        <td
+                                            style={{
+                                                padding: '4px 12px 4px 0',
+                                                fontSize: 'var(--type-table-size)',
+                                                fontFamily: 'var(--font-code)',
+                                                fontWeight: 475,
+                                                color: 'var(--text-primary)',
+                                                borderBottom: '1px solid var(--page-border)',
+                                                whiteSpace: 'nowrap',
+                                            }}
+                                        >
+                                            {recommended}
+                                        </td>
+                                        <td
+                                            style={{
+                                                padding: '4px 12px 4px 0',
+                                                fontSize: 'var(--type-table-size)',
+                                                fontFamily: 'var(--font-primary)',
+                                                fontWeight: 475,
+                                                color: 'var(--text-primary)',
+                                                borderBottom: '1px solid var(--page-border)',
+                                            }}
+                                        >
+                                            {why}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -272,13 +355,17 @@ sig request https://api.example.com/me --format body`}</CodeBlock>
         {
             content: (
                 <>
-                    <SectionHeading id="security" level={1}>Security Model</SectionHeading>
+                    <SectionHeading id="security" level={1}>
+                        Security Model
+                    </SectionHeading>
                     <P>
-                        Sigcli offers four ways to access credentials. Each makes a different tradeoff
-                        between security and convenience. Listed from most to least secure:
+                        Sigcli offers four ways to access credentials. Each makes a different
+                        tradeoff between security and convenience. Listed from most to least secure:
                     </P>
 
-                    <SectionHeading id="security-hierarchy" level={2}>Credential access methods</SectionHeading>
+                    <SectionHeading id="security-hierarchy" level={2}>
+                        Credential access methods
+                    </SectionHeading>
                     <div className="w-full max-w-full overflow-x-auto" style={{ padding: '8px 0' }}>
                         <table
                             className="w-full"
@@ -286,7 +373,13 @@ sig request https://api.example.com/me --format body`}</CodeBlock>
                         >
                             <thead>
                                 <tr>
-                                    {['Method', 'Credential Exposure', 'Lifetime', 'Visible To', 'Security'].map((h) => (
+                                    {[
+                                        'Method',
+                                        'Credential Exposure',
+                                        'Lifetime',
+                                        'Visible To',
+                                        'Security',
+                                    ].map((h) => (
                                         <th
                                             key={h}
                                             className="text-left"
@@ -306,74 +399,200 @@ sig request https://api.example.com/me --format body`}</CodeBlock>
                             </thead>
                             <tbody>
                                 {[
-                                    ['sig proxy', 'Never leaves proxy process', 'Proxy daemon lifetime', 'Nothing external', '●●●●● Highest'],
-                                    ['sig request', 'In-process memory only', '~100ms per request', 'Nothing external', '●●●●○ High'],
-                                    ['sig run', 'Child process env vars', 'Child process lifetime', '/proc/PID/environ, child processes', '●●●○○ Moderate'],
-                                    ['sig get', 'Printed to stdout', 'Captured by shell', 'Terminal, shell history, pipes', '●●○○○ Low'],
+                                    [
+                                        'sig proxy',
+                                        'Never leaves proxy process',
+                                        'Proxy daemon lifetime',
+                                        'Nothing external',
+                                        '●●●●● Highest',
+                                    ],
+                                    [
+                                        'sig request',
+                                        'In-process memory only',
+                                        '~100ms per request',
+                                        'Nothing external',
+                                        '●●●●○ High',
+                                    ],
+                                    [
+                                        'sig run',
+                                        'Child process env vars',
+                                        'Child process lifetime',
+                                        '/proc/PID/environ, child processes',
+                                        '●●●○○ Moderate',
+                                    ],
+                                    [
+                                        'sig get',
+                                        'Printed to stdout',
+                                        'Captured by shell',
+                                        'Terminal, shell history, pipes',
+                                        '●●○○○ Low',
+                                    ],
                                 ].map(([method, exposure, lifetime, visibleTo, security]) => (
                                     <tr key={method}>
-                                        <td style={{ padding: '4px 12px 4px 0', fontSize: 'var(--type-table-size)', fontFamily: 'var(--font-code)', fontWeight: 475, color: 'var(--text-primary)', borderBottom: '1px solid var(--page-border)', whiteSpace: 'nowrap' }}>{method}</td>
-                                        <td style={{ padding: '4px 12px 4px 0', fontSize: 'var(--type-table-size)', fontFamily: 'var(--font-primary)', fontWeight: 475, color: 'var(--text-primary)', borderBottom: '1px solid var(--page-border)' }}>{exposure}</td>
-                                        <td style={{ padding: '4px 12px 4px 0', fontSize: 'var(--type-table-size)', fontFamily: 'var(--font-primary)', fontWeight: 475, color: 'var(--text-primary)', borderBottom: '1px solid var(--page-border)', whiteSpace: 'nowrap' }}>{lifetime}</td>
-                                        <td style={{ padding: '4px 12px 4px 0', fontSize: 'var(--type-table-size)', fontFamily: 'var(--font-primary)', fontWeight: 475, color: 'var(--text-primary)', borderBottom: '1px solid var(--page-border)' }}>{visibleTo}</td>
-                                        <td style={{ padding: '4px 12px 4px 0', fontSize: 'var(--type-table-size)', fontFamily: 'var(--font-code)', fontWeight: 475, color: 'var(--text-primary)', borderBottom: '1px solid var(--page-border)', whiteSpace: 'nowrap' }}>{security}</td>
+                                        <td
+                                            style={{
+                                                padding: '4px 12px 4px 0',
+                                                fontSize: 'var(--type-table-size)',
+                                                fontFamily: 'var(--font-code)',
+                                                fontWeight: 475,
+                                                color: 'var(--text-primary)',
+                                                borderBottom: '1px solid var(--page-border)',
+                                                whiteSpace: 'nowrap',
+                                            }}
+                                        >
+                                            {method}
+                                        </td>
+                                        <td
+                                            style={{
+                                                padding: '4px 12px 4px 0',
+                                                fontSize: 'var(--type-table-size)',
+                                                fontFamily: 'var(--font-primary)',
+                                                fontWeight: 475,
+                                                color: 'var(--text-primary)',
+                                                borderBottom: '1px solid var(--page-border)',
+                                            }}
+                                        >
+                                            {exposure}
+                                        </td>
+                                        <td
+                                            style={{
+                                                padding: '4px 12px 4px 0',
+                                                fontSize: 'var(--type-table-size)',
+                                                fontFamily: 'var(--font-primary)',
+                                                fontWeight: 475,
+                                                color: 'var(--text-primary)',
+                                                borderBottom: '1px solid var(--page-border)',
+                                                whiteSpace: 'nowrap',
+                                            }}
+                                        >
+                                            {lifetime}
+                                        </td>
+                                        <td
+                                            style={{
+                                                padding: '4px 12px 4px 0',
+                                                fontSize: 'var(--type-table-size)',
+                                                fontFamily: 'var(--font-primary)',
+                                                fontWeight: 475,
+                                                color: 'var(--text-primary)',
+                                                borderBottom: '1px solid var(--page-border)',
+                                            }}
+                                        >
+                                            {visibleTo}
+                                        </td>
+                                        <td
+                                            style={{
+                                                padding: '4px 12px 4px 0',
+                                                fontSize: 'var(--type-table-size)',
+                                                fontFamily: 'var(--font-code)',
+                                                fontWeight: 475,
+                                                color: 'var(--text-primary)',
+                                                borderBottom: '1px solid var(--page-border)',
+                                                whiteSpace: 'nowrap',
+                                            }}
+                                        >
+                                            {security}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
 
-                    <SectionHeading id="security-proxy" level={2}>sig proxy — credentials never leave the process</SectionHeading>
+                    <SectionHeading id="security-proxy" level={2}>
+                        sig proxy — credentials never leave the process
+                    </SectionHeading>
                     <P>
-                        The MITM proxy daemon runs on localhost (127.0.0.1). Client apps set HTTP_PROXY and make normal requests. The proxy intercepts HTTPS connections, injects credentials as HTTP headers, and forwards to the upstream server.
+                        The MITM proxy daemon runs on localhost (127.0.0.1). Client apps set
+                        HTTP_PROXY and make normal requests. The proxy intercepts HTTPS connections,
+                        injects credentials as HTTP headers, and forwards to the upstream server.
                     </P>
                     <P>
-                        Credentials are decrypted from storage and held only in the proxy process memory. Client applications, subprocesses, and env vars never contain tokens. TLS interception uses ECDSA P-256 certificates generated per hostname.
+                        Credentials are decrypted from storage and held only in the proxy process
+                        memory. Client applications, subprocesses, and env vars never contain
+                        tokens. TLS interception uses ECDSA P-256 certificates generated per
+                        hostname.
                     </P>
                     <CodeBlock lang="bash">{`sig proxy start && export HTTP_PROXY=http://127.0.0.1:7891 HTTPS_PROXY=http://127.0.0.1:7891`}</CodeBlock>
-                    <P><strong>Use when:</strong> AI agents, CI/CD pipelines, long-running daemons, any tool that supports HTTP_PROXY.</P>
-
-                    <SectionHeading id="security-request" level={2}>sig request — credentials stay internal</SectionHeading>
                     <P>
-                        <Code>sig request</Code> loads credentials into process memory, makes a single HTTP request, and discards them. Credentials are never written to env vars, files, or stdout. The exposure window is ~100ms per request.
+                        <strong>Use when:</strong> AI agents, CI/CD pipelines, long-running daemons,
+                        any tool that supports HTTP_PROXY.
+                    </P>
+
+                    <SectionHeading id="security-request" level={2}>
+                        sig request — credentials stay internal
+                    </SectionHeading>
+                    <P>
+                        <Code>sig request</Code> loads credentials into process memory, makes a
+                        single HTTP request, and discards them. Credentials are never written to env
+                        vars, files, or stdout. The exposure window is ~100ms per request.
                     </P>
                     <CodeBlock lang="bash">{`sig request https://api.example.com/me --format body`}</CodeBlock>
-                    <P><strong>Use when:</strong> One-off API calls, shell scripts, pipeline steps that need a single HTTP response.</P>
-
-                    <SectionHeading id="security-run" level={2}>sig run — credentials in env vars</SectionHeading>
                     <P>
-                        <Code>sig run</Code> injects <Code>SIG_&lt;PROVIDER&gt;_*</Code> env vars into the child process. This is convenient for tools that read configuration from environment variables, but env vars are readable via <Code>/proc</Code> on Linux and inherited by all child processes. Output from the child is redacted (credential values replaced with <Code>****</Code>) but redaction is best-effort.
+                        <strong>Use when:</strong> One-off API calls, shell scripts, pipeline steps
+                        that need a single HTTP response.
+                    </P>
+
+                    <SectionHeading id="security-run" level={2}>
+                        sig run — credentials in env vars
+                    </SectionHeading>
+                    <P>
+                        <Code>sig run</Code> injects <Code>SIG_&lt;PROVIDER&gt;_*</Code> env vars
+                        into the child process. This is convenient for tools that read configuration
+                        from environment variables, but env vars are readable via <Code>/proc</Code>{' '}
+                        on Linux and inherited by all child processes. Output from the child is
+                        redacted (credential values replaced with <Code>****</Code>) but redaction
+                        is best-effort.
                     </P>
                     <CodeBlock lang="bash">{`sig run my-jira -- bash -c 'curl -H "Cookie: $SIG_MY_JIRA_COOKIE" https://jira.example.com/api/me'`}</CodeBlock>
-                    <P><strong>Use when:</strong> Wrapping tools that read SIG_* env vars, local development, quick scripting.</P>
-
-                    <SectionHeading id="security-get" level={2}>sig get — credentials printed to stdout</SectionHeading>
                     <P>
-                        <Code>sig get</Code> outputs credential headers to stdout. By default, values are redacted (<Code>****</Code>), but <Code>--no-redaction</Code> reveals raw tokens. Even redacted output shows credential structure. Raw values are visible in terminal scrollback, shell history (<Code>~/.bash_history</Code>, <Code>~/.zsh_history</Code>), and piped commands.
+                        <strong>Use when:</strong> Wrapping tools that read SIG_* env vars, local
+                        development, quick scripting.
+                    </P>
+
+                    <SectionHeading id="security-get" level={2}>
+                        sig get — credentials printed to stdout
+                    </SectionHeading>
+                    <P>
+                        <Code>sig get</Code> outputs credential headers to stdout. By default,
+                        values are redacted (<Code>****</Code>), but <Code>--no-redaction</Code>{' '}
+                        reveals raw tokens. Even redacted output shows credential structure. Raw
+                        values are visible in terminal scrollback, shell history (
+                        <Code>~/.bash_history</Code>, <Code>~/.zsh_history</Code>), and piped
+                        commands.
                     </P>
                     <CodeBlock lang="bash">{`# Redacted by default
 sig get my-jira
 # Raw values (use with caution)
 sig get my-jira --no-redaction`}</CodeBlock>
-                    <P><strong>Use when:</strong> Debugging credential format, manual API testing. Never pipe raw output into AI agent context or logs.</P>
+                    <P>
+                        <strong>Use when:</strong> Debugging credential format, manual API testing.
+                        Never pipe raw output into AI agent context or logs.
+                    </P>
 
-                    <SectionHeading id="security-shared" level={2}>Shared protections</SectionHeading>
+                    <SectionHeading id="security-shared" level={2}>
+                        Shared protections
+                    </SectionHeading>
                     <P>All four methods share these protections:</P>
                     <List>
                         <Li>
-                            <strong>AES-256-GCM encryption at rest</strong> — all credential files in{' '}
-                            <Code>~/.sig/credentials/</Code> are encrypted. The encryption key lives at{' '}
-                            <Code>~/.sig/encryption.key</Code> (mode 0o400, owner-read only).
+                            <strong>AES-256-GCM encryption at rest</strong> — all credential files
+                            in <Code>~/.sig/credentials/</Code> are encrypted. The encryption key
+                            lives at <Code>~/.sig/encryption.key</Code> (mode 0o400, owner-read
+                            only).
                         </Li>
                         <Li>
-                            <strong>Audit logging</strong> — every credential access, login, logout, sync, and proxy start/stop is logged to{' '}
-                            <Code>~/.sig/audit.log</Code> as JSON Lines.
+                            <strong>Audit logging</strong> — every credential access, login, logout,
+                            sync, and proxy start/stop is logged to <Code>~/.sig/audit.log</Code> as
+                            JSON Lines.
                         </Li>
                         <Li>
-                            <strong>Result-based error handling</strong> — authentication failures return typed errors (<Code>{'Result<T, AuthError>'}</Code>), never throw exceptions. Credentials are never exposed in error messages.
+                            <strong>Result-based error handling</strong> — authentication failures
+                            return typed errors (<Code>{'Result<T, AuthError>'}</Code>), never throw
+                            exceptions. Credentials are never exposed in error messages.
                         </Li>
                         <Li>
-                            <strong>Automatic refresh</strong> — expired credentials are refreshed transparently before use. No stale tokens leak through error paths.
+                            <strong>Automatic refresh</strong> — expired credentials are refreshed
+                            transparently before use. No stale tokens leak through error paths.
                         </Li>
                     </List>
                 </>

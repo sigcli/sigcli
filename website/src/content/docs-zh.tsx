@@ -248,9 +248,8 @@ sig proxy stop`}</CodeBlock>
                         试试: sig request
                     </SectionHeading>
                     <P>
-                        对于一次性 API 调用，<Code>sig request</Code>{' '}
-                        直接发起认证的 HTTP 请求。凭证保持在 CLI
-                        进程内部，不会暴露到子进程或 shell 历史记录中。
+                        对于一次性 API 调用，<Code>sig request</Code> 直接发起认证的 HTTP
+                        请求。凭证保持在 CLI 进程内部，不会暴露到子进程或 shell 历史记录中。
                     </P>
                     <CodeBlock lang="bash">{`# 简单 GET 请求
 sig request https://jira.example.com/rest/api/2/myself
@@ -264,9 +263,7 @@ sig request https://api.example.com/me --format body`}</CodeBlock>
                     <SectionHeading id="onboard-choosing" level={2}>
                         选择方法
                     </SectionHeading>
-                    <P>
-                        根据你的使用场景选择合适的方法。如有疑问，优先选择更安全的方式。
-                    </P>
+                    <P>根据你的使用场景选择合适的方法。如有疑问，优先选择更安全的方式。</P>
                     <div
                         style={{
                             width: '100%',
@@ -740,22 +737,22 @@ sig request https://api.example.com/me --format body`}</CodeBlock>
                     <CodeBlock lang="bash">{`sig proxy start
 export HTTP_PROXY=http://127.0.0.1:7891 HTTPS_PROXY=http://127.0.0.1:7891`}</CodeBlock>
                     <P>
-                        <strong>适用场景：</strong>AI
-                        代理、CI/CD 流水线、长期运行的守护进程、任何支持 HTTP_PROXY 的工具。
+                        <strong>适用场景：</strong>AI 代理、CI/CD
+                        流水线、长期运行的守护进程、任何支持 HTTP_PROXY 的工具。
                     </P>
 
                     <SectionHeading id="security-request" level={3}>
                         sig request — 凭证保持在内部
                     </SectionHeading>
                     <P>
-                        <Code>sig request</Code>{' '}
-                        将凭证加载到进程内存中，发起一次 HTTP 请求，然后丢弃。凭证永远不会写入环境变量、文件或标准输出。
+                        <Code>sig request</Code> 将凭证加载到进程内存中，发起一次 HTTP
+                        请求，然后丢弃。凭证永远不会写入环境变量、文件或标准输出。
                         暴露窗口约为每次请求 100ms。
                     </P>
                     <CodeBlock lang="bash">{`sig request https://api.example.com/me --format body`}</CodeBlock>
                     <P>
-                        <strong>适用场景：</strong>一次性 API 调用、shell
-                        脚本、需要单个 HTTP 响应的流水线步骤。
+                        <strong>适用场景：</strong>一次性 API 调用、shell 脚本、需要单个 HTTP
+                        响应的流水线步骤。
                     </P>
 
                     <SectionHeading id="security-run" level={3}>
@@ -763,8 +760,9 @@ export HTTP_PROXY=http://127.0.0.1:7891 HTTPS_PROXY=http://127.0.0.1:7891`}</Cod
                     </SectionHeading>
                     <P>
                         <Code>sig run</Code> 将 <Code>SIG_&lt;PROVIDER&gt;_*</Code>{' '}
-                        环境变量注入子进程。这对于从环境变量读取配置的工具很方便，但在 Linux 上环境变量可以通过{' '}
-                        <Code>/proc</Code> 读取，并且会被所有子进程继承。子进程的输出会自动脱敏（凭证值替换为{' '}
+                        环境变量注入子进程。这对于从环境变量读取配置的工具很方便，但在 Linux
+                        上环境变量可以通过 <Code>/proc</Code>{' '}
+                        读取，并且会被所有子进程继承。子进程的输出会自动脱敏（凭证值替换为{' '}
                         <Code>****</Code>），但脱敏是尽力而为的。
                     </P>
                     <CodeBlock lang="bash">{`sig run my-jira -- curl https://jira.example.com/api/me`}</CodeBlock>
@@ -777,19 +775,19 @@ export HTTP_PROXY=http://127.0.0.1:7891 HTTPS_PROXY=http://127.0.0.1:7891`}</Cod
                         sig get — 凭证输出到标准输出
                     </SectionHeading>
                     <P>
-                        <Code>sig get</Code>{' '}
-                        将凭证头输出到标准输出。默认情况下值会被脱敏（<Code>****</Code>），但{' '}
-                        <Code>--no-redaction</Code>{' '}
-                        会显示原始令牌。原始值在终端回滚、shell 历史记录（<Code>~/.bash_history</Code>、
-                        <Code>~/.zsh_history</Code>）和管道命令中可见。
+                        <Code>sig get</Code> 将凭证头输出到标准输出。默认情况下值会被脱敏（
+                        <Code>****</Code>），但 <Code>--no-redaction</Code>{' '}
+                        会显示原始令牌。原始值在终端回滚、shell 历史记录（
+                        <Code>~/.bash_history</Code>、<Code>~/.zsh_history</Code>
+                        ）和管道命令中可见。
                     </P>
                     <CodeBlock lang="bash">{`# 默认脱敏
 sig get my-jira
 # 原始值（谨慎使用）
 sig get my-jira --no-redaction`}</CodeBlock>
                     <P>
-                        <strong>适用场景：</strong>调试凭证格式、手动 API
-                        测试。切勿将原始输出传入 AI 代理上下文或日志。
+                        <strong>适用场景：</strong>调试凭证格式、手动 API 测试。切勿将原始输出传入
+                        AI 代理上下文或日志。
                     </P>
 
                     <SectionHeading id="security-shared" level={2}>
@@ -803,12 +801,14 @@ sig get my-jira --no-redaction`}</CodeBlock>
                             <Code>~/.sig/encryption.key</Code>（权限 0o400，仅所有者可读）。
                         </Li>
                         <Li>
-                            <strong>审计日志</strong> — 每次凭证访问、登录、登出、同步以及代理启动/停止都记录在{' '}
+                            <strong>审计日志</strong> —
+                            每次凭证访问、登录、登出、同步以及代理启动/停止都记录在{' '}
                             <Code>~/.sig/audit.log</Code> 中（JSON Lines 格式）。
                         </Li>
                         <Li>
-                            <strong>基于 Result 的错误处理</strong> —
-                            认证失败返回类型化错误（<Code>{'Result<T, AuthError>'}</Code>），永远不会抛出异常。错误信息中不会暴露凭证。
+                            <strong>基于 Result 的错误处理</strong> — 认证失败返回类型化错误（
+                            <Code>{'Result<T, AuthError>'}</Code>
+                            ），永远不会抛出异常。错误信息中不会暴露凭证。
                         </Li>
                         <Li>
                             <strong>自动刷新</strong> —
@@ -819,8 +819,8 @@ sig get my-jira --no-redaction`}</CodeBlock>
             ),
             aside: (
                 <P>
-                    对于 AI 代理，优先使用 <Code>sig proxy</Code> 或 <Code>sig run</Code>。
-                    切勿将 <Code>sig get</Code> 的输出传入代理上下文。
+                    对于 AI 代理，优先使用 <Code>sig proxy</Code> 或 <Code>sig run</Code>。 切勿将{' '}
+                    <Code>sig get</Code> 的输出传入代理上下文。
                 </P>
             ),
         },
