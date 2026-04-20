@@ -76,9 +76,6 @@
     --layout-gap: 21px;
     --sticky-top: calc(var(--header-height) + var(--layout-gap));
 
-    /* Fade gradient */
-    --fade-top: calc(var(--header-row-height) + 19px);
-    --fade-height: 48px;
 
     /* Grid geometry */
     --grid-toc-width: 210px;
@@ -118,7 +115,7 @@
     --text-tertiary: rgba(0, 0, 0, 0.25);
     --text-muted: rgba(0, 0, 0, 0.5);
     --text-hover: rgba(0, 0, 0, 0.7);
-    --text-tree-label: rgba(0, 0, 0, 0.6);
+    --text-tree-label: rgba(0, 0, 0, 0.85);
     --bg: #fff;
     --page-border: #e3e3e3;
     --divider: rgb(242, 242, 242);
@@ -148,20 +145,6 @@
         0 0.3125rem 0.5rem rgba(0, 0, 0, 0.02), 0 0.125rem 0.25rem rgba(0, 0, 0, 0.016),
         0 0 0.125rem rgba(0, 0, 0, 0.01);
 
-    /* Header fade gradient stops */
-    --fade-0: rgb(255, 255, 255);
-    --fade-1: rgba(255, 255, 255, 0.737);
-    --fade-2: rgba(255, 255, 255, 0.541);
-    --fade-3: rgba(255, 255, 255, 0.382);
-    --fade-4: rgba(255, 255, 255, 0.278);
-    --fade-5: rgba(255, 255, 255, 0.194);
-    --fade-6: rgba(255, 255, 255, 0.126);
-    --fade-7: rgba(255, 255, 255, 0.075);
-    --fade-8: rgba(255, 255, 255, 0.042);
-    --fade-9: rgba(255, 255, 255, 0.021);
-    --fade-10: rgba(255, 255, 255, 0.008);
-    --fade-11: rgba(255, 255, 255, 0.002);
-    --fade-12: rgba(255, 255, 255, 0);
 
     /* Dark mode overrides */
     @variant dark {
@@ -219,19 +202,6 @@
             0 1rem 2rem rgba(0, 0, 0, 0.2), 0 0.625rem 1rem rgba(0, 0, 0, 0.15),
             0 0.3125rem 0.5rem rgba(0, 0, 0, 0.1), 0 0.125rem 0.25rem rgba(0, 0, 0, 0.08),
             0 0 0.125rem rgba(0, 0, 0, 0.05);
-        --fade-0: rgb(17, 17, 17);
-        --fade-1: rgba(17, 17, 17, 0.737);
-        --fade-2: rgba(17, 17, 17, 0.541);
-        --fade-3: rgba(17, 17, 17, 0.382);
-        --fade-4: rgba(17, 17, 17, 0.278);
-        --fade-5: rgba(17, 17, 17, 0.194);
-        --fade-6: rgba(17, 17, 17, 0.126);
-        --fade-7: rgba(17, 17, 17, 0.075);
-        --fade-8: rgba(17, 17, 17, 0.042);
-        --fade-9: rgba(17, 17, 17, 0.021);
-        --fade-10: rgba(17, 17, 17, 0.008);
-        --fade-11: rgba(17, 17, 17, 0.002);
-        --fade-12: rgba(17, 17, 17, 0);
     }
 }
 
