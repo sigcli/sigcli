@@ -131,6 +131,9 @@ export const pageContent = {
         tocItem('#sdk-ts', 'TypeScript SDK', { level: 1, parent: '#sdk', prefix: '├ ' }),
         tocItem('#sdk-python', 'Python SDK', { level: 1, parent: '#sdk', prefix: '└ ' }),
         tocItem('#ai-agents', 'AI 代理集成'),
+        tocItem('#skills', '技能'),
+        tocItem('#skills-catalog', '可用技能', { level: 1, parent: '#skills', prefix: '├ ' }),
+        tocItem('#skills-build', '创建技能', { level: 1, parent: '#skills', prefix: '└ ' }),
         tocItem('#remote-ssh', '远程与 SSH'),
         tocItem('#error-codes', '错误代码'),
     ] as FlatTocItem[],
@@ -1460,6 +1463,157 @@ sig status my-jira --format json
                         切勿在代理上下文或日志中显示 <Code>sig get</Code> 的输出——它可能包含原始
                         bearer 令牌或 API 密钥。
                     </P>
+                </>
+            ),
+        },
+
+        /* ── 技能 ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="skills" level={1}>
+                        技能
+                    </SectionHeading>
+                    <P>
+                        技能是可直接使用的扩展包，让 AI 代理（Claude
+                        Code、Cursor、Windsurf、Cline）能够通过认证访问特定服务。每个技能是一个包含{' '}
+                        <Code>SKILL.md</Code> 指南和 Python
+                        辅助脚本的目录。代理读取指南，调用脚本，sigcli 透明处理认证。
+                    </P>
+                    <CodeBlock lang="bash">{`# 安装所有技能（自动检测代理）
+./skills/install.sh
+
+# 指定代理
+./skills/install.sh --agent cursor
+
+# 查看已安装
+./skills/install.sh --list`}</CodeBlock>
+
+                    <SectionHeading id="skills-catalog" level={2}>
+                        可用技能
+                    </SectionHeading>
+                    <List>
+                        <Li>
+                            <Code>sigcli-auth</Code> — 认证指南：策略选择、命令参考、错误恢复。
+                        </Li>
+                        <Li>
+                            <Code>outlook</Code> — 通过 Microsoft Graph
+                            读取、发送、搜索、回复邮件。使用 <Code>ms-graph</Code>{' '}
+                            提供者（OAuth2）。
+                        </Li>
+                        <Li>
+                            <Code>msteams</Code> — 消息、对话、人员搜索、日历。使用{' '}
+                            <Code>ms-teams</Code> 和 <Code>ms-graph</Code> 提供者。
+                        </Li>
+                        <Li>
+                            <Code>slack</Code> — 频道、消息、搜索、表情。使用 <Code>app-slack</Code>{' '}
+                            提供者（cookie + localStorage）。
+                        </Li>
+                    </List>
+
+                    <SectionHeading id="skills-build" level={2}>
+                        10 分钟创建技能
+                    </SectionHeading>
+                    <P>
+                        一个技能只需一个文件：<Code>SKILL.md</Code>。如果 API
+                        响应解析复杂，可添加辅助脚本。
+                    </P>
+
+                    <P>
+                        <strong>1. 创建目录</strong>
+                    </P>
+                    <CodeBlock lang="bash">{`mkdir -p skills/my-service/scripts`}</CodeBlock>
+
+                    <P>
+                        <strong>
+                            2. 编写 <Code>SKILL.md</Code>
+                        </strong>
+                    </P>
+                    <CodeBlock lang="markdown">{`---
+name: my-service
+description: '与 My Service 交互 — 创建、列出和更新项目。'
+---
+
+# My Service
+
+通过 REST API 创建、列出和更新项目。
+
+## 认证
+
+| 提供者        | 类型   | 登录命令                                  |
+|------------- |--------|----------------------------------------|
+| \`my-service\` | cookie | \`sig login https://my-service.example.com/\` |
+
+**运行脚本：**
+\`\`\`bash
+sig run my-service -- python3 scripts/list_items.py \\
+  --cookie "$SIG_MY_SERVICE_COOKIE"
+\`\`\``}</CodeBlock>
+
+                    <P>
+                        <strong>3. 添加辅助脚本</strong>（可选）
+                    </P>
+                    <CodeBlock lang="python">{`#!/usr/bin/env python3
+"""列出 My Service API 中的项目。"""
+import argparse, json, sys, requests
+
+BASE = "https://my-service.example.com/api/v1"
+
+def list_items(cookie, query=None, limit=20):
+    headers = {"Cookie": cookie} if cookie else {}
+    params = {"limit": limit}
+    if query:
+        params["q"] = query
+    resp = requests.get(f"{BASE}/items", headers=headers, params=params, timeout=15)
+    resp.raise_for_status()
+    return {"items": resp.json().get("items", []), "count": len(resp.json().get("items", []))}
+
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument("--cookie", default="")
+    p.add_argument("--query")
+    p.add_argument("--limit", type=int, default=20)
+    args = p.parse_args()
+    try:
+        json.dump(list_items(args.cookie, args.query, args.limit), sys.stdout, indent=2)
+    except requests.HTTPError as e:
+        json.dump({"error": f"HTTP_{e.response.status_code}"}, sys.stdout, indent=2)
+
+if __name__ == "__main__":
+    main()`}</CodeBlock>
+
+                    <P>
+                        <strong>4. 注册并安装</strong>
+                    </P>
+                    <CodeBlock lang="bash">{`# 在 skills/install.sh 的 ALL_SKILLS 中添加，然后：
+./skills/install.sh`}</CodeBlock>
+
+                    <P>
+                        就这样。代理读取 <Code>SKILL.md</Code>，调用{' '}
+                        <Code>sig run my-service -- python3 scripts/list_items.py</Code>，获取 JSON
+                        结果。无需 SDK，无需框架 — 只需一个 Markdown 文件和一个脚本。
+                    </P>
+                </>
+            ),
+            aside: (
+                <>
+                    <P>
+                        <strong>技能约定：</strong>
+                    </P>
+                    <List>
+                        <Li>脚本输出 JSON 到 stdout，错误格式为 {`{"error": "..."}`}</Li>
+                        <Li>
+                            凭证通过 <Code>sig run</Code> 环境变量传递：
+                            <Code>SIG_{'<PROVIDER>'}_COOKIE</Code>
+                        </Li>
+                        <Li>
+                            Token 参数可选（默认 <Code>{`""`}</Code>），兼容 <Code>sig run</Code> 和{' '}
+                            <Code>sig proxy</Code>
+                        </Li>
+                        <Li>
+                            测试使用 <Code>responses</Code> 库模拟 HTTP
+                        </Li>
+                    </List>
                 </>
             ),
         },
