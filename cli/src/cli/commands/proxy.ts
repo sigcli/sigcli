@@ -108,7 +108,7 @@ async function handleStart(
     });
 
     child.unref();
-    child.disconnect();
+    if (child.connected) child.disconnect();
     closeSync(logFd);
 
     if (!started) {
