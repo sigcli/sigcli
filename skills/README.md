@@ -26,6 +26,10 @@ AI agent skills for authenticated access to web services via sigcli.
 | Skill         | Description                                                                           |
 | ------------- | ------------------------------------------------------------------------------------- |
 | `sigcli-auth` | Authenticate with any web service — strategy guide, command reference, error recovery |
+| `outlook`     | Read, send, search, reply, forward, and manage Outlook emails via Microsoft Graph     |
+| `msteams`     | Send and read messages, search conversations, look up people, check calendar          |
+| `jira`        | Search, create, update, and manage Jira issues, sprints, and boards                   |
+| `slack`       | Read channels, search messages, check unreads, send messages, manage reactions        |
 
 ## Adding Skills
 

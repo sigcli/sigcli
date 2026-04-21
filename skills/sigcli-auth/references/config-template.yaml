@@ -1,0 +1,100 @@
+# Sigcli configuration template for skills
+# Copy to ~/.sig/config.yaml and replace <...> placeholders with your values.
+#
+# Docs: https://sigcli.ai
+
+mode: browser
+
+browser:
+    browserDataDir: ~/.sig/browser-data
+    channel: chrome
+    headlessTimeout: 30000
+    visibleTimeout: 120000
+    waitUntil: load
+
+storage:
+    credentialsDir: ~/.sig/credentials
+
+providers:
+    # ── Jira ────────────────────────────────────────────────────────────────
+    # Cookie-based SSO. Replace <your-jira-domain> (e.g. jira.example.com).
+    jira:
+        domains: ['<your-jira-domain>']
+        entryUrl: https://<your-jira-domain>/
+        strategy: cookie
+        config:
+            ttl: '10d'
+
+    # ── Microsoft Teams Chat API ────────────────────────────────────────────
+    # OAuth2 bearer token. Audience: Teams Chat Service.
+    ms-teams:
+        name: Microsoft Teams
+        domains: ['teams.cloud.microsoft']
+        entryUrl: https://teams.cloud.microsoft/v2/
+        strategy: oauth2
+        config:
+            audiences: ['https://ic3.teams.office.com']
+
+    # ── Microsoft Graph API (Outlook + Teams people search) ─────────────────
+    # OAuth2 bearer token. Same login URL as ms-teams.
+    ms-graph:
+        domains: ['graph.microsoft.com']
+        entryUrl: https://teams.cloud.microsoft/v2/
+        strategy: oauth2
+        config:
+            audiences: ['https://graph.microsoft.com']
+
+    # ── Slack ───────────────────────────────────────────────────────────────
+    # Cookie (xoxd) + localStorage (xoxc token).
+    #
+    # IMPORTANT: entryUrl must point to a specific workspace (/client/<TEAM_ID>),
+    # NOT the root URL. The root URL shows a workspace picker where localStorage
+    # is not yet populated.
+    #
+    # To find your Team ID: open Slack in a browser → the URL looks like
+    #   https://app.slack.com/client/<TEAM_ID>/...
+    # Enterprise Grid orgs start with "E", regular workspaces start with "T".
+    app-slack:
+        name: Slack
+        domains: ['<your-workspace>.slack.com'] # e.g. mycompany.slack.com
+        entryUrl: https://app.slack.com/client/<your-team-id>
+        strategy: cookie
+        config:
+            ttl: '7d'
+            requiredCookies: ['d']
+        localStorage:
+            - name: xoxc-token
+              key: localConfig_v2
+              jsonPath: teams.<your-team-id>.token
+        # Inject rules — control how credentials are applied via sig proxy / sig request.
+        # Slack needs both the cookie header AND the xoxc token in the POST body.
+        proxy:
+            inject:
+                # Set the Cookie header from the stored d=xoxd-... cookie
+                - in: header
+                  action: set
+                  name: Cookie
+                  from: credential.cookies
+                # Inject the xoxc token into the request body as the "token" form field
+                - in: body
+                  action: set
+                  name: token
+                  from: credential.localStorage.xoxc-token
+
+# ── Optional: auto-refresh credentials before they expire ─────────────────
+# Managed by: sig watch add/remove/set-interval
+# watch:
+#   interval: "5m"
+#   providers:
+#     jira:
+#     ms-teams:
+#     ms-graph:
+
+# ── Optional: remote credential sync via SSH ──────────────────────────────
+# remotes:
+#   dev-server:
+#     type: ssh
+#     host: dev.example.com
+#     user: deploy
+#     path: ~/.sig
+#     sshKey: ~/.ssh/id_ed25519
