@@ -332,3 +332,34 @@ sig login <url>             # 30-120s; uses playwright-core
 7. **`sig proxy start` runs a background daemon.** Only invoke once; use `sig proxy stop` to shut it down. For credential refresh, the proxy runs the watch loop automatically — no need to run `sig watch start` separately.
 
 8. **Use `--verbose` to debug.** All internal logs go to stderr and are hidden by default. Add `--verbose` when diagnosing failures.
+
+---
+
+## Configuring Providers for Skills
+
+Each skill needs a provider in `~/.sig/config.yaml`. See [`references/config-template.yaml`](references/config-template.yaml) for a ready-to-use template with all skills pre-configured (Jira, Outlook, MS Teams, Slack). Replace placeholder values (`<...>`) with your organization's URLs and IDs.
+
+### Quick Start
+
+```bash
+# 1. Copy the template
+cp references/config-template.yaml ~/.sig/config.yaml
+# 2. Edit placeholders
+$EDITOR ~/.sig/config.yaml
+# 3. Login
+sig login https://teams.cloud.microsoft/v2/        # MS Teams + Outlook (one login for both)
+sig login app-slack                                 # Slack
+```
+
+### Using with Skills
+
+```bash
+# Env var injection — credentials available as SIG_<PROVIDER>_* env vars
+sig run ms-graph -- python scripts/outlook_send.py
+sig run app-slack -- python scripts/slack_send.py
+
+# Or use the proxy — credentials injected transparently into HTTP requests
+sig proxy start
+export HTTP_PROXY=http://127.0.0.1:7891 HTTPS_PROXY=http://127.0.0.1:7891
+python scripts/my_script.py   # no SIG_* env vars needed
+```

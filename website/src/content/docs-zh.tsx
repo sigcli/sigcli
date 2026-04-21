@@ -1101,7 +1101,7 @@ providers:
                     <CodeBlock lang="yaml">{`watch:
   interval: 5m           # check interval (default: 5m)
   providers:
-    sap-jira:
+    jira:
       autoSync:            # optional: sync to remotes after refresh
         - dev-server
     ms-teams:`}</CodeBlock>
