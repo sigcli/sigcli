@@ -30,6 +30,27 @@ AI agent skills for authenticated access to web services via sigcli.
 | `msteams`     | Send and read messages, search conversations, look up people, check calendar          |
 | `slack`       | Read channels, search messages, check unreads, send messages, manage reactions        |
 
-## Adding Skills
+## Build Your Own
 
-Each skill is a directory with a `SKILL.md` file. Add new skills by creating a directory under `skills/` and adding it to the `ALL_SKILLS` list in `install.sh`.
+A skill is a directory with a `SKILL.md` file and optional Python scripts. See the full guide at [sigcli.ai/docs#skills-build](https://sigcli.ai/docs#skills-build).
+
+Quick version:
+
+```
+my-service/
+  SKILL.md              # YAML frontmatter + markdown guide for the agent
+  scripts/
+    list_items.py       # Python script: argparse CLI, JSON output
+    requirements.txt    # requests>=2.28.0
+  tests/
+    test_list_items.py  # pytest + responses library for HTTP mocking
+```
+
+Register in `install.sh` by adding the directory name to `ALL_SKILLS`.
+
+## Running Tests
+
+```bash
+pip install requests beautifulsoup4 pytest responses
+python -m pytest -v
+```

@@ -122,6 +122,13 @@ export const pageContent = {
         tocItem('#sdk-ts', 'TypeScript SDK', { level: 1, parent: '#sdk', prefix: '├ ' }),
         tocItem('#sdk-python', 'Python SDK', { level: 1, parent: '#sdk', prefix: '└ ' }),
         tocItem('#ai-agents', 'AI Agent Integration'),
+        tocItem('#skills', 'Skills'),
+        tocItem('#skills-catalog', 'Available skills', {
+            level: 1,
+            parent: '#skills',
+            prefix: '├ ',
+        }),
+        tocItem('#skills-build', 'Build a skill', { level: 1, parent: '#skills', prefix: '└ ' }),
         tocItem('#remote-ssh', 'Remote & SSH'),
         tocItem('#error-codes', 'Error Codes'),
     ] as FlatTocItem[],
@@ -1267,6 +1274,213 @@ sig status my-jira --format json
                         Never display <Code>sig get</Code> output in agent context or logs — it may
                         contain raw bearer tokens or API keys.
                     </P>
+                </>
+            ),
+        },
+
+        /* ── Skills ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="skills" level={1}>
+                        Skills
+                    </SectionHeading>
+                    <P>
+                        Skills are drop-in packages that give AI agents (Claude Code, Cursor,
+                        Windsurf, Cline) authenticated access to specific services. Each skill is a
+                        directory with a <Code>SKILL.md</Code> guide and Python helper scripts. The
+                        agent reads the guide, shells out to the scripts, and sigcli handles auth
+                        transparently.
+                    </P>
+                    <CodeBlock lang="bash">{`# Install all skills (auto-detects your agent)
+./skills/install.sh
+
+# Or pick an agent
+./skills/install.sh --agent cursor
+
+# List what's installed
+./skills/install.sh --list`}</CodeBlock>
+
+                    <SectionHeading id="skills-catalog" level={2}>
+                        Available Skills
+                    </SectionHeading>
+                    <List>
+                        <Li>
+                            <Code>sigcli-auth</Code> — Authentication guide. Strategy selection,
+                            command reference, error recovery. Bundled with every install.
+                        </Li>
+                        <Li>
+                            <Code>outlook</Code> — Read, send, search, reply, forward emails via
+                            Microsoft Graph. Uses <Code>ms-graph</Code> provider (OAuth2).
+                        </Li>
+                        <Li>
+                            <Code>msteams</Code> — Messages, conversations, people search, calendar
+                            via Teams Chat API + Graph. Uses <Code>ms-teams</Code> and{' '}
+                            <Code>ms-graph</Code> providers.
+                        </Li>
+                        <Li>
+                            <Code>slack</Code> — Channels, messages, search, reactions via Slack Web
+                            API. Uses <Code>app-slack</Code> provider (cookie + localStorage).
+                        </Li>
+                    </List>
+                    <P>
+                        See <Code>skills/sigcli-auth/references/config-template.yaml</Code> for a
+                        ready-to-use config with all providers pre-configured.
+                    </P>
+
+                    <SectionHeading id="skills-build" level={2}>
+                        Build a Skill in 10 Minutes
+                    </SectionHeading>
+                    <P>
+                        A skill is a directory with one file: <Code>SKILL.md</Code>. Add helper
+                        scripts if the agent needs to parse complex API responses. Here's the full
+                        recipe.
+                    </P>
+
+                    <P>
+                        <strong>1. Create the directory</strong>
+                    </P>
+                    <CodeBlock lang="bash">{`mkdir -p skills/my-service/scripts`}</CodeBlock>
+
+                    <P>
+                        <strong>
+                            2. Write <Code>SKILL.md</Code>
+                        </strong>
+                    </P>
+                    <P>
+                        The frontmatter tells the agent when to trigger. The body teaches it how to
+                        use the service.
+                    </P>
+                    <CodeBlock lang="markdown">{`---
+name: my-service
+description: 'Interact with My Service — create, list, and update items.
+  Use this skill when the user mentions My Service, items, or tasks.'
+---
+
+# My Service
+
+Create, list, and update items via My Service REST API.
+
+## Authentication
+
+| Provider     | Type   | Login Command                          |
+|------------- |--------|----------------------------------------|
+| \`my-service\` | cookie | \`sig login https://my-service.example.com/\` |
+
+**Run scripts:**
+\`\`\`bash
+sig run my-service -- python3 scripts/list_items.py \\
+  --cookie "$SIG_MY_SERVICE_COOKIE"
+\`\`\`
+
+## Scripts
+
+### list_items.py
+List items from the API.
+\`\`\`
+--cookie TEXT    Auth cookie (from sig run)
+--limit  INT    Max results (default: 20)
+--query  TEXT   Filter by keyword (optional)
+\`\`\`
+
+## Error Handling
+| Code | Meaning                  | Fix                              |
+|------|--------------------------|----------------------------------|
+| 401  | Session expired          | \`sig login <url>\`                |
+| 429  | Rate limited             | Wait and retry                   |`}</CodeBlock>
+
+                    <P>
+                        <strong>3. Add a helper script</strong> (optional — only if parsing is
+                        non-trivial)
+                    </P>
+                    <CodeBlock lang="python">{`#!/usr/bin/env python3
+"""List items from My Service API."""
+import argparse, json, sys, requests
+
+BASE = "https://my-service.example.com/api/v1"
+
+def list_items(cookie, query=None, limit=20):
+    headers = {"Cookie": cookie} if cookie else {}
+    params = {"limit": limit}
+    if query:
+        params["q"] = query
+    resp = requests.get(f"{BASE}/items", headers=headers, params=params, timeout=15)
+    resp.raise_for_status()
+    return {"items": resp.json().get("items", []), "count": len(resp.json().get("items", []))}
+
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument("--cookie", default="")
+    p.add_argument("--query")
+    p.add_argument("--limit", type=int, default=20)
+    args = p.parse_args()
+    try:
+        json.dump(list_items(args.cookie, args.query, args.limit), sys.stdout, indent=2)
+    except requests.HTTPError as e:
+        json.dump({"error": f"HTTP_{e.response.status_code}"}, sys.stdout, indent=2)
+
+if __name__ == "__main__":
+    main()`}</CodeBlock>
+
+                    <P>
+                        <strong>4. Add a test</strong>
+                    </P>
+                    <CodeBlock lang="python">{`"""Tests for my-service/scripts/list_items.py"""
+import re, responses
+from test_helpers import load_script
+
+mod = load_script("my-service", "list_items")
+
+class TestListItems:
+    @responses.activate
+    def test_basic_list(self):
+        responses.get(
+            url=re.compile(r"https://my-service\\.example\\.com/api/v1/items"),
+            json={"items": [{"id": 1, "name": "Task A"}]},
+        )
+        result = mod.list_items("session=abc", limit=10)
+        assert result["count"] == 1
+        assert result["items"][0]["name"] == "Task A"`}</CodeBlock>
+
+                    <P>
+                        <strong>5. Register and install</strong>
+                    </P>
+                    <CodeBlock lang="bash">{`# Add to skills/install.sh ALL_SKILLS list, then:
+./skills/install.sh
+# Test:
+cd skills && python -m pytest my-service/tests/ -v`}</CodeBlock>
+
+                    <P>
+                        That's it. The agent reads <Code>SKILL.md</Code>, calls{' '}
+                        <Code>sig run my-service -- python3 scripts/list_items.py</Code>, and gets
+                        JSON back. No SDK, no framework — just a markdown file and a script.
+                    </P>
+                </>
+            ),
+            aside: (
+                <>
+                    <P>
+                        <strong>Skill conventions:</strong>
+                    </P>
+                    <List>
+                        <Li>Scripts output JSON to stdout, errors as {`{"error": "..."}`}</Li>
+                        <Li>
+                            Credentials via <Code>sig run</Code> env vars:{' '}
+                            <Code>SIG_{'<PROVIDER>'}_COOKIE</Code> or{' '}
+                            <Code>SIG_{'<PROVIDER>'}_TOKEN</Code>
+                        </Li>
+                        <Li>
+                            Token args are optional (default <Code>{`""`}</Code>) so scripts work
+                            with both <Code>sig run</Code> and <Code>sig proxy</Code>
+                        </Li>
+                        <Li>
+                            Tests use <Code>responses</Code> library to mock HTTP
+                        </Li>
+                        <Li>
+                            <Code>install.sh</Code> excludes <Code>tests/</Code> when copying to
+                            agent directories
+                        </Li>
+                    </List>
                 </>
             ),
         },
