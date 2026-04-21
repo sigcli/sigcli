@@ -76,7 +76,6 @@
     --layout-gap: 21px;
     --sticky-top: calc(var(--header-height) + var(--layout-gap));
 
-
     /* Grid geometry */
     --grid-toc-width: 210px;
     --grid-gap: 50px;
@@ -144,7 +143,6 @@
         0 1rem 2rem rgba(0, 0, 0, 0.03), 0 0.625rem 1rem rgba(0, 0, 0, 0.024),
         0 0.3125rem 0.5rem rgba(0, 0, 0, 0.02), 0 0.125rem 0.25rem rgba(0, 0, 0, 0.016),
         0 0 0.125rem rgba(0, 0, 0, 0.01);
-
 
     /* Dark mode overrides */
     @variant dark {
