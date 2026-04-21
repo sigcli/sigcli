@@ -9,7 +9,7 @@ describe('deriveShortId', () => {
     });
 
     it('joins first two segments when first < 8 chars', () => {
-        expect(deriveShortId('jira.tools.sap')).toBe('jira-tools');
+        expect(deriveShortId('jira.tools.example.com')).toBe('jira-tools');
     });
 
     it('uses first segment alone for single-segment hostname', () => {
@@ -41,11 +41,11 @@ describe('deriveShortId', () => {
 
     it('increments suffix until unique', () => {
         const existing = new Set(['jira-tools', 'jira-tools-2', 'jira-tools-3']);
-        expect(deriveShortId('jira.tools.sap', existing)).toBe('jira-tools-4');
+        expect(deriveShortId('jira.tools.example.com', existing)).toBe('jira-tools-4');
     });
 
     it('returns base when existingIds is undefined', () => {
-        expect(deriveShortId('jira.tools.sap')).toBe('jira-tools');
+        expect(deriveShortId('jira.tools.example.com')).toBe('jira-tools');
     });
 });
 
@@ -68,12 +68,12 @@ describe('createDefaultProvider', () => {
     });
 
     it('creates provider with joined segments for short hostname', () => {
-        const provider = createDefaultProvider('https://jira.tools.sap/browse/PROJ-1');
+        const provider = createDefaultProvider('https://jira.tools.example.com/browse/PROJ-1');
 
         expect(provider.id).toBe('jira-tools');
-        expect(provider.name).toBe('jira.tools.sap');
-        expect(provider.domains).toEqual(['jira.tools.sap']);
-        expect(provider.entryUrl).toBe('https://jira.tools.sap/');
+        expect(provider.name).toBe('jira.tools.example.com');
+        expect(provider.domains).toEqual(['jira.tools.example.com']);
+        expect(provider.entryUrl).toBe('https://jira.tools.example.com/');
     });
 
     it('creates provider from bare hostname (auto-prepends https://)', () => {
@@ -112,11 +112,11 @@ describe('createDefaultProvider', () => {
 
     it('handles collision with existingIds', () => {
         const existing = new Set(['jira-tools']);
-        const provider = createDefaultProvider('https://jira.tools.sap/', existing);
+        const provider = createDefaultProvider('https://jira.tools.example.com/', existing);
 
         expect(provider.id).toBe('jira-tools-2');
-        expect(provider.name).toBe('jira.tools.sap');
-        expect(provider.domains).toEqual(['jira.tools.sap']);
+        expect(provider.name).toBe('jira.tools.example.com');
+        expect(provider.domains).toEqual(['jira.tools.example.com']);
     });
 
     it('produces deterministic provider ID from hostname', () => {

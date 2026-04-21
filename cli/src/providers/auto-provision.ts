@@ -6,7 +6,7 @@ import type { ProviderConfig } from '../core/types.js';
  * - If the first subdomain segment is >= 8 chars, use it as-is
  *   (e.g., "dashboard-analytics-prod-us" from a long subdomain URL)
  * - If < 8 chars, join first two segments with "-"
- *   (e.g., "jira-tools" from "jira.tools.sap")
+ *   (e.g., "jira-tools" from "jira.tools.example.com")
  *
  * If the derived ID collides with existingIds, appends -2, -3, etc.
  */

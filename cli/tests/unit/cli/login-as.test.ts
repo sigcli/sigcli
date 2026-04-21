@@ -119,7 +119,7 @@ describe('runLogin --as flag', () => {
         const { deps } = createDeps();
 
         await runLogin(
-            ['https://jira.tools.sap/browse/PROJ-1'],
+            ['https://jira.tools.example.com/browse/PROJ-1'],
             { as: 'my-jira', cookie: 'sid=123' },
             deps,
         );
@@ -133,7 +133,11 @@ describe('runLogin --as flag', () => {
     it('updates provider name when it matches the old auto-derived ID', async () => {
         const { deps, providerRegistry } = createDeps();
 
-        await runLogin(['https://jira.tools.sap/'], { as: 'my-jira', token: 'tok123' }, deps);
+        await runLogin(
+            ['https://jira.tools.example.com/'],
+            { as: 'my-jira', token: 'tok123' },
+            deps,
+        );
 
         expect(process.exitCode).not.toBe(1);
 
