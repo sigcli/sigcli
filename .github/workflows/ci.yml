@@ -73,6 +73,28 @@ jobs:
             - name: Test (CLI + SDK)
               run: pnpm --filter @sigcli/cli --filter @sigcli/sdk test
 
+    skills:
+        name: Skills Tests
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: '3.12'
+
+            - name: Install dependencies
+              run: pip install requests beautifulsoup4 pytest responses
+
+            - name: Lint (ruff)
+              run: pip install ruff && cd skills && ruff check .
+
+            - name: Test
+              run: cd skills && python -m pytest -v --tb=short
+
     website:
         name: Website
         runs-on: ubuntu-latest

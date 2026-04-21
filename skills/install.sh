@@ -12,7 +12,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ALL_SKILLS="sigcli-auth"
+ALL_SKILLS="sigcli-auth outlook msteams slack"
 
 # --- Agent detection ---
 
@@ -74,7 +74,12 @@ cmd_install() {
         src="$SCRIPT_DIR/$skill"
         if [ -d "$src" ]; then
             rm -rf "$DEST/$skill"
-            cp -R "$src" "$DEST/$skill"
+            if command -v rsync >/dev/null 2>&1; then
+                rsync -a --exclude='tests/' --exclude='__pycache__/' "$src/" "$DEST/$skill/"
+            else
+                cp -R "$src" "$DEST/$skill"
+                rm -rf "$DEST/$skill/tests" "$DEST/$skill"/__pycache__
+            fi
             echo "  + $skill"
         else
             echo "  ! $skill not found, skipping"

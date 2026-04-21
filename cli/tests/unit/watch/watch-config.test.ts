@@ -47,17 +47,17 @@ describe('watch-config', () => {
                 'watch:\n' +
                     '  interval: "2m"\n' +
                     '  providers:\n' +
-                    '    corp-jira:\n' +
+                    '    my-jira:\n' +
                     '      autoSync:\n' +
                     '        - devbox\n' +
-                    '    corp-wiki:\n',
+                    '    my-wiki:\n',
             );
             const result = await getWatchConfig();
             expect(result).toEqual({
                 interval: '2m',
                 providers: {
-                    'corp-jira': { autoSync: ['devbox'] },
-                    'corp-wiki': { autoSync: [] },
+                    'my-jira': { autoSync: ['devbox'] },
+                    'my-wiki': { autoSync: [] },
                 },
             });
         });
