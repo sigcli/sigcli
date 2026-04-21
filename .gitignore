@@ -41,6 +41,8 @@ tsconfig.tsbuildinfo
 # Temporary scratch directory
 tmp/
 pitch/
+docs/
+openspec/
 
 # Python
 __pycache__/
