@@ -16,15 +16,6 @@ storage:
     credentialsDir: ~/.sig/credentials
 
 providers:
-    # ── Jira ────────────────────────────────────────────────────────────────
-    # Cookie-based SSO. Replace <your-jira-domain> (e.g. jira.example.com).
-    jira:
-        domains: ['<your-jira-domain>']
-        entryUrl: https://<your-jira-domain>/
-        strategy: cookie
-        config:
-            ttl: '10d'
-
     # ── Microsoft Teams Chat API ────────────────────────────────────────────
     # OAuth2 bearer token. Audience: Teams Chat Service.
     ms-teams:

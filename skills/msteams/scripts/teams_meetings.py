@@ -4,12 +4,12 @@
 import argparse
 import html
 import json
+import os
 import re
 import sys
 import urllib.parse
-import requests
 
-import os
+import requests
 
 DEFAULT_REGION = "apac"
 

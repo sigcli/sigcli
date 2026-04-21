@@ -12,7 +12,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ALL_SKILLS="sigcli-auth outlook msteams jira slack"
+ALL_SKILLS="sigcli-auth outlook msteams slack"
 
 # --- Agent detection ---
 

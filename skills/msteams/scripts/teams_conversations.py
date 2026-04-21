@@ -3,12 +3,11 @@
 
 import argparse
 import json
+import os
 import re
 import sys
-from datetime import datetime
-import requests
 
-import os
+import requests
 
 DEFAULT_REGION = "apac"
 

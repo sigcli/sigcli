@@ -347,7 +347,6 @@ cp references/config-template.yaml ~/.sig/config.yaml
 # 2. Edit placeholders
 $EDITOR ~/.sig/config.yaml
 # 3. Login
-sig login https://<your-jira-domain>/              # Jira
 sig login https://teams.cloud.microsoft/v2/        # MS Teams + Outlook (one login for both)
 sig login app-slack                                 # Slack
 ```
@@ -356,7 +355,6 @@ sig login app-slack                                 # Slack
 
 ```bash
 # Env var injection — credentials available as SIG_<PROVIDER>_* env vars
-sig run jira -- python scripts/my_script.py
 sig run ms-graph -- python scripts/outlook_send.py
 sig run app-slack -- python scripts/slack_send.py
 

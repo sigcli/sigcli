@@ -5,6 +5,7 @@ import argparse
 import json
 import sys
 import urllib.parse
+
 import requests
 
 GRAPH_BASE = "https://graph.microsoft.com/v1.0"
