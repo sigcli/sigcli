@@ -5,6 +5,7 @@ import argparse
 import json
 import sys
 from datetime import datetime, timedelta, timezone
+
 import requests
 
 GRAPH_BASE = "https://graph.microsoft.com/v1.0"
@@ -33,8 +34,16 @@ def get_calendar(graph_token: str, range_type: str = None, start: str = None,
         end_dt = start_dt + timedelta(days=30)
         limit = min(limit, 100)
     elif start and end:
-        start_dt = datetime.fromisoformat(start.replace("Z", "+00:00")) if "T" in start else datetime.strptime(start, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-        end_dt = datetime.fromisoformat(end.replace("Z", "+00:00")) if "T" in end else datetime.strptime(end, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        start_dt = (
+            datetime.fromisoformat(start.replace("Z", "+00:00"))
+            if "T" in start
+            else datetime.strptime(start, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        )
+        end_dt = (
+            datetime.fromisoformat(end.replace("Z", "+00:00"))
+            if "T" in end
+            else datetime.strptime(end, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        )
     else:
         start_dt = now.replace(hour=0, minute=0, second=0, microsecond=0)
         end_dt = start_dt + timedelta(days=7)

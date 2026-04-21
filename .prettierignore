@@ -9,3 +9,6 @@ pnpm-lock.yaml
 .claude/
 pitch/
 website/src/routeTree.gen.ts
+.pytest_cache/
+__pycache__/
+*.pyc
