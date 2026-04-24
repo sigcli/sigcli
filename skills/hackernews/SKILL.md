@@ -15,14 +15,14 @@ Browse, search, and read Hacker News stories, comments, and user profiles.
 
 All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
-| Script          | Purpose                              | Auth |
-| --------------- | ------------------------------------ | ---- |
-| `hn_top.py`     | Top stories on the front page        | None |
-| `hn_new.py`     | Newest stories                       | None |
-| `hn_best.py`    | Best stories, Ask HN, Show HN, Jobs | None |
-| `hn_item.py`    | Item detail + comment tree           | None |
-| `hn_user.py`    | User profile + submissions           | None |
-| `hn_search.py`  | Full-text search via Algolia         | None |
+| Script         | Purpose                             | Auth |
+| -------------- | ----------------------------------- | ---- |
+| `hn_top.py`    | Top stories on the front page       | None |
+| `hn_new.py`    | Newest stories                      | None |
+| `hn_best.py`   | Best stories, Ask HN, Show HN, Jobs | None |
+| `hn_item.py`   | Item detail + comment tree          | None |
+| `hn_user.py`   | User profile + submissions          | None |
+| `hn_search.py` | Full-text search via Algolia        | None |
 
 ### hn_top.py
 
@@ -83,12 +83,12 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 ## Error Handling
 
-| Error          | Cause                         | Fix                     |
-| -------------- | ----------------------------- | ----------------------- |
-| HTTP_404       | Item or user not found        | Check the ID / username |
-| HTTP_429       | Rate limited by API           | Wait and retry          |
-| SEARCH_ERROR   | Algolia API unavailable       | Try again later         |
-| ERROR          | Network or unexpected failure | Check connectivity      |
+| Error        | Cause                         | Fix                     |
+| ------------ | ----------------------------- | ----------------------- |
+| HTTP_404     | Item or user not found        | Check the ID / username |
+| HTTP_429     | Rate limited by API           | Wait and retry          |
+| SEARCH_ERROR | Algolia API unavailable       | Try again later         |
+| ERROR        | Network or unexpected failure | Check connectivity      |
 
 ## Workflow Examples
 
