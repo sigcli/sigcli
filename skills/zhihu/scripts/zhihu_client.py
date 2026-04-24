@@ -27,6 +27,7 @@ class ZhihuClient:
         self.cookie = cookie
         self._session = requests.Session()
         self._session.headers["User-Agent"] = USER_AGENT
+        self._session.headers["Referer"] = "https://www.zhihu.com/"
         if cookie:
             self._session.headers["Cookie"] = cookie
 

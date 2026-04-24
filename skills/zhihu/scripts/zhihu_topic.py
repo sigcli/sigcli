@@ -1,49 +1,44 @@
 #!/usr/bin/env python3
-"""Get Zhihu topic detail and best content."""
+"""Get Zhihu topic info via search."""
 
 import argparse
 import json
 import sys
 
 import requests
-from zhihu_client import ZHIHU_API_V4, ZhihuClient, parse_topic
+from zhihu_client import ZHIHU_API_V4, ZhihuClient
 
 
-def get_topic(topic_id, include_essence=False, limit=10, cookie=""):
+def search_topic(query, limit=10, cookie=""):
     client = ZhihuClient(cookie)
-    resp = client.get(f"{ZHIHU_API_V4}/topics/{topic_id}")
-    topic = parse_topic(resp.json())
+    params = {"q": query, "t": "topic", "limit": limit, "offset": 0}
+    resp = client.get(f"{ZHIHU_API_V4}/search_v3", params=params)
+    data = resp.json()
 
-    result = {"topic": topic}
+    topics = []
+    for item in data.get("data", []):
+        obj = item.get("object", {})
+        topics.append({
+            "id": obj.get("id"),
+            "name": obj.get("name", ""),
+            "introduction": obj.get("introduction", ""),
+            "followers_count": obj.get("followers_count", 0),
+            "questions_count": obj.get("questions_count", 0),
+            "avatar_url": obj.get("avatar_url", ""),
+        })
 
-    if include_essence:
-        resp = client.get(f"{ZHIHU_API_V4}/topics/{topic_id}/feeds/essence", params={"limit": limit, "offset": 0})
-        essence_data = resp.json()
-        items = []
-        for entry in essence_data.get("data", []):
-            target = entry.get("target", {})
-            items.append({
-                "id": target.get("id"),
-                "type": target.get("type", ""),
-                "title": target.get("title") or target.get("question", {}).get("title", ""),
-                "excerpt": target.get("excerpt", ""),
-                "voteup_count": target.get("voteup_count", 0),
-            })
-        result["essence"] = items
-
-    return result
+    return {"count": len(topics), "topics": topics}
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Get Zhihu topic detail")
+    parser = argparse.ArgumentParser(description="Search Zhihu topics")
     parser.add_argument("--cookie", default="", help="Zhihu session cookie (optional)")
-    parser.add_argument("--id", required=True, help="Topic ID")
-    parser.add_argument("--include-essence", action="store_true", help="Also fetch topic best content")
-    parser.add_argument("--limit", type=int, default=10, help="Max essence items (default: 10)")
+    parser.add_argument("--query", required=True, help="Topic search query")
+    parser.add_argument("--limit", type=int, default=10, help="Max results (default: 10)")
     args = parser.parse_args()
 
     try:
-        result = get_topic(args.id, args.include_essence, args.limit, args.cookie)
+        result = search_topic(args.query, args.limit, args.cookie)
         json.dump(result, sys.stdout, indent=2, ensure_ascii=False)
     except requests.HTTPError as e:
         json.dump({"error": "HTTP_" + str(e.response.status_code), "message": str(e)}, sys.stdout, indent=2)

@@ -8,76 +8,53 @@ from test_helpers import load_script
 
 mod = load_script("zhihu", "zhihu_topic")
 
-SAMPLE_TOPIC = {
-    "id": 19550517,
-    "name": "人工智能",
-    "introduction": "人工智能（Artificial Intelligence）是研究如何使计算机模拟人类智能的学科。",
-    "followers_count": 3500000,
-    "questions_count": 120000,
-    "best_answers_count": 8000,
-    "avatar_url": "https://pic.zhimg.com/v2-topic.jpg",
-}
-
-SAMPLE_ESSENCE = {
+SAMPLE_SEARCH_RESPONSE = {
     "data": [
         {
-            "target": {
-                "id": 67890,
-                "type": "answer",
-                "title": "",
-                "question": {"title": "什么是深度学习？"},
-                "excerpt": "深度学习是机器学习的一个分支...",
-                "voteup_count": 2000,
+            "object": {
+                "id": 19550517,
+                "name": "人工智能",
+                "introduction": "人工智能（Artificial Intelligence）是研究如何使计算机模拟人类智能的学科。",
+                "followers_count": 3500000,
+                "questions_count": 120000,
+                "avatar_url": "https://pic.zhimg.com/v2-topic.jpg",
             }
         }
     ]
 }
 
 
-class TestGetTopic:
+class TestSearchTopic:
     @responses.activate
-    def test_topic_only(self):
+    def test_search_topic(self):
         responses.get(
-            url=re.compile(r"https://www\.zhihu\.com/api/v4/topics/19550517$"),
-            json=SAMPLE_TOPIC,
+            url=re.compile(r"https://www\.zhihu\.com/api/v4/search_v3"),
+            json=SAMPLE_SEARCH_RESPONSE,
             status=200,
         )
-        result = mod.get_topic("19550517")
-        t = result["topic"]
-        assert t["id"] == 19550517
-        assert t["name"] == "人工智能"
-        assert t["followers_count"] == 3500000
-        assert "essence" not in result
+        result = mod.search_topic("人工智能")
+        assert result["count"] == 1
+        assert result["topics"][0]["id"] == 19550517
+        assert result["topics"][0]["name"] == "人工智能"
+        assert result["topics"][0]["followers_count"] == 3500000
 
     @responses.activate
-    def test_topic_with_essence(self):
+    def test_search_topic_empty(self):
         responses.get(
-            url=re.compile(r"https://www\.zhihu\.com/api/v4/topics/19550517$"),
-            json=SAMPLE_TOPIC,
-            status=200,
-        )
-        responses.get(
-            url=re.compile(r"https://www\.zhihu\.com/api/v4/topics/19550517/feeds/essence"),
-            json=SAMPLE_ESSENCE,
-            status=200,
-        )
-        result = mod.get_topic("19550517", include_essence=True)
-        assert result["topic"]["name"] == "人工智能"
-        assert len(result["essence"]) == 1
-        assert result["essence"][0]["title"] == "什么是深度学习？"
-        assert result["essence"][0]["voteup_count"] == 2000
-
-    @responses.activate
-    def test_topic_essence_empty(self):
-        responses.get(
-            url=re.compile(r"https://www\.zhihu\.com/api/v4/topics/19550517$"),
-            json=SAMPLE_TOPIC,
-            status=200,
-        )
-        responses.get(
-            url=re.compile(r"https://www\.zhihu\.com/api/v4/topics/19550517/feeds/essence"),
+            url=re.compile(r"https://www\.zhihu\.com/api/v4/search_v3"),
             json={"data": []},
             status=200,
         )
-        result = mod.get_topic("19550517", include_essence=True)
-        assert result["essence"] == []
+        result = mod.search_topic("nonexistent")
+        assert result["count"] == 0
+        assert result["topics"] == []
+
+    @responses.activate
+    def test_search_topic_with_limit(self):
+        responses.get(
+            url=re.compile(r"https://www\.zhihu\.com/api/v4/search_v3"),
+            json=SAMPLE_SEARCH_RESPONSE,
+            status=200,
+        )
+        result = mod.search_topic("AI", limit=5)
+        assert result["count"] == 1

@@ -11,13 +11,18 @@ from zhihu_client import ZHIHU_API_V4, ZhihuClient, parse_answer, parse_question
 
 def get_question(question_id, answers_limit=10, sort="default", cookie=""):
     client = ZhihuClient(cookie)
-    resp = client.get(f"{ZHIHU_API_V4}/questions/{question_id}")
-    question = parse_question(resp.json())
 
     params = {"limit": answers_limit, "offset": 0, "sort_by": sort}
     resp = client.get(f"{ZHIHU_API_V4}/questions/{question_id}/answers", params=params)
     answers_data = resp.json()
     answers = [parse_answer(a) for a in answers_data.get("data", [])]
+
+    question = None
+    if answers:
+        q = answers_data["data"][0].get("question", {})
+        question = {"id": q.get("id"), "title": q.get("title", ""), "type": "question"}
+    else:
+        question = {"id": int(question_id), "title": "", "type": "question"}
 
     return {
         "question": question,
