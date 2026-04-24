@@ -9,7 +9,10 @@ import requests
 from reddit_client import RedditApiError, RedditClient
 
 
-def submit_post(cookie: str, subreddit: str, title: str, kind: str = "self", text: str = "", url: str = "", flair_id: str = "", flair_text: str = "") -> dict:
+def submit_post(
+    cookie: str, subreddit: str, title: str, kind: str = "self",
+    text: str = "", url: str = "", flair_id: str = "", flair_text: str = "",
+) -> dict:
     """Submit a new post to a subreddit."""
     client = RedditClient(cookie)
     client.require_cookie()
