@@ -89,6 +89,22 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 **NSFW content** — Posts flagged as NSFW include `"over_18": true` in the response.
 
+## Proxy
+
+Reddit may be blocked or slow in some networks. Set a proxy via environment variables:
+
+```bash
+# SOCKS5 proxy (use socks5h:// for remote DNS resolution)
+HTTPS_PROXY=socks5h://localhost:1080 HTTP_PROXY=socks5h://localhost:1080 python3 scripts/reddit_hot.py --subreddit programming
+
+# HTTP proxy
+HTTPS_PROXY=http://localhost:8080 HTTP_PROXY=http://localhost:8080 python3 scripts/reddit_hot.py --subreddit programming
+```
+
+For SOCKS5 proxies, `pysocks` must be installed: `pip install pysocks`
+
+Note: Use `socks5h://` (not `socks5://`) so DNS is resolved by the proxy server. This avoids issues where local DNS returns blocked IPs.
+
 ## Error Handling
 
 | Error    | Cause                      | Fix                                 |
