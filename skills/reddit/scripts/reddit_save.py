@@ -6,7 +6,7 @@ import json
 import sys
 
 import requests
-from reddit_client import REDDIT_BASE, RedditApiError, RedditClient, to_fullname
+from reddit_client import RedditApiError, RedditClient, to_fullname
 
 
 def save_post(cookie: str, target_id: str, undo: bool = False) -> dict:
@@ -17,14 +17,8 @@ def save_post(cookie: str, target_id: str, undo: bool = False) -> dict:
     if not target_id.startswith("t1_") and not target_id.startswith("t3_"):
         target_id = to_fullname(target_id, "t3")
 
-    modhash = client.get_modhash()
     endpoint = "/api/unsave" if undo else "/api/save"
-
-    data = {
-        "id": target_id,
-        "uh": modhash,
-    }
-    client.post(f"{REDDIT_BASE}{endpoint}", data=data)
+    client.oauth_post(endpoint, data={"id": target_id})
 
     action = "unsaved" if undo else "saved"
     return {

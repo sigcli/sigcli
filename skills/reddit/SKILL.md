@@ -173,7 +173,7 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 **Fullnames** — Reddit identifies objects with type prefixes: `t1_` (comment), `t3_` (post). Write scripts accept bare IDs or fullnames.
 
-**Modhash** — Reddit's CSRF token for write operations. The client fetches it automatically from `/api/me.json` before each write.
+**OAuth Bearer** — Write operations use the `token_v2` cookie value as a Bearer token against `oauth.reddit.com`. The client extracts it automatically from the session cookie.
 
 **Time periods** — Used by `reddit_top.py` and `reddit_search.py`. Valid: `hour`, `day`, `week`, `month`, `year`, `all`.
 
@@ -190,7 +190,7 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 | HTTP_429       | Rate limited by Reddit     | Wait a few seconds and retry        |
 | HTTP_503       | Reddit is temporarily down | Wait and retry                      |
 | AUTH_REQUIRED  | No cookie for write op     | Run `sig login` and retry           |
-| NO_MODHASH     | Session expired            | Re-authenticate via `sig login`     |
+| NO_TOKEN       | No token_v2 in cookie      | Re-authenticate via `sig login`     |
 | COMMENT_FAILED | Comment rejected           | Check error details                 |
 
 ## Workflow Examples

@@ -6,7 +6,7 @@ import json
 import sys
 
 import requests
-from reddit_client import REDDIT_BASE, RedditApiError, RedditClient, to_fullname
+from reddit_client import RedditApiError, RedditClient, to_fullname
 
 
 def post_comment(cookie: str, parent: str, text: str) -> dict:
@@ -17,15 +17,8 @@ def post_comment(cookie: str, parent: str, text: str) -> dict:
     if not parent.startswith("t1_") and not parent.startswith("t3_"):
         parent = to_fullname(parent, "t3")
 
-    modhash = client.get_modhash()
-
-    data = {
-        "parent": parent,
-        "text": text,
-        "api_type": "json",
-        "uh": modhash,
-    }
-    resp = client.post(f"{REDDIT_BASE}/api/comment", data=data)
+    data = {"parent": parent, "text": text, "api_type": "json"}
+    resp = client.oauth_post("/api/comment", data=data)
 
     json_data = resp.get("json", {})
     errors = json_data.get("errors", [])

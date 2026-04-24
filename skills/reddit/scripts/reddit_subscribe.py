@@ -6,22 +6,16 @@ import json
 import sys
 
 import requests
-from reddit_client import REDDIT_BASE, RedditApiError, RedditClient
+from reddit_client import RedditApiError, RedditClient
 
 
 def subscribe(cookie: str, subreddit: str, undo: bool = False) -> dict:
     """Subscribe or unsubscribe to a subreddit."""
     client = RedditClient(cookie)
     client.require_cookie()
-    modhash = client.get_modhash()
 
     action = "unsub" if undo else "sub"
-    data = {
-        "sr_name": subreddit,
-        "action": action,
-        "uh": modhash,
-    }
-    client.post(f"{REDDIT_BASE}/api/subscribe", data=data)
+    client.oauth_post("/api/subscribe", data={"sr_name": subreddit, "action": action})
 
     verb = "Unsubscribed from" if undo else "Subscribed to"
     return {

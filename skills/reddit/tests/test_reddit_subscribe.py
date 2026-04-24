@@ -9,12 +9,13 @@ from test_helpers import load_script
 mod = load_script("reddit", "reddit_subscribe")
 client_mod = load_script("reddit", "reddit_client")
 
+FAKE_COOKIE = "token_v2=faketoken123; reddit_session=fakesession"
+
 
 @responses.activate
 def test_subscribe():
-    responses.get(url=re.compile(r"https://www\.reddit\.com/api/me\.json"), json={"data": {"modhash": "mh1"}}, status=200)
-    responses.post(url=re.compile(r"https://www\.reddit\.com/api/subscribe"), json={}, status=200)
-    result = mod.subscribe("fakecookie", "python")
+    responses.post(url=re.compile(r"https://oauth\.reddit\.com/api/subscribe"), json={}, status=200)
+    result = mod.subscribe(FAKE_COOKIE, "python")
     assert result["success"] is True
     assert result["action"] == "sub"
     assert "Subscribed" in result["message"]
@@ -22,9 +23,8 @@ def test_subscribe():
 
 @responses.activate
 def test_unsubscribe():
-    responses.get(url=re.compile(r"https://www\.reddit\.com/api/me\.json"), json={"data": {"modhash": "mh1"}}, status=200)
-    responses.post(url=re.compile(r"https://www\.reddit\.com/api/subscribe"), json={}, status=200)
-    result = mod.subscribe("fakecookie", "python", undo=True)
+    responses.post(url=re.compile(r"https://oauth\.reddit\.com/api/subscribe"), json={}, status=200)
+    result = mod.subscribe(FAKE_COOKIE, "python", undo=True)
     assert result["action"] == "unsub"
     assert "Unsubscribed" in result["message"]
 

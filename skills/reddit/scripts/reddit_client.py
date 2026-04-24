@@ -18,6 +18,7 @@ import requests
 # ---------------------------------------------------------------------------
 
 REDDIT_BASE = "https://www.reddit.com"
+REDDIT_OAUTH = "https://oauth.reddit.com"
 USER_AGENT = "sigcli-skill/1.0 (headless client)"
 TIMEOUT = 15
 
@@ -58,11 +59,18 @@ class RedditClient:
         self._session.headers["User-Agent"] = USER_AGENT
         if cookie:
             self._session.headers["Cookie"] = cookie
+        self._bearer_token = self._extract_token(cookie) if cookie else ""
 
     @classmethod
     def create(cls) -> "RedditClient":
         cookie = os.environ.get("SIG_REDDIT_COOKIE", "")
         return cls(cookie)
+
+    @staticmethod
+    def _extract_token(cookie: str) -> str:
+        """Extract token_v2 from cookie string for OAuth bearer auth."""
+        match = re.search(r"token_v2=([^;]+)", cookie)
+        return match.group(1) if match else ""
 
     def get(self, url: str, params: dict | None = None) -> dict:
         """GET a Reddit JSON endpoint. Retries once on HTTP 429."""
@@ -88,19 +96,37 @@ class RedditClient:
         resp.raise_for_status()
         return resp.json()
 
-    def get_modhash(self) -> str:
-        """Fetch the modhash CSRF token from /api/me.json."""
-        if not self.cookie:
-            raise RedditApiError("AUTH_REQUIRED", "Cookie required for write operations. Run: sig login https://www.reddit.com/")
-        data = self.get(f"{REDDIT_BASE}/api/me.json", params={"raw_json": 1})
-        modhash = data.get("data", {}).get("modhash", "")
-        if not modhash:
-            raise RedditApiError("NO_MODHASH", "Could not get modhash — session may be expired")
-        return modhash
+    def oauth_get(self, path: str, params: dict | None = None) -> dict:
+        """GET from oauth.reddit.com with Bearer auth."""
+        self.require_cookie()
+        headers = {"Authorization": f"Bearer {self._bearer_token}"}
+        resp = self._session.get(f"{REDDIT_OAUTH}{path}", params=params, headers=headers, timeout=TIMEOUT)
+        if resp.status_code == 429:
+            retry_after = int(resp.headers.get("Retry-After", "5"))
+            time.sleep(retry_after)
+            resp = self._session.get(f"{REDDIT_OAUTH}{path}", params=params, headers=headers, timeout=TIMEOUT)
+        resp.raise_for_status()
+        return resp.json()
+
+    def oauth_post(self, path: str, data: dict | None = None) -> dict:
+        """POST to oauth.reddit.com with Bearer auth."""
+        self.require_cookie()
+        headers = {"Authorization": f"Bearer {self._bearer_token}"}
+        resp = self._session.post(f"{REDDIT_OAUTH}{path}", data=data, headers=headers, timeout=TIMEOUT)
+        if resp.status_code == 429:
+            retry_after = int(resp.headers.get("Retry-After", "5"))
+            time.sleep(retry_after)
+            resp = self._session.post(f"{REDDIT_OAUTH}{path}", data=data, headers=headers, timeout=TIMEOUT)
+        resp.raise_for_status()
+        return resp.json()
+
+    def get_me(self) -> dict:
+        """Fetch current user info via OAuth."""
+        return self.oauth_get("/api/v1/me")
 
     def require_cookie(self):
-        if not self.cookie:
-            raise RedditApiError("AUTH_REQUIRED", "This operation requires a Reddit session cookie. Run: sig login https://www.reddit.com/")
+        if not self.cookie or not self._bearer_token:
+            raise RedditApiError("AUTH_REQUIRED", "This operation requires a Reddit session cookie with token_v2. Run: sig login https://www.reddit.com/")
 
 
 # ---------------------------------------------------------------------------

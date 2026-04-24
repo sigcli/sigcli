@@ -9,29 +9,28 @@ from test_helpers import load_script
 mod = load_script("reddit", "reddit_save")
 client_mod = load_script("reddit", "reddit_client")
 
+FAKE_COOKIE = "token_v2=faketoken123; reddit_session=fakesession"
+
 
 @responses.activate
 def test_save_post():
-    responses.get(url=re.compile(r"https://www\.reddit\.com/api/me\.json"), json={"data": {"modhash": "mh1"}}, status=200)
-    responses.post(url=re.compile(r"https://www\.reddit\.com/api/save"), json={}, status=200)
-    result = mod.save_post("fakecookie", "t3_abc")
+    responses.post(url=re.compile(r"https://oauth\.reddit\.com/api/save"), json={}, status=200)
+    result = mod.save_post(FAKE_COOKIE, "t3_abc")
     assert result["success"] is True
     assert result["action"] == "saved"
 
 
 @responses.activate
 def test_unsave_post():
-    responses.get(url=re.compile(r"https://www\.reddit\.com/api/me\.json"), json={"data": {"modhash": "mh1"}}, status=200)
-    responses.post(url=re.compile(r"https://www\.reddit\.com/api/unsave"), json={}, status=200)
-    result = mod.save_post("fakecookie", "t3_abc", undo=True)
+    responses.post(url=re.compile(r"https://oauth\.reddit\.com/api/unsave"), json={}, status=200)
+    result = mod.save_post(FAKE_COOKIE, "t3_abc", undo=True)
     assert result["action"] == "unsaved"
 
 
 @responses.activate
 def test_bare_id_gets_prefix():
-    responses.get(url=re.compile(r"https://www\.reddit\.com/api/me\.json"), json={"data": {"modhash": "mh1"}}, status=200)
-    responses.post(url=re.compile(r"https://www\.reddit\.com/api/save"), json={}, status=200)
-    result = mod.save_post("fakecookie", "abc")
+    responses.post(url=re.compile(r"https://oauth\.reddit\.com/api/save"), json={}, status=200)
+    result = mod.save_post(FAKE_COOKIE, "abc")
     assert result["id"] == "t3_abc"
 
 

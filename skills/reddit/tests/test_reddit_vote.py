@@ -9,29 +9,28 @@ from test_helpers import load_script
 mod = load_script("reddit", "reddit_vote")
 client_mod = load_script("reddit", "reddit_client")
 
+FAKE_COOKIE = "token_v2=faketoken123; reddit_session=fakesession"
+
 
 @responses.activate
 def test_upvote():
-    responses.get(url=re.compile(r"https://www\.reddit\.com/api/me\.json"), json={"data": {"modhash": "mh1"}}, status=200)
-    responses.post(url=re.compile(r"https://www\.reddit\.com/api/vote"), json={}, status=200)
-    result = mod.vote("fakecookie", "t3_abc", "up")
+    responses.post(url=re.compile(r"https://oauth\.reddit\.com/api/vote"), json={}, status=200)
+    result = mod.vote(FAKE_COOKIE, "t3_abc", "up")
     assert result["success"] is True
     assert result["direction"] == "up"
 
 
 @responses.activate
 def test_downvote():
-    responses.get(url=re.compile(r"https://www\.reddit\.com/api/me\.json"), json={"data": {"modhash": "mh1"}}, status=200)
-    responses.post(url=re.compile(r"https://www\.reddit\.com/api/vote"), json={}, status=200)
-    result = mod.vote("fakecookie", "t3_abc", "down")
+    responses.post(url=re.compile(r"https://oauth\.reddit\.com/api/vote"), json={}, status=200)
+    result = mod.vote(FAKE_COOKIE, "t3_abc", "down")
     assert result["direction"] == "down"
 
 
 @responses.activate
 def test_unvote():
-    responses.get(url=re.compile(r"https://www\.reddit\.com/api/me\.json"), json={"data": {"modhash": "mh1"}}, status=200)
-    responses.post(url=re.compile(r"https://www\.reddit\.com/api/vote"), json={}, status=200)
-    result = mod.vote("fakecookie", "abc", "none")
+    responses.post(url=re.compile(r"https://oauth\.reddit\.com/api/vote"), json={}, status=200)
+    result = mod.vote(FAKE_COOKIE, "abc", "none")
     assert result["id"] == "t3_abc"
     assert result["direction"] == "none"
 

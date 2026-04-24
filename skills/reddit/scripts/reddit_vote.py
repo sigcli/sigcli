@@ -6,7 +6,7 @@ import json
 import sys
 
 import requests
-from reddit_client import REDDIT_BASE, RedditApiError, RedditClient, to_fullname
+from reddit_client import RedditApiError, RedditClient, to_fullname
 
 DIRECTION_MAP = {"up": 1, "down": -1, "none": 0}
 
@@ -19,15 +19,8 @@ def vote(cookie: str, target_id: str, direction: str) -> dict:
     if not target_id.startswith("t1_") and not target_id.startswith("t3_"):
         target_id = to_fullname(target_id, "t3")
 
-    modhash = client.get_modhash()
     dir_value = DIRECTION_MAP[direction]
-
-    data = {
-        "id": target_id,
-        "dir": dir_value,
-        "uh": modhash,
-    }
-    client.post(f"{REDDIT_BASE}/api/vote", data=data)
+    client.oauth_post("/api/vote", data={"id": target_id, "dir": dir_value})
 
     return {
         "success": True,
