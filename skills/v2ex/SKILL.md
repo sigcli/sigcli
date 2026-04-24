@@ -204,6 +204,27 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 **Search** — Uses the SOV2EX third-party search engine (sov2ex.com) which indexes V2EX content for full-text search.
 
+## Proxy
+
+V2EX is blocked by firewalls in some regions. If scripts fail with `Connection reset by peer` or timeout errors, set a proxy via environment variables:
+
+```bash
+# SOCKS5 proxy
+HTTPS_PROXY=socks5://localhost:1080 HTTP_PROXY=socks5://localhost:1080 python3 scripts/v2ex_hot.py
+
+# HTTP proxy
+HTTPS_PROXY=http://localhost:8080 HTTP_PROXY=http://localhost:8080 python3 scripts/v2ex_hot.py
+```
+
+For SOCKS5 proxies, `pysocks` must be installed: `pip install pysocks`
+
+With `sig run`, pass the proxy env vars through:
+
+```bash
+HTTPS_PROXY=socks5://localhost:1080 HTTP_PROXY=socks5://localhost:1080 \
+  sig run v2ex -- bash -c 'python3 scripts/v2ex_hot.py --cookie "$SIG_V2EX_COOKIE"'
+```
+
 ## Error Handling
 
 | Error            | Cause                        | Fix                              |
