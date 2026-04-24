@@ -21,14 +21,14 @@ If you encounter HTTP 429 (rate limited), wait a few seconds and retry. The clie
 
 All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
-| Script                | Purpose                          |
-| --------------------- | -------------------------------- |
-| `reddit_hot.py`       | Get hot posts from a subreddit   |
-| `reddit_top.py`       | Get top posts from a subreddit   |
-| `reddit_post.py`      | Get post detail with comments    |
-| `reddit_search.py`    | Search Reddit posts              |
-| `reddit_user.py`      | View user profile and activity   |
-| `reddit_subreddit.py` | Get subreddit info               |
+| Script                | Purpose                        |
+| --------------------- | ------------------------------ |
+| `reddit_hot.py`       | Get hot posts from a subreddit |
+| `reddit_top.py`       | Get top posts from a subreddit |
+| `reddit_post.py`      | Get post detail with comments  |
+| `reddit_search.py`    | Search Reddit posts            |
+| `reddit_user.py`      | View user profile and activity |
+| `reddit_subreddit.py` | Get subreddit info             |
 
 ### reddit_hot.py
 
@@ -91,12 +91,12 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 ## Error Handling
 
-| Error          | Cause                    | Fix                                          |
-| -------------- | ------------------------ | -------------------------------------------- |
-| HTTP_403       | Subreddit is private     | Use a different subreddit                    |
-| HTTP_404       | Subreddit/user not found | Check the name is spelled correctly          |
-| HTTP_429       | Rate limited by Reddit   | Wait a few seconds and retry                 |
-| HTTP_503       | Reddit is temporarily down | Wait and retry                             |
+| Error    | Cause                      | Fix                                 |
+| -------- | -------------------------- | ----------------------------------- |
+| HTTP_403 | Subreddit is private       | Use a different subreddit           |
+| HTTP_404 | Subreddit/user not found   | Check the name is spelled correctly |
+| HTTP_429 | Rate limited by Reddit     | Wait a few seconds and retry        |
+| HTTP_503 | Reddit is temporarily down | Wait and retry                      |
 
 ## Workflow Examples
 
