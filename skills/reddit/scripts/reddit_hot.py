@@ -9,10 +9,13 @@ import requests
 from reddit_client import REDDIT_BASE, RedditClient, parse_post
 
 
-def get_hot_posts(client: RedditClient, subreddit: str, limit: int) -> dict:
+def get_hot_posts(client: RedditClient, subreddit: str, limit: int, after: str = "") -> dict:
     """Fetch hot posts from a subreddit."""
     url = f"{REDDIT_BASE}/r/{subreddit}/hot.json"
-    data = client.get(url, params={"limit": limit, "raw_json": 1})
+    params = {"limit": limit, "raw_json": 1}
+    if after:
+        params["after"] = after
+    data = client.get(url, params=params)
 
     listing = data.get("data", {})
     posts = []
@@ -32,11 +35,12 @@ def main():
     parser = argparse.ArgumentParser(description="Get hot posts from a Reddit subreddit")
     parser.add_argument("--subreddit", default="all", help="Subreddit name without r/ prefix (default: all)")
     parser.add_argument("--limit", type=int, default=25, help="Max posts to return (default: 25)")
+    parser.add_argument("--after", default="", help="Pagination token from previous response")
     args = parser.parse_args()
 
     try:
         client = RedditClient()
-        result = get_hot_posts(client, args.subreddit, args.limit)
+        result = get_hot_posts(client, args.subreddit, args.limit, args.after)
         json.dump(result, sys.stdout, indent=2, ensure_ascii=False)
     except requests.HTTPError as e:
         json.dump({"error": "HTTP_" + str(e.response.status_code), "message": str(e)}, sys.stdout, indent=2)

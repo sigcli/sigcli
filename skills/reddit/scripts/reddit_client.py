@@ -7,6 +7,8 @@ and response normalization for Reddit's public JSON API.
 
 from __future__ import annotations
 
+import os
+import re
 import time
 
 import requests
@@ -44,30 +46,28 @@ def error_response(code: str, message: str) -> dict:
 
 
 class RedditClient:
-    """Thin HTTP client for Reddit's public JSON API.
+    """HTTP client for Reddit's JSON API with optional cookie auth.
 
     All requests use a descriptive User-Agent to avoid 429 responses.
     Rate-limited responses (HTTP 429) are retried once after a delay.
     """
 
-    def __init__(self):
+    def __init__(self, cookie: str = ""):
+        self.cookie = cookie
         self._session = requests.Session()
         self._session.headers["User-Agent"] = USER_AGENT
+        if cookie:
+            self._session.headers["Cookie"] = cookie
+
+    @classmethod
+    def create(cls) -> "RedditClient":
+        cookie = os.environ.get("SIG_REDDIT_COOKIE", "")
+        return cls(cookie)
 
     def get(self, url: str, params: dict | None = None) -> dict:
-        """GET a Reddit JSON endpoint.
-
-        Appends .json if not already present. Retries once on HTTP 429.
-
-        Returns:
-            Parsed JSON response body.
-
-        Raises:
-            requests.HTTPError: On non-429 HTTP errors.
-        """
+        """GET a Reddit JSON endpoint. Retries once on HTTP 429."""
         resp = self._session.get(url, params=params, timeout=TIMEOUT)
 
-        # Rate limit: retry once
         if resp.status_code == 429:
             retry_after = int(resp.headers.get("Retry-After", "5"))
             time.sleep(retry_after)
@@ -75,6 +75,64 @@ class RedditClient:
 
         resp.raise_for_status()
         return resp.json()
+
+    def post(self, url: str, data: dict | None = None) -> dict:
+        """POST form-encoded data to a Reddit API endpoint."""
+        resp = self._session.post(url, data=data, timeout=TIMEOUT)
+
+        if resp.status_code == 429:
+            retry_after = int(resp.headers.get("Retry-After", "5"))
+            time.sleep(retry_after)
+            resp = self._session.post(url, data=data, timeout=TIMEOUT)
+
+        resp.raise_for_status()
+        return resp.json()
+
+    def get_modhash(self) -> str:
+        """Fetch the modhash CSRF token from /api/me.json."""
+        if not self.cookie:
+            raise RedditApiError("AUTH_REQUIRED", "Cookie required for write operations. Run: sig login https://www.reddit.com/")
+        data = self.get(f"{REDDIT_BASE}/api/me.json", params={"raw_json": 1})
+        modhash = data.get("data", {}).get("modhash", "")
+        if not modhash:
+            raise RedditApiError("NO_MODHASH", "Could not get modhash — session may be expired")
+        return modhash
+
+    def require_cookie(self):
+        if not self.cookie:
+            raise RedditApiError("AUTH_REQUIRED", "This operation requires a Reddit session cookie. Run: sig login https://www.reddit.com/")
+
+
+# ---------------------------------------------------------------------------
+# URL / ID helpers
+# ---------------------------------------------------------------------------
+
+
+def resolve_post_id(raw: str) -> str:
+    """Extract a bare post ID from a URL, fullname, or bare ID.
+
+    Accepts:
+      - Full URL: https://www.reddit.com/r/python/comments/1abc123/...
+      - Short link: https://redd.it/1abc123
+      - Fullname: t3_1abc123
+      - Bare ID: 1abc123
+    """
+    match = re.search(r"/comments/([a-z0-9]+)", raw)
+    if match:
+        return match.group(1)
+    match = re.search(r"redd\.it/([a-z0-9]+)", raw)
+    if match:
+        return match.group(1)
+    if raw.startswith("t3_"):
+        return raw[3:]
+    return raw.strip()
+
+
+def to_fullname(post_id: str, kind: str = "t3") -> str:
+    """Ensure an ID has the Reddit fullname prefix."""
+    if post_id.startswith(f"{kind}_"):
+        return post_id
+    return f"{kind}_{post_id}"
 
 
 # ---------------------------------------------------------------------------

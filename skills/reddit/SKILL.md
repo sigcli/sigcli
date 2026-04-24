@@ -1,40 +1,71 @@
 ---
 name: reddit
-description: 'Interact with Reddit — browse subreddits, read posts and comments, search content, view user profiles. Use this skill whenever the user mentions Reddit, r/, subreddit, wants to browse Reddit posts, read Reddit discussions, search Reddit, or look up Reddit users. Also trigger when the user pastes a Reddit URL (e.g. reddit.com/r/programming/...) or mentions a subreddit name.'
+description: 'Interact with Reddit — browse subreddits, read posts and comments, search content, view user profiles, post comments, vote, save posts, subscribe to subreddits. Use this skill whenever the user mentions Reddit, r/, subreddit, wants to browse Reddit posts, read Reddit discussions, search Reddit, look up Reddit users, or interact with Reddit content. Also trigger when the user pastes a Reddit URL (e.g. reddit.com/r/programming/...) or mentions a subreddit name.'
 ---
 
 # Reddit
 
-Browse subreddits, read posts and comments, search content, and view user profiles via Reddit's public JSON API.
+Browse subreddits, read posts and comments, search content, view user profiles, and interact with Reddit.
 
 ## Authentication
 
-No authentication is required. Reddit's public JSON API is used for read-only access. All scripts work without any credentials or `sig run`.
+**Read operations** work without authentication via Reddit's public JSON API. No credentials needed.
+
+**Write operations** (comment, vote, save, subscribe) require a **session cookie**. Use `sig run` to inject it:
 
 ```bash
-python scripts/reddit_hot.py --subreddit programming --limit 10
+sig run reddit -- bash -c 'python3 scripts/reddit_comment.py --cookie "$SIG_REDDIT_COOKIE" --parent t3_1abc --text "Great post!"'
 ```
 
-If you encounter HTTP 429 (rate limited), wait a few seconds and retry. The client includes a `User-Agent` header to reduce rate limiting.
+The default Signet provider is `reddit`. The env var is `SIG_REDDIT_COOKIE`.
+
+If a write script returns auth error, re-authenticate:
+
+```bash
+sig login https://www.reddit.com/
+```
+
+**Signet provider config:**
+
+```yaml
+reddit:
+    domains: ['www.reddit.com', 'reddit.com']
+    entryUrl: https://www.reddit.com/login
+    strategy: cookie
+```
 
 ## Scripts Reference
 
 All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
-| Script                | Purpose                        |
-| --------------------- | ------------------------------ |
-| `reddit_hot.py`       | Get hot posts from a subreddit |
-| `reddit_top.py`       | Get top posts from a subreddit |
-| `reddit_post.py`      | Get post detail with comments  |
-| `reddit_search.py`    | Search Reddit posts            |
-| `reddit_user.py`      | View user profile and activity |
-| `reddit_subreddit.py` | Get subreddit info             |
+### Read Operations
+
+| Script                | Purpose                    | Auth |
+| --------------------- | -------------------------- | ---- |
+| `reddit_hot.py`       | Hot posts from a subreddit | None |
+| `reddit_top.py`       | Top posts from a subreddit | None |
+| `reddit_new.py`       | New or rising posts        | None |
+| `reddit_popular.py`   | Popular posts (/r/popular) | None |
+| `reddit_post.py`      | Post detail with comments  | None |
+| `reddit_search.py`    | Search Reddit posts        | None |
+| `reddit_user.py`      | User profile and activity  | None |
+| `reddit_subreddit.py` | Subreddit info             | None |
+
+### Write Operations
+
+| Script                | Purpose                | Auth     |
+| --------------------- | ---------------------- | -------- |
+| `reddit_comment.py`   | Post a comment         | Required |
+| `reddit_vote.py`      | Upvote/downvote/unvote | Required |
+| `reddit_save.py`      | Save or unsave a post  | Required |
+| `reddit_subscribe.py` | Subscribe/unsubscribe  | Required |
 
 ### reddit_hot.py
 
 ```
 --subreddit NAME      Subreddit name without r/ prefix (default: all)
 --limit N             Max posts to return (default: 25)
+--after TOKEN         Pagination token from previous response
 ```
 
 ### reddit_top.py
@@ -43,14 +74,32 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 --subreddit NAME      Subreddit name without r/ prefix (default: all)
 --time PERIOD         Time period: hour, day, week, month, year, all (default: day)
 --limit N             Max posts to return (default: 25)
+--after TOKEN         Pagination token from previous response
+```
+
+### reddit_new.py
+
+```
+--subreddit NAME      Subreddit name (default: all)
+--sort SORT           Sort: new, rising (default: new)
+--limit N             Max posts (default: 25)
+--after TOKEN         Pagination token
+```
+
+### reddit_popular.py
+
+```
+--limit N             Max posts (default: 25)
+--after TOKEN         Pagination token
 ```
 
 ### reddit_post.py
 
 ```
---id ID               Post ID (required, e.g. "1k2x3y")
+--id ID               Post ID, fullname (t3_xxx), or full Reddit URL (required)
 --comments-limit N    Max top-level comments (default: 20)
---sort SORT           Comment sort: best, top, new (default: best)
+--sort SORT           Comment sort: best, top, new, controversial, old (default: best)
+--depth N             Max comment tree depth (0=unlimited, default: 0)
 ```
 
 ### reddit_search.py
@@ -61,6 +110,7 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 --sort SORT          Sort: relevance, hot, top, new, comments (default: relevance)
 --time PERIOD        Time filter: hour, day, week, month, year, all (default: all)
 --limit N            Max results (default: 25)
+--after TOKEN        Pagination token
 ```
 
 ### reddit_user.py
@@ -77,68 +127,105 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 --name NAME           Subreddit name without r/ prefix (required)
 ```
 
+### reddit_comment.py
+
+```
+--cookie COOKIE       Reddit session cookie (required)
+--parent ID           Parent fullname: t3_xxx (reply to post) or t1_xxx (reply to comment)
+--text TEXT           Comment text in markdown (required)
+```
+
+### reddit_vote.py
+
+```
+--cookie COOKIE       Reddit session cookie (required)
+--id ID               Post/comment ID or fullname (t3_xxx / t1_xxx)
+--direction DIR       Vote: up, down, or none (required)
+```
+
+### reddit_save.py
+
+```
+--cookie COOKIE       Reddit session cookie (required)
+--id ID               Post/comment ID or fullname
+--undo                Unsave instead of save (flag)
+```
+
+### reddit_subscribe.py
+
+```
+--cookie COOKIE       Reddit session cookie (required)
+--subreddit NAME      Subreddit name (required)
+--undo                Unsubscribe instead of subscribe (flag)
+```
+
+## Safety
+
+**Always show the user the comment text and get explicit confirmation before calling `reddit_comment.py`.** Comments are posted publicly and cannot be easily deleted via API.
+
+**`reddit_vote.py` and `reddit_subscribe.py` are reversible** — use `--direction none` to remove a vote, `--undo` to unsubscribe.
+
 ## Key Concepts
 
-**Subreddit names** — Always pass without the `r/` prefix. For example, use `programming` not `r/programming`.
+**Subreddit names** — Always pass without the `r/` prefix. Use `programming` not `r/programming`.
 
-**Post IDs** — The alphanumeric identifier from a Reddit URL. For `reddit.com/r/python/comments/1k2x3y/...`, the post ID is `1k2x3y`.
+**Post IDs** — `reddit_post.py` accepts: bare ID (`1k2x3y`), fullname (`t3_1k2x3y`), full URL (`https://www.reddit.com/r/python/comments/1k2x3y/...`), or short link (`https://redd.it/1k2x3y`).
 
-**Time periods** — Used by `reddit_top.py` and `reddit_search.py`. Valid values: `hour`, `day`, `week`, `month`, `year`, `all`.
+**Fullnames** — Reddit identifies objects with type prefixes: `t1_` (comment), `t3_` (post). Write scripts accept bare IDs or fullnames.
 
-**Pagination** — List endpoints return an `after` token. Pass it as `--after` on a subsequent call to get the next page (not yet exposed as CLI args — use the returned `after` value programmatically).
+**Modhash** — Reddit's CSRF token for write operations. The client fetches it automatically from `/api/me.json` before each write.
+
+**Time periods** — Used by `reddit_top.py` and `reddit_search.py`. Valid: `hour`, `day`, `week`, `month`, `year`, `all`.
+
+**Pagination** — List endpoints return an `after` token. Pass it as `--after` on the next call to get the next page.
 
 **NSFW content** — Posts flagged as NSFW include `"over_18": true` in the response.
 
-## Proxy
-
-Reddit may be blocked or slow in some networks. Set a proxy via environment variables:
-
-```bash
-# SOCKS5 proxy
-HTTPS_PROXY=socks5://localhost:1080 HTTP_PROXY=socks5://localhost:1080 python3 scripts/reddit_hot.py --subreddit programming
-
-# HTTP proxy
-HTTPS_PROXY=http://localhost:8080 HTTP_PROXY=http://localhost:8080 python3 scripts/reddit_hot.py --subreddit programming
-```
-
-For SOCKS5 proxies, `pysocks` must be installed: `pip install pysocks`
-
 ## Error Handling
 
-| Error    | Cause                      | Fix                                 |
-| -------- | -------------------------- | ----------------------------------- |
-| HTTP_403 | Subreddit is private       | Use a different subreddit           |
-| HTTP_404 | Subreddit/user not found   | Check the name is spelled correctly |
-| HTTP_429 | Rate limited by Reddit     | Wait a few seconds and retry        |
-| HTTP_503 | Reddit is temporarily down | Wait and retry                      |
+| Error          | Cause                      | Fix                                 |
+| -------------- | -------------------------- | ----------------------------------- |
+| HTTP_403       | Subreddit is private       | Use a different subreddit           |
+| HTTP_404       | Subreddit/user not found   | Check the name is spelled correctly |
+| HTTP_429       | Rate limited by Reddit     | Wait a few seconds and retry        |
+| HTTP_503       | Reddit is temporarily down | Wait and retry                      |
+| AUTH_REQUIRED  | No cookie for write op     | Run `sig login` and retry           |
+| NO_MODHASH     | Session expired            | Re-authenticate via `sig login`     |
+| COMMENT_FAILED | Comment rejected           | Check error details                 |
 
 ## Workflow Examples
 
-### Browse hot posts in a subreddit
+### Browse hot posts
 
-1. `python scripts/reddit_hot.py --subreddit programming --limit 10`
-2. Get more posts: increase `--limit` or use the `after` token from the response
+1. `python3 scripts/reddit_hot.py --subreddit programming --limit 10`
+2. Get next page: `python3 scripts/reddit_hot.py --subreddit programming --limit 10 --after t3_xxx`
+
+### Browse popular posts
+
+1. `python3 scripts/reddit_popular.py --limit 10`
 
 ### Find top posts of the week
 
-1. `python scripts/reddit_top.py --subreddit python --time week --limit 10`
-2. Change `--time` to `month` or `year` for longer periods
+1. `python3 scripts/reddit_top.py --subreddit python --time week --limit 10`
 
-### Read a specific post with comments
+### Read a post with comments
 
-1. Find a post ID from hot/top/search results
-2. `python scripts/reddit_post.py --id 1k2x3y --comments-limit 30 --sort top`
+1. `python3 scripts/reddit_post.py --id 1k2x3y --comments-limit 30 --sort top`
+2. Or use a full URL: `python3 scripts/reddit_post.py --id "https://www.reddit.com/r/python/comments/1k2x3y/..." --sort best`
 
 ### Search for a topic
 
-1. `python scripts/reddit_search.py --query "machine learning" --sort top --time month`
-2. Search within a subreddit: `python scripts/reddit_search.py --query "async" --subreddit python`
+1. `python3 scripts/reddit_search.py --query "machine learning" --sort top --time month`
 
-### Look up a user
+### Post a comment
 
-1. `python scripts/reddit_user.py --username spez`
-2. Include activity: `python scripts/reddit_user.py --username spez --include-posts --include-comments`
+1. **Show comment text to user and get confirmation**
+2. `sig run reddit -- bash -c 'python3 scripts/reddit_comment.py --cookie "$SIG_REDDIT_COOKIE" --parent t3_1k2x3y --text "Great post!"'`
 
-### Get subreddit info
+### Upvote a post
 
-1. `python scripts/reddit_subreddit.py --name python`
+1. `sig run reddit -- bash -c 'python3 scripts/reddit_vote.py --cookie "$SIG_REDDIT_COOKIE" --id t3_1k2x3y --direction up'`
+
+### Subscribe to a subreddit
+
+1. `sig run reddit -- bash -c 'python3 scripts/reddit_subscribe.py --cookie "$SIG_REDDIT_COOKIE" --subreddit python'`

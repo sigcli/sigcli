@@ -32,7 +32,6 @@ def get_user(client: RedditClient, username: str, include_posts: bool, include_c
 
     result: dict = {"user": user}
 
-    # Fetch user's posts
     if include_posts:
         posts_url = f"{REDDIT_BASE}/user/{username}/submitted.json"
         posts_data = client.get(posts_url, params={"limit": 25, "raw_json": 1})
@@ -42,7 +41,6 @@ def get_user(client: RedditClient, username: str, include_posts: bool, include_c
                 posts.append(parse_post(child["data"]))
         result["posts"] = posts
 
-    # Fetch user's comments
     if include_comments:
         comments_url = f"{REDDIT_BASE}/user/{username}/comments.json"
         comments_data = client.get(comments_url, params={"limit": 25, "raw_json": 1})

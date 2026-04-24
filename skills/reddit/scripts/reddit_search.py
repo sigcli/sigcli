@@ -11,7 +11,7 @@ import requests
 from reddit_client import REDDIT_BASE, RedditClient, parse_post
 
 
-def search_posts(client: RedditClient, query: str, subreddit: str | None, sort: str, time_period: str, limit: int) -> dict:
+def search_posts(client: RedditClient, query: str, subreddit: str | None, sort: str, time_period: str, limit: int, after: str = "") -> dict:
     """Search Reddit for posts matching a query."""
     if subreddit:
         url = f"{REDDIT_BASE}/r/{subreddit}/search.json"
@@ -19,6 +19,8 @@ def search_posts(client: RedditClient, query: str, subreddit: str | None, sort: 
     else:
         url = f"{REDDIT_BASE}/search.json"
         params = {"q": query, "sort": sort, "t": time_period, "limit": limit, "raw_json": 1}
+    if after:
+        params["after"] = after
 
     data = client.get(url, params=params)
 
@@ -43,11 +45,12 @@ def main():
     parser.add_argument("--sort", default="relevance", choices=["relevance", "hot", "top", "new", "comments"], help="Sort order (default: relevance)")
     parser.add_argument("--time", default="all", choices=["hour", "day", "week", "month", "year", "all"], help="Time filter (default: all)")
     parser.add_argument("--limit", type=int, default=25, help="Max results (default: 25)")
+    parser.add_argument("--after", default="", help="Pagination token from previous response")
     args = parser.parse_args()
 
     try:
         client = RedditClient()
-        result = search_posts(client, args.query, args.subreddit, args.sort, args.time, args.limit)
+        result = search_posts(client, args.query, args.subreddit, args.sort, args.time, args.limit, args.after)
         json.dump(result, sys.stdout, indent=2, ensure_ascii=False)
     except requests.HTTPError as e:
         json.dump({"error": "HTTP_" + str(e.response.status_code), "message": str(e)}, sys.stdout, indent=2)
