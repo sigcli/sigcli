@@ -6,13 +6,18 @@ import json
 import sys
 
 import requests
-from zhihu_client import ZHIHU_API_V4, ZhihuClient, parse_answer, parse_question
+from zhihu_client import ZHIHU_API_V4, ZhihuClient, parse_answer
 
 
 def get_question(question_id, answers_limit=10, sort="default", cookie=""):
     client = ZhihuClient(cookie)
 
-    params = {"limit": answers_limit, "offset": 0, "sort_by": sort}
+    params = {
+        "limit": answers_limit,
+        "offset": 0,
+        "sort_by": sort,
+        "include": "data[*].content,voteup_count,comment_count,author",
+    }
     resp = client.get(f"{ZHIHU_API_V4}/questions/{question_id}/answers", params=params)
     answers_data = resp.json()
     answers = [parse_answer(a) for a in answers_data.get("data", [])]

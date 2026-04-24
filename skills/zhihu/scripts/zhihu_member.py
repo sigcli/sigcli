@@ -17,7 +17,10 @@ def get_member(url_token, include_answers=False, cookie=""):
     result = {"member": member}
 
     if include_answers:
-        resp = client.get(f"{ZHIHU_API_V4}/members/{url_token}/answers", params={"limit": 10, "offset": 0})
+        resp = client.get(
+            f"{ZHIHU_API_V4}/members/{url_token}/answers",
+            params={"limit": 10, "offset": 0, "include": "data[*].content,voteup_count,comment_count"},
+        )
         answers_data = resp.json()
         answers = [parse_answer(a) for a in answers_data.get("data", [])]
         result["answers"] = answers

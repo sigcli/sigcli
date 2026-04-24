@@ -11,7 +11,7 @@ from zhihu_client import ZHIHU_API_V4, ZhihuClient, parse_answer
 
 def get_answer(answer_id, cookie=""):
     client = ZhihuClient(cookie)
-    resp = client.get(f"{ZHIHU_API_V4}/answers/{answer_id}")
+    resp = client.get(f"{ZHIHU_API_V4}/answers/{answer_id}", params={"include": "content,voteup_count,comment_count"})
     answer = parse_answer(resp.json())
     return {"answer": answer}
 
