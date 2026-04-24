@@ -63,9 +63,66 @@ cmd_list() {
     echo "Install path: $DEST"
 }
 
+prompt_select() {
+    if [ ! -t 0 ] || [ ! -t 1 ]; then
+        SKILLS="$ALL_SKILLS"
+        return
+    fi
+
+    # Try gum for a nice interactive multi-select
+    if command -v gum >/dev/null 2>&1; then
+        # shellcheck disable=SC2086
+        selected=$(echo "$ALL_SKILLS" | tr ' ' '\n' | \
+            gum choose --no-limit --selected.foreground="green" \
+                --header="Select skills to install (space to toggle, enter to confirm):" \
+                --selected="$ALL_SKILLS") || true
+        SKILLS=$(echo "$selected" | tr '\n' ' ' | sed 's/ *$//')
+    else
+        # Fallback: numbered list with comma-separated input
+        echo ""
+        echo "Available skills:"
+        i=0
+        for skill in $ALL_SKILLS; do
+            i=$((i + 1))
+            echo "  $i) $skill"
+        done
+        echo ""
+        printf "Enter skill numbers to install (e.g. 1,3,5) or 'a' for all: "
+        read -r choice
+
+        case "$choice" in
+            a|A|"")
+                SKILLS="$ALL_SKILLS"
+                ;;
+            *)
+                SKILLS=""
+                # Split on commas and spaces
+                for num in $(echo "$choice" | tr ',' ' '); do
+                    j=0
+                    for skill in $ALL_SKILLS; do
+                        j=$((j + 1))
+                        if [ "$j" = "$num" ]; then
+                            SKILLS="$SKILLS $skill"
+                        fi
+                    done
+                done
+                SKILLS="${SKILLS# }"
+                ;;
+        esac
+    fi
+
+    if [ -z "$SKILLS" ]; then
+        echo "No skills selected. Aborting."
+        exit 0
+    fi
+}
+
 cmd_install() {
     detect_dest
-    selected="${SKILLS:-$ALL_SKILLS}"
+    if [ -z "$SKILLS" ]; then
+        prompt_select
+    fi
+    selected="$SKILLS"
 
     echo "Installing to $DEST ..."
     mkdir -p "$DEST"
@@ -89,9 +146,77 @@ cmd_install() {
     echo "Done."
 }
 
+prompt_unselect() {
+    if [ ! -t 0 ] || [ ! -t 1 ]; then
+        SKILLS="$ALL_SKILLS"
+        return
+    fi
+
+    # Collect only installed skills
+    installed=""
+    for skill in $ALL_SKILLS; do
+        if [ -d "$DEST/$skill" ]; then
+            installed="$installed $skill"
+        fi
+    done
+    installed="${installed# }"
+
+    if [ -z "$installed" ]; then
+        echo "No skills installed at $DEST"
+        exit 0
+    fi
+
+    if command -v gum >/dev/null 2>&1; then
+        # shellcheck disable=SC2086
+        selected=$(echo "$installed" | tr ' ' '\n' | \
+            gum choose --no-limit --selected.foreground="red" \
+                --header="Select skills to uninstall (space to toggle, enter to confirm):" \
+                --selected="$installed") || true
+        SKILLS=$(echo "$selected" | tr '\n' ' ' | sed 's/ *$//')
+    else
+        echo ""
+        echo "Installed skills:"
+        i=0
+        for skill in $installed; do
+            i=$((i + 1))
+            echo "  $i) $skill"
+        done
+        echo ""
+        printf "Enter skill numbers to uninstall (e.g. 1,3) or 'a' for all: "
+        read -r choice
+
+        case "$choice" in
+            a|A|"")
+                SKILLS="$installed"
+                ;;
+            *)
+                SKILLS=""
+                for num in $(echo "$choice" | tr ',' ' '); do
+                    j=0
+                    for skill in $installed; do
+                        j=$((j + 1))
+                        if [ "$j" = "$num" ]; then
+                            SKILLS="$SKILLS $skill"
+                        fi
+                    done
+                done
+                SKILLS="${SKILLS# }"
+                ;;
+        esac
+    fi
+
+    if [ -z "$SKILLS" ]; then
+        echo "No skills selected. Aborting."
+        exit 0
+    fi
+}
+
 cmd_uninstall() {
     detect_dest
-    selected="${SKILLS:-$ALL_SKILLS}"
+    if [ -z "$SKILLS" ]; then
+        prompt_unselect
+    fi
+    selected="$SKILLS"
 
     echo "Removing from $DEST ..."
     for skill in $selected; do
