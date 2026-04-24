@@ -9,7 +9,7 @@ import requests
 from reddit_client import RedditApiError, RedditClient
 
 
-def submit_post(cookie: str, subreddit: str, title: str, kind: str = "self", text: str = "", url: str = "") -> dict:
+def submit_post(cookie: str, subreddit: str, title: str, kind: str = "self", text: str = "", url: str = "", flair_id: str = "", flair_text: str = "") -> dict:
     """Submit a new post to a subreddit."""
     client = RedditClient(cookie)
     client.require_cookie()
@@ -24,6 +24,10 @@ def submit_post(cookie: str, subreddit: str, title: str, kind: str = "self", tex
         data["text"] = text
     elif kind == "link":
         data["url"] = url
+    if flair_id:
+        data["flair_id"] = flair_id
+    if flair_text:
+        data["flair_text"] = flair_text
 
     resp = client.oauth_post("/api/submit", data=data)
 
@@ -50,10 +54,12 @@ def main():
     parser.add_argument("--kind", default="self", choices=["self", "link"], help="Post type (default: self)")
     parser.add_argument("--text", default="", help="Post body text (for self posts)")
     parser.add_argument("--url", default="", help="URL to share (for link posts)")
+    parser.add_argument("--flair-id", default="", help="Flair template ID (from subreddit flair list)")
+    parser.add_argument("--flair-text", default="", help="Flair text")
     args = parser.parse_args()
 
     try:
-        result = submit_post(args.cookie, args.subreddit, args.title, args.kind, args.text, args.url)
+        result = submit_post(args.cookie, args.subreddit, args.title, args.kind, args.text, args.url, args.flair_id, args.flair_text)
         json.dump(result, sys.stdout, indent=2, ensure_ascii=False)
     except RedditApiError as e:
         json.dump({"error": e.code, "message": e.message}, sys.stdout, indent=2)
