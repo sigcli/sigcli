@@ -6,7 +6,6 @@ import json
 import sys
 
 import requests
-
 from v2ex_client import V2EX_BASE, V2exClient, V2exError, parse_notifications_page
 
 

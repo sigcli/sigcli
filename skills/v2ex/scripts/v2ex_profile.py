@@ -3,12 +3,10 @@
 
 import argparse
 import json
-import re
 import sys
 
 import requests
 from bs4 import BeautifulSoup
-
 from v2ex_client import V2EX_BASE, V2exClient, V2exError, parse_balance_page
 
 

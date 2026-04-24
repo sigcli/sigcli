@@ -6,7 +6,6 @@ import json
 import sys
 
 import requests
-
 from v2ex_client import V2EX_BASE, V2exClient, V2exError
 
 VALID_ACTIONS = ("follow", "unfollow", "block", "unblock")
@@ -22,7 +21,7 @@ def follow_action(cookie, action, member_id):
     once, _ = client.get_once()
 
     url = V2EX_BASE + "/" + action + "/" + str(member_id) + "?once=" + once
-    resp = client.get(url)
+    client.get(url)
 
     return {
         "success": True,

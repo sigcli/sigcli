@@ -6,7 +6,6 @@ import json
 import sys
 
 import requests
-
 from v2ex_client import V2exClient, parse_topic_item
 
 

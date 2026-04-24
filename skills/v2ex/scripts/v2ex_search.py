@@ -6,7 +6,6 @@ import json
 import sys
 
 import requests
-
 from v2ex_client import SOV2EX_API
 
 

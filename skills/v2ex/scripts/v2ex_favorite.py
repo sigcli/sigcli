@@ -6,7 +6,6 @@ import json
 import sys
 
 import requests
-
 from v2ex_client import V2EX_BASE, V2exClient, V2exError
 
 
@@ -25,7 +24,7 @@ def favorite(cookie, target_type, target_id, undo=False):
     else:
         raise V2exError("INVALID_TYPE", "Type must be 'topic' or 'node'")
 
-    resp = client.get(url)
+    client.get(url)
 
     return {
         "success": True,

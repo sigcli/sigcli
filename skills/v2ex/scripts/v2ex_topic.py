@@ -6,7 +6,6 @@ import json
 import sys
 
 import requests
-
 from v2ex_client import V2EX_BASE, V2exClient, parse_reply_item, parse_topic_item, parse_topic_page
 
 
