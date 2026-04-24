@@ -15,15 +15,15 @@ Search, browse, and read Douban movies, books, music, reviews, and user profiles
 
 All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
-| Script             | Purpose                          | Auth |
-| ------------------ | -------------------------------- | ---- |
-| `douban_search.py` | Search movies/books/music        | None |
-| `douban_movie.py`  | Movie detail + reviews           | None |
-| `douban_book.py`   | Book detail + reviews            | None |
-| `douban_music.py`  | Music/album detail               | None |
-| `douban_hot.py`    | Hot/showing/coming soon movies   | None |
-| `douban_top250.py` | Top 250 movies (HTML scraping)   | None |
-| `douban_user.py`   | User profile                     | None |
+| Script             | Purpose                        | Auth |
+| ------------------ | ------------------------------ | ---- |
+| `douban_search.py` | Search movies/books/music      | None |
+| `douban_movie.py`  | Movie detail + reviews         | None |
+| `douban_book.py`   | Book detail + reviews          | None |
+| `douban_music.py`  | Music/album detail             | None |
+| `douban_hot.py`    | Hot/showing/coming soon movies | None |
+| `douban_top250.py` | Top 250 movies (HTML scraping) | None |
+| `douban_user.py`   | User profile                   | None |
 
 ### douban_search.py
 
@@ -86,12 +86,12 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 ## Error Handling
 
-| Error        | Cause                         | Fix                     |
-| ------------ | ----------------------------- | ----------------------- |
-| HTTP_404     | Item or user not found        | Check the ID / uid      |
-| HTTP_429     | Rate limited by API           | Wait and retry          |
-| HTTP_400     | Invalid request parameters    | Check arguments         |
-| ERROR        | Network or unexpected failure | Check connectivity      |
+| Error    | Cause                         | Fix                |
+| -------- | ----------------------------- | ------------------ |
+| HTTP_404 | Item or user not found        | Check the ID / uid |
+| HTTP_429 | Rate limited by API           | Wait and retry     |
+| HTTP_400 | Invalid request parameters    | Check arguments    |
+| ERROR    | Network or unexpected failure | Check connectivity |
 
 ## Workflow Examples
 
