@@ -55,6 +55,8 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 | Script                | Purpose                | Auth     |
 | --------------------- | ---------------------- | -------- |
+| `reddit_submit.py`    | Create a new post      | Required |
+| `reddit_manage.py`    | Edit or delete post    | Required |
 | `reddit_comment.py`   | Post a comment         | Required |
 | `reddit_vote.py`      | Upvote/downvote/unvote | Required |
 | `reddit_save.py`      | Save or unsave a post  | Required |
@@ -127,6 +129,26 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 --name NAME           Subreddit name without r/ prefix (required)
 ```
 
+### reddit_submit.py
+
+```
+--cookie COOKIE       Reddit session cookie (required)
+--subreddit NAME      Subreddit to post in (required)
+--title TEXT          Post title (required)
+--kind KIND           Post type: self, link (default: self)
+--text TEXT           Post body text (for self posts)
+--url URL             URL to share (for link posts)
+```
+
+### reddit_manage.py
+
+```
+--cookie COOKIE       Reddit session cookie (required)
+--id ID               Post/comment ID or fullname (required)
+--action ACTION       Action: edit, delete (required)
+--text TEXT           New text content (required for edit)
+```
+
 ### reddit_comment.py
 
 ```
@@ -161,7 +183,7 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 ## Safety
 
-**Always show the user the comment text and get explicit confirmation before calling `reddit_comment.py`.** Comments are posted publicly and cannot be easily deleted via API.
+**Always show the user the title/body and get explicit confirmation before calling `reddit_submit.py` or `reddit_comment.py`.** Posts and comments are public. Posts can be edited/deleted via `reddit_manage.py`.
 
 **`reddit_vote.py` and `reddit_subscribe.py` are reversible** — use `--direction none` to remove a vote, `--undo` to unsubscribe.
 
@@ -192,6 +214,8 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 | AUTH_REQUIRED  | No cookie for write op     | Run `sig login` and retry           |
 | NO_TOKEN       | No token_v2 in cookie      | Re-authenticate via `sig login`     |
 | COMMENT_FAILED | Comment rejected           | Check error details                 |
+| SUBMIT_FAILED  | Post creation rejected     | Check subreddit rules               |
+| EDIT_FAILED    | Edit rejected              | Must be the author                  |
 
 ## Workflow Examples
 
@@ -216,6 +240,16 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 ### Search for a topic
 
 1. `python3 scripts/reddit_search.py --query "machine learning" --sort top --time month`
+
+### Create a post
+
+1. **Show title/body to user and get confirmation**
+2. `sig run reddit -- bash -c 'python3 scripts/reddit_submit.py --cookie "$SIG_REDDIT_COOKIE" --subreddit test --title "My Post" --text "Hello world"'`
+
+### Edit or delete a post
+
+1. Edit: `sig run reddit -- bash -c 'python3 scripts/reddit_manage.py --cookie "$SIG_REDDIT_COOKIE" --id t3_abc123 --action edit --text "Updated content"'`
+2. Delete: `sig run reddit -- bash -c 'python3 scripts/reddit_manage.py --cookie "$SIG_REDDIT_COOKIE" --id t3_abc123 --action delete'`
 
 ### Post a comment
 
