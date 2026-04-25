@@ -43,12 +43,19 @@ class LinkedInClient:
             "Referer": "https://www.linkedin.com/",
         })
         if cookie:
-            self._session.headers["Cookie"] = cookie
+            self._load_cookies(cookie)
         self._csrf = self._extract_csrf(cookie) if cookie else ""
         if self._csrf:
             self._session.headers["csrf-token"] = self._csrf
             self._session.headers["x-restli-protocol-version"] = "2.0.0"
             self._session.headers["x-li-lang"] = "en_US"
+
+    def _load_cookies(self, cookie_str: str):
+        """Parse cookie string into session cookie jar for proper Set-Cookie handling."""
+        for part in cookie_str.split("; "):
+            if "=" in part:
+                name, val = part.split("=", 1)
+                self._session.cookies.set(name.strip(), val.strip().strip('"'), domain=".www.linkedin.com")
 
     @classmethod
     def create(cls) -> "LinkedInClient":
