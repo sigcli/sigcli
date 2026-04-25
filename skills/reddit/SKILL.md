@@ -148,6 +148,8 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 --kind KIND           Post type: self, link (default: self)
 --text TEXT           Post body text (for self posts)
 --url URL             URL to share (for link posts)
+--flair-id ID         Flair template ID (from subreddit flair list)
+--flair-text TEXT     Flair text
 ```
 
 ### reddit_manage.py
