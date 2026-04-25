@@ -167,7 +167,7 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 ```
 --cookie COOKIE       Bilibili session cookie (required)
 --aid N               Video aid (numeric ID) (required)
---folder-id N         Favorites folder ID (required)
+--folder-id N         Favorites folder ID (optional, defaults to first folder)
 --undo                Remove from favorites instead of adding (flag)
 ```
 
