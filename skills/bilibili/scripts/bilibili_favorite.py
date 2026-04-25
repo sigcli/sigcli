@@ -4,14 +4,27 @@
 import argparse
 import json
 import sys
+from typing import Optional
 
 import requests
 from bilibili_client import BilibiliApiError, BilibiliClient
 
 
-def favorite_video(client: BilibiliClient, aid: int, folder_id: int, undo: bool = False) -> dict:
+def favorite_video(client: BilibiliClient, aid: int, folder_id: Optional[int] = None, undo: bool = False) -> dict:
     """Add or remove a video from a favorites folder."""
     csrf = client.get_csrf()
+
+    if folder_id is None:
+        nav = client.get("/x/web-interface/nav")
+        mid = nav.get("data", {}).get("mid", 0)
+        if not mid:
+            raise BilibiliApiError("NO_USER", "Cannot determine user ID from session")
+        folders = client.get("/x/v3/fav/folder/created/list-all", params={"up_mid": mid, "type": 2})
+        folder_list = folders.get("data", {}).get("list") or []
+        if not folder_list:
+            raise BilibiliApiError("NO_FOLDER", "No favorites folder found. Create one on bilibili.com first.")
+        folder_id = folder_list[0]["id"]
+
     data = {
         "rid": aid,
         "type": 2,
@@ -37,7 +50,7 @@ def main():
     parser = argparse.ArgumentParser(description="Add or remove a Bilibili video from favorites")
     parser.add_argument("--cookie", required=True, help="Bilibili session cookie")
     parser.add_argument("--aid", required=True, type=int, help="Video aid (numeric ID)")
-    parser.add_argument("--folder-id", required=True, type=int, help="Favorites folder ID")
+    parser.add_argument("--folder-id", type=int, default=None, help="Favorites folder ID (default: first folder)")
     parser.add_argument("--undo", action="store_true", help="Remove from favorites instead of adding")
     args = parser.parse_args()
 

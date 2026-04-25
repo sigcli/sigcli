@@ -19,17 +19,19 @@ _NAV_RESPONSE = {
     },
 }
 
-_USER_RESPONSE = {
+_CARD_RESPONSE = {
     "code": 0,
     "data": {
-        "mid": 12345,
-        "name": "TestUser",
-        "face": "https://face.jpg",
-        "sign": "Hello world",
-        "level": 6,
-        "sex": "male",
-        "fans": 10000,
-        "following": 200,
+        "card": {
+            "mid": "12345",
+            "name": "TestUser",
+            "face": "https://face.jpg",
+            "sign": "Hello world",
+            "level_info": {"current_level": 6},
+            "sex": "male",
+            "fans": 10000,
+            "attention": 200,
+        },
     },
 }
 
@@ -37,13 +39,12 @@ _USER_RESPONSE = {
 @responses.activate
 def test_get_user_returns_profile():
     """get_user returns correctly formatted user profile."""
-    responses.get(url=re.compile(r"https://api\.bilibili\.com/x/web-interface/nav"), json=_NAV_RESPONSE, status=200)
-    responses.get(url=re.compile(r"https://api\.bilibili\.com/x/space/wbi/acc/info"), json=_USER_RESPONSE, status=200)
+    responses.get(url=re.compile(r"https://api\.bilibili\.com/x/web-interface/card"), json=_CARD_RESPONSE, status=200)
 
     client = client_mod.BilibiliClient()
     result = mod.get_user(client, 12345)
 
-    assert result["mid"] == 12345
+    assert result["mid"] == "12345"
     assert result["name"] == "TestUser"
     assert result["level"] == 6
     assert result["fans"] == 10000
@@ -53,9 +54,8 @@ def test_get_user_returns_profile():
 @responses.activate
 def test_get_user_api_error():
     """get_user raises on API error."""
-    responses.get(url=re.compile(r"https://api\.bilibili\.com/x/web-interface/nav"), json=_NAV_RESPONSE, status=200)
     responses.get(
-        url=re.compile(r"https://api\.bilibili\.com/x/space/wbi/acc/info"),
+        url=re.compile(r"https://api\.bilibili\.com/x/web-interface/card"),
         json={"code": -404, "message": "User not found"},
         status=200,
     )
@@ -71,8 +71,8 @@ def test_get_user_api_error():
 @responses.activate
 def test_get_user_with_videos():
     """get_user includes recent videos when requested."""
+    responses.get(url=re.compile(r"https://api\.bilibili\.com/x/web-interface/card"), json=_CARD_RESPONSE, status=200)
     responses.get(url=re.compile(r"https://api\.bilibili\.com/x/web-interface/nav"), json=_NAV_RESPONSE, status=200)
-    responses.get(url=re.compile(r"https://api\.bilibili\.com/x/space/wbi/acc/info"), json=_USER_RESPONSE, status=200)
     responses.get(
         url=re.compile(r"https://api\.bilibili\.com/x/space/wbi/arc/search"),
         json={
