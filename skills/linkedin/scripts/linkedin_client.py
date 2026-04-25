@@ -129,17 +129,24 @@ def resolve_job_id(raw: str) -> str:
     return raw.strip()
 
 
-def parse_profile(data: dict) -> dict:
+def parse_profile(data: dict, target_username: str = "") -> dict:
+    included = data.get("included", [])
     elements = data.get("elements", [])
-    if not elements:
-        included = data.get("included", [])
+    p = None
+    if target_username:
+        for item in included:
+            if item.get("publicIdentifier") == target_username:
+                p = item
+                break
+    if not p and elements:
+        p = elements[0]
+    if not p:
         for item in included:
             if item.get("$type", "").endswith("Profile") or item.get("firstName"):
-                elements = [item]
+                p = item
                 break
-    if not elements:
+    if not p:
         return {}
-    p = elements[0]
     mp = p.get("miniProfile") or p
     first = (p.get("multiLocaleFirstName") or {}).get("en_US") or mp.get("firstName", "")
     last = (p.get("multiLocaleLastName") or {}).get("en_US") or mp.get("lastName", "")

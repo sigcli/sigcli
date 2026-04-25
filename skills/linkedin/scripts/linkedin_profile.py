@@ -14,7 +14,7 @@ DECORATION_ID = "com.linkedin.voyager.dash.deco.identity.profile.WebTopCardCore-
 def get_profile(client: LinkedInClient, username: str) -> dict:
     params = {"q": "memberIdentity", "memberIdentity": username, "decorationId": DECORATION_ID}
     data = client.voyager_get("/identity/dash/profiles", params=params)
-    profile = parse_profile(data)
+    profile = parse_profile(data, target_username=username)
     if not profile:
         raise LinkedInApiError("NOT_FOUND", f"Profile not found: {username}")
     return profile
