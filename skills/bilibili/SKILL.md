@@ -40,15 +40,19 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 ### Read Operations
 
-| Script                 | Purpose             | Auth |
-| ---------------------- | ------------------- | ---- |
-| `bilibili_video.py`    | Video details by BV | None |
-| `bilibili_hot.py`      | Hot/trending videos | None |
-| `bilibili_popular.py`  | Popular videos      | None |
-| `bilibili_ranking.py`  | Ranking by category | None |
-| `bilibili_search.py`   | Search videos/users | None |
-| `bilibili_comments.py` | Video comments      | None |
-| `bilibili_user.py`     | User profile + vids | None |
+| Script                 | Purpose              | Auth     |
+| ---------------------- | -------------------- | -------- |
+| `bilibili_video.py`    | Video details by BV  | None     |
+| `bilibili_hot.py`      | Hot/trending videos  | None     |
+| `bilibili_popular.py`  | Popular videos       | None     |
+| `bilibili_ranking.py`  | Ranking by category  | None     |
+| `bilibili_search.py`   | Search videos/users  | None     |
+| `bilibili_comments.py` | Video comments       | None     |
+| `bilibili_user.py`     | User profile + vids  | None     |
+| `bilibili_dynamic.py`  | Dynamic feed (动态)  | Required |
+| `bilibili_me.py`       | Current user profile | Required |
+| `bilibili_history.py`  | Watch history        | Required |
+| `bilibili_subtitle.py` | Video subtitles      | None     |
 
 ### Write Operations
 
@@ -107,6 +111,36 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 ```
 --mid N               User mid (numeric ID) (required)
 --include-videos      Include recent videos (flag)
+```
+
+### bilibili_dynamic.py
+
+```
+--cookie COOKIE       Bilibili session cookie (required)
+--limit N             Max items to return (default: 20)
+--offset TOKEN        Pagination offset from previous response
+```
+
+### bilibili_me.py
+
+```
+--cookie COOKIE       Bilibili session cookie (required)
+```
+
+### bilibili_history.py
+
+```
+--cookie COOKIE       Bilibili session cookie (required)
+--limit N             Max items to return (default: 20)
+--view-at N           Cursor from previous response for pagination
+```
+
+### bilibili_subtitle.py
+
+```
+--bvid ID             Video BV ID (required)
+--lang CODE           Subtitle language code (e.g. zh-CN, en-US, ai-zh). Default: first available
+--cookie COOKIE       Bilibili session cookie (may be needed for some videos)
 ```
 
 ### bilibili_like.py
@@ -204,3 +238,21 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 ### Add to favorites
 
 1. `sig run bilibili -- bash -c 'python3 scripts/bilibili_favorite.py --cookie "$SIG_BILIBILI_COOKIE" --aid 123456 --folder-id 100'`
+
+### View my profile
+
+1. `sig run bilibili -- bash -c 'python3 scripts/bilibili_me.py --cookie "$SIG_BILIBILI_COOKIE"'`
+
+### Browse dynamic feed
+
+1. `sig run bilibili -- bash -c 'python3 scripts/bilibili_dynamic.py --cookie "$SIG_BILIBILI_COOKIE" --limit 10'`
+2. Next page: `sig run bilibili -- bash -c 'python3 scripts/bilibili_dynamic.py --cookie "$SIG_BILIBILI_COOKIE" --offset TOKEN'`
+
+### View watch history
+
+1. `sig run bilibili -- bash -c 'python3 scripts/bilibili_history.py --cookie "$SIG_BILIBILI_COOKIE" --limit 20'`
+
+### Get video subtitles
+
+1. `python3 scripts/bilibili_subtitle.py --bvid BV1xx411c7mD`
+2. Choose language: `python3 scripts/bilibili_subtitle.py --bvid BV1xx411c7mD --lang en-US`
