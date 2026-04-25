@@ -29,19 +29,19 @@ TIMEOUT = 20
 # ---------------------------------------------------------------------------
 
 QUERY_IDS = {
-    "UserByScreenName": "qRednkZG-rn1P6b48NINmQ",
-    "UserTweets": "Y59DTUMfcKmUAATiT2SlTw",
-    "TweetDetail": "nBS-WpgA6ZG0CyNHD517JQ",
-    "SearchTimeline": "MJnbGFOB_MF-5ywMj2FdTg",
-    "Followers": "rRXFSG5vR6drKr5M37YOTw",
-    "Following": "iSicc7LrzWGBgDPL0tM_TQ",
-    "CreateTweet": "bDE2rBtZb3uyrczSZ_pI9g",
-    "FavoriteTweet": "lI07N6OaolGPl9u_Z1FxcA",
+    "UserByScreenName": "IGgvgiOx4QZndDHuD3x9TQ",
+    "UserTweets": "naBcZ4al-iTCFBYGOAMzBQ",
+    "TweetDetail": "QrLp7AR-eMyamw8D1N9l6A",
+    "SearchTimeline": "XN_HccZ9SU-miQVvwTAlFQ",
+    "Followers": "xOdl9jiaOqwHUm68qsq6Hg",
+    "Following": "lQxnNSmlJkQHod0yzbVYDg",
+    "CreateTweet": "c50A_puUoQGK_4SXseYz3A",
+    "FavoriteTweet": "lI07N6Otwv1PhnEgXILM7A",
     "UnfavoriteTweet": "ZYKSe-w7KEslx3JhSIk5LA",
-    "CreateRetweet": "ojPdsZsimiJrUGLR1sjUtA",
-    "DeleteRetweet": "iQtK4dl5hBmXewYZuEOKVw",
-    "CreateBookmark": "aaDnft_gKxX4OWoR900UMQ",
-    "DeleteBookmark": "Wlmlj2-xISz1HUqEPgNxVQ",
+    "CreateRetweet": "mbRO74GrOvSfRcJnlMapnQ",
+    "DeleteRetweet": "ZyZigVsNiFO6v1dEks1eWg",
+    "CreateBookmark": "aoDbu3RHznuiSkQ9aNM67Q",
+    "DeleteBookmark": "Wlmlj2-xzyS1GN3a6cj-mQ",
 }
 
 # ---------------------------------------------------------------------------
