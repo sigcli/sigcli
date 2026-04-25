@@ -11,7 +11,7 @@ Browse subreddits, read posts and comments, search content, view user profiles, 
 
 **Read operations** work without authentication via Reddit's public JSON API. No credentials needed.
 
-**Write operations** (comment, vote, save, subscribe) require a **session cookie**. Use `sig run` to inject it:
+**Write operations** (comment, vote, save, subscribe, submit, edit, delete) require a **session cookie**. Use `sig run` to inject it:
 
 ```bash
 sig run reddit -- bash -c 'python3 scripts/reddit_comment.py --cookie "$SIG_REDDIT_COOKIE" --parent t3_1abc --text "Great post!"'
@@ -25,6 +25,13 @@ If a write script returns auth error, re-authenticate:
 sig login https://www.reddit.com/
 ```
 
+**Note:** Reddit's login page has aggressive bot detection that may block automated browsers. If `sig login` fails, copy the `token_v2` cookie from your browser manually:
+
+1. Open https://www.reddit.com/ in your browser and log in
+2. Open DevTools (F12) → Application → Cookies → `www.reddit.com`
+3. Copy the value of the `token_v2` cookie
+4. Run: `sig login https://www.reddit.com/ --as reddit --cookie "token_v2=<your-token>"`
+
 **Signet provider config:**
 
 ```yaml
@@ -32,6 +39,9 @@ reddit:
     domains: ['www.reddit.com', 'reddit.com']
     entryUrl: https://www.reddit.com/login
     strategy: cookie
+    config:
+        ttl: '7d'
+        requiredCookies: ['token_v2']
 ```
 
 ## Scripts Reference
@@ -138,6 +148,8 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 --kind KIND           Post type: self, link (default: self)
 --text TEXT           Post body text (for self posts)
 --url URL             URL to share (for link posts)
+--flair-id ID         Flair template ID (from subreddit flair list)
+--flair-text TEXT     Flair text
 ```
 
 ### reddit_manage.py
