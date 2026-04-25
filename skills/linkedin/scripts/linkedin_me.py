@@ -11,15 +11,23 @@ from linkedin_client import LinkedInApiError, LinkedInClient
 
 def get_me(client: LinkedInClient) -> dict:
     data = client.voyager_get("/me")
-    mp = data.get("miniProfile") or data
-    first = mp.get("firstName", "")
-    last = mp.get("lastName", "")
+    me = data.get("data") or data
+    plain_id = me.get("plainId", 0)
+    mini_urn = me.get("*miniProfile", "")
+    included = data.get("included", [])
+    profile = {}
+    for item in included:
+        if item.get("lastName") or item.get("occupation"):
+            profile = item
+            break
     return {
-        "firstName": first,
-        "lastName": last,
-        "headline": mp.get("headline", ""),
-        "publicIdentifier": mp.get("publicIdentifier", ""),
-        "entityUrn": data.get("entityUrn", ""),
+        "id": plain_id,
+        "firstName": profile.get("firstName", ""),
+        "lastName": profile.get("lastName", ""),
+        "headline": profile.get("occupation", ""),
+        "publicIdentifier": profile.get("publicIdentifier", ""),
+        "entityUrn": profile.get("dashEntityUrn") or profile.get("objectUrn") or mini_urn,
+        "premium": me.get("premiumSubscriber", False),
     }
 
 

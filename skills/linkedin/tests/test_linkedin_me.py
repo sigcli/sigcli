@@ -12,13 +12,20 @@ client_mod = load_script("linkedin", "linkedin_client")
 FAKE_COOKIE = 'JSESSIONID="ajax:fakecsrf123"; li_at=fakesession'
 
 _ME_RESPONSE = {
-    "miniProfile": {
-        "firstName": "Jane",
-        "lastName": "Doe",
-        "headline": "Software Engineer at Acme",
-        "publicIdentifier": "janedoe",
+    "data": {
+        "plainId": 123456,
+        "*miniProfile": "urn:li:fs_miniProfile:ACoAAA123456",
+        "premiumSubscriber": False,
     },
-    "entityUrn": "urn:li:fsd_profile:ACoAAA123456",
+    "included": [
+        {
+            "firstName": "Jane",
+            "lastName": "Doe",
+            "occupation": "Software Engineer at Acme",
+            "publicIdentifier": "janedoe",
+            "dashEntityUrn": "urn:li:fsd_profile:ACoAAA123456",
+        }
+    ],
 }
 
 
@@ -34,6 +41,7 @@ def test_get_me_returns_profile():
     client = client_mod.LinkedInClient(FAKE_COOKIE)
     result = mod.get_me(client)
 
+    assert result["id"] == 123456
     assert result["firstName"] == "Jane"
     assert result["lastName"] == "Doe"
     assert result["headline"] == "Software Engineer at Acme"
@@ -42,25 +50,20 @@ def test_get_me_returns_profile():
 
 
 @responses.activate
-def test_get_me_without_mini_profile():
-    """get_me falls back to top-level fields when miniProfile is absent."""
+def test_get_me_without_included():
+    """get_me returns partial data when included is empty."""
     responses.get(
         url=re.compile(r"https://www\.linkedin\.com/voyager/api/me"),
-        json={
-            "firstName": "John",
-            "lastName": "Smith",
-            "headline": "PM",
-            "publicIdentifier": "johnsmith",
-            "entityUrn": "urn:li:fsd_profile:ACoAAB999999",
-        },
+        json={"data": {"plainId": 999, "premiumSubscriber": True}, "included": []},
         status=200,
     )
 
     client = client_mod.LinkedInClient(FAKE_COOKIE)
     result = mod.get_me(client)
 
-    assert result["firstName"] == "John"
-    assert result["lastName"] == "Smith"
+    assert result["id"] == 999
+    assert result["premium"] is True
+    assert result["firstName"] == ""
 
 
 def test_get_me_requires_auth():
