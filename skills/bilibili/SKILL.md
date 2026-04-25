@@ -32,6 +32,9 @@ bilibili:
     domains: ['www.bilibili.com', 'bilibili.com', 'api.bilibili.com']
     entryUrl: https://www.bilibili.com/
     strategy: cookie
+    config:
+        ttl: '7d'
+        requiredCookies: ['SESSDATA', 'bili_jct']
 ```
 
 ## Scripts Reference
