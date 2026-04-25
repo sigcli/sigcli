@@ -10,20 +10,21 @@ from bilibili_client import BilibiliApiError, BilibiliClient
 
 
 def get_user(client: BilibiliClient, mid: int, include_videos: bool = False) -> dict:
-    """Fetch user profile by mid (WBI signed)."""
-    payload = client.get("/x/space/wbi/acc/info", params={"mid": mid}, signed=True)
+    """Fetch user profile by mid."""
+    payload = client.get("/x/web-interface/card", params={"mid": mid, "photo": "true"})
     if payload.get("code") != 0:
         raise BilibiliApiError("API_ERROR", f"Bilibili API error: {payload.get('message', 'unknown')} (code {payload.get('code')})")
     data = payload.get("data", {})
+    card = data.get("card", {})
     result = {
-        "mid": data.get("mid", 0),
-        "name": data.get("name", ""),
-        "face": data.get("face", ""),
-        "sign": data.get("sign", ""),
-        "level": data.get("level", 0),
-        "sex": data.get("sex", ""),
-        "fans": data.get("fans", 0),
-        "following": data.get("following") if data.get("following") is not None else 0,
+        "mid": card.get("mid", 0),
+        "name": card.get("name", ""),
+        "face": card.get("face", ""),
+        "sign": card.get("sign", ""),
+        "level": card.get("level_info", {}).get("current_level", 0),
+        "sex": card.get("sex", ""),
+        "fans": card.get("fans", 0),
+        "following": card.get("attention", 0),
     }
     if include_videos:
         vlist = client.get("/x/space/wbi/arc/search", params={"mid": mid, "pn": 1, "ps": 10}, signed=True)

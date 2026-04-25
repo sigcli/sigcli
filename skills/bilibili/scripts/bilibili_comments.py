@@ -18,7 +18,7 @@ def get_comments(client: BilibiliClient, bvid: str, limit: int = 20, page: int =
     if not aid:
         raise BilibiliApiError("API_ERROR", f"Cannot resolve aid for bvid: {bvid}")
 
-    payload = client.get("/x/v2/reply", params={"type": 1, "oid": aid, "pn": page, "ps": limit})
+    payload = client.get("/x/v2/reply/main", params={"type": 1, "oid": aid, "mode": 3, "next": page - 1})
     if payload.get("code") != 0:
         raise BilibiliApiError("API_ERROR", f"Bilibili API error: {payload.get('message', 'unknown')} (code {payload.get('code')})")
     replies = payload.get("data", {}).get("replies", []) or []
