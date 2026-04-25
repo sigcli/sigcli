@@ -25,10 +25,10 @@ USER_AGENT = "sigcli-skill/1.0"
 TIMEOUT = 20
 
 # ---------------------------------------------------------------------------
-# Query IDs (fallback defaults — may need periodic updates)
+# Query IDs (fallback defaults — auto-refreshed from X's JS bundles)
 # ---------------------------------------------------------------------------
 
-QUERY_IDS = {
+DEFAULT_QUERY_IDS = {
     "UserByScreenName": "IGgvgiOx4QZndDHuD3x9TQ",
     "UserTweets": "naBcZ4al-iTCFBYGOAMzBQ",
     "TweetDetail": "QrLp7AR-eMyamw8D1N9l6A",
@@ -43,6 +43,50 @@ QUERY_IDS = {
     "CreateBookmark": "aoDbu3RHznuiSkQ9aNM67Q",
     "DeleteBookmark": "Wlmlj2-xzyS1GN3a6cj-mQ",
 }
+
+_cached_query_ids: dict[str, str] = {}
+_cache_ts: float = 0.0
+_CACHE_TTL = 3600  # 1 hour
+
+
+def _fetch_query_ids_from_bundles(session: requests.Session) -> dict[str, str]:
+    """Fetch fresh GraphQL query IDs from X's JS bundles."""
+    try:
+        resp = session.get("https://x.com/", timeout=TIMEOUT)
+        script_urls = re.findall(r"https://abs\.twimg\.com/responsive-web/client-web[^\"\s]+\.js", resp.text)
+        found: dict[str, str] = {}
+        operations = list(DEFAULT_QUERY_IDS.keys())
+        for url in script_urls[:15]:
+            if len(found) == len(operations):
+                break
+            try:
+                r = session.get(url, timeout=TIMEOUT)
+                for op in operations:
+                    if op not in found:
+                        m = re.search(rf'queryId:"([^"]+)",operationName:"{op}"', r.text)
+                        if m:
+                            found[op] = m.group(1)
+            except Exception:
+                continue
+        return found
+    except Exception:
+        return {}
+
+
+def get_query_ids(session: requests.Session) -> dict[str, str]:
+    """Return query IDs, auto-refreshing from X's JS bundles when stale."""
+    global _cached_query_ids, _cache_ts
+    if _cached_query_ids and (time.time() - _cache_ts) < _CACHE_TTL:
+        return _cached_query_ids
+    fresh = _fetch_query_ids_from_bundles(session)
+    if fresh:
+        merged = {**DEFAULT_QUERY_IDS, **fresh}
+        _cached_query_ids = merged
+        _cache_ts = time.time()
+        return merged
+    if _cached_query_ids:
+        return _cached_query_ids
+    return DEFAULT_QUERY_IDS
 
 # ---------------------------------------------------------------------------
 # Feature flags (required by most GraphQL endpoints)
@@ -166,8 +210,13 @@ class XClient:
 
     # -- GraphQL helpers ---------------------------------------------------
 
+    def _query_id(self, operation: str) -> str:
+        """Get the query ID for an operation, auto-refreshing if stale."""
+        ids = get_query_ids(self._session)
+        return ids.get(operation, DEFAULT_QUERY_IDS.get(operation, ""))
+
     def graphql_get(self, operation: str, variables: dict, features: dict | None = None, field_toggles: dict | None = None) -> dict:
-        query_id = QUERY_IDS.get(operation, "")
+        query_id = self._query_id(operation)
         params: dict[str, str] = {"variables": json.dumps(variables)}
         if features:
             params["features"] = json.dumps(features)
@@ -178,7 +227,7 @@ class XClient:
 
     def graphql_post(self, operation: str, variables: dict, features: dict | None = None) -> dict:
         self.require_cookie()
-        query_id = QUERY_IDS.get(operation, "")
+        query_id = self._query_id(operation)
         url = f"{GRAPHQL_BASE}/{query_id}/{operation}"
         payload: dict = {"variables": variables, "queryId": query_id}
         if features:
