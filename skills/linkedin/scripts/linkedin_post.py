@@ -19,12 +19,16 @@ def create_post(client: LinkedInClient, text: str) -> dict:
         "mediaCategory": "NONE",
     }
     data = client.voyager_post("/contentcreation/normShares", json_data=payload)
-    urn = data.get("urn") or data.get("value", {}).get("urn", "")
+    status = (data.get("data") or {}).get("status") or data.get("value") or data
+    urn = status.get("urn") or data.get("urn", "")
+    activity_urn = (status.get("*updateV2") or "").split("(")[-1].split(",")[0] if status.get("*updateV2") else ""
+    url = status.get("toastCtaUrl") or (f"https://www.linkedin.com/feed/update/{urn}" if urn else "")
     return {
         "success": True,
         "urn": urn,
-        "url": f"https://www.linkedin.com/feed/update/{urn}" if urn else "",
-        "message": "Post created successfully",
+        "activityUrn": activity_urn,
+        "url": url,
+        "message": status.get("mainToastText") or "Post created successfully",
     }
 
 
