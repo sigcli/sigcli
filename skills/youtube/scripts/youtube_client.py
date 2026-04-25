@@ -25,7 +25,7 @@ TIMEOUT = 15
 INNERTUBE_CONTEXT = {
     "client": {
         "clientName": "WEB",
-        "clientVersion": "2.20240101.00.00",
+        "clientVersion": "2.20260424.01.00",
     }
 }
 
