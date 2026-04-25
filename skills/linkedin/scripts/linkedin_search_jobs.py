@@ -42,14 +42,20 @@ def search_jobs(client: LinkedInClient, keywords: str, location: str = "", limit
     query = _build_query(keywords, location, **filters)
     url_path = f"/voyagerJobsDashJobCards?decorationId={DECORATION_ID}&count={min(limit, 25)}&q=jobSearch&query={_encode_query(query)}&start={start}"
     data = client.voyager_get(url_path)
-    elements = data.get("elements", [])
     jobs = []
-    for i, el in enumerate(elements):
+    for el in data.get("elements", []):
         job = parse_job_card(el)
         if job:
-            job["rank"] = start + i + 1
             jobs.append(job)
-    return {"query": keywords, "location": location, "count": len(jobs), "start": start, "jobs": jobs[:limit]}
+    if not jobs:
+        for item in data.get("included", []):
+            if item.get("jobPostingTitle") or (item.get("$type", "").endswith("JobPostingCard")):
+                job = parse_job_card({"jobCardUnion": {"jobPostingCard": item}})
+                if job:
+                    jobs.append(job)
+    for i, job in enumerate(jobs[:limit]):
+        job["rank"] = start + i + 1
+    return {"query": keywords, "location": location, "count": len(jobs[:limit]), "start": start, "jobs": jobs[:limit]}
 
 
 def main():
