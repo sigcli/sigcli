@@ -157,6 +157,18 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 **`x_like.py`, `x_retweet.py`, `x_follow.py`, and `x_bookmark.py` are reversible** — use `--undo` to reverse the action.
 
+## Known Limitations
+
+**Verified live** (working): `x_user.py`, `x_tweets.py`, `x_tweet.py`, `x_trending.py`
+
+**Not yet verified live** (unit-tested only): `x_search.py`, `x_followers.py`, `x_post.py`, `x_like.py`, `x_retweet.py`, `x_follow.py`, `x_bookmark.py`. These scripts follow the same GraphQL patterns as the verified ones but have not been tested against the live API. If you encounter issues, please open an issue or PR.
+
+**Query ID rotation** — X rotates GraphQL query IDs with each deployment. The client auto-resolves fresh IDs from X's JS bundles and caches them for 1 hour. If a request returns 404, it may be a stale query ID — restart the script to force a refresh.
+
+**Account restrictions** — Some endpoints (search, followers) may return 404 for accounts that are new, unverified, or suspended. This is an X-side restriction, not a script bug.
+
+**Login caution** — Using `sig login https://x.com/` (headless browser) can trigger X's bot detection and result in account suspension. Prefer `sig login --cookie "..."` with cookies copied from a real browser session.
+
 ## Key Concepts
 
 **Screen names** — Always pass without the `@` prefix. Use `elonmusk` not `@elonmusk`.
