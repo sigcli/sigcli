@@ -10,16 +10,16 @@ from linkedin_client import LinkedInApiError, LinkedInClient, parse_feed_post
 
 
 def get_feed(client: LinkedInClient, limit: int = 10) -> dict:
-    params = {"q": "feedDashMainFeed", "count": min(limit, 50)}
-    data = client.voyager_get("/feed/updatesV2", params=params)
+    data = client.voyager_get("/voyagerFeedDashMainFeed", params={"q": "mainFeed", "count": min(limit, 50)})
     included = data.get("included", [])
-    elements = data.get("elements", [])
     posts = []
-    for el in elements[:limit]:
-        value = el.get("value") or el
-        post = parse_feed_post(value, included)
-        if post.get("text") or post.get("author"):
-            posts.append(post)
+    for item in included:
+        if item.get("$type", "").endswith("feed.Update"):
+            post = parse_feed_post(item, included)
+            if post.get("text") or post.get("author"):
+                posts.append(post)
+            if len(posts) >= limit:
+                break
     return {"count": len(posts), "posts": posts}
 
 
