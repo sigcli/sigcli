@@ -55,7 +55,7 @@ class LinkedInClient:
         for part in cookie_str.split("; "):
             if "=" in part:
                 name, val = part.split("=", 1)
-                self._session.cookies.set(name.strip(), val.strip().strip('"'), domain=".www.linkedin.com")
+                self._session.cookies.set(name.strip(), val.strip().strip('"'), domain=".linkedin.com")
 
     @classmethod
     def create(cls) -> "LinkedInClient":
