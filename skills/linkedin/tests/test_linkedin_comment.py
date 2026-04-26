@@ -18,9 +18,9 @@ _POST_URN = "urn:li:activity:7100000000000000001"
 def test_post_comment_success():
     """post_comment returns success with comment URN."""
     responses.post(
-        url=re.compile(r"https://www\.linkedin\.com/voyager/api/feed/comments"),
-        json={"urn": "urn:li:comment:(activity:7100000000000000001,7200000000000000001)"},
-        status=200,
+        url=re.compile(r"https://www\.linkedin\.com/voyager/api/voyagerSocialDashNormComments"),
+        json={"data": {"entityUrn": "urn:li:fsd_normComment:urn:li:fsd_comment:(7200000000000000001,urn:li:activity:7100000000000000001)"}},
+        status=201,
     )
 
     client = client_mod.LinkedInClient(FAKE_COOKIE)
@@ -28,17 +28,17 @@ def test_post_comment_success():
 
     assert result["success"] is True
     assert result["postUrn"] == _POST_URN
-    assert "comment" in result["commentUrn"]
+    assert "comment" in result["commentUrn"].lower() or "Comment" in result["commentUrn"]
     assert result["message"] == "Comment posted successfully"
 
 
 @responses.activate
 def test_post_comment_empty_response():
-    """post_comment handles empty urn in response."""
+    """post_comment handles empty entityUrn in response."""
     responses.post(
-        url=re.compile(r"https://www\.linkedin\.com/voyager/api/feed/comments"),
-        json={},
-        status=200,
+        url=re.compile(r"https://www\.linkedin\.com/voyager/api/voyagerSocialDashNormComments"),
+        json={"data": {}},
+        status=201,
     )
 
     client = client_mod.LinkedInClient(FAKE_COOKIE)

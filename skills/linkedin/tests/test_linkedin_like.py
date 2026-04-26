@@ -18,7 +18,7 @@ _POST_URN = "urn:li:activity:7100000000000000001"
 def test_like_post_success():
     """like_post likes a post and returns success."""
     responses.post(
-        url=re.compile(r"https://www\.linkedin\.com/voyager/api/voyagerSocialDashReactions"),
+        url=re.compile(r"https://www\.linkedin\.com/voyager/api/feed/reactions"),
         json={},
         status=200,
     )
@@ -35,7 +35,7 @@ def test_like_post_success():
 def test_unlike_post_success():
     """like_post with undo=True unlikes a post."""
     responses.post(
-        url=re.compile(r"https://www\.linkedin\.com/voyager/api/voyagerSocialDashReactions"),
+        url=re.compile(r"https://www\.linkedin\.com/voyager/api/feed/reactions"),
         json={},
         status=200,
     )
