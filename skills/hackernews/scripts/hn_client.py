@@ -50,39 +50,40 @@ class HnClient:
             return match.group(1)
         raise HnApiError("NO_CSRF", "Could not find fnid/hmac token on page")
 
-    def _get_hmac(self, item_id: int, action: str = "vote") -> str:
+    def _get_vote_auth(self, item_id: int) -> str:
         """Get the auth token for voting by fetching the item page."""
         resp = self._session.get(f"{HN_WEB_BASE}/item?id={item_id}", timeout=TIMEOUT)
         resp.raise_for_status()
-        pattern = rf'id="{action}_{item_id}"[^>]*href="([^"]*)"'
-        match = re.search(pattern, resp.text)
+        match = re.search(rf"vote\?id={item_id}&(?:amp;)?how=up&(?:amp;)?auth=([^&'\"]+)", resp.text)
         if not match:
-            raise HnApiError("NO_VOTE_LINK", f"Could not find {action} link for item {item_id}")
-        href = match.group(1)
-        auth_match = re.search(r"auth=([^&]+)", href)
-        if not auth_match:
-            raise HnApiError("NO_AUTH_TOKEN", f"Could not extract auth token from {action} link")
-        return auth_match.group(1)
+            raise HnApiError("NO_VOTE_LINK", f"Could not find vote link for item {item_id}")
+        return match.group(1)
 
     def upvote(self, item_id: int) -> dict:
         self.require_cookie()
-        auth = self._get_hmac(item_id, "up")
+        auth = self._get_vote_auth(item_id)
         resp = self._session.get(f"{HN_WEB_BASE}/vote?id={item_id}&how=up&auth={auth}", timeout=TIMEOUT)
         resp.raise_for_status()
         return {"success": True, "id": item_id, "action": "upvoted"}
 
     def comment(self, parent_id: int, text: str) -> dict:
         self.require_cookie()
-        resp = self._session.get(f"{HN_WEB_BASE}/reply?id={parent_id}", timeout=TIMEOUT)
+        resp = self._session.get(f"{HN_WEB_BASE}/item?id={parent_id}", timeout=TIMEOUT)
         resp.raise_for_status()
         hmac_match = re.search(r'name="hmac"\s+value="([^"]+)"', resp.text)
         if not hmac_match:
-            raise HnApiError("NO_CSRF", "Could not find hmac token on reply page")
-        data = {"parent": parent_id, "hmac": hmac_match.group(1), "text": text}
-        resp = self._session.post(f"{HN_WEB_BASE}/comment", data=data, timeout=TIMEOUT)
+            resp = self._session.get(f"{HN_WEB_BASE}/reply?id={parent_id}", timeout=TIMEOUT)
+            resp.raise_for_status()
+            hmac_match = re.search(r'name="hmac"\s+value="([^"]+)"', resp.text)
+        if not hmac_match:
+            raise HnApiError("NO_CSRF", "Could not find hmac token — check login status")
+        data = {"parent": parent_id, "hmac": hmac_match.group(1), "text": text, "goto": f"item?id={parent_id}"}
+        resp = self._session.post(f"{HN_WEB_BASE}/comment", data=data, timeout=TIMEOUT, allow_redirects=False)
+        if resp.status_code in (301, 302):
+            return {"success": True, "parent": parent_id, "action": "commented"}
         resp.raise_for_status()
-        if "Bad login" in resp.text or "Unknown" in resp.text:
-            raise HnApiError("COMMENT_FAILED", "Comment rejected — check login status")
+        if "Bad login" in resp.text:
+            raise HnApiError("COMMENT_FAILED", "Comment rejected — bad login")
         return {"success": True, "parent": parent_id, "action": "commented"}
 
     def submit(self, title: str, url: str = "", text: str = "") -> dict:

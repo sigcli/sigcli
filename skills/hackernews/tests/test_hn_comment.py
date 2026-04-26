@@ -14,8 +14,8 @@ FAKE_COOKIE = "user=testuser&token123"
 
 @responses.activate
 def test_post_comment():
-    responses.get(url=re.compile(r"https://news\.ycombinator\.com/reply"), body='<input name="hmac" value="fake_hmac">', status=200)
-    responses.post(url=re.compile(r"https://news\.ycombinator\.com/comment"), body="<html>comment posted</html>", status=200)
+    responses.get(url=re.compile(r"https://news\.ycombinator\.com/item"), body='<input name="hmac" value="fake_hmac">', status=200)
+    responses.post(url=re.compile(r"https://news\.ycombinator\.com/comment"), status=302, headers={"Location": "item?id=12345"})
     client = client_mod.HnClient(FAKE_COOKIE)
     result = mod.post_comment(client, 12345, "Great post!")
     assert result["success"] is True
