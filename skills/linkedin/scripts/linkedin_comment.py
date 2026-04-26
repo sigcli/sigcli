@@ -10,9 +10,17 @@ from linkedin_client import LinkedInApiError, LinkedInClient
 
 
 def post_comment(client: LinkedInClient, urn: str, text: str) -> dict:
-    payload = {"threadUrn": urn, "commentaryV2": {"text": text, "attributes": []}}
-    data = client.voyager_post("/feed/comments", json_data=payload)
-    comment_urn = data.get("urn", "")
+    payload = {
+        "commentary": {
+            "text": text,
+            "attributesV2": [],
+            "$type": "com.linkedin.voyager.dash.common.text.TextViewModel",
+        },
+        "threadUrn": urn,
+    }
+    path = "/voyagerSocialDashNormComments?decorationId=com.linkedin.voyager.dash.deco.social.NormComment-43"
+    data = client.voyager_post(path, json_data=payload)
+    comment_urn = data.get("data", {}).get("entityUrn", "")
     return {
         "success": True,
         "postUrn": urn,

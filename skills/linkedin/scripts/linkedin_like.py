@@ -11,10 +11,10 @@ from linkedin_client import LinkedInApiError, LinkedInClient
 
 def like_post(client: LinkedInClient, urn: str, undo: bool = False) -> dict:
     if undo:
-        client.voyager_post("/voyagerSocialDashReactions", json_data={"action": "UNREACT", "entityUrn": urn})
+        client.voyager_post("/feed/reactions", json_data={"threadUrn": urn, "reactionType": "LIKE", "action": "UNREACT"})
         return {"success": True, "urn": urn, "action": "unliked", "message": "Post unliked"}
-    payload = {"entityUrn": urn, "reactionType": "LIKE"}
-    client.voyager_post("/voyagerSocialDashReactions", json_data=payload)
+    payload = {"threadUrn": urn, "reactionType": "LIKE"}
+    client.voyager_post("/feed/reactions", json_data=payload)
     return {"success": True, "urn": urn, "action": "liked", "message": "Post liked"}
 
 
