@@ -43,27 +43,14 @@ in your browser         -->   credentials locally          -->  on your behalf
 
 ## AI Agent Skills
 
-Pre-built Python scripts that let AI agents operate external systems. Each skill includes scripts + documentation — agents read the SKILL.md and know what to call.
-
-| Skill                        | Platform       | Read                         | Write                    | Auth   |
-| ---------------------------- | -------------- | ---------------------------- | ------------------------ | ------ |
-| [Outlook](skills/outlook/)   | Email          | Inbox, search, folders       | Send, reply, forward     | OAuth2 |
-| [MS Teams](skills/msteams/)  | Chat           | Messages, channels, calendar | Send messages            | OAuth2 |
-| [Slack](skills/slack/)       | Chat           | Channels, search, users      | Send messages, reactions | Cookie |
-| [Jira](skills/sigcli-auth/)  | Issue tracking | Search, issues, sprints      | Create, update issues    | Cookie |
-| [V2EX](skills/v2ex/)         | Forum          | Hot, search, topics, users   | Post, reply, favorite    | Cookie |
-| [Zhihu](skills/zhihu/)       | Q&A            | Hot, search, answers, users  | Read-only (anti-crawler) | Cookie |
-| [Reddit](skills/reddit/)     | Forum          | Hot, search, posts, users    | Post, comment, vote      | Cookie |
-| [Bilibili](skills/bilibili/) | Video          | Hot, search, comments, users | Like, coin, favorite     | Cookie |
-| [YouTube](skills/youtube/)   | Video          | Search, channels, comments   | Like, subscribe          | Cookie |
-| [X (Twitter)](skills/x/)     | Social         | Profiles, tweets, trending   | Like, post, retweet      | Cookie |
-
-Install skills for your AI agent:
+Pre-built Python scripts that let AI agents operate 14+ web services — email, chat, forums, video platforms, social networks, and more. Each skill includes scripts + documentation that agents read and execute autonomously.
 
 ```bash
 git clone https://github.com/sigcli/sigcli.git
 cd sigcli/skills && ./install.sh
 ```
+
+See the [full skills catalog](skills/README.md) for details.
 
 ## Documentation
 

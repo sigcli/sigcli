@@ -12,7 +12,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ALL_SKILLS="sigcli-auth outlook msteams slack v2ex zhihu reddit bilibili youtube linkedin"
+ALL_SKILLS="sigcli-auth outlook msteams slack v2ex zhihu reddit bilibili youtube x xiaohongshu hackernews linkedin"
 
 # --- Agent detection ---
 
