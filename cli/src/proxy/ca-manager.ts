@@ -109,6 +109,9 @@ export class CaManager {
 
         const cached = this.leafCache.get(hostname);
         if (cached && cached.expiresAt > new Date()) {
+            // Move to end so the map head is always the least-recently-used entry
+            this.leafCache.delete(hostname);
+            this.leafCache.set(hostname, cached);
             return { cert: cached.cert, key: cached.key };
         }
 
