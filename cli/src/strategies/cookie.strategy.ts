@@ -87,7 +87,9 @@ class CookieStrategy implements IAuthStrategy {
             isAuthenticated: async (page) => {
                 // If requiredCookies is set, auth is complete only when those cookies exist
                 if (this.requiredCookies.length > 0) {
-                    const urls = provider.domains.map((d) => `https://${d}/`);
+                    const urls = [provider.entryUrl!];
+                    const currentUrl = page.url();
+                    if (currentUrl && currentUrl !== provider.entryUrl) urls.push(currentUrl);
                     const cookies = await page.cookies(urls);
                     const cookieNames = new Set(cookies.map((c) => c.name));
                     return this.requiredCookies.every((name) => cookieNames.has(name));
@@ -99,11 +101,9 @@ class CookieStrategy implements IAuthStrategy {
             },
 
             extractCredentials: async (page, xHeaders, localStorage, meta) => {
-                // Only extract cookies matching this provider's domains (not all cookies from the shared profile)
-                // Include both domain roots AND current page URL (to capture path-scoped cookies like /wiki)
-                const urls = provider.domains.map((d) => `https://${d}/`);
+                const urls = [provider.entryUrl!];
                 const currentUrl = page.url();
-                if (currentUrl && !urls.includes(currentUrl)) urls.push(currentUrl);
+                if (currentUrl && currentUrl !== provider.entryUrl) urls.push(currentUrl);
                 const cookies = await page.cookies(urls);
                 if (cookies.length === 0) {
                     return err(
