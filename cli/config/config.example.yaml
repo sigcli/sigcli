@@ -51,6 +51,17 @@ providers:
     #   config:
     #     ttl: "12h"
 
+    # Cookie auth with path-scoped cookies (e.g. Confluence sets cookies on /wiki)
+    # my-wiki:
+    #   name: My Wiki
+    #   domains: ["wiki.example.com"]
+    #   entryUrl: https://wiki.example.com/wiki/display/Home
+    #   strategy: cookie
+    #   config:
+    #     ttl: "12h"
+    #     requiredCookies: ["seraph.confluence"]
+    #     cookiePaths: ["/wiki"]             # query cookies at /wiki path too
+
     # OAuth2 with refresh tokens
     # azure-graph:
     #   name: Microsoft Graph

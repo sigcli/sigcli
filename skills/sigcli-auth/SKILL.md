@@ -339,6 +339,29 @@ sig login <url>             # 30-120s; uses playwright-core
 
 Each skill needs a provider in `~/.sig/config.yaml`. See [`references/config-template.yaml`](references/config-template.yaml) for a ready-to-use template with all skills pre-configured (Jira, Outlook, MS Teams, Slack). Replace placeholder values (`<...>`) with your organization's URLs and IDs.
 
+### Cookie Strategy Config Options
+
+When using `strategy: cookie`, the following config fields are available:
+
+| Field             | Type       | Description                                                                                |
+| ----------------- | ---------- | ------------------------------------------------------------------------------------------ |
+| `ttl`             | `string`   | Credential lifetime (e.g. `"12h"`, `"7d"`). Default: `"24h"`                               |
+| `waitUntil`       | `string`   | Page load condition: `load`, `networkidle`, `domcontentloaded`, `commit`                   |
+| `requiredCookies` | `string[]` | Cookie names that must exist before auth is considered complete                            |
+| `cookiePaths`     | `string[]` | Additional URL paths to query when checking cookies (for path-scoped cookies like `/wiki`) |
+
+**When to use `cookiePaths`:** Some sites set auth cookies on a sub-path (e.g. Confluence uses `path=/wiki`). Without `cookiePaths`, sigcli only queries domain roots (`/`) and cannot detect those cookies. Add the relevant path to `cookiePaths` to fix detection:
+
+```yaml
+my-wiki:
+    domains: ['wiki.example.com']
+    entryUrl: https://wiki.example.com/wiki/display/Home
+    strategy: cookie
+    config:
+        requiredCookies: ['seraph.confluence']
+        cookiePaths: ['/wiki']
+```
+
 ### Quick Start
 
 ```bash
