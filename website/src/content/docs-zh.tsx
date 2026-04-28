@@ -845,13 +845,24 @@ sig get my-jira --no-redaction`}</CodeBlock>
                     </SectionHeading>
                     <P>
                         交互式创建 <Code>~/.sig/config.yaml</Code>。在无头机器上使用{' '}
-                        <Code>--remote</Code> 启用无浏览器模式。
+                        <Code>--remote</Code> 启用无浏览器模式。使用 <Code>--local</Code>{' '}
+                        在当前目录创建项目级配置。
                     </P>
-                    <CodeBlock lang="bash">{`sig init                    # 交互式配置
+                    <CodeBlock lang="bash">{`sig init                    # 交互式配置（全局 ~/.sig/config.yaml）
+sig init --local            # 项目级 .sig/config.yaml（仅 providers）
+sig init .                  # 同 --local
 sig init --remote           # 无头 / CI / 远程机器
 sig init --yes              # 接受所有默认值，跳过提示
 sig init --force            # 覆盖现有配置
 sig init --channel chrome   # 指定浏览器（chrome|msedge|chromium）`}</CodeBlock>
+                    <P>
+                        项目级配置仅支持 <Code>providers</Code>{' '}
+                        部分。其中定义的 provider 会覆盖全局同 ID 的 provider。解析优先级：项目{' '}
+                        <Code>.sig/config.yaml</Code> {'>'} 全局{' '}
+                        <Code>~/.sig/config.yaml</Code>
+                        。此文件可安全提交到 Git — 凭证始终存储在用户目录{' '}
+                        <Code>~/.sig/credentials/</Code> 中。
+                    </P>
 
                     <SectionHeading id="cmd-doctor" level={2}>
                         sig doctor

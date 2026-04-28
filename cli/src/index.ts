@@ -1,11 +1,26 @@
 // Public API exports for SigCLI
 
 // Config types and loader
-export type { SigConfig, BrowserConfig, StorageConfig, ProviderEntry } from './config/schema.js';
-export { loadConfig, saveConfig, getConfigPath } from './config/loader.js';
-export { validateConfig, buildStrategyConfig } from './config/validator.js';
-export { generateConfigYaml } from './config/generator.js';
-export type { InitOptions } from './config/generator.js';
+export type {
+    SigConfig,
+    BrowserConfig,
+    StorageConfig,
+    ProviderEntry,
+    ProjectConfig,
+} from './config/schema.js';
+export {
+    loadConfig,
+    saveConfig,
+    getConfigPath,
+    findProjectConfigPath,
+    getProjectConfigPath,
+    loadProjectConfig,
+    loadMergedConfig,
+} from './config/loader.js';
+export type { MergedConfigResult } from './config/loader.js';
+export { validateConfig, validateProjectConfig, buildStrategyConfig } from './config/validator.js';
+export { generateConfigYaml, generateProjectConfigYaml } from './config/generator.js';
+export type { InitOptions, ProjectInitOptions } from './config/generator.js';
 
 // Dependency wiring
 export { createAuthDeps } from './deps.js';
@@ -21,6 +36,7 @@ export type {
     CredentialType,
     Cookie,
     ProviderConfig,
+    ProviderSource,
     StrategyConfig,
     CookieStrategyConfig,
     OAuth2StrategyConfig,

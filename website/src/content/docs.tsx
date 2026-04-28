@@ -623,13 +623,24 @@ sig get my-jira --no-redaction`}</CodeBlock>
                     </SectionHeading>
                     <P>
                         Creates <Code>~/.sig/config.yaml</Code> interactively. On headless machines
-                        use <Code>--remote</Code> to enable browserless mode.
+                        use <Code>--remote</Code> to enable browserless mode. Use{' '}
+                        <Code>--local</Code> to create a project-level config in the current
+                        directory.
                     </P>
-                    <CodeBlock lang="bash">{`sig init                    # interactive setup
+                    <CodeBlock lang="bash">{`sig init                    # interactive setup (global ~/.sig/config.yaml)
+sig init --local            # project-level .sig/config.yaml (providers only)
+sig init .                  # same as --local
 sig init --remote           # headless / CI / remote machine
 sig init --yes              # accept all defaults, skip prompts
 sig init --force            # overwrite existing config
 sig init --channel chrome   # use a specific browser (chrome|msedge|chromium)`}</CodeBlock>
+                    <P>
+                        Project-level config only supports the <Code>providers</Code> section.
+                        Providers defined there override global providers with the same ID.
+                        Resolution order: project <Code>.sig/config.yaml</Code> {'>'} global{' '}
+                        <Code>~/.sig/config.yaml</Code>. The file is safe to commit — credentials
+                        are always stored per-user in <Code>~/.sig/credentials/</Code>.
+                    </P>
 
                     <SectionHeading id="cmd-doctor" level={2}>
                         sig doctor
