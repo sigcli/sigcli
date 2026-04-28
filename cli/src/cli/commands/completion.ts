@@ -1,7 +1,7 @@
 import { ExitCode } from '../exit-codes.js';
 
 const SUBCOMMANDS =
-    'init doctor get login request status logout providers remote sync watch rename remove completion';
+    'init doctor get login request status logout providers remote sync watch rename remove completion skills';
 
 function bashScript(): string {
     return [
@@ -31,6 +31,9 @@ function bashScript(): string {
         '            ;;',
         '        completion)',
         '            COMPREPLY=($(compgen -W "bash zsh fish" -- "$cur"))',
+        '            ;;',
+        '        skills)',
+        '            COMPREPLY=($(compgen -W "install uninstall list" -- "$cur"))',
         '            ;;',
         '        --format)',
         '            COMPREPLY=($(compgen -W "json table yaml env plain" -- "$cur"))',
@@ -70,6 +73,7 @@ function zshScript(): string {
         "        'rename:Rename a provider'",
         "        'remove:Remove provider and credentials'",
         "        'completion:Generate shell completion script'",
+        "        'skills:Install AI agent skills'",
         '    )',
         '',
         '    _arguments -C \\',
@@ -105,6 +109,10 @@ function zshScript(): string {
         '                    local -a shells=(bash zsh fish)',
         "                    _describe 'shells' shells",
         '                    ;;',
+        '                skills)',
+        '                    local -a sub=(install uninstall list)',
+        "                    _describe 'skills subcommands' sub",
+        '                    ;;',
         '            esac',
         '            ;;',
         '    esac',
@@ -134,6 +142,7 @@ function fishScript(): string {
         'complete -c sig -n "__fish_use_subcommand" -a rename -d "Rename a provider"',
         'complete -c sig -n "__fish_use_subcommand" -a remove -d "Remove provider and credentials"',
         'complete -c sig -n "__fish_use_subcommand" -a completion -d "Generate shell completion script"',
+        'complete -c sig -n "__fish_use_subcommand" -a skills -d "Install AI agent skills"',
         '',
         'function __sig_providers',
         "    sig providers --format json 2>/dev/null | node -e \"process.stdin.resume();let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{JSON.parse(d).forEach(p=>console.log(p.id))}catch{}}\" 2>/dev/null",
@@ -144,6 +153,7 @@ function fishScript(): string {
         'complete -c sig -n "__fish_seen_subcommand_from sync" -a "push pull"',
         'complete -c sig -n "__fish_seen_subcommand_from watch" -a "add remove list start set-interval"',
         'complete -c sig -n "__fish_seen_subcommand_from completion" -a "bash zsh fish"',
+        'complete -c sig -n "__fish_seen_subcommand_from skills" -a "install uninstall list"',
         'complete -c sig -l verbose -d "Debug output to stderr"',
         'complete -c sig -l help -d "Show help"',
         'complete -c sig -l format -d "Output format" -a "json table yaml env plain"',

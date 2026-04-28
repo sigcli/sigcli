@@ -21,6 +21,7 @@ import { runRemove } from './commands/remove.js';
 import { runCompletion } from './commands/completion.js';
 import { runRun } from './commands/run.js';
 import { runProxy } from './commands/proxy.js';
+import { runSkills } from './commands/skills.js';
 import { ExitCode } from './exit-codes.js';
 
 interface ParsedArgs {
@@ -134,6 +135,15 @@ Watch:
   watch remove <provider>      Remove provider from watch list
   watch set-interval <dur>     Set default check interval
 
+Skills:
+  skills list                    List available skills and install status
+  skills install [skill...]      Install AI agent skills
+    --all                          Install all skills
+    --agent <name>                 Target: claude|cursor|windsurf|cline
+    --dest <path>                  Custom install path
+  skills uninstall [skill...]    Remove installed skills
+    --all                          Remove all skills
+
 Setup:
   init                         Create ~/.sig/config.yaml
     --remote                     Headless machine setup (mode: browserless)
@@ -184,6 +194,10 @@ export async function run(args: string[]): Promise<void> {
     }
     if (command === Command.COMPLETION) {
         await runCompletion(positionals, flags);
+        return;
+    }
+    if (command === Command.SKILLS) {
+        await runSkills(positionals, flags);
         return;
     }
 

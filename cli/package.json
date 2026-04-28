@@ -13,7 +13,8 @@
     ],
     "scripts": {
         "build": "tsc",
-        "prepack": "pnpm run build",
+        "copy-skills": "node scripts/copy-skills.js",
+        "prepack": "pnpm run build && pnpm run copy-skills",
         "start": "node bin/sig.js",
         "dev": "tsc && node bin/sig.js",
         "test": "vitest run",
