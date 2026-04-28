@@ -27,6 +27,7 @@ export const Command = {
     COMPLETION: 'completion',
     RUN: 'run',
     PROXY: 'proxy',
+    SKILLS: 'skills',
     HELP: 'help',
 } as const;
 
@@ -64,6 +65,15 @@ export const ProxySubcommand = {
     STOP: 'stop',
     STATUS: 'status',
     TRUST: 'trust',
+} as const;
+
+/**
+ * Subcommands for the 'skills' command.
+ */
+export const SkillsSubcommand = {
+    INSTALL: 'install',
+    UNINSTALL: 'uninstall',
+    LIST: 'list',
 } as const;
 
 /**
