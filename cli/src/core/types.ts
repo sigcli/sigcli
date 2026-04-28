@@ -150,6 +150,7 @@ export interface ProviderConfig {
     autoProvisioned?: boolean; // True if created by auto-provision (not from config file)
     forceVisible?: boolean; // Skip headless, go straight to visible browser mode
     proxy?: ProxyConfig; // MITM proxy injection rules
+    networkProxy?: string; // Browser network proxy, e.g. "socks5h://127.0.0.1:1080"
 }
 
 // ============================================================================

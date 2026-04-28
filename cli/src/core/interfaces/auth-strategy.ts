@@ -14,6 +14,7 @@ export interface AuthContext {
     browserAdapter: IBrowserAdapter;
     browserConfig: BrowserConfig;
     logger?: ILogger;
+    networkProxy?: string; // e.g. "socks5h://127.0.0.1:1080"
 }
 
 /**

@@ -95,4 +95,5 @@ export interface ProviderEntry {
     localStorage?: LocalStorageConfig[];
     forceVisible?: boolean;
     proxy?: ProxyConfig;
+    networkProxy?: string; // e.g. "socks5h://127.0.0.1:1080"
 }
