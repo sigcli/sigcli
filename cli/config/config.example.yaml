@@ -51,6 +51,17 @@ providers:
     #   config:
     #     ttl: "12h"
 
+    # Cookie auth with path-scoped cookies (e.g. Confluence sets cookies on /wiki)
+    # sap-wiki:
+    #   name: SAP Wiki
+    #   domains: ["wiki.one.int.sap"]
+    #   entryUrl: https://wiki.one.int.sap/wiki/display/DWAAS
+    #   strategy: cookie
+    #   config:
+    #     ttl: "12h"
+    #     requiredCookies: ["seraph.confluence"]
+    #     cookiePaths: ["/wiki"]             # query cookies at /wiki path too
+
     # OAuth2 with refresh tokens
     # azure-graph:
     #   name: Microsoft Graph

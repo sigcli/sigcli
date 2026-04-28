@@ -14,6 +14,7 @@ export interface CookieStrategyConfig {
     ttl?: string;
     waitUntil?: WaitUntilValue;
     requiredCookies?: string[];
+    cookiePaths?: string[];
 }
 
 export interface OAuth2StrategyConfig {

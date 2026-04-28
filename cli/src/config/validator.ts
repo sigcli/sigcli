@@ -334,6 +334,21 @@ function validateStrategyConfig(
                 );
             }
         }
+
+        if (config.cookiePaths !== undefined) {
+            if (!Array.isArray(config.cookiePaths)) {
+                errors.push(`Provider "${id}": config.cookiePaths must be an array`);
+            } else {
+                for (let i = 0; i < config.cookiePaths.length; i++) {
+                    const p = config.cookiePaths[i];
+                    if (typeof p !== 'string' || !p.startsWith('/')) {
+                        errors.push(
+                            `Provider "${id}": config.cookiePaths[${i}] must be a string starting with "/"`,
+                        );
+                    }
+                }
+            }
+        }
     }
 
     if (strategy === StrategyName.OAUTH2) {
@@ -370,6 +385,7 @@ export function buildStrategyConfig(
                 ...(Array.isArray(c.requiredCookies)
                     ? { requiredCookies: c.requiredCookies as string[] }
                     : {}),
+                ...(Array.isArray(c.cookiePaths) ? { cookiePaths: c.cookiePaths as string[] } : {}),
             };
 
         case StrategyName.OAUTH2:

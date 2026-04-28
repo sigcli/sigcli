@@ -24,6 +24,15 @@ import type { WaitUntilValue } from '../core/constants.js';
 const DEFAULT_TTL = '24h';
 
 /**
+ * Build cookie query URLs: domains × (cookiePaths ∪ ["/"]).
+ * Root "/" is always included so cookies with path=/ are never missed.
+ */
+export function buildCookieUrls(domains: string[], cookiePaths: string[]): string[] {
+    const paths = cookiePaths.length > 0 ? [...new Set(['/', ...cookiePaths])] : ['/'];
+    return domains.flatMap((d) => paths.map((p) => `https://${d}${p}`));
+}
+
+/**
  * Cookie-based authentication strategy.
  * Launches a browser, navigates to the login page, waits for user auth,
  * then extracts cookies from the authenticated session.
@@ -31,11 +40,13 @@ const DEFAULT_TTL = '24h';
 class CookieStrategy implements IAuthStrategy {
     private readonly ttlMs: number;
     private readonly requiredCookies: string[];
+    private readonly cookiePaths: string[];
     private readonly waitUntil?: WaitUntilValue;
 
     constructor(config: CookieStrategyConfig) {
         this.ttlMs = parseDuration(config.ttl ?? DEFAULT_TTL);
         this.requiredCookies = config.requiredCookies ?? [];
+        this.cookiePaths = config.cookiePaths ?? [];
         this.waitUntil = config.waitUntil;
     }
 
@@ -87,7 +98,7 @@ class CookieStrategy implements IAuthStrategy {
             isAuthenticated: async (page) => {
                 // If requiredCookies is set, auth is complete only when those cookies exist
                 if (this.requiredCookies.length > 0) {
-                    const urls = provider.domains.map((d) => `https://${d}/`);
+                    const urls = buildCookieUrls(provider.domains, this.cookiePaths);
                     const cookies = await page.cookies(urls);
                     const cookieNames = new Set(cookies.map((c) => c.name));
                     return this.requiredCookies.every((name) => cookieNames.has(name));
@@ -100,10 +111,13 @@ class CookieStrategy implements IAuthStrategy {
 
             extractCredentials: async (page, xHeaders, localStorage, meta) => {
                 // Only extract cookies matching this provider's domains (not all cookies from the shared profile)
-                // Include both domain roots AND current page URL (to capture path-scoped cookies like /wiki)
-                const urls = provider.domains.map((d) => `https://${d}/`);
-                const currentUrl = page.url();
-                if (currentUrl && !urls.includes(currentUrl)) urls.push(currentUrl);
+                // Use cookiePaths to query sub-paths (e.g. /wiki for path-scoped cookies)
+                const urls = buildCookieUrls(provider.domains, this.cookiePaths);
+                // When no cookiePaths configured, also include current page URL as fallback
+                if (this.cookiePaths.length === 0) {
+                    const currentUrl = page.url();
+                    if (currentUrl && !urls.includes(currentUrl)) urls.push(currentUrl);
+                }
                 const cookies = await page.cookies(urls);
                 if (cookies.length === 0) {
                     return err(
