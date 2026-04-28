@@ -4,6 +4,31 @@ AI agent skills for authenticated access to web services via sigcli.
 
 ## Install
 
+### npx (recommended)
+
+```bash
+npx @sigcli/skills                     # Interactive install
+npx @sigcli/skills --all               # Install all skills
+npx @sigcli/skills outlook slack x     # Install specific skills
+npx @sigcli/skills --agent cursor      # Target Cursor
+npx @sigcli/skills --list              # List available skills
+npx @sigcli/skills --uninstall         # Uninstall
+```
+
+### sig CLI
+
+If you have `@sigcli/cli` installed:
+
+```bash
+sig skills install                     # Interactive install
+sig skills install --all               # Install all skills
+sig skills install outlook slack x     # Install specific skills
+sig skills list                        # List available skills
+sig skills uninstall --all             # Uninstall
+```
+
+### Shell script
+
 ```bash
 # Auto-detect your agent (Claude Code, Cursor, Windsurf, Cline)
 ./install.sh
