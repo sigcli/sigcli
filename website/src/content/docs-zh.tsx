@@ -1246,6 +1246,8 @@ providers:
     strategy: cookie|oauth2|api-token|basic
     requiredCookies:             # 等待这些 cookie 出现
       - SESSION
+    cookiePaths:                 # 子路径 cookie 的额外查询路径
+      - /wiki
     xHeaders:                    # 捕获这些响应头
       - name: X-User        # 内部名称
         header: x-user      # 实际 HTTP 请求头名称
@@ -1283,7 +1285,9 @@ providers:
                     <P>
                         从真实浏览器会话中捕获 cookie。适合任何 等 SSO
                         网站或多步骤登录（二维码、SAML、MFA）。 支持 <Code>forceVisible</Code>、
-                        <Code>waitUntil</Code> 和 <Code>requiredCookies</Code>。
+                        <Code>waitUntil</Code>、<Code>requiredCookies</Code> 和{' '}
+                        <Code>cookiePaths</Code>（用于在子路径如 <Code>/wiki</Code> 上设置认证
+                        cookie 的站点）。
                     </P>
                     <CodeBlock lang="bash">{`sig login https://jira.example.com --strategy cookie`}</CodeBlock>
 

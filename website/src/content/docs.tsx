@@ -1040,6 +1040,8 @@ providers:
     strategy: cookie|oauth2|api-token|basic
     requiredCookies:             # wait until these cookies appear
       - SESSION
+    cookiePaths:                 # extra paths for path-scoped cookies
+      - /wiki
     xHeaders:                    # capture these response headers
       - name: X-User        # internal name
         header: x-user      # actual HTTP header name
@@ -1077,8 +1079,9 @@ providers:
                     <P>
                         Captures the cookie jar from a real browser session. Best for SSO sites like
                         Any site with multi-step login (QR codes, SAML, MFA). Supports{' '}
-                        <Code>forceVisible</Code>, <Code>waitUntil</Code>, and{' '}
-                        <Code>requiredCookies</Code>.
+                        <Code>forceVisible</Code>, <Code>waitUntil</Code>,{' '}
+                        <Code>requiredCookies</Code>, and <Code>cookiePaths</Code> (for sites
+                        that set auth cookies on a sub-path like <Code>/wiki</Code>).
                     </P>
                     <CodeBlock lang="bash">{`sig login https://jira.example.com --strategy cookie`}</CodeBlock>
 

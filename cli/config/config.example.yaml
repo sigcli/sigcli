@@ -52,10 +52,10 @@ providers:
     #     ttl: "12h"
 
     # Cookie auth with path-scoped cookies (e.g. Confluence sets cookies on /wiki)
-    # sap-wiki:
-    #   name: SAP Wiki
-    #   domains: ["wiki.one.int.sap"]
-    #   entryUrl: https://wiki.one.int.sap/wiki/display/DWAAS
+    # my-wiki:
+    #   name: My Wiki
+    #   domains: ["wiki.example.com"]
+    #   entryUrl: https://wiki.example.com/wiki/display/Home
     #   strategy: cookie
     #   config:
     #     ttl: "12h"
