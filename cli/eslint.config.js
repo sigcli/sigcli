@@ -94,9 +94,9 @@ export default tseslint.config(
         },
     },
 
-    // Node.js globals for bin/ scripts
+    // Node.js globals for bin/ and scripts/
     {
-        files: ['bin/**/*.js'],
+        files: ['bin/**/*.js', 'scripts/**/*.js'],
         languageOptions: {
             globals: {
                 console: 'readonly',
@@ -108,7 +108,13 @@ export default tseslint.config(
 
     // Plain JS and config files — disable type-checked rules
     {
-        files: ['bin/**/*.js', '**/*.config.ts', '**/*.config.js', 'eslint.config.js'],
+        files: [
+            'bin/**/*.js',
+            'scripts/**/*.js',
+            '**/*.config.ts',
+            '**/*.config.js',
+            'eslint.config.js',
+        ],
         ...tseslint.configs.disableTypeChecked,
     },
 
