@@ -341,9 +341,9 @@ function validateStrategyConfig(
             } else {
                 for (let i = 0; i < config.cookiePaths.length; i++) {
                     const p = config.cookiePaths[i];
-                    if (typeof p !== 'string' || !p.startsWith('/')) {
+                    if (typeof p !== 'string' || !/^\/[^?#]*$/.test(p)) {
                         errors.push(
-                            `Provider "${id}": config.cookiePaths[${i}] must be a string starting with "/"`,
+                            `Provider "${id}": config.cookiePaths[${i}] must be a path starting with "/" (no query or fragment)`,
                         );
                     }
                 }

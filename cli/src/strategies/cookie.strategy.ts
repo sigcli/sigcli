@@ -28,7 +28,9 @@ const DEFAULT_TTL = '24h';
  * Root "/" is always included so cookies with path=/ are never missed.
  */
 export function buildCookieUrls(domains: string[], cookiePaths: string[]): string[] {
-    const paths = cookiePaths.length > 0 ? [...new Set(['/', ...cookiePaths])] : ['/'];
+    // Normalize: strip trailing slashes (except bare "/") before deduplicating
+    const normalized = cookiePaths.map((p) => (p === '/' ? p : p.replace(/\/+$/, '')));
+    const paths = normalized.length > 0 ? [...new Set(['/', ...normalized])] : ['/'];
     return domains.flatMap((d) => paths.map((p) => `https://${d}${p}`));
 }
 

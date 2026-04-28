@@ -482,7 +482,7 @@ describe('validateConfig', () => {
         expect(isErr(result)).toBe(true);
         if (!result.ok) {
             expect(result.error.message).toContain(
-                'cookiePaths[0] must be a string starting with "/"',
+                'cookiePaths[0] must be a path starting with "/" (no query or fragment)',
             );
         }
     });
@@ -503,8 +503,46 @@ describe('validateConfig', () => {
         expect(isErr(result)).toBe(true);
         if (!result.ok) {
             expect(result.error.message).toContain(
-                'cookiePaths[0] must be a string starting with "/"',
+                'cookiePaths[0] must be a path starting with "/" (no query or fragment)',
             );
+        }
+    });
+
+    it('returns error when cookiePaths entry contains query string', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    bad: {
+                        domains: ['x.com'],
+                        entryUrl: 'https://x.com/',
+                        strategy: 'cookie',
+                        config: { cookiePaths: ['/wiki?foo=bar'] },
+                    },
+                },
+            }),
+        );
+        expect(isErr(result)).toBe(true);
+        if (!result.ok) {
+            expect(result.error.message).toContain('no query or fragment');
+        }
+    });
+
+    it('returns error when cookiePaths entry contains fragment', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    bad: {
+                        domains: ['x.com'],
+                        entryUrl: 'https://x.com/',
+                        strategy: 'cookie',
+                        config: { cookiePaths: ['/wiki#section'] },
+                    },
+                },
+            }),
+        );
+        expect(isErr(result)).toBe(true);
+        if (!result.ok) {
+            expect(result.error.message).toContain('no query or fragment');
         }
     });
 

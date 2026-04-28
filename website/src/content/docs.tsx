@@ -1080,8 +1080,8 @@ providers:
                         Captures the cookie jar from a real browser session. Best for SSO sites like
                         Any site with multi-step login (QR codes, SAML, MFA). Supports{' '}
                         <Code>forceVisible</Code>, <Code>waitUntil</Code>,{' '}
-                        <Code>requiredCookies</Code>, and <Code>cookiePaths</Code> (for sites
-                        that set auth cookies on a sub-path like <Code>/wiki</Code>).
+                        <Code>requiredCookies</Code>, and <Code>cookiePaths</Code> (for sites that
+                        set auth cookies on a sub-path like <Code>/wiki</Code>).
                     </P>
                     <CodeBlock lang="bash">{`sig login https://jira.example.com --strategy cookie`}</CodeBlock>
 

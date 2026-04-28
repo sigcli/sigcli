@@ -42,4 +42,14 @@ describe('buildCookieUrls', () => {
         const urls = buildCookieUrls(['a.com'], ['/wiki', '/wiki']);
         expect(urls).toEqual(['https://a.com/', 'https://a.com/wiki']);
     });
+
+    it('normalizes trailing slashes before deduplicating', () => {
+        const urls = buildCookieUrls(['a.com'], ['/wiki/']);
+        expect(urls).toEqual(['https://a.com/', 'https://a.com/wiki']);
+    });
+
+    it('deduplicates /wiki and /wiki/ after normalization', () => {
+        const urls = buildCookieUrls(['a.com'], ['/wiki', '/wiki/']);
+        expect(urls).toEqual(['https://a.com/', 'https://a.com/wiki']);
+    });
 });
