@@ -45,9 +45,11 @@ in your browser         -->   credentials locally          -->  on your behalf
 
 Pre-built Python scripts that let AI agents operate 14+ web services — email, chat, forums, video platforms, social networks, and more. Each skill includes scripts + documentation that agents read and execute autonomously.
 
+Install skills to your coding agent (Claude Code, Cursor, Windsurf, Cline):
+
 ```bash
-git clone https://github.com/sigcli/sigcli.git
-cd sigcli/skills && ./install.sh
+npx @sigcli/skills            # npx one-liner (recommended)
+sig skills install --all      # or via sig CLI if already installed
 ```
 
 See the [full skills catalog](skills/README.md) for details.

@@ -2,7 +2,9 @@
 
 AI agent skills for authenticated access to web services via sigcli.
 
-## Install
+## Install Skills
+
+Install skills to your coding agent (Claude Code, Cursor, Windsurf, Cline):
 
 ### npx (recommended)
 
