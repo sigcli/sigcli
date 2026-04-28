@@ -52,7 +52,7 @@ export interface HybridFlowOptions {
     localStorage?: LocalStorageConfig[];
     /** Logger for flow progress messages */
     logger: ILogger;
-    /** Network proxy for the browser, e.g. "socks5h://127.0.0.1:1080" */
+    /** Network proxy for the browser, e.g. "socks5://127.0.0.1:1080" */
     networkProxy?: string;
 }
 

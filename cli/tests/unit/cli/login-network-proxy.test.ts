@@ -102,7 +102,7 @@ describe('runLogin --network-proxy', () => {
             // Use --cookie to avoid browser launch, --network-proxy to set proxy
             await runLogin(
                 ['https://blocked-site.example.com/'],
-                { 'network-proxy': 'socks5h://127.0.0.1:1080', cookie: 'session=abc123' },
+                { 'network-proxy': 'socks5://127.0.0.1:1080', cookie: 'session=abc123' },
                 deps,
             );
 
@@ -112,7 +112,7 @@ describe('runLogin --network-proxy', () => {
             expect(addProviderToConfig).toHaveBeenCalledTimes(1);
             const [id, entry] = addProviderToConfig.mock.calls[0];
             expect(id).toBe('blocked-site');
-            expect(entry.networkProxy).toBe('socks5h://127.0.0.1:1080');
+            expect(entry.networkProxy).toBe('socks5://127.0.0.1:1080');
         });
 
         it('includes networkProxy alongside other provider fields', async () => {
@@ -147,7 +147,7 @@ describe('runLogin --network-proxy', () => {
 
             await runLogin(
                 ['jira'],
-                { 'network-proxy': 'socks5h://127.0.0.1:1080', token: 'my-token' },
+                { 'network-proxy': 'socks5://127.0.0.1:1080', token: 'my-token' },
                 deps,
             );
 
@@ -169,7 +169,7 @@ describe('runLogin --network-proxy', () => {
 
             await runLogin(
                 ['github'],
-                { 'network-proxy': 'socks5h://127.0.0.1:7890', token: 'ghp_abc' },
+                { 'network-proxy': 'socks5://127.0.0.1:7890', token: 'ghp_abc' },
                 deps,
             );
 

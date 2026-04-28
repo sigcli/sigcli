@@ -50,7 +50,7 @@ providers:
     #   strategy: cookie
     #   config:
     #     ttl: "12h"
-    #   networkProxy: socks5h://127.0.0.1:1080  # route browser through a SOCKS5 proxy
+    #   networkProxy: socks5://127.0.0.1:1080  # route browser through a SOCKS5 proxy
 
     # Cookie auth with path-scoped cookies (e.g. Confluence sets cookies on /wiki)
     # my-wiki:
