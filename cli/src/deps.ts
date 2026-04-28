@@ -79,6 +79,7 @@ export async function createAuthDeps(
             localStorage: entry.localStorage,
             ...(entry.forceVisible !== undefined ? { forceVisible: entry.forceVisible } : {}),
             ...(entry.proxy !== undefined ? { proxy: entry.proxy } : {}),
+            ...(entry.networkProxy !== undefined ? { networkProxy: entry.networkProxy } : {}),
         }),
     );
 
