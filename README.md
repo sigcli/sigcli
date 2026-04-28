@@ -48,8 +48,7 @@ Pre-built Python scripts that let AI agents operate 14+ web services — email, 
 Install skills to your coding agent (Claude Code, Cursor, Windsurf, Cline):
 
 ```bash
-npx @sigcli/skills            # npx one-liner (recommended)
-sig skills install --all      # or via sig CLI if already installed
+npx @sigcli/skills            # install skills to your coding agent
 ```
 
 See the [full skills catalog](skills/README.md) for details.
