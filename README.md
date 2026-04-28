@@ -46,8 +46,8 @@ in your browser         -->   credentials locally          -->  on your behalf
 Pre-built Python scripts that let AI agents operate 14+ web services — email, chat, forums, video platforms, social networks, and more. Each skill includes scripts + documentation that agents read and execute autonomously.
 
 ```bash
-git clone https://github.com/sigcli/sigcli.git
-cd sigcli/skills && ./install.sh
+sig skills install --all      # install all skills to your coding agent
+sig skills list               # see available skills
 ```
 
 See the [full skills catalog](skills/README.md) for details.
