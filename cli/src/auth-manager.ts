@@ -54,7 +54,10 @@ export class AuthManager {
      * Get valid credentials for a provider.
      * Tries: stored → refresh → authenticate, in that order.
      */
-    async getCredentials(providerId: string): Promise<Result<Credential, AuthError>> {
+    async getCredentials(
+        providerId: string,
+        options?: { networkProxy?: string },
+    ): Promise<Result<Credential, AuthError>> {
         const provider = this.providers.get(providerId);
         if (!provider) return err(new ProviderNotFoundError(providerId));
 
@@ -91,10 +94,12 @@ export class AuthManager {
 
         // Step 3: Full authentication
         this.logger?.info(`Authenticating with "${providerId}"...`);
+        const resolvedProxy = options?.networkProxy ?? provider.networkProxy;
         const context: AuthContext = {
             browserAdapter: this.browserAdapterFactory(),
             browserConfig: this.browserConfig,
             logger: this.logger,
+            ...(resolvedProxy !== undefined ? { networkProxy: resolvedProxy } : {}),
         };
 
         const authResult = await strategy.authenticate(provider, context);
@@ -149,12 +154,15 @@ export class AuthManager {
     /**
      * Force re-authentication, deleting any stored credentials first.
      */
-    async forceReauth(providerId: string): Promise<Result<Credential, AuthError>> {
+    async forceReauth(
+        providerId: string,
+        options?: { networkProxy?: string },
+    ): Promise<Result<Credential, AuthError>> {
         const provider = this.providers.get(providerId);
         if (provider) {
             await this.storage.delete(this.storageKey(provider));
         }
-        return this.getCredentials(providerId);
+        return this.getCredentials(providerId, options);
     }
 
     /**

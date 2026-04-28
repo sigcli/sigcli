@@ -459,5 +459,6 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
                   },
               }
             : {}),
+        ...(typeof raw.networkProxy === 'string' ? { networkProxy: raw.networkProxy } : {}),
     };
 }

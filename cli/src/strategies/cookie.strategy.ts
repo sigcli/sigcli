@@ -96,6 +96,7 @@ class CookieStrategy implements IAuthStrategy {
             providerDomains: provider.domains,
             localStorage: provider.localStorage,
             logger: context.logger ?? stderrLogger,
+            ...(context.networkProxy !== undefined ? { networkProxy: context.networkProxy } : {}),
 
             isAuthenticated: async (page) => {
                 // If requiredCookies is set, auth is complete only when those cookies exist

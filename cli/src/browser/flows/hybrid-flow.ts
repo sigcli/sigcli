@@ -52,6 +52,8 @@ export interface HybridFlowOptions {
     localStorage?: LocalStorageConfig[];
     /** Logger for flow progress messages */
     logger: ILogger;
+    /** Network proxy for the browser, e.g. "socks5://127.0.0.1:1080" */
+    networkProxy?: string;
 }
 
 /**
@@ -120,10 +122,18 @@ async function attemptAuth<T>(
     const logger = options.logger;
 
     try {
+        const args: string[] = [];
+        if (options.networkProxy) {
+            args.push(`--proxy-server=${options.networkProxy}`);
+        }
+        if (options.browserArgs) {
+            args.push(...options.browserArgs);
+        }
+
         const launchOptions: BrowserLaunchOptions = {
             headless: options.headless,
             timeout: options.timeout,
-            args: options.browserArgs,
+            args: args.length > 0 ? args : undefined,
         };
 
         session = await adapter.launch(launchOptions);

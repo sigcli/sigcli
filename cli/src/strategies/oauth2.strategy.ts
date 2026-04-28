@@ -74,6 +74,7 @@ class OAuth2Strategy implements IAuthStrategy {
             providerDomains: provider.domains,
             localStorage: provider.localStorage,
             logger: context.logger ?? stderrLogger,
+            ...(context.networkProxy !== undefined ? { networkProxy: context.networkProxy } : {}),
 
             isAuthenticated: async (page) => {
                 const onLogin = await isLoginPage(page);

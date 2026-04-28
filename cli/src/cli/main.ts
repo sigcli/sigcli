@@ -85,6 +85,7 @@ Authentication:
     --username <u> --password <p>  Basic auth (no browser)
     --strategy <name>            Force strategy (cookie|oauth2|api-token|basic)
     --force                      Skip stored/refresh check, go straight to browser
+    --network-proxy <url>        Browser network proxy (e.g. socks5://127.0.0.1:1080)
   logout [provider]            Clear credentials (all if none specified)
 
 Credentials (most → least secure):
