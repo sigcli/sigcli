@@ -1,4 +1,5 @@
 packages:
     - cli
     - sdk/typescript
+    - packages/skills
     - website
