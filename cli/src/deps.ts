@@ -1,5 +1,5 @@
 import type { IStorage } from './core/interfaces/storage.js';
-import type { ILogger, ProviderConfig } from './core/types.js';
+import type { ILogger, ProviderConfig, ProviderSource } from './core/types.js';
 import type { SigConfig } from './config/schema.js';
 import { AuthManager } from './auth-manager.js';
 import { StrategyRegistry } from './strategies/registry.js';
@@ -26,6 +26,7 @@ export interface AuthDeps {
     strategyRegistry: StrategyRegistry;
     config: SigConfig;
     browserAvailable: boolean;
+    projectConfigPath?: string | null;
 }
 
 /**
@@ -62,7 +63,11 @@ export function createConsoleLogger(): ILogger {
  */
 export async function createAuthDeps(
     config: SigConfig,
-    options?: { verbose?: boolean },
+    options?: {
+        verbose?: boolean;
+        providerSources?: Record<string, ProviderSource>;
+        projectConfigPath?: string | null;
+    },
 ): Promise<AuthDeps> {
     // 1. Convert config providers to ProviderConfig[]
     const providerConfigs: ProviderConfig[] = Object.entries(config.providers).map(
@@ -79,6 +84,7 @@ export async function createAuthDeps(
             localStorage: entry.localStorage,
             ...(entry.forceVisible !== undefined ? { forceVisible: entry.forceVisible } : {}),
             ...(entry.proxy !== undefined ? { proxy: entry.proxy } : {}),
+            ...(options?.providerSources?.[id] ? { source: options.providerSources[id] } : {}),
         }),
     );
 
@@ -116,5 +122,13 @@ export async function createAuthDeps(
         logger,
     });
 
-    return { authManager, storage, providerRegistry, strategyRegistry, config, browserAvailable };
+    return {
+        authManager,
+        storage,
+        providerRegistry,
+        strategyRegistry,
+        config,
+        browserAvailable,
+        projectConfigPath: options?.projectConfigPath,
+    };
 }

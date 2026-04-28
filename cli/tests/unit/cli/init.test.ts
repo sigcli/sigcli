@@ -24,12 +24,12 @@ vi.mock('node:child_process', () => ({
     execSync: vi.fn(),
 }));
 
-// Mock validateConfig to always succeed so init logic is testable in isolation.
-// The generated YAML with no providers parses as { providers: null }, which
-// validateConfig legitimately rejects. We trust generator + validator tests
-// to cover that; here we focus on init's own control flow.
+// Mock validateConfig/validateProjectConfig to always succeed so init logic
+// is testable in isolation. We trust generator + validator tests to cover
+// validation; here we focus on init's own control flow.
 vi.mock('../../../src/config/validator.js', () => ({
     validateConfig: vi.fn(),
+    validateProjectConfig: vi.fn(),
 }));
 
 vi.mock('../../../src/crypto/encryption.js', () => ({
@@ -40,9 +40,10 @@ vi.mock('../../../src/crypto/encryption.js', () => ({
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import { runInit } from '../../../src/cli/commands/init.js';
-import { validateConfig } from '../../../src/config/validator.js';
+import { validateConfig, validateProjectConfig } from '../../../src/config/validator.js';
 
 const mockValidateConfig = vi.mocked(validateConfig);
+const mockValidateProjectConfig = vi.mocked(validateProjectConfig);
 
 const mockExistsSync = vi.mocked(fs.existsSync);
 const mockMkdir = vi.mocked(fsp.mkdir);
@@ -62,8 +63,9 @@ describe('runInit', () => {
         stderrChunks = [];
         stdoutLogs = [];
 
-        // Make validateConfig always pass (re-set after clearAllMocks)
+        // Make validators always pass (re-set after clearAllMocks)
         mockValidateConfig.mockReturnValue({ ok: true, value: {} } as any);
+        mockValidateProjectConfig.mockReturnValue({ ok: true, value: { providers: {} } } as any);
 
         // Save and reset process.exitCode
         originalExitCode = process.exitCode;
@@ -379,5 +381,142 @@ describe('runInit', () => {
         const YAML = await import('yaml');
         const parsed = YAML.parse(writtenContent);
         expect(parsed.mode).toBe('browser');
+    });
+});
+
+// ============================================================================
+// sig init --local (project-level config)
+// ============================================================================
+
+describe('runInit --local', () => {
+    let stderrChunks: string[];
+    let originalExitCode: number | undefined;
+    let originalIsTTY: boolean | undefined;
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        stderrChunks = [];
+
+        mockValidateConfig.mockReturnValue({ ok: true, value: {} } as any);
+        mockValidateProjectConfig.mockReturnValue({ ok: true, value: { providers: {} } } as any);
+
+        originalExitCode = process.exitCode;
+        process.exitCode = undefined;
+
+        originalIsTTY = process.stdin.isTTY;
+        Object.defineProperty(process.stdin, 'isTTY', { value: false, configurable: true });
+
+        vi.spyOn(process.stderr, 'write').mockImplementation((chunk: string | Uint8Array) => {
+            stderrChunks.push(String(chunk));
+            return true;
+        });
+
+        // Default: files do NOT exist
+        mockExistsSync.mockReturnValue(false);
+    });
+
+    afterEach(() => {
+        process.exitCode = originalExitCode;
+        Object.defineProperty(process.stdin, 'isTTY', { value: originalIsTTY, configurable: true });
+        vi.restoreAllMocks();
+    });
+
+    it('--local flag creates .sig/config.yaml in CWD', async () => {
+        await runInit([], { local: true });
+
+        expect(mockWriteFile).toHaveBeenCalled();
+        const [writtenPath, writtenContent] = mockWriteFile.mock.calls[0] as [
+            string,
+            string,
+            string,
+        ];
+        expect(writtenPath).toBe(path.join(process.cwd(), '.sig', 'config.yaml'));
+        expect(writtenContent).toContain('providers:');
+        expect(writtenContent).not.toContain('browser:');
+        expect(writtenContent).not.toContain('storage:');
+    });
+
+    it('positional "." triggers local init', async () => {
+        await runInit(['.'], {});
+
+        expect(mockWriteFile).toHaveBeenCalled();
+        const [writtenPath] = mockWriteFile.mock.calls[0] as [string, string, string];
+        expect(writtenPath).toBe(path.join(process.cwd(), '.sig', 'config.yaml'));
+    });
+
+    it('creates .sig/.gitignore with credentials/ entry', async () => {
+        await runInit([], { local: true });
+
+        // Should have 2 writes: config.yaml and .gitignore
+        expect(mockWriteFile).toHaveBeenCalledTimes(2);
+        const gitignoreCall = mockWriteFile.mock.calls.find((call) =>
+            (call[0] as string).endsWith('.gitignore'),
+        );
+        expect(gitignoreCall).toBeDefined();
+        const [gitignorePath, gitignoreContent] = gitignoreCall as [string, string, string];
+        expect(gitignorePath).toBe(path.join(process.cwd(), '.sig', '.gitignore'));
+        expect(gitignoreContent).toContain('credentials/');
+    });
+
+    it('does NOT create browser-data or credentials directories', async () => {
+        await runInit([], { local: true });
+
+        // Only creates .sig/ directory (1 mkdir call)
+        expect(mockMkdir).toHaveBeenCalledTimes(1);
+        const [mkdirPath] = mockMkdir.mock.calls[0] as [string, unknown];
+        expect(mkdirPath).toBe(path.join(process.cwd(), '.sig'));
+    });
+
+    it('warns if global config is missing', async () => {
+        // global config does not exist
+        mockExistsSync.mockReturnValue(false);
+
+        await runInit([], { local: true });
+
+        const stderr = stderrChunks.join('');
+        expect(stderr).toContain('Global config not found');
+        expect(stderr).toContain('sig init');
+    });
+
+    it('does NOT warn if global config exists', async () => {
+        // global config exists, project config does not
+        mockExistsSync.mockImplementation((p) => {
+            return (p as string).includes(os.homedir());
+        });
+
+        await runInit([], { local: true });
+
+        const stderr = stderrChunks.join('');
+        expect(stderr).not.toContain('Global config not found');
+    });
+
+    it('errors if project config already exists without --force', async () => {
+        mockExistsSync.mockReturnValue(true);
+
+        await runInit([], { local: true });
+
+        expect(process.exitCode).toBe(1);
+        const stderr = stderrChunks.join('');
+        expect(stderr).toContain('Project config already exists');
+        expect(stderr).toContain('--force');
+        expect(mockWriteFile).not.toHaveBeenCalled();
+    });
+
+    it('--force overwrites existing project config', async () => {
+        mockExistsSync.mockReturnValue(true);
+
+        await runInit([], { local: true, force: true });
+
+        expect(mockWriteFile).toHaveBeenCalled();
+        expect(process.exitCode).not.toBe(1);
+    });
+
+    it('prints success message with project config path', async () => {
+        await runInit([], { local: true });
+
+        const stderr = stderrChunks.join('');
+        expect(stderr).toContain('Project config written to');
+        expect(stderr).toContain('safe to commit');
+        expect(stderr).toContain('~/.sig/credentials/');
     });
 });

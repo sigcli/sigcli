@@ -96,3 +96,11 @@ export interface ProviderEntry {
     forceVisible?: boolean;
     proxy?: ProxyConfig;
 }
+
+// ============================================================================
+// Project-Level Config (providers only, no browser/storage/mode)
+// ============================================================================
+
+export interface ProjectConfig {
+    providers: Record<string, ProviderEntry>;
+}

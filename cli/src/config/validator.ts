@@ -11,6 +11,7 @@ import type {
     BrowserConfig,
     StorageConfig,
     ProviderEntry,
+    ProjectConfig,
     RemoteEntry,
     WatchEntry,
     WatchProviderEntry,
@@ -399,6 +400,53 @@ export function buildStrategyConfig(
                     : {}),
             };
     }
+}
+
+/**
+ * Validate a project-level config (providers only, no browser/storage/mode).
+ */
+export function validateProjectConfig(
+    raw: Record<string, unknown>,
+): Result<ProjectConfig, AuthError> {
+    const errors: string[] = [];
+
+    const DISALLOWED_SECTIONS = ['browser', 'storage', 'mode', 'remotes', 'watch'];
+    for (const section of DISALLOWED_SECTIONS) {
+        if (raw[section] !== undefined) {
+            errors.push(
+                `Project-level config does not support "${section}". ` +
+                    'Only the "providers" section is allowed. ' +
+                    `Move "${section}" to ~/.sig/config.yaml.`,
+            );
+        }
+    }
+
+    if (!raw.providers || typeof raw.providers !== 'object') {
+        errors.push('Missing required section: "providers"');
+    } else {
+        const providers = raw.providers as Record<string, unknown>;
+        for (const [id, entry] of Object.entries(providers)) {
+            if (!entry || typeof entry !== 'object') {
+                errors.push(`Provider "${id}": must be an object`);
+                continue;
+            }
+            const providerErrors = validateProviderEntry(id, entry as Record<string, unknown>);
+            errors.push(...providerErrors);
+        }
+    }
+
+    if (errors.length > 0) {
+        return err(
+            new ConfigError(`Project config validation failed:\n  - ${errors.join('\n  - ')}`),
+        );
+    }
+
+    const providers: Record<string, ProviderEntry> = {};
+    for (const [id, entry] of Object.entries(raw.providers as Record<string, unknown>)) {
+        providers[id] = parseProviderEntry(entry as Record<string, unknown>);
+    }
+
+    return ok({ providers });
 }
 
 function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {

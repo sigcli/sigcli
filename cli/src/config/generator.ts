@@ -62,6 +62,48 @@ function renderProvider(provider: {
  * Generate a commented YAML config string from the given options.
  * Uses template literals to preserve comments and formatting.
  */
+export interface ProjectInitOptions {
+    providers?: Array<{
+        id: string;
+        domains: string[];
+        strategy: string;
+        entryUrl: string;
+        config?: Record<string, unknown>;
+    }>;
+}
+
+/**
+ * Generate a project-level config YAML (providers only).
+ */
+export function generateProjectConfigYaml(options: ProjectInitOptions): string {
+    const providerSection =
+        options.providers && options.providers.length > 0
+            ? options.providers.map((p) => renderProvider(p)).join('\n\n')
+            : `  # Add project-specific providers here.
+  # These providers override global (~/.sig/config.yaml) providers with the same ID.
+  #
+  # Example:
+  #   my-jira:
+  #     domains: ["jira.example.com"]
+  #     entryUrl: https://jira.example.com/
+  #     strategy: cookie`;
+
+    return `# SigCLI project-level configuration
+# Only the "providers" section is supported here.
+# Browser, storage, and mode settings belong in ~/.sig/config.yaml.
+#
+# Commit this file to share provider definitions with your team.
+# Credentials are stored per-user in ~/.sig/credentials/ (never here).
+
+providers:
+${providerSection}
+`;
+}
+
+/**
+ * Generate a commented YAML config string from the given options.
+ * Uses template literals to preserve comments and formatting.
+ */
 export function generateConfigYaml(options: InitOptions): string {
     const providerSection =
         options.providers && options.providers.length > 0

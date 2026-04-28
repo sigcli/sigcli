@@ -25,6 +25,17 @@ export async function runRename(
         return;
     }
 
+    // Block rename of project-level providers
+    if (provider.source === 'project') {
+        const configPath = deps.projectConfigPath ?? '.sig/config.yaml';
+        process.stderr.write(
+            `Error: Provider "${provider.id}" is defined in project config.\n` +
+                `Edit ${configPath} directly to rename it.\n`,
+        );
+        process.exitCode = ExitCode.GENERAL_ERROR;
+        return;
+    }
+
     // Check new ID doesn't collide
     const existing = deps.authManager.providerRegistry.get(newId);
     if (existing) {
