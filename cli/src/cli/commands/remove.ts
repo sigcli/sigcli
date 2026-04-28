@@ -37,6 +37,19 @@ export async function runRemove(
         return;
     }
 
+    // Block remove of project-level providers
+    const projectProviders = resolved.filter((p) => p.source === 'project');
+    if (projectProviders.length > 0) {
+        const configPath = deps.projectConfigPath ?? '.sig/config.yaml';
+        const ids = projectProviders.map((p) => p.id).join(', ');
+        process.stderr.write(
+            `Error: Provider(s) ${ids} defined in project config.\n` +
+                `Edit ${configPath} directly to remove them.\n`,
+        );
+        process.exitCode = ExitCode.GENERAL_ERROR;
+        return;
+    }
+
     // Confirmation (unless --force)
     const force = flags.force === true;
     if (!force) {

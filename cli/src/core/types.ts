@@ -135,6 +135,8 @@ export interface ProxyConfig {
 // Provider Configuration
 // ============================================================================
 
+export type ProviderSource = 'project' | 'user';
+
 export interface ProviderConfig {
     id: string;
     name: string;
@@ -149,6 +151,7 @@ export interface ProviderConfig {
     autoProvisioned?: boolean; // True if created by auto-provision (not from config file)
     forceVisible?: boolean; // Skip headless, go straight to visible browser mode
     proxy?: ProxyConfig; // MITM proxy injection rules
+    source?: ProviderSource; // Where this provider was loaded from (project or user config)
 }
 
 // ============================================================================

@@ -335,4 +335,54 @@ describe('runRemove (#11)', () => {
         expect(providerRegistry.get('jira')).toBeNull();
         expect(removeProviderFromConfig).toHaveBeenCalledWith('jira');
     });
+
+    // ---- Project provider guard ----
+
+    it('blocks removal of project-level providers', async () => {
+        const projectProvider: ProviderConfig = {
+            id: 'proj-svc',
+            name: 'Project Service',
+            domains: ['svc.project.com'],
+            strategy: 'cookie',
+            strategyConfig: { strategy: 'cookie' },
+            source: 'project',
+        };
+        const { deps } = createDeps([projectProvider]);
+        deps.projectConfigPath = '/my-project/.sig/config.yaml';
+
+        await runRemove(['proj-svc'], { force: true }, deps);
+
+        expect(process.exitCode).toBe(1);
+        const stderr = stderrChunks.join('');
+        expect(stderr).toContain('defined in project config');
+        expect(stderr).toContain('/my-project/.sig/config.yaml');
+    });
+
+    it('allows removal of user-level provider alongside project-level block', async () => {
+        const projectProvider: ProviderConfig = {
+            id: 'proj-svc',
+            name: 'Project Service',
+            domains: ['svc.project.com'],
+            strategy: 'cookie',
+            strategyConfig: { strategy: 'cookie' },
+            source: 'project',
+        };
+        const userProvider: ProviderConfig = {
+            id: 'my-global',
+            name: 'Global',
+            domains: ['global.example.com'],
+            strategy: 'cookie',
+            strategyConfig: { strategy: 'cookie' },
+            source: 'user',
+        };
+        const { deps } = createDeps([projectProvider, userProvider]);
+        deps.projectConfigPath = '/my-project/.sig/config.yaml';
+
+        // Trying to remove both — should block because of the project provider
+        await runRemove(['proj-svc', 'my-global'], { force: true }, deps);
+
+        expect(process.exitCode).toBe(1);
+        const stderr = stderrChunks.join('');
+        expect(stderr).toContain('proj-svc');
+    });
 });

@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import YAML from 'yaml';
-import { generateConfigYaml, type InitOptions } from '../../../src/config/generator.js';
-import { validateConfig } from '../../../src/config/validator.js';
+import {
+    generateConfigYaml,
+    generateProjectConfigYaml,
+    type InitOptions,
+} from '../../../src/config/generator.js';
+import { validateConfig, validateProjectConfig } from '../../../src/config/validator.js';
 import { isOk } from '../../../src/core/result.js';
 
 /**
@@ -379,5 +383,104 @@ describe('generateConfigYaml', () => {
         const yaml = generateConfigYaml(defaultOptions({ mode: 'browserless' }));
         const parsed = YAML.parse(yaml);
         expect(parsed.mode).toBe('browserless');
+    });
+});
+
+// ============================================================================
+// generateProjectConfigYaml
+// ============================================================================
+
+describe('generateProjectConfigYaml', () => {
+    it('generates valid YAML', () => {
+        const yaml = generateProjectConfigYaml({});
+        const parsed = YAML.parse(yaml);
+        expect(parsed).toBeDefined();
+        expect(typeof parsed).toBe('object');
+    });
+
+    it('only contains providers section', () => {
+        const yaml = generateProjectConfigYaml({
+            providers: [
+                {
+                    id: 'test',
+                    domains: ['test.example.com'],
+                    strategy: 'cookie',
+                    entryUrl: 'https://test.example.com/',
+                },
+            ],
+        });
+        const parsed = YAML.parse(yaml);
+        expect(parsed.providers).toBeDefined();
+        expect(parsed.browser).toBeUndefined();
+        expect(parsed.storage).toBeUndefined();
+        expect(parsed.mode).toBeUndefined();
+    });
+
+    it('includes comment header about project-level config', () => {
+        const yaml = generateProjectConfigYaml({});
+        expect(yaml).toContain('# SigCLI project-level configuration');
+        expect(yaml).toContain('~/.sig/config.yaml');
+    });
+
+    it('renders commented example when no providers', () => {
+        const yaml = generateProjectConfigYaml({});
+        expect(yaml).toContain('# Add project-specific providers here');
+    });
+
+    it('renders providers when provided', () => {
+        const yaml = generateProjectConfigYaml({
+            providers: [
+                {
+                    id: 'my-jira',
+                    domains: ['jira.example.com'],
+                    strategy: 'cookie',
+                    entryUrl: 'https://jira.example.com/',
+                    config: { ttl: '12h' },
+                },
+            ],
+        });
+        const parsed = YAML.parse(yaml);
+        expect(parsed.providers['my-jira']).toBeDefined();
+        expect(parsed.providers['my-jira'].domains).toEqual(['jira.example.com']);
+        expect(parsed.providers['my-jira'].strategy).toBe('cookie');
+        expect(parsed.providers['my-jira'].config.ttl).toBe('12h');
+    });
+
+    it('generated YAML with providers passes validateProjectConfig', () => {
+        const yaml = generateProjectConfigYaml({
+            providers: [
+                {
+                    id: 'github',
+                    domains: ['github.com'],
+                    strategy: 'api-token',
+                    entryUrl: 'https://github.com/',
+                    config: { headerName: 'Authorization', headerPrefix: 'Bearer' },
+                },
+            ],
+        });
+        const parsed = YAML.parse(yaml);
+        const result = validateProjectConfig(parsed);
+        expect(isOk(result)).toBe(true);
+    });
+
+    it('renders multiple providers', () => {
+        const yaml = generateProjectConfigYaml({
+            providers: [
+                {
+                    id: 'svc-a',
+                    domains: ['a.example.com'],
+                    strategy: 'cookie',
+                    entryUrl: 'https://a.example.com/',
+                },
+                {
+                    id: 'svc-b',
+                    domains: ['b.example.com'],
+                    strategy: 'oauth2',
+                    entryUrl: 'https://b.example.com/',
+                },
+            ],
+        });
+        const parsed = YAML.parse(yaml);
+        expect(Object.keys(parsed.providers)).toHaveLength(2);
     });
 });
