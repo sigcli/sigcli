@@ -482,7 +482,7 @@ describe('validateConfig', () => {
         expect(isErr(result)).toBe(true);
         if (!result.ok) {
             expect(result.error.message).toContain(
-                'cookiePaths[0] must be a path starting with "/" (no query or fragment)',
+                'cookiePaths[0] must be a path starting with "/"',
             );
         }
     });
@@ -503,16 +503,16 @@ describe('validateConfig', () => {
         expect(isErr(result)).toBe(true);
         if (!result.ok) {
             expect(result.error.message).toContain(
-                'cookiePaths[0] must be a path starting with "/" (no query or fragment)',
+                'cookiePaths[0] must be a path starting with "/"',
             );
         }
     });
 
-    it('returns error when cookiePaths entry contains query string', () => {
+    it('normalizes cookiePaths by stripping query string', () => {
         const result = validateConfig(
             validRawConfig({
                 providers: {
-                    bad: {
+                    wiki: {
                         domains: ['x.com'],
                         entryUrl: 'https://x.com/',
                         strategy: 'cookie',
@@ -521,17 +521,21 @@ describe('validateConfig', () => {
                 },
             }),
         );
-        expect(isErr(result)).toBe(true);
-        if (!result.ok) {
-            expect(result.error.message).toContain('no query or fragment');
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+            const strat = buildStrategyConfig('cookie', result.value.providers.wiki.config);
+            expect(strat.strategy).toBe('cookie');
+            if (strat.strategy === 'cookie') {
+                expect(strat.cookiePaths).toEqual(['/wiki']);
+            }
         }
     });
 
-    it('returns error when cookiePaths entry contains fragment', () => {
+    it('normalizes cookiePaths by stripping fragment', () => {
         const result = validateConfig(
             validRawConfig({
                 providers: {
-                    bad: {
+                    wiki: {
                         domains: ['x.com'],
                         entryUrl: 'https://x.com/',
                         strategy: 'cookie',
@@ -540,9 +544,36 @@ describe('validateConfig', () => {
                 },
             }),
         );
-        expect(isErr(result)).toBe(true);
-        if (!result.ok) {
-            expect(result.error.message).toContain('no query or fragment');
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+            const strat = buildStrategyConfig('cookie', result.value.providers.wiki.config);
+            expect(strat.strategy).toBe('cookie');
+            if (strat.strategy === 'cookie') {
+                expect(strat.cookiePaths).toEqual(['/wiki']);
+            }
+        }
+    });
+
+    it('normalizes cookiePaths by stripping trailing slash', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    wiki: {
+                        domains: ['x.com'],
+                        entryUrl: 'https://x.com/',
+                        strategy: 'cookie',
+                        config: { cookiePaths: ['/wiki/'] },
+                    },
+                },
+            }),
+        );
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+            const strat = buildStrategyConfig('cookie', result.value.providers.wiki.config);
+            expect(strat.strategy).toBe('cookie');
+            if (strat.strategy === 'cookie') {
+                expect(strat.cookiePaths).toEqual(['/wiki']);
+            }
         }
     });
 

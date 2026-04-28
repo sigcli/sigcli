@@ -341,9 +341,9 @@ function validateStrategyConfig(
             } else {
                 for (let i = 0; i < config.cookiePaths.length; i++) {
                     const p = config.cookiePaths[i];
-                    if (typeof p !== 'string' || !/^\/[^?#]*$/.test(p)) {
+                    if (typeof p !== 'string' || !p.startsWith('/')) {
                         errors.push(
-                            `Provider "${id}": config.cookiePaths[${i}] must be a path starting with "/" (no query or fragment)`,
+                            `Provider "${id}": config.cookiePaths[${i}] must be a path starting with "/"`,
                         );
                     }
                 }
@@ -385,7 +385,13 @@ export function buildStrategyConfig(
                 ...(Array.isArray(c.requiredCookies)
                     ? { requiredCookies: c.requiredCookies as string[] }
                     : {}),
-                ...(Array.isArray(c.cookiePaths) ? { cookiePaths: c.cookiePaths as string[] } : {}),
+                ...(Array.isArray(c.cookiePaths)
+                    ? {
+                          cookiePaths: (c.cookiePaths as string[]).map(
+                              (p) => p.replace(/[?#].*$/, '').replace(/\/+$/, '') || '/',
+                          ),
+                      }
+                    : {}),
             };
 
         case StrategyName.OAUTH2:
