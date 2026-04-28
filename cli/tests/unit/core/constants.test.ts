@@ -38,11 +38,12 @@ describe('constants', () => {
             expect(Command.COMPLETION).toBe('completion');
             expect(Command.RUN).toBe('run');
             expect(Command.PROXY).toBe('proxy');
+            expect(Command.SKILLS).toBe('skills');
             expect(Command.HELP).toBe('help');
         });
 
         it('has exactly the expected number of commands', () => {
-            expect(Object.keys(Command)).toHaveLength(17);
+            expect(Object.keys(Command)).toHaveLength(18);
         });
 
         it('values are all lowercase strings', () => {
