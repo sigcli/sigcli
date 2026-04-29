@@ -95,12 +95,40 @@ class CookieStrategy implements IAuthStrategy {
             entryUrl: provider.entryUrl,
             browserConfig: context.browserConfig,
             forceVisible: provider.forceVisible ?? false,
+            loginMode: provider.loginMode,
             waitUntil: this.waitUntil,
             xHeaders: provider.xHeaders,
             providerDomains: provider.domains,
+            requiredCookies: this.requiredCookies,
+            cookiePaths: this.cookiePaths,
+            browserDataDir: context.browserConfig.browserDataDir,
+            execPath: context.browserConfig.execPath,
             localStorage: provider.localStorage,
             logger: context.logger ?? stderrLogger,
             ...(context.networkProxy !== undefined ? { networkProxy: context.networkProxy } : {}),
+
+            extractCredentialsFromCookies: async (cookies) => {
+                // CDP mode: cookies already extracted by the CDP flow
+                if (cookies.length === 0) {
+                    return err(
+                        new BrowserError(
+                            'No cookies found after authentication via native browser.',
+                            provider.id,
+                        ),
+                    );
+                }
+                const diagnostics: AuthDiagnostics = {
+                    authDetectedImmediately: false,
+                    oauthTokensDetected: false,
+                    cookiesExtracted: cookies.length,
+                };
+                const credential: CookieCredential = {
+                    type: CredentialTypeName.COOKIE,
+                    cookies,
+                    obtainedAt: new Date().toISOString(),
+                };
+                return ok({ credential, diagnostics });
+            },
 
             isAuthenticated: async (page) => {
                 // If requiredCookies is set, auth is complete only when those cookies exist

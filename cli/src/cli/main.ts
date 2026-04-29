@@ -86,6 +86,7 @@ Authentication:
     --strategy <name>            Force strategy (cookie|oauth2|api-token|basic)
     --force                      Skip stored/refresh check, go straight to browser
     --network-proxy <url>        Browser network proxy (e.g. socks5://127.0.0.1:1080)
+    --mode <mode>                Login mode: auto|cdp|headless|visible (default: auto)
   logout [provider]            Clear credentials (all if none specified)
 
 Credentials (most → least secure):

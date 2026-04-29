@@ -105,6 +105,12 @@ export { NullBrowserAdapter } from './browser/adapters/null.adapter.js';
 
 // Browser detection
 export { findChannelBrowser } from './browser/detect.js';
+export { detectNativeBrowsers, findNativeBrowser } from './browser/detect-native.js';
+export type { NativeBrowserInfo } from './browser/detect-native.js';
+
+// CDP WebSocket client
+export { connectCdpWs } from './browser/cdp-ws.js';
+export type { CdpWsClient } from './browser/cdp-ws.js';
 
 // CLI
 export { parseArgs } from './cli/main.js';
@@ -124,6 +130,7 @@ export {
     SyncSubcommand,
     WatchSubcommand,
     WaitUntil,
+    LoginMode,
     StrategyName,
     CredentialTypeName,
     LOGIN_URL_PATTERNS,
@@ -135,7 +142,7 @@ export {
     SIG_DIR,
     CONFIG_FILENAME,
 } from './core/constants.js';
-export type { WaitUntilValue } from './core/constants.js';
+export type { WaitUntilValue, LoginModeValue } from './core/constants.js';
 
 // Utilities
 export { decodeJwt, isJwtExpired, getJwtExpiresAt } from './utils/jwt.js';
