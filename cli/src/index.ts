@@ -79,6 +79,23 @@ export type {
 export type { IStorage } from './core/interfaces/storage.js';
 export type { IProviderRegistry } from './core/interfaces/provider.js';
 
+// New interfaces (extract/apply redesign)
+export type {
+    ISourceStrategy,
+    ExtractedCredentials,
+    ExtractionContext,
+} from './core/interfaces/source-strategy.js';
+export type { IBrowserExtractor } from './core/interfaces/browser-extractor.js';
+export type {
+    ExtractRule,
+    ApplyRule,
+    NewProviderConfig,
+    NewStoredCredential,
+} from './core/types/extract.js';
+export { applyRules, interpolate } from './apply/engine.js';
+export type { ApplyResult } from './apply/engine.js';
+export { checkRequired } from './extraction/required-checker.js';
+
 // AuthManager
 export { AuthManager } from './auth-manager.js';
 
