@@ -110,7 +110,7 @@ describe('credentialToEnvVars', () => {
         });
     });
 
-describe('localStorage', () => {
+    describe('localStorage', () => {
         it('maps localStorage to SIG_X_LOCAL_<NAME> uppercased', () => {
             const cred: CookieCredential = {
                 type: 'cookie',

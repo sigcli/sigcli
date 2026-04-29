@@ -57,7 +57,7 @@ describe('resolveFrom', () => {
         expect(resolveFrom(cookieCred, 'credential.localStorage.xoxc-token')).toBe('xoxc-xyz');
     });
 
-it('returns null for missing localStorage key', () => {
+    it('returns null for missing localStorage key', () => {
         expect(resolveFrom(cookieCred, 'credential.localStorage.missing')).toBeNull();
     });
 

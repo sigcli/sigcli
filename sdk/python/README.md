@@ -98,12 +98,12 @@ Standalone function to extract localStorage values from a credential.
 
 ### `get_headers(provider_id)` -- returns `dict[str, str]`
 
-| Credential Type | Example Return Value                                                                    |
-| --------------- | --------------------------------------------------------------------------------------- |
-| `cookie`        | `{"Cookie": "sid=abc123; csrf=xyz789"}`                                                 |
-| `bearer`        | `{"Authorization": "Bearer eyJhbG..."}`                                                 |
-| `api-key`       | `{"Authorization": "Bearer ghp_test123"}` or `{"X-API-Key": "key123"}`                  |
-| `basic`         | `{"Authorization": "Basic YWRtaW46czNjcmV0"}`                                           |
+| Credential Type | Example Return Value                                                   |
+| --------------- | ---------------------------------------------------------------------- |
+| `cookie`        | `{"Cookie": "sid=abc123; csrf=xyz789"}`                                |
+| `bearer`        | `{"Authorization": "Bearer eyJhbG..."}`                                |
+| `api-key`       | `{"Authorization": "Bearer ghp_test123"}` or `{"X-API-Key": "key123"}` |
+| `basic`         | `{"Authorization": "Basic YWRtaW46czNjcmV0"}`                          |
 
 For `cookie` and `bearer` types, the primary authentication header is returned directly.
 
@@ -169,12 +169,12 @@ ls = client.get_local_storage("my-slack")
 
 ## Credential types
 
-| Type      | Headers produced                         |
-| --------- | ---------------------------------------- |
-| `cookie`  | `Cookie: name=value; ...`                |
-| `bearer`  | `Authorization: Bearer <token>`          |
-| `api-key` | `<headerName>: [prefix] <key>`           |
-| `basic`   | `Authorization: Basic <base64>`          |
+| Type      | Headers produced                |
+| --------- | ------------------------------- |
+| `cookie`  | `Cookie: name=value; ...`       |
+| `bearer`  | `Authorization: Bearer <token>` |
+| `api-key` | `<headerName>: [prefix] <key>`  |
+| `basic`   | `Authorization: Basic <base64>` |
 
 ## License
 

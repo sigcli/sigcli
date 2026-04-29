@@ -108,7 +108,6 @@ describe('formatHeaders', () => {
         expect(headers['Cookie']).toBe('only=one');
         expect(headers['Cookie']).not.toContain(';');
     });
-
 });
 
 describe('extractLocalStorage', () => {

@@ -36,7 +36,7 @@ describe('OAuth2Strategy — localStorage on credential', () => {
         expect(headers['xoxc-token']).toBeUndefined();
     });
 
-it('validate works with empty localStorage', () => {
+    it('validate works with empty localStorage', () => {
         const cred = makeCred({
             localStorage: {},
         });

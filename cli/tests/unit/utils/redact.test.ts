@@ -37,7 +37,7 @@ describe('extractSensitiveValues', () => {
         expect(secrets).not.toContain('abc');
     });
 
-it('extracts localStorage values', () => {
+    it('extracts localStorage values', () => {
         const cred: CookieCredential = {
             type: 'cookie',
             cookies: [],
