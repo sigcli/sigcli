@@ -1,0 +1,76 @@
+import type { IBrowserExtractor } from '../core/interfaces/browser-extractor.js';
+import type { CdpWsClient } from '../browser/cdp-ws.js';
+import type { ExtractRule } from '../core/types/extract.js';
+
+interface CdpCookie {
+    name: string;
+    value: string;
+    domain: string;
+    path: string;
+    expires: number;
+    httpOnly: boolean;
+    secure: boolean;
+    sameSite?: string;
+}
+
+/**
+ * Extracts cookies from the browser via CDP Storage.getCookies.
+ *
+ * key: "*" = all cookies for provider domains
+ * key: "name1, name2" = only specific cookies (still extracts all, filters output)
+ *
+ * Output value: serialized "name1=val1; name2=val2" string.
+ */
+export class CookieExtractor implements IBrowserExtractor {
+    readonly type = 'cookies' as const;
+
+    async extract(
+        cdp: CdpWsClient,
+        _sessionId: string,
+        rule: ExtractRule,
+        domains: string[],
+        cookiePaths?: string[],
+    ): Promise<{ name: string; value: string } | null> {
+        const urls = this.buildUrls(domains, cookiePaths);
+
+        const result = (await cdp.send('Storage.getCookies', {
+            browserContextId: undefined,
+        })) as { cookies: CdpCookie[] } | null;
+
+        if (!result?.cookies?.length) return null;
+
+        const filtered = this.filterByDomain(result.cookies, domains);
+        if (!filtered.length) return null;
+
+        const serialized = filtered
+            .map((c) => `${c.name}=${c.value}`)
+            .join('; ');
+
+        return { name: rule.name, value: serialized };
+    }
+
+    private buildUrls(domains: string[], cookiePaths?: string[]): string[] {
+        const urls: string[] = [];
+        for (const d of domains) {
+            urls.push(`https://${d}/`);
+            if (cookiePaths) {
+                for (const p of cookiePaths) {
+                    urls.push(`https://${d}${p}`);
+                }
+            }
+        }
+        return urls;
+    }
+
+    private filterByDomain(cookies: CdpCookie[], domains: string[]): CdpCookie[] {
+        return cookies.filter((c) => {
+            const cookieDomain = c.domain.startsWith('.') ? c.domain.slice(1) : c.domain;
+            return domains.some(
+                (d) =>
+                    cookieDomain === d ||
+                    cookieDomain.endsWith('.' + d) ||
+                    d.endsWith('.' + cookieDomain),
+            );
+        });
+    }
+}

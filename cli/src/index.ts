@@ -95,6 +95,12 @@ export type {
 export { applyRules, interpolate } from './apply/engine.js';
 export type { ApplyResult } from './apply/engine.js';
 export { checkRequired } from './extraction/required-checker.js';
+export { BrowserSource } from './extraction/browser-source.js';
+export type { BrowserSourceOptions } from './extraction/browser-source.js';
+export { PromptSource } from './extraction/prompt-source.js';
+export { EnvSource } from './extraction/env-source.js';
+export { CookieExtractor } from './extraction/cookie-extractor.js';
+export { StorageExtractor } from './extraction/storage-extractor.js';
 
 // AuthManager
 export { AuthManager } from './auth-manager.js';
