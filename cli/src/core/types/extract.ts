@@ -1,5 +1,3 @@
-import type { WaitUntilValue } from '../constants.js';
-
 /**
  * Extract rule — unified 3-field schema.
  *

@@ -3,7 +3,7 @@
 // Config types and loader
 export type { SigConfig, BrowserConfig, StorageConfig, ProviderEntry } from './config/schema.js';
 export { loadConfig, saveConfig, getConfigPath } from './config/loader.js';
-export { validateConfig, buildStrategyConfig } from './config/validator.js';
+export { validateConfig } from './config/validator.js';
 export { generateConfigYaml } from './config/generator.js';
 export type { InitOptions } from './config/generator.js';
 
@@ -27,8 +27,6 @@ export type {
     BrowserLaunchOptions,
     ILogger,
     LocalStorageConfig,
-    AuthDiagnostics,
-    CredentialResult,
 } from './core/types.js';
 
 // Result type
@@ -136,10 +134,8 @@ export {
     WatchSubcommand,
     WaitUntil,
     LoginMode,
-    StrategyName,
     CredentialTypeName,
     LOGIN_URL_PATTERNS,
-    BROWSER_REQUIRED_STRATEGIES,
     HttpHeader,
     AuthScheme,
     APP_NAME,
