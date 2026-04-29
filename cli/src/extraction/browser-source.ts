@@ -52,6 +52,90 @@ export class BrowserSource implements ISourceStrategy {
         rules: ExtractRule[],
         ctx: ExtractionContext,
     ): Promise<Result<ExtractedCredentials, AuthError>> {
+        const loginMode = ctx.loginMode ?? 'auto';
+
+        // Cascade: headless → CDP (unless loginMode overrides)
+        if (loginMode === 'auto' || loginMode === 'headless') {
+            const headlessResult = await this.tryHeadless(rules, ctx);
+            if (headlessResult) return ok(headlessResult);
+            if (loginMode === 'headless') {
+                return err(new BrowserError('Headless extraction failed'));
+            }
+        }
+
+        // CDP mode
+        return this.extractViaCdp(rules, ctx);
+    }
+
+    private async tryHeadless(
+        rules: ExtractRule[],
+        ctx: ExtractionContext,
+    ): Promise<ExtractedCredentials | null> {
+        try {
+            // @ts-ignore - playwright is an optional dependency
+            const pw = await import('playwright').catch(() => null);
+            if (!pw) return null;
+
+            const expandedDataDir = this.options.browserDataDir.startsWith('~')
+                ? path.join(os.homedir(), this.options.browserDataDir.slice(1))
+                : this.options.browserDataDir;
+
+            const browserCtx = await pw.chromium.launchPersistentContext(expandedDataDir, {
+                headless: true,
+                channel: this.options.channel ?? 'msedge',
+                ...(ctx.networkProxy ? { proxy: { server: ctx.networkProxy } } : {}),
+            });
+
+            try {
+                const page = browserCtx.pages()[0] ?? await browserCtx.newPage();
+                if (ctx.entryUrl) {
+                    await page.goto(ctx.entryUrl, { waitUntil: 'load', timeout: 15000 });
+                }
+
+                const credentials: ExtractedCredentials = {};
+                for (const rule of rules) {
+                    if (rule.from === 'cookies') {
+                        const cookies = await browserCtx.cookies();
+                        const domainFiltered = cookies.filter((c: { domain: string; name: string; value: string }) => {
+                            const d = c.domain.startsWith('.') ? c.domain.slice(1) : c.domain;
+                            return ctx.domains.some(pd => d === pd || pd.endsWith('.' + d) || d.endsWith('.' + pd));
+                        });
+                        if (domainFiltered.length > 0) {
+                            credentials[rule.name] = domainFiltered.map((c: { name: string; value: string }) => `${c.name}=${c.value}`).join('; ');
+                        }
+                    } else if (rule.from === 'localStorage') {
+                        const storageKey = rule.key.includes('*') ? null : rule.key.split('.')[0];
+                        if (storageKey) {
+                            const val = await page.evaluate((k: string) => {
+                                try { return localStorage.getItem(k); } catch { return null; }
+                            }, storageKey);
+                            if (val) credentials[rule.name] = val;
+                        }
+                    }
+                }
+
+                // Check required
+                if (ctx.required?.length) {
+                    const unmet = checkRequired(ctx.required, credentials);
+                    if (unmet.length > 0) return null;
+                } else {
+                    const allExtracted = rules.every(r => !!credentials[r.name]);
+                    if (!allExtracted) return null;
+                }
+
+                return credentials;
+            } finally {
+                await browserCtx.close();
+            }
+        } catch {
+            return null;
+        }
+    }
+
+    private async extractViaCdp(
+        rules: ExtractRule[],
+        ctx: ExtractionContext,
+    ): Promise<Result<ExtractedCredentials, AuthError>> {
         const execPath = this.options.execPath ?? findNativeBrowser(this.options.channel)?.execPath;
         if (!execPath) {
             return err(new BrowserError('No browser found. Install Chrome, Edge, or Chromium.'));

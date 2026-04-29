@@ -56,14 +56,6 @@ export {
 } from './core/errors.js';
 
 // Interfaces
-export type {
-    IBrowserAdapter,
-    IBrowserSession,
-    IBrowserPage,
-    NavigateOptions,
-    PageRequest,
-    PageResponse,
-} from './core/interfaces/browser-adapter.js';
 export type { IStorage } from './core/interfaces/storage.js';
 export type { IProviderRegistry } from './core/interfaces/provider.js';
 
@@ -101,10 +93,6 @@ export { MemoryStorage } from './storage/memory-storage.js';
 // Provider system
 export { ProviderRegistry } from './providers/provider-registry.js';
 export { createDefaultProvider } from './providers/auto-provision.js';
-
-// Browser adapters
-export { PlaywrightAdapter } from './browser/adapters/playwright.adapter.js';
-export { NullBrowserAdapter } from './browser/adapters/null.adapter.js';
 
 // Browser detection
 export { findChannelBrowser } from './browser/detect.js';
