@@ -171,9 +171,7 @@ export class StorageExtractor implements IBrowserExtractor {
     }
 
     private globToRegex(pattern: string): string {
-        const escaped = pattern
-            .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-            .replace(/\*/g, '.*');
+        const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
         return `^${escaped}$`;
     }
 }

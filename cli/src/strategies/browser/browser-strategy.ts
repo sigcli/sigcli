@@ -4,7 +4,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn, type ChildProcess } from 'node:child_process';
-import type { ISourceStrategy, ExtractedCredentials, ExtractionContext } from '../../types/interfaces/source-strategy.js';
+import type {
+    ISourceStrategy,
+    ExtractedCredentials,
+    ExtractionContext,
+} from '../../types/interfaces/source-strategy.js';
 import type { IBrowserExtractor } from '../../types/interfaces/browser-extractor.js';
 import type { ExtractRule } from '../../types/extract.js';
 import type { CdpWsClient } from '../../browser/cdp-ws.js';
@@ -87,7 +91,7 @@ export class BrowserStrategy implements ISourceStrategy {
             });
 
             try {
-                const page = browserCtx.pages()[0] ?? await browserCtx.newPage();
+                const page = browserCtx.pages()[0] ?? (await browserCtx.newPage());
                 if (ctx.entryUrl) {
                     await page.goto(ctx.entryUrl, { waitUntil: 'load', timeout: 15000 });
                 }
@@ -96,18 +100,29 @@ export class BrowserStrategy implements ISourceStrategy {
                 for (const rule of rules) {
                     if (rule.from === 'cookies') {
                         const cookies = await browserCtx.cookies();
-                        const domainFiltered = cookies.filter((c: { domain: string; name: string; value: string }) => {
-                            const d = c.domain.startsWith('.') ? c.domain.slice(1) : c.domain;
-                            return ctx.domains.some(pd => d === pd || pd.endsWith('.' + d) || d.endsWith('.' + pd));
-                        });
+                        const domainFiltered = cookies.filter(
+                            (c: { domain: string; name: string; value: string }) => {
+                                const d = c.domain.startsWith('.') ? c.domain.slice(1) : c.domain;
+                                return ctx.domains.some(
+                                    (pd) =>
+                                        d === pd || pd.endsWith('.' + d) || d.endsWith('.' + pd),
+                                );
+                            },
+                        );
                         if (domainFiltered.length > 0) {
-                            credentials[rule.name] = domainFiltered.map((c: { name: string; value: string }) => `${c.name}=${c.value}`).join('; ');
+                            credentials[rule.name] = domainFiltered
+                                .map((c: { name: string; value: string }) => `${c.name}=${c.value}`)
+                                .join('; ');
                         }
                     } else if (rule.from === 'localStorage') {
                         const storageKey = rule.key.includes('*') ? null : rule.key.split('.')[0];
                         if (storageKey) {
                             const val = await page.evaluate((k: string) => {
-                                try { return localStorage.getItem(k); } catch { return null; }
+                                try {
+                                    return localStorage.getItem(k);
+                                } catch {
+                                    return null;
+                                }
                             }, storageKey);
                             if (val) credentials[rule.name] = val;
                         }
@@ -119,7 +134,7 @@ export class BrowserStrategy implements ISourceStrategy {
                     const unmet = checkRequired(ctx.required, credentials);
                     if (unmet.length > 0) return null;
                 } else {
-                    const allExtracted = rules.every(r => !!credentials[r.name]);
+                    const allExtracted = rules.every((r) => !!credentials[r.name]);
                     if (!allExtracted) return null;
                 }
 
@@ -173,7 +188,11 @@ export class BrowserStrategy implements ISourceStrategy {
                 browser.kill('SIGTERM');
                 setTimeout(() => {
                     if (browser && !browser.killed) {
-                        try { browser.kill('SIGKILL'); } catch { /* ignore */ }
+                        try {
+                            browser.kill('SIGKILL');
+                        } catch {
+                            /* ignore */
+                        }
                     }
                 }, 3000).unref();
             }
@@ -237,13 +256,7 @@ export class BrowserStrategy implements ISourceStrategy {
                 if (!extractor) continue;
 
                 try {
-                    const result = await extractor.extract(
-                        cdp,
-                        '',
-                        rule,
-                        domains,
-                        cookiePaths,
-                    );
+                    const result = await extractor.extract(cdp, '', rule, domains, cookiePaths);
                     if (result) {
                         credentials[result.name] = result.value;
                     }

@@ -1,4 +1,8 @@
-import type { ISourceStrategy, ExtractedCredentials, ExtractionContext } from '../../types/interfaces/source-strategy.js';
+import type {
+    ISourceStrategy,
+    ExtractedCredentials,
+    ExtractionContext,
+} from '../../types/interfaces/source-strategy.js';
 import type { ExtractRule } from '../../types/extract.js';
 import type { Result } from '../../types/result.js';
 import type { AuthError } from '../../types/errors.js';

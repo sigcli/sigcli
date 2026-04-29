@@ -12,10 +12,7 @@ import type { ExtractedCredentials } from '../types/interfaces/source-strategy.j
  *
  * Returns list of unmet requirements (empty = all satisfied).
  */
-export function checkRequired(
-    required: string[],
-    credentials: ExtractedCredentials,
-): string[] {
+export function checkRequired(required: string[], credentials: ExtractedCredentials): string[] {
     const unmet: string[] = [];
 
     for (const req of required) {

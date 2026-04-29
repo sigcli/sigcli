@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseArgs } from '../../../src/commands/main.js';
+import { parseArgs } from '../../../src/cli-router.js';
 
 describe('parseArgs', () => {
     it('parses a simple command with one positional', () => {

@@ -8,7 +8,11 @@ import type {
     ILogger,
 } from './types/types.js';
 import type { BrowserConfig } from './config/schema.js';
-import type { ISourceStrategy, ExtractedCredentials, ExtractionContext } from './types/interfaces/source-strategy.js';
+import type {
+    ISourceStrategy,
+    ExtractedCredentials,
+    ExtractionContext,
+} from './types/interfaces/source-strategy.js';
 import type { ApplyRule, ProviderConfigV2 } from './types/extract.js';
 
 import { createDefaultProvider } from './providers/auto-provision.js';
@@ -18,7 +22,11 @@ import { ProviderNotFoundError, CredentialNotFoundError, type AuthError } from '
 import { ApplyEngine, type ApplyResult } from './apply/apply-engine.js';
 import { checkRequired } from './strategies/required-checker.js';
 import { parseDuration } from './utils/duration.js';
-import { extractedToCredential, credentialToExtracted, toV2Config } from './utils/credential-converter.js';
+import {
+    extractedToCredential,
+    credentialToExtracted,
+    toV2Config,
+} from './utils/credential-converter.js';
 import { checkTtl, validateCredential, getExpiresAt } from './utils/credential-validator.js';
 
 export interface AuthManagerDeps {
@@ -108,9 +116,9 @@ export class AuthManager {
         // Step 2: Select source strategy
         const source = this.sourceStrategies.get(provider.source);
         if (!source) {
-            return err(new ProviderNotFoundError(
-                `No source strategy registered for "${provider.source}"`,
-            ));
+            return err(
+                new ProviderNotFoundError(`No source strategy registered for "${provider.source}"`),
+            );
         }
 
         // Step 3: Run extraction
@@ -132,9 +140,9 @@ export class AuthManager {
         if (provider.required?.length) {
             const unmet = checkRequired(provider.required, extractResult.value);
             if (unmet.length > 0) {
-                return err(new CredentialNotFoundError(
-                    `Required fields not met: ${unmet.join(', ')}`,
-                ));
+                return err(
+                    new CredentialNotFoundError(`Required fields not met: ${unmet.join(', ')}`),
+                );
             }
         }
 

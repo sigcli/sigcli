@@ -14,7 +14,7 @@ import { findChannelBrowser } from '../browser/detect.js';
 import type { SigConfig } from '../config/schema.js';
 import { BROWSER_REQUIRED_STRATEGIES } from '../types/constants.js';
 import { expandHome } from '../utils/path.js';
-import { ExitCode } from './exit-codes.js';
+import { ExitCode } from '../utils/exit-codes.js';
 
 interface CheckResult {
     label: string;
@@ -246,7 +246,11 @@ function checkBrowserRequired(
     }
 
     const browserProviders = Object.entries(config.providers)
-        .filter(([, entry]) => entry.source === 'browser' || (entry.strategy && BROWSER_REQUIRED_STRATEGIES.has(entry.strategy)))
+        .filter(
+            ([, entry]) =>
+                entry.source === 'browser' ||
+                (entry.strategy && BROWSER_REQUIRED_STRATEGIES.has(entry.strategy)),
+        )
         .map(([id]) => id);
 
     if (browserProviders.length === 0) {

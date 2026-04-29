@@ -1,5 +1,5 @@
 import type { AuthDeps } from '../deps.js';
-import { formatTable } from './formatters.js';
+import { formatTable } from '../utils/formatters.js';
 import { detectFormat, formatOutput } from '../utils/formatter.js';
 
 export async function runProviders(

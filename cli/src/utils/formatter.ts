@@ -1,4 +1,4 @@
-import { formatTable } from '../commands/formatters.js';
+import { formatTable } from './formatters.js';
 
 export type FormatType = 'json' | 'yaml' | 'env' | 'table' | 'plain';
 

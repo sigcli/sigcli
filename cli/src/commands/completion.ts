@@ -1,4 +1,4 @@
-import { ExitCode } from './exit-codes.js';
+import { ExitCode } from '../utils/exit-codes.js';
 
 const SUBCOMMANDS =
     'init doctor get login request status logout providers remote sync watch rename remove completion';

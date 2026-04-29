@@ -65,7 +65,9 @@ export async function createAuthDeps(
             domains: entry.domains,
             entryUrl: entry.entryUrl ?? '',
             strategy: entry.strategy ?? entry.source ?? 'browser',
-            strategyConfig: entry.strategy ? buildStrategyConfig(entry.strategy, entry.config) : { strategy: 'cookie' as const },
+            strategyConfig: entry.strategy
+                ? buildStrategyConfig(entry.strategy, entry.config)
+                : { strategy: 'cookie' as const },
             acceptedCredentialTypes: entry.acceptedCredentialTypes,
             setupInstructions: entry.setupInstructions,
             localStorage: entry.localStorage,
@@ -105,11 +107,13 @@ export async function createAuthDeps(
 
     // Register source strategies
     if (browserAvailable) {
-        authManager.registerSource(new BrowserStrategy({
-            browserDataDir: config.browser.browserDataDir,
-            channel: config.browser.channel,
-            execPath: config.browser.execPath,
-        }));
+        authManager.registerSource(
+            new BrowserStrategy({
+                browserDataDir: config.browser.browserDataDir,
+                channel: config.browser.channel,
+                execPath: config.browser.execPath,
+            }),
+        );
     }
     authManager.registerSource(new PromptStrategy());
 

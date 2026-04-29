@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { run } from '../../../src/commands/main.js';
+import { run } from '../../../src/cli-router.js';
 
 describe('CLI help text grouping (#9)', () => {
     let stdoutChunks: string[];

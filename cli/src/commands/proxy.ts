@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
 import { readState, isRunning, clearState } from '../proxy/proxy-state.js';
 import { expandHome } from '../utils/path.js';
-import { ExitCode } from './exit-codes.js';
+import { ExitCode } from '../utils/exit-codes.js';
 import type { AuthDeps } from '../deps.js';
 import { ProxySubcommand } from '../types/constants.js';
 import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';

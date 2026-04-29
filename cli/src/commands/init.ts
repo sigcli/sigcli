@@ -16,7 +16,7 @@ import { validateConfig } from '../config/validator.js';
 import { isOk } from '../types/result.js';
 import { findChannelBrowser } from '../browser/detect.js';
 import { generateEncryptionKey } from '../crypto/encryption.js';
-import { ExitCode } from './exit-codes.js';
+import { ExitCode } from '../utils/exit-codes.js';
 import { WaitUntil, StrategyName, HttpHeader, AuthScheme } from '../types/constants.js';
 
 // ---------------------------------------------------------------------------

@@ -1,12 +1,8 @@
 import type { AuthDeps } from '../deps.js';
-import {
-    addWatchProvider,
-    removeWatchProvider,
-    setWatchInterval,
-} from '../watch/watch-config.js';
+import { addWatchProvider, removeWatchProvider, setWatchInterval } from '../watch/watch-config.js';
 import { getRemote } from '../sync/remote-config.js';
 import { parseDuration } from '../utils/duration.js';
-import { ExitCode } from './exit-codes.js';
+import { ExitCode } from '../utils/exit-codes.js';
 import { WatchSubcommand } from '../types/constants.js';
 
 const USAGE = `Usage: sig watch <subcommand>

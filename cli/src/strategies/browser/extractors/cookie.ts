@@ -40,9 +40,7 @@ export class CookieExtractor implements IBrowserExtractor {
         const filtered = this.filterByDomain(result.cookies, domains);
         if (!filtered.length) return null;
 
-        const serialized = filtered
-            .map((c) => `${c.name}=${c.value}`)
-            .join('; ');
+        const serialized = filtered.map((c) => `${c.name}=${c.value}`).join('; ');
 
         return { name: rule.name, value: serialized };
     }

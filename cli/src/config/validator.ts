@@ -273,7 +273,9 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
     if (raw.source) {
         const VALID_SOURCES = ['browser', 'prompt', 'env'];
         if (!VALID_SOURCES.includes(raw.source as string)) {
-            errors.push(`Provider "${id}": invalid source "${raw.source}". Valid: ${VALID_SOURCES.join(', ')}`);
+            errors.push(
+                `Provider "${id}": invalid source "${raw.source}". Valid: ${VALID_SOURCES.join(', ')}`,
+            );
         }
         if (!Array.isArray(raw.extract)) {
             errors.push(`Provider "${id}": missing required field "extract"`);

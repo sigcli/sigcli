@@ -2,8 +2,8 @@ import type { AuthDeps } from '../deps.js';
 import { getRemote, getRemotes } from '../sync/remote-config.js';
 import { SyncEngine } from '../sync/sync-engine.js';
 import { SshTransport } from '../sync/transports/ssh.js';
-import { formatJson } from './formatters.js';
-import { ExitCode } from './exit-codes.js';
+import { formatJson } from '../utils/formatters.js';
+import { ExitCode } from '../utils/exit-codes.js';
 import { SyncSubcommand } from '../types/constants.js';
 import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
 

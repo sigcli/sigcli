@@ -42,12 +42,27 @@ export function extractedToCredential(
         return { type: 'bearer' as const, accessToken: extracted.access_token };
     }
     if (extracted.token) {
-        return { type: 'api-key' as const, key: extracted.token, headerName: 'Authorization', headerPrefix: 'Bearer' };
+        return {
+            type: 'api-key' as const,
+            key: extracted.token,
+            headerName: 'Authorization',
+            headerPrefix: 'Bearer',
+        };
     }
     const firstValue = Object.values(extracted)[0] ?? '';
     return {
         type: 'cookie' as const,
-        cookies: [{ name: 'data', value: firstValue, domain: provider.domains[0] ?? '', path: '/', expires: -1, httpOnly: false, secure: true }],
+        cookies: [
+            {
+                name: 'data',
+                value: firstValue,
+                domain: provider.domains[0] ?? '',
+                path: '/',
+                expires: -1,
+                httpOnly: false,
+                secure: true,
+            },
+        ],
         obtainedAt: new Date().toISOString(),
     };
 }

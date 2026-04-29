@@ -90,7 +90,11 @@ export { StrategyRegistry } from './strategies/registry.js';
 export { AuthManager } from './auth-manager.js';
 
 // Credential helpers
-export { extractedToCredential, credentialToExtracted, toV2Config } from './utils/credential-converter.js';
+export {
+    extractedToCredential,
+    credentialToExtracted,
+    toV2Config,
+} from './utils/credential-converter.js';
 export { checkTtl, validateCredential, getExpiresAt } from './utils/credential-validator.js';
 
 // Storage implementations
@@ -112,8 +116,8 @@ export { connectCdpWs } from './browser/cdp-ws.js';
 export type { CdpWsClient } from './browser/cdp-ws.js';
 
 // CLI
-export { parseArgs } from './commands/main.js';
-export { ExitCode } from './commands/exit-codes.js';
+export { parseArgs } from './cli-router.js';
+export { ExitCode } from './utils/exit-codes.js';
 
 // Sync
 export { SyncEngine } from './sync/sync-engine.js';

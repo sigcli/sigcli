@@ -1,7 +1,7 @@
 import type { AuthDeps } from '../deps.js';
 import { isOk } from '../types/result.js';
-import { formatJson, formatCredentialHeaders } from './formatters.js';
-import { ExitCode } from './exit-codes.js';
+import { formatJson, formatCredentialHeaders } from '../utils/formatters.js';
+import { ExitCode } from '../utils/exit-codes.js';
 import { OutputFormat } from '../types/constants.js';
 import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
 import { extractSensitiveValues, redactOutput } from '../utils/redact.js';

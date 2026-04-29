@@ -1,5 +1,5 @@
 import type { AuthDeps } from '../deps.js';
-import { formatExpiry, formatStatusIndicator, formatTable } from './formatters.js';
+import { formatExpiry, formatStatusIndicator, formatTable } from '../utils/formatters.js';
 import type { ProviderStatus } from '../types/types.js';
 import { getWatchProviders, type WatchProviderEntry } from '../watch/watch-config.js';
 import { detectFormat, formatOutput } from '../utils/formatter.js';

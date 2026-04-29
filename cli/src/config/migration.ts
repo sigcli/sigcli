@@ -78,7 +78,9 @@ export function migrateProvider(id: string, entry: Record<string, unknown>): V2P
     const entryUrl = entry.entryUrl as string | undefined;
     const networkProxy = entry.networkProxy as string | undefined;
     const loginMode = entry.loginMode as string | undefined;
-    const localStorageConfigs = entry.localStorage as Array<{ name: string; key: string; jsonPath?: string }> | undefined;
+    const localStorageConfigs = entry.localStorage as
+        | Array<{ name: string; key: string; jsonPath?: string }>
+        | undefined;
 
     const extract: ExtractRule[] = [];
     const apply: ApplyRule[] = [];

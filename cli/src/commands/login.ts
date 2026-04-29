@@ -3,10 +3,10 @@ import type { ProviderConfig } from '../types/types.js';
 import type { ProviderEntry, StrategyName } from '../config/schema.js';
 import { addProviderToConfig } from '../config/loader.js';
 import { isOk } from '../types/result.js';
-import { formatJson } from './formatters.js';
+import { formatJson } from '../utils/formatters.js';
 import { ProviderNotFoundError } from '../types/errors.js';
 import { BROWSER_REQUIRED_STRATEGIES } from '../types/constants.js';
-import { ExitCode } from './exit-codes.js';
+import { ExitCode } from '../utils/exit-codes.js';
 import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
 
 /** Convert runtime ProviderConfig to the YAML ProviderEntry format. */

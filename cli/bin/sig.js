@@ -50,7 +50,7 @@ async function main() {
 
     buildIfNeeded();
 
-    const { run } = await import(pathToFileURL(join(rootDir, 'dist', 'commands', 'main.js')).href);
+    const { run } = await import(pathToFileURL(join(rootDir, 'dist', 'cli-router.js')).href);
     await run(args);
 }
 
