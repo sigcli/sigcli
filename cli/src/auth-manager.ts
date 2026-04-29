@@ -54,7 +54,10 @@ export class AuthManager {
      * Get valid credentials for a provider.
      * Tries: stored → refresh → authenticate, in that order.
      */
-    async getCredentials(providerId: string): Promise<Result<Credential, AuthError>> {
+    async getCredentials(
+        providerId: string,
+        options?: { networkProxy?: string },
+    ): Promise<Result<Credential, AuthError>> {
         const provider = this.providers.get(providerId);
         if (!provider) return err(new ProviderNotFoundError(providerId));
 
@@ -91,10 +94,12 @@ export class AuthManager {
 
         // Step 3: Full authentication
         this.logger?.info(`Authenticating with "${providerId}"...`);
+        const resolvedProxy = options?.networkProxy ?? provider.networkProxy;
         const context: AuthContext = {
             browserAdapter: this.browserAdapterFactory(),
             browserConfig: this.browserConfig,
             logger: this.logger,
+            ...(resolvedProxy !== undefined ? { networkProxy: resolvedProxy } : {}),
         };
 
         const authResult = await strategy.authenticate(provider, context);
@@ -149,12 +154,15 @@ export class AuthManager {
     /**
      * Force re-authentication, deleting any stored credentials first.
      */
-    async forceReauth(providerId: string): Promise<Result<Credential, AuthError>> {
+    async forceReauth(
+        providerId: string,
+        options?: { networkProxy?: string },
+    ): Promise<Result<Credential, AuthError>> {
         const provider = this.providers.get(providerId);
         if (provider) {
             await this.storage.delete(this.storageKey(provider));
         }
-        return this.getCredentials(providerId);
+        return this.getCredentials(providerId, options);
     }
 
     /**
@@ -204,7 +212,7 @@ export class AuthManager {
         const validation = strategy.validate(stored.credential, provider.strategyConfig);
         const valid = isOk(validation) && validation.value;
 
-        const expiresAt = this.getExpiresAt(stored.credential);
+        const expiresAt = this.getExpiresAt(stored.credential, provider);
         const expiresInMinutes = expiresAt
             ? Math.max(0, Math.round((expiresAt.getTime() - Date.now()) / 60000))
             : undefined;
@@ -328,15 +336,20 @@ export class AuthManager {
         await this.storage.set(providerId, stored);
     }
 
-    private getExpiresAt(credential: Credential): Date | null {
+    private getExpiresAt(credential: Credential, provider?: ProviderConfig): Date | null {
         switch (credential.type) {
             case CredentialTypeName.BEARER:
                 return credential.expiresAt ? new Date(credential.expiresAt) : null;
             case CredentialTypeName.COOKIE: {
-                // Earliest cookie expiry, or null if all session cookies
-                const expiries = credential.cookies
-                    .filter((c) => c.expires > 0)
-                    .map((c) => c.expires * 1000);
+                // Only consider requiredCookies if configured, otherwise all cookies
+                const requiredCookies = (
+                    provider?.strategyConfig as unknown as Record<string, unknown>
+                )?.requiredCookies as string[] | undefined;
+                const cookies =
+                    requiredCookies && requiredCookies.length > 0
+                        ? credential.cookies.filter((c) => requiredCookies.includes(c.name))
+                        : credential.cookies;
+                const expiries = cookies.filter((c) => c.expires > 0).map((c) => c.expires * 1000);
                 return expiries.length > 0 ? new Date(Math.min(...expiries)) : null;
             }
             default:

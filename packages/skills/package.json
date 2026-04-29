@@ -1,0 +1,38 @@
+{
+    "name": "@sigcli/skills",
+    "version": "1.0.1",
+    "description": "AI agent skills for authenticated web access via sigcli",
+    "type": "module",
+    "bin": {
+        "sigcli-skills": "./bin/install.js"
+    },
+    "files": [
+        "bin/",
+        "data/"
+    ],
+    "scripts": {
+        "prepack": "node scripts/bundle-skills.js"
+    },
+    "keywords": [
+        "sigcli",
+        "skills",
+        "ai",
+        "agent",
+        "claude",
+        "cursor"
+    ],
+    "author": "pylon <pylon.peng@gmail.com>",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/sigcli/sigcli.git",
+        "directory": "packages/skills"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "publishConfig": {
+        "registry": "https://registry.npmjs.org/",
+        "access": "public"
+    }
+}

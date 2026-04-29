@@ -73,6 +73,8 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@20.19.39)(jiti@2.6.1)(jsdom@28.1.0(@noble/hashes@1.8.0))(lightningcss@1.32.0)(msw@2.13.4(@types/node@20.19.39)(typescript@5.9.3))(tsx@4.21.0)(yaml@2.8.3)
 
+  packages/skills: {}
+
   sdk/typescript:
     devDependencies:
       '@types/node':

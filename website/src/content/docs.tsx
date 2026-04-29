@@ -703,14 +703,21 @@ sig run my-jira --mount creds.json --mount-format json -- node app.js`}</CodeBlo
                         sig login
                     </SectionHeading>
                     <P>
-                        Authenticates with a provider. Accepts a URL or provider ID. By default
-                        launches Playwright headless; falls back to a visible window when a login
-                        page is detected.
+                        Authenticates with a provider. Accepts a URL or provider ID. By default uses
+                        a 3-phase cascade: headless Playwright → native CDP (real browser, no
+                        automation markers) → visible Playwright. Use <Code>--mode</Code> to force a
+                        specific mode.
                     </P>
                     <CodeBlock lang="bash">{`sig login <url>
 
 # Browser SSO (opens browser automatically)
 sig login https://jira.example.com
+
+# Force native CDP mode (bypasses anti-bot detection on X, Reddit, etc.)
+sig login https://x.com --mode cdp
+
+# Force headless only (fastest, but blocked by some sites)
+sig login https://jira.example.com --mode headless
 
 # Custom provider ID
 sig login https://jira.example.com --as my-jira
@@ -1051,6 +1058,8 @@ providers:
     strategy: cookie|oauth2|api-token|basic
     requiredCookies:             # wait until these cookies appear
       - SESSION
+    cookiePaths:                 # extra paths for path-scoped cookies
+      - /wiki
     xHeaders:                    # capture these response headers
       - name: X-User        # internal name
         header: x-user      # actual HTTP header name
@@ -1088,8 +1097,9 @@ providers:
                     <P>
                         Captures the cookie jar from a real browser session. Best for SSO sites like
                         Any site with multi-step login (QR codes, SAML, MFA). Supports{' '}
-                        <Code>forceVisible</Code>, <Code>waitUntil</Code>, and{' '}
-                        <Code>requiredCookies</Code>.
+                        <Code>forceVisible</Code>, <Code>waitUntil</Code>,{' '}
+                        <Code>requiredCookies</Code>, and <Code>cookiePaths</Code> (for sites that
+                        set auth cookies on a sub-path like <Code>/wiki</Code>).
                     </P>
                     <CodeBlock lang="bash">{`sig login https://jira.example.com --strategy cookie`}</CodeBlock>
 

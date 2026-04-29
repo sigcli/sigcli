@@ -10,6 +10,7 @@ on:
                 options:
                     - '@sigcli/cli'
                     - '@sigcli/sdk'
+                    - '@sigcli/skills'
             release_type:
                 description: Release type
                 required: true
@@ -53,15 +54,24 @@ jobs:
                     echo "dir=cli" >> "$GITHUB_OUTPUT"
                   elif [ "${{ inputs.package }}" = "@sigcli/sdk" ]; then
                     echo "dir=sdk/typescript" >> "$GITHUB_OUTPUT"
+                  elif [ "${{ inputs.package }}" = "@sigcli/skills" ]; then
+                    echo "dir=packages/skills" >> "$GITHUB_OUTPUT"
                   fi
 
             - name: Type check
+              if: inputs.package != '@sigcli/skills'
               run: pnpm --filter '${{ inputs.package }}' exec tsc --noEmit
 
             - name: Build
+              if: inputs.package != '@sigcli/skills'
               run: pnpm --filter '${{ inputs.package }}' build
 
+            - name: Bundle skills
+              if: inputs.package == '@sigcli/skills'
+              run: node packages/skills/scripts/bundle-skills.js
+
             - name: Run tests
+              if: inputs.package != '@sigcli/skills'
               run: pnpm --filter '${{ inputs.package }}' test
 
             - name: Publish beta

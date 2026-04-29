@@ -14,6 +14,7 @@ export interface CookieStrategyConfig {
     ttl?: string;
     waitUntil?: WaitUntilValue;
     requiredCookies?: string[];
+    cookiePaths?: string[];
 }
 
 export interface OAuth2StrategyConfig {
@@ -151,6 +152,8 @@ export interface ProviderConfig {
     autoProvisioned?: boolean; // True if created by auto-provision (not from config file)
     forceVisible?: boolean; // Skip headless, go straight to visible browser mode
     proxy?: ProxyConfig; // MITM proxy injection rules
+    networkProxy?: string; // Browser network proxy, e.g. "socks5://127.0.0.1:1080"
+    loginMode?: string; // Login mode cascade: 'auto' (headless→CDP→visible), 'cdp' (native browser only), 'headless', 'visible'
     source?: ProviderSource; // Where this provider was loaded from (project or user config)
 }
 
