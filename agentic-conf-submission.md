@@ -46,6 +46,7 @@ GitHub: github.com/sigcli/sigcli
    5.3 企业级 Agent 治理需求
 
 4）听众收益：
+
 - 了解 AI Agent 接入企业系统的认证挑战及解决思路
 - 学习零信任代理模式在 Agent 场景的具体实现
 - 获得开源可用的 Skill 设计模式和工具链
