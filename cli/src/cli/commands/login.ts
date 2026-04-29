@@ -99,6 +99,12 @@ export async function runLogin(
         provider.networkProxy = networkProxy;
     }
 
+    // --mode <mode>: override login mode (auto|cdp|headless|visible)
+    const loginMode = typeof flags.mode === 'string' ? flags.mode : undefined;
+    if (loginMode) {
+        provider.loginMode = loginMode;
+    }
+
     // --as <id>: override the provider ID (useful for auto-provisioned providers)
     if (typeof flags.as === 'string') {
         const oldId = provider.id;

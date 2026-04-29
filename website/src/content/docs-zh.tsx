@@ -912,13 +912,20 @@ sig run my-jira --mount creds.json --mount-format json -- node app.js`}</CodeBlo
                         sig login
                     </SectionHeading>
                     <P>
-                        向提供者进行认证。接受 URL 或提供者 ID。默认启动 Playwright
-                        无头模式；检测到登录页面时回退为可视窗口。
+                        向提供者进行认证。接受 URL 或提供者 ID。默认使用三阶段级联： Playwright
+                        无头模式 → 原生 CDP（真实浏览器，无自动化标记） → Playwright 可视模式。使用{' '}
+                        <Code>--mode</Code> 强制指定模式。
                     </P>
                     <CodeBlock lang="bash">{`sig login <url>
 
 # 浏览器 SSO（自动打开浏览器）
 sig login https://jira.example.com
+
+# 强制原生 CDP 模式（绕过 X、Reddit 等网站的反自动化检测）
+sig login https://x.com --mode cdp
+
+# 仅使用无头模式（最快，但部分网站会拦截）
+sig login https://jira.example.com --mode headless
 
 # 自定义提供者 ID
 sig login https://jira.example.com --as my-jira

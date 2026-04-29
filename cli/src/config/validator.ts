@@ -179,6 +179,7 @@ export function validateConfig(raw: Record<string, unknown>): Result<SigConfig, 
             typeof browserRaw.waitUntil === 'string'
                 ? (browserRaw.waitUntil as BrowserConfig['waitUntil'])
                 : WaitUntil.LOAD,
+        ...(typeof browserRaw.execPath === 'string' ? { execPath: browserRaw.execPath } : {}),
     };
 
     const storageRaw = raw.storage as Record<string, unknown>;
@@ -278,6 +279,16 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
     // Validate forceVisible at provider level
     if (raw.forceVisible !== undefined && typeof raw.forceVisible !== 'boolean') {
         errors.push(`Provider "${id}": forceVisible must be a boolean`);
+    }
+
+    // Validate loginMode at provider level
+    const VALID_LOGIN_MODES = ['auto', 'cdp', 'headless', 'visible'];
+    if (raw.loginMode !== undefined) {
+        if (typeof raw.loginMode !== 'string' || !VALID_LOGIN_MODES.includes(raw.loginMode)) {
+            errors.push(
+                `Provider "${id}": loginMode must be one of: ${VALID_LOGIN_MODES.join(', ')}`,
+            );
+        }
     }
 
     // Validate localStorage entries
@@ -460,5 +471,6 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
               }
             : {}),
         ...(typeof raw.networkProxy === 'string' ? { networkProxy: raw.networkProxy } : {}),
+        ...(typeof raw.loginMode === 'string' ? { loginMode: raw.loginMode } : {}),
     };
 }

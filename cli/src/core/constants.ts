@@ -158,6 +158,18 @@ export const APP_NAME = 'sig';
 export const APP_VERSION = pkg.version;
 
 /**
+ * Login mode for browser authentication.
+ * Controls which browser phases are attempted.
+ */
+export const LoginMode = {
+    AUTO: 'auto',
+    CDP: 'cdp',
+    HEADLESS: 'headless',
+    VISIBLE: 'visible',
+} as const;
+export type LoginModeValue = (typeof LoginMode)[keyof typeof LoginMode];
+
+/**
  * Default configuration directory and filename.
  */
 export const SIG_DIR = '.sig';
