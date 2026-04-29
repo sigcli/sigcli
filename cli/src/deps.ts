@@ -7,7 +7,6 @@ import { DirectoryStorage } from './storage/directory-storage.js';
 import { CachedStorage } from './storage/cached-storage.js';
 import { BrowserSource } from './extraction/browser-source.js';
 import { PromptSource } from './extraction/prompt-source.js';
-import { EnvSource } from './extraction/env-source.js';
 import { buildStrategyConfig } from './config/validator.js';
 import { expandHome } from './utils/path.js';
 import { loadEncryptionKey } from './crypto/encryption.js';
@@ -113,7 +112,6 @@ export async function createAuthDeps(
         }));
     }
     authManager.registerSource(new PromptSource());
-    authManager.registerSource(new EnvSource());
 
     return { authManager, storage, providerRegistry, config, browserAvailable };
 }

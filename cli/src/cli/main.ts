@@ -78,15 +78,10 @@ const HELP = `sig — authenticate once, use everywhere
 Usage: sig <command> [options]
 
 Authentication:
-  login <url>                  Browser SSO login
-    --as <id>                    Custom provider ID
-    --token <value>              API key or PAT (no browser)
-    --cookie "k=v; k2=v2"       Cookies from DevTools (no browser)
-    --username <u> --password <p>  Basic auth (no browser)
-    --strategy <name>            Force strategy (cookie|oauth2|api-token|basic)
-    --force                      Skip stored/refresh check, go straight to browser
-    --network-proxy <url>        Browser network proxy (e.g. socks5://127.0.0.1:1080)
-    --mode <mode>                Login mode: auto|cdp|headless|visible (default: auto)
+  login <url>                  Authenticate via browser
+    --as <id>                    Custom provider ID for auto-provisioned
+    --force                      Skip stored credentials, force re-auth
+    --network-proxy <url>        Browser proxy (e.g. socks5://127.0.0.1:1080)
   logout [provider]            Clear credentials (all if none specified)
 
 Credentials (most → least secure):

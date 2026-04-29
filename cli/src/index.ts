@@ -78,7 +78,6 @@ export { checkRequired } from './extraction/required-checker.js';
 export { BrowserSource } from './extraction/browser-source.js';
 export type { BrowserSourceOptions } from './extraction/browser-source.js';
 export { PromptSource } from './extraction/prompt-source.js';
-export { EnvSource } from './extraction/env-source.js';
 export { CookieExtractor } from './extraction/cookie-extractor.js';
 export { StorageExtractor } from './extraction/storage-extractor.js';
 

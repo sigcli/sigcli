@@ -25,7 +25,7 @@ export interface ExtractionContext {
  * A source strategy knows HOW to acquire credentials.
  * Selected by provider.source field.
  *
- * Implementations: BrowserSource, PromptSource, EnvSource
+ * Implementations: BrowserSource, PromptSource
  */
 export interface ISourceStrategy {
     readonly name: string;

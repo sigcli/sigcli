@@ -1,12 +1,12 @@
 /**
  * Extract rule — unified 3-field schema.
  *
- * - from: where to extract (cookies | localStorage | eval | prompt | env)
+ * - from: where to extract (cookies | localStorage | eval | prompt)
  * - name: storage key for the extracted value
- * - key: what to extract (* = all, specific name, glob, dot-path, prompt message, env var name)
+ * - key: what to extract (* = all, specific name, glob, dot-path, prompt message)
  */
 export interface ExtractRule {
-    from: 'cookies' | 'localStorage' | 'eval' | 'prompt' | 'env';
+    from: 'cookies' | 'localStorage' | 'eval' | 'prompt';
     name: string;
     key: string;
 }
@@ -33,7 +33,7 @@ export interface ProviderConfigV2 {
     domains: string[];
     entryUrl?: string;
 
-    source: 'browser' | 'prompt' | 'env';
+    source: 'browser' | 'prompt';
     ttl?: string;
     required?: string[];
     cookiePaths?: string[];
