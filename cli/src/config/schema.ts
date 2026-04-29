@@ -96,7 +96,7 @@ export interface ProviderEntry {
     forceVisible?: boolean;
     proxy?: ProxyConfig;
     // v2 fields
-    source?: string;
+    
     extract: Array<{ from: string; name: string; key: string }>;
     apply: Array<{ in: string; name: string; value: string }>;
     required?: string[];

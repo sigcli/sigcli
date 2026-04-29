@@ -1,9 +1,9 @@
 import * as readline from 'node:readline';
 import type {
-    ISourceStrategy,
+    IStrategy,
     ExtractedCredentials,
     ExtractionContext,
-} from '../../types/interfaces/source-strategy.js';
+} from '../../types/interfaces/strategy.js';
 import type { ExtractRule } from '../../types/extract.js';
 import type { Result } from '../../types/result.js';
 import type { AuthError } from '../../types/errors.js';
@@ -15,7 +15,7 @@ import { ManualSetupRequired } from '../../types/errors.js';
  *
  * extract[].key is used as the prompt message displayed to the user.
  */
-export class PromptStrategy implements ISourceStrategy {
+export class PromptStrategy implements IStrategy {
     readonly name = 'prompt';
     readonly needsBrowser = false;
 

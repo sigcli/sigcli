@@ -1,8 +1,8 @@
 import type {
-    ISourceStrategy,
+    IStrategy,
     ExtractedCredentials,
     ExtractionContext,
-} from '../../types/interfaces/source-strategy.js';
+} from '../../types/interfaces/strategy.js';
 import type { ExtractRule } from '../../types/extract.js';
 import type { Result } from '../../types/result.js';
 import type { AuthError } from '../../types/errors.js';
@@ -14,7 +14,7 @@ import { AuthError as BaseAuthError } from '../../types/errors.js';
  *
  * Currently returns err("not implemented").
  */
-export class OAuth2Strategy implements ISourceStrategy {
+export class OAuth2Strategy implements IStrategy {
     readonly name = 'oauth2';
     readonly needsBrowser = false;
 

@@ -78,10 +78,10 @@ export {
 export type { WaitUntilValue, OutputFormatValue, LoginModeValue } from './constants.js';
 
 export type {
-    ISourceStrategy,
+    IStrategy,
     ExtractedCredentials,
     ExtractionContext,
-} from './interfaces/source-strategy.js';
+} from './interfaces/strategy.js';
 export type { IBrowserExtractor } from './interfaces/browser-extractor.js';
 export type { IStorage } from './interfaces/storage.js';
 export type { IProviderRegistry } from './interfaces/provider.js';

@@ -271,10 +271,10 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
 
     // Accept either v1 (strategy) or v2 (source + extract + apply)
     if (raw.strategy) {
-        const VALID_SOURCES = ['browser', 'prompt', 'env'];
-        if (!VALID_SOURCES.includes(raw.strategy as string)) {
+        const VALID_STRATEGIES_V2 = ['browser', 'prompt', 'env'];
+        if (!VALID_STRATEGIES_V2.includes(raw.strategy as string)) {
             errors.push(
-                `Provider "${id}": invalid source "${raw.strategy}". Valid: ${VALID_SOURCES.join(', ')}`,
+                `Provider "${id}": invalid strategy "${raw.strategy}". Valid: ${VALID_STRATEGIES_V2.join(', ')}`,
             );
         }
         if (!Array.isArray(raw.extract)) {
@@ -284,7 +284,7 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
             errors.push(`Provider "${id}": missing required field "apply"`);
         }
     } else if (typeof raw.strategy !== 'string') {
-        errors.push(`Provider "${id}": missing required field "strategy" or "source"`);
+        errors.push(`Provider "${id}": missing required field "strategy"`);
     } else if (!VALID_STRATEGIES.includes(raw.strategy as StrategyNameType)) {
         errors.push(
             `Provider "${id}": invalid strategy "${raw.strategy}". ` +

@@ -9,7 +9,7 @@ import type { ExtractRule } from '../extract.js';
 export type ExtractedCredentials = Record<string, string>;
 
 /**
- * Context passed to source strategies during extraction.
+ * Context passed to strategies during extraction.
  */
 export interface ExtractionContext {
     entryUrl: string;
@@ -22,12 +22,12 @@ export interface ExtractionContext {
 }
 
 /**
- * A source strategy knows HOW to acquire credentials.
+ * A strategy knows HOW to acquire credentials.
  * Selected by provider.strategy field.
  *
  * Implementations: BrowserSource, PromptSource
  */
-export interface ISourceStrategy {
+export interface IStrategy {
     readonly name: string;
     readonly needsBrowser: boolean;
 

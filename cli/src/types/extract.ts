@@ -52,6 +52,6 @@ export interface ProviderConfigV2 {
 export interface StoredCredentialV2 {
     values: Record<string, string>;
     providerId: string;
-    source: string;
+    strategy: string;
     updatedAt: string;
 }

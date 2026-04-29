@@ -9,10 +9,10 @@ import type {
 } from './types/types.js';
 import type { BrowserConfig, SigConfig } from './config/schema.js';
 import type {
-    ISourceStrategy,
+    IStrategy,
     ExtractedCredentials,
     ExtractionContext,
-} from './types/interfaces/source-strategy.js';
+} from './types/interfaces/strategy.js';
 import type { ApplyRule, ProviderConfigV2 } from './types/extract.js';
 
 import { ProviderRegistry } from './providers/provider-registry.js';
@@ -39,14 +39,14 @@ import { checkTtl, validateCredential, getExpiresAt } from './utils/credential-v
 /**
  * Central orchestrator for authentication lifecycle.
  *
- * Flow: check TTL → select source → run extract[] → check required → store
+ * Flow: check TTL → select strategy → run extract[] → check required → store
  */
 export class AuthManager {
     readonly storage: IStorage;
     private readonly providers: IProviderRegistry;
     private readonly browserConfig: BrowserConfig;
     private readonly logger?: ILogger;
-    private readonly sourceStrategies = new Map<string, ISourceStrategy>();
+    private readonly strategies = new Map<string, IStrategy>();
 
     readonly config: SigConfig;
     readonly browserAvailable: boolean;
@@ -100,7 +100,7 @@ export class AuthManager {
         const manager = new AuthManager(storage, providerRegistry, config.browser, config, logger);
 
         if (manager.browserAvailable) {
-            manager.registerSource(
+            manager.registerStrategy(
                 new BrowserStrategy({
                     browserDataDir: config.browser.browserDataDir,
                     channel: config.browser.channel,
@@ -108,13 +108,13 @@ export class AuthManager {
                 }),
             );
         }
-        manager.registerSource(new PromptStrategy());
+        manager.registerStrategy(new PromptStrategy());
 
         return manager;
     }
 
-    registerSource(source: ISourceStrategy): void {
-        this.sourceStrategies.set(source.name, source);
+    registerStrategy(strategy: IStrategy): void {
+        this.strategies.set(strategy.name, strategy);
     }
 
     /**
@@ -171,10 +171,10 @@ export class AuthManager {
         }
 
         // Step 2: Select source strategy
-        const source = this.sourceStrategies.get(provider.strategy);
-        if (!source) {
+        const strategy = this.strategies.get(provider.strategy);
+        if (!strategy) {
             return err(
-                new ProviderNotFoundError(`No source strategy registered for "${provider.strategy}"`),
+                new ProviderNotFoundError(`No strategy registered for "${provider.strategy}"`),
             );
         }
 
@@ -190,7 +190,7 @@ export class AuthManager {
             timeout: this.browserConfig.visibleTimeout,
         };
 
-        const extractResult = await source.extract(provider.extract, ctx);
+        const extractResult = await strategy.extract(provider.extract, ctx);
         if (!isOk(extractResult)) return extractResult;
 
         // Step 4: Check required

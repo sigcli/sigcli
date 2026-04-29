@@ -5,10 +5,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawn, type ChildProcess } from 'node:child_process';
 import type {
-    ISourceStrategy,
+    IStrategy,
     ExtractedCredentials,
     ExtractionContext,
-} from '../../types/interfaces/source-strategy.js';
+} from '../../types/interfaces/strategy.js';
 import type { IBrowserExtractor } from '../../types/interfaces/browser-extractor.js';
 import type { ExtractRule } from '../../types/extract.js';
 import type { CdpWsClient } from '../../browser/cdp-ws.js';
@@ -38,7 +38,7 @@ export interface BrowserStrategyOptions {
  * 4. Poll sub-extractors until `required` criteria met or timeout
  * 5. Return extracted credentials
  */
-export class BrowserStrategy implements ISourceStrategy {
+export class BrowserStrategy implements IStrategy {
     readonly name = 'browser';
     readonly needsBrowser = true;
 

@@ -19,7 +19,7 @@ export interface V2ProviderEntry {
     name?: string;
     domains: string[];
     entryUrl?: string;
-    source: 'browser' | 'prompt' | 'env';
+    strategy: 'browser' | 'prompt' | 'oauth2';
     ttl?: string;
     required?: string[];
     cookiePaths?: string[];
@@ -72,7 +72,7 @@ export function migrateV1ToV2(raw: Record<string, unknown>): V2Config {
 }
 
 export function migrateProvider(id: string, entry: Record<string, unknown>): V2ProviderEntry {
-    const strategy = entry.strategy as string;
+    const oldStrategy = entry.strategy as string;
     const config = (entry.config ?? {}) as Record<string, unknown>;
     const domains = (entry.domains ?? []) as string[];
     const entryUrl = entry.entryUrl as string | undefined;
@@ -84,14 +84,14 @@ export function migrateProvider(id: string, entry: Record<string, unknown>): V2P
 
     const extract: ExtractRule[] = [];
     const apply: ApplyRule[] = [];
-    let source: 'browser' | 'prompt' | 'env' = 'browser';
+    let newStrategy: 'browser' | 'prompt' | 'env' = 'browser';
     let ttl: string | undefined = config.ttl as string | undefined;
     let required: string[] | undefined;
     let cookiePaths: string[] | undefined = config.cookiePaths as string[] | undefined;
 
-    switch (strategy) {
+    switch (oldStrategy) {
         case 'cookie': {
-            source = 'browser';
+            newStrategy = "browser";
             extract.push({ from: 'cookies', name: 'session', key: '*' });
             apply.push({ in: 'header', name: 'Cookie', value: '${session}' });
 
@@ -112,7 +112,7 @@ export function migrateProvider(id: string, entry: Record<string, unknown>): V2P
             break;
         }
         case 'oauth2': {
-            source = 'browser';
+            newStrategy = "browser";
             const audiences = config.audiences as string[] | undefined;
             // MSAL keys use | delimiter and contain audience in the key
             const audiencePattern = audiences?.[0]
@@ -124,7 +124,7 @@ export function migrateProvider(id: string, entry: Record<string, unknown>): V2P
             break;
         }
         case 'api-token': {
-            source = 'prompt';
+            newStrategy = "prompt";
             const headerName = (config.headerName as string) ?? 'Authorization';
             const headerPrefix = (config.headerPrefix as string) ?? 'Bearer';
             const message = (config.setupInstructions as string) ?? 'Paste your API token';
@@ -133,7 +133,7 @@ export function migrateProvider(id: string, entry: Record<string, unknown>): V2P
             break;
         }
         case 'basic': {
-            source = 'prompt';
+            newStrategy = "prompt";
             const message = (config.setupInstructions as string) ?? 'Enter username:password';
             extract.push({ from: 'prompt', name: 'credentials', key: message });
             apply.push({ in: 'header', name: 'Authorization', value: 'Basic ${credentials}' });
@@ -141,7 +141,7 @@ export function migrateProvider(id: string, entry: Record<string, unknown>): V2P
         }
         default: {
             // Unknown strategy — default to browser cookie
-            source = 'browser';
+            newStrategy = "browser";
             extract.push({ from: 'cookies', name: 'session', key: '*' });
             apply.push({ in: 'header', name: 'Cookie', value: '${session}' });
             break;
@@ -152,7 +152,7 @@ export function migrateProvider(id: string, entry: Record<string, unknown>): V2P
         ...(entry.name ? { name: entry.name as string } : {}),
         domains,
         ...(entryUrl ? { entryUrl } : {}),
-        source,
+        strategy: newStrategy,
         ...(ttl ? { ttl } : {}),
         ...(required?.length ? { required } : {}),
         ...(cookiePaths?.length ? { cookiePaths } : {}),

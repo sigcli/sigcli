@@ -1,5 +1,5 @@
 import type { Credential, ProviderConfig } from '../types/types.js';
-import type { ExtractedCredentials } from '../types/interfaces/source-strategy.js';
+import type { ExtractedCredentials } from '../types/interfaces/strategy.js';
 import type { ProviderConfigV2 } from '../types/extract.js';
 import { migrateProvider } from '../config/migration.js';
 

@@ -59,10 +59,10 @@ export type { IProviderRegistry } from './types/interfaces/provider.js';
 
 // New interfaces (extract/apply redesign)
 export type {
-    ISourceStrategy,
+    IStrategy,
     ExtractedCredentials,
     ExtractionContext,
-} from './types/interfaces/source-strategy.js';
+} from './types/interfaces/strategy.js';
 export type { IBrowserExtractor } from './types/interfaces/browser-extractor.js';
 export type {
     ExtractRule,

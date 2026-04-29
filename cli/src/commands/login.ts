@@ -85,7 +85,7 @@ export async function runLogin(
                         provider: provider.id,
                         type: credResult.value.type,
                         ...(status.expiresAt ? { expiresAt: status.expiresAt } : {}),
-                        source: 'stored',
+                        method: 'stored',
                     }) + '\n',
                 );
                 return;
