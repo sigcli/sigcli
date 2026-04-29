@@ -38,17 +38,6 @@ import {
 import { checkTtl, validateCredential, getExpiresAt } from './utils/credential-validator.js';
 
 /**
- * Dependencies provided by AuthManager to CLI commands.
- */
-export interface AuthDeps {
-    authManager: AuthManager;
-    config: SigConfig;
-    browserAvailable: boolean;
-    storage: IStorage;
-    providerRegistry: IProviderRegistry;
-}
-
-/**
  * Central orchestrator for authentication lifecycle.
  *
  * Flow: check TTL → select source → run extract[] → check required → store
@@ -63,8 +52,7 @@ export class AuthManager {
     readonly config: SigConfig;
     readonly browserAvailable: boolean;
 
-    /** @internal Use AuthManager.create() instead */
-    constructor(
+    private constructor(
         storage: IStorage,
         providers: IProviderRegistry,
         browserConfig: BrowserConfig,
@@ -83,10 +71,7 @@ export class AuthManager {
      * Create an AuthManager from a validated SigConfig.
      * This is the only way to instantiate — wires all dependencies.
      */
-    static async create(
-        config: SigConfig,
-        options?: { verbose?: boolean },
-    ): Promise<AuthManager> {
+    static async create(config: SigConfig, options?: { verbose?: boolean }): Promise<AuthManager> {
         const providerConfigs: ProviderConfig[] = Object.entries(config.providers).map(
             ([id, entry]) => ({
                 id,
@@ -96,7 +81,7 @@ export class AuthManager {
                 strategy: entry.strategy ?? entry.source ?? 'browser',
                 strategyConfig: entry.strategy
                     ? buildStrategyConfig(entry.strategy, entry.config)
-                    : ({ strategy: 'cookie' as const }),
+                    : { strategy: 'cookie' as const },
                 acceptedCredentialTypes: entry.acceptedCredentialTypes,
                 setupInstructions: entry.setupInstructions,
                 localStorage: entry.localStorage,
