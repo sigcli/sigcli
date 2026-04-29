@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createConsoleLogger } from '../../../src/deps.js';
+import { createConsoleLogger } from '../../../src/auth-manager.js';
 
 describe('verbose logging (#14)', () => {
     let stderrChunks: string[];

@@ -1,4 +1,4 @@
-import type { AuthDeps } from '../deps.js';
+import type { AuthManager } from '../auth-manager.js';
 import type { ProviderConfig } from '../types/types.js';
 import type { ProviderEntry, StrategyName } from '../config/schema.js';
 import { addProviderToConfig } from '../config/loader.js';
@@ -31,7 +31,7 @@ function toProviderEntry(pc: ProviderConfig): ProviderEntry {
 export async function runLogin(
     positionals: string[],
     flags: Record<string, string | boolean | string[]>,
-    deps: AuthDeps,
+    auth: AuthManager,
 ): Promise<void> {
     const url = positionals[0];
     if (!url) {
@@ -43,7 +43,7 @@ export async function runLogin(
     // Step 1: Resolve provider (auto-provision if URL)
     let provider;
     try {
-        provider = deps.authManager.resolveProvider(url);
+        provider = auth.resolveProvider(url);
     } catch (e) {
         if (e instanceof ProviderNotFoundError) {
             process.stderr.write(
@@ -70,17 +70,17 @@ export async function runLogin(
         if (provider.name === oldId) {
             provider.name = flags.as;
         }
-        deps.authManager.providerRegistry.register(provider);
+        auth.providerRegistry.register(provider);
     }
 
     // Step 3: If not --force, check stored creds
     if (flags.force !== true) {
         process.stderr.write(`  [1/2] Checking stored credentials...`);
-        const status = await deps.authManager.getStatus(provider.id);
+        const status = await auth.getStatus(provider.id);
 
         if (status.valid) {
             process.stderr.write(` valid (skipping login)\n`);
-            const credResult = await deps.authManager.getCredentials(provider.id);
+            const credResult = await auth.getCredentials(provider.id);
             if (isOk(credResult)) {
                 process.stdout.write(
                     formatJson({
@@ -102,7 +102,7 @@ export async function runLogin(
     }
 
     // Step 4: Check browser availability for browser-based strategies
-    if (!deps.browserAvailable && BROWSER_REQUIRED_STRATEGIES.has(provider.strategy)) {
+    if (!auth.browserAvailable && BROWSER_REQUIRED_STRATEGIES.has(provider.strategy)) {
         process.stderr.write(
             `Browser is not available on this machine.\n` +
                 `Provider "${provider.name}" uses "${provider.strategy}" strategy which requires a browser.\n\n` +
@@ -119,7 +119,7 @@ export async function runLogin(
 
     // Step 5: Authenticate via forceReauth (clears stored and re-extracts)
     process.stderr.write(`  [2/2] Authenticating with "${provider.name}"...\n`);
-    const result = await deps.authManager.forceReauth(
+    const result = await auth.forceReauth(
         provider.id,
         networkProxy !== undefined ? { networkProxy } : undefined,
     );
@@ -140,7 +140,7 @@ export async function runLogin(
         await addProviderToConfig(provider.id, toProviderEntry(provider));
     }
 
-    const status = await deps.authManager.getStatus(provider.id);
+    const status = await auth.getStatus(provider.id);
     await logAuditEvent({
         action: AuditAction.LOGIN,
         status: AuditStatus.SUCCESS,

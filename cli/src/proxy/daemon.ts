@@ -5,19 +5,19 @@ import { ProxyServer } from './proxy-server.js';
 import { CaManager } from './ca-manager.js';
 import { writeState, clearState } from './proxy-state.js';
 import { expandHome } from '../utils/path.js';
-import type { AuthDeps } from '../deps.js';
+import type { AuthManager } from '../auth-manager.js';
 
 const DEFAULT_INTERVAL_MS = 5 * 60 * 1000;
 
 export interface DaemonOptions {
     port: number;
-    authDeps: AuthDeps;
+    auth: AuthManager;
 }
 
 export async function startDaemon(opts: DaemonOptions, signal: AbortSignal): Promise<void> {
     const proxyDir = expandHome('~/.sig/proxy');
     const caManager = new CaManager(proxyDir);
-    const server = new ProxyServer({ port: opts.port, authDeps: opts.authDeps, caManager });
+    const server = new ProxyServer({ port: opts.port, auth: opts.auth, caManager });
 
     const { port } = await server.start();
     await writeState({ pid: process.pid, port });
@@ -57,9 +57,9 @@ export async function startDaemon(opts: DaemonOptions, signal: AbortSignal): Pro
 
         await startWatchLoop(
             {
-                authManager: opts.authDeps.authManager,
-                storage: opts.authDeps.storage,
-                config: opts.authDeps.config,
+                authManager: opts.auth,
+                storage: opts.auth.storage,
+                config: opts.auth.config,
                 logger,
             },
             { intervalMs, once: false },

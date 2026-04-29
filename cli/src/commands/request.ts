@@ -1,4 +1,4 @@
-import type { AuthDeps } from '../deps.js';
+import type { AuthManager } from '../auth-manager.js';
 import { isOk } from '../types/result.js';
 import { buildUserAgent } from '../utils/http.js';
 import { formatJson } from '../utils/formatters.js';
@@ -10,7 +10,7 @@ import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
 export async function runRequest(
     positionals: string[],
     flags: Record<string, string | boolean | string[]>,
-    deps: AuthDeps,
+    auth: AuthManager,
 ): Promise<void> {
     const url = positionals[0];
     if (!url) {
@@ -21,7 +21,7 @@ export async function runRequest(
         return;
     }
 
-    const result = await deps.authManager.getCredentialsByUrl(url);
+    const result = await auth.getCredentialsByUrl(url);
     if (!isOk(result)) {
         process.stderr.write(`Auth error: ${result.error.message}\n`);
         if (result.error.code === 'BROWSER_UNAVAILABLE') {
@@ -39,7 +39,7 @@ export async function runRequest(
     }
 
     const { provider, credential } = result.value;
-    const authHeaders = deps.authManager.applyToRequest(provider.id, credential);
+    const authHeaders = auth.applyToRequest(provider.id, credential);
 
     const requestHeaders: Record<string, string> = {
         [HttpHeader.USER_AGENT]: buildUserAgent(),

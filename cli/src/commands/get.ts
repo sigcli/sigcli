@@ -1,4 +1,4 @@
-import type { AuthDeps } from '../deps.js';
+import type { AuthManager } from '../auth-manager.js';
 import { isOk } from '../types/result.js';
 import { formatJson, formatCredentialHeaders } from '../utils/formatters.js';
 import { ExitCode } from '../utils/exit-codes.js';
@@ -9,7 +9,7 @@ import { extractSensitiveValues, redactOutput } from '../utils/redact.js';
 export async function runGet(
     positionals: string[],
     flags: Record<string, string | boolean | string[]>,
-    deps: AuthDeps,
+    auth: AuthManager,
 ): Promise<void> {
     const target = positionals[0];
     if (!target) {
@@ -23,13 +23,13 @@ export async function runGet(
     }
 
     // Unified resolution: try ID → name → URL/domain
-    const resolved = deps.authManager.providerRegistry.resolveFlexible(target);
+    const resolved = auth.providerRegistry.resolveFlexible(target);
     let providerId: string;
     let credential;
 
     if (resolved) {
         providerId = resolved.id;
-        const result = await deps.authManager.getCredentials(providerId);
+        const result = await auth.getCredentials(providerId);
         if (!isOk(result)) {
             await logAuditEvent({
                 action: AuditAction.CREDENTIAL_ACCESS,
@@ -58,7 +58,7 @@ export async function runGet(
             process.exitCode = ExitCode.PROVIDER_NOT_FOUND;
             return;
         }
-        const result = await deps.authManager.getCredentialsByUrl(target);
+        const result = await auth.getCredentialsByUrl(target);
         if (!isOk(result)) {
             await logAuditEvent({
                 action: AuditAction.CREDENTIAL_ACCESS,
@@ -82,7 +82,7 @@ export async function runGet(
     }
 
     // Apply credential to get headers
-    const headers = deps.authManager.applyToRequest(providerId, credential);
+    const headers = auth.applyToRequest(providerId, credential);
     const noRedaction = flags['no-redaction'] === true;
     await logAuditEvent({
         action: AuditAction.CREDENTIAL_ACCESS,

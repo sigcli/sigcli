@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs';
 import { loadConfig, getConfigPath } from './config/loader.js';
-import { createAuthDeps } from './deps.js';
+import { AuthManager } from './auth-manager.js';
 import { isOk } from './types/result.js';
-import type { AuthDeps } from './deps.js';
+
 import { Command } from './types/constants.js';
 
 import { runGet } from './commands/get.js';
@@ -78,11 +78,11 @@ const HELP = `sig — authenticate once, use everywhere
 Usage: sig <command> [options]
 
 Authentication:
-  login <url>                  Authenticate via browser
-    --as <id>                    Custom provider ID for auto-provisioned
-    --force                      Skip stored credentials, force re-auth
-    --network-proxy <url>        Browser proxy (e.g. socks5://127.0.0.1:1080)
-  logout [provider]            Clear credentials (all if none specified)
+  login [provider]|[url --as <id>]  Authenticate via browser
+    --as <id>                       Custom provider ID for auto-provisioned
+    --force                         Skip stored credentials, force re-auth
+    --network-proxy <url>           Browser proxy (e.g. socks5://127.0.0.1:1080)
+  logout [provider]                 Clear credentials (all if none specified)
 
 Credentials (most → least secure):
   proxy start [--port 8080]    Start MITM proxy daemon (credentials never leave proxy process)
@@ -184,7 +184,7 @@ export async function run(args: string[]): Promise<void> {
         return;
     }
 
-    let deps: AuthDeps | undefined;
+    let auth: AuthManager | undefined;
     if (DEPS_COMMANDS.has(command)) {
         // First-run detection: check if config file exists before loading
         const configPath = getConfigPath();
@@ -206,48 +206,48 @@ export async function run(args: string[]): Promise<void> {
         }
         const config = configResult.value;
         const verbose = flags.verbose === true;
-        deps = await createAuthDeps(config, { verbose });
+        auth = await AuthManager.create(config, { verbose });
     }
 
     switch (command) {
         case Command.GET:
-            await runGet(positionals, flags, deps as AuthDeps);
+            await runGet(positionals, flags, auth as AuthManager);
             break;
         case Command.LOGIN:
-            await runLogin(positionals, flags, deps as AuthDeps);
+            await runLogin(positionals, flags, auth as AuthManager);
             break;
         case Command.REQUEST:
-            await runRequest(positionals, flags, deps as AuthDeps);
+            await runRequest(positionals, flags, auth as AuthManager);
             break;
         case Command.STATUS:
-            await runStatus(positionals, flags, deps as AuthDeps);
+            await runStatus(positionals, flags, auth as AuthManager);
             break;
         case Command.LOGOUT:
-            await runLogout(positionals, flags, deps as AuthDeps);
+            await runLogout(positionals, flags, auth as AuthManager);
             break;
         case Command.PROVIDERS:
-            await runProviders(positionals, flags, deps as AuthDeps);
+            await runProviders(positionals, flags, auth as AuthManager);
             break;
         case Command.REMOTE:
             await runRemote(positionals, flags);
             break;
         case Command.SYNC:
-            await runSync(positionals, flags, deps as AuthDeps);
+            await runSync(positionals, flags, auth as AuthManager);
             break;
         case Command.WATCH:
-            await runWatch(positionals, flags, deps);
+            await runWatch(positionals, flags, auth);
             break;
         case Command.RENAME:
-            await runRename(positionals, flags, deps as AuthDeps);
+            await runRename(positionals, flags, auth as AuthManager);
             break;
         case Command.REMOVE:
-            await runRemove(positionals, flags, deps as AuthDeps);
+            await runRemove(positionals, flags, auth as AuthManager);
             break;
         case Command.RUN:
-            await runRun(positionals, flags, deps as AuthDeps);
+            await runRun(positionals, flags, auth as AuthManager);
             break;
         case Command.PROXY:
-            await runProxy(positionals, flags, deps);
+            await runProxy(positionals, flags, auth);
             break;
         default:
             process.stderr.write(`Unknown command: ${command}\n\n`);

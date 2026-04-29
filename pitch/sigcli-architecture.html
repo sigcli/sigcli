@@ -929,6 +929,116 @@
         </div>
     </section>
 
+    <!-- === SLIDE 5b: COMPONENT DIAGRAM — AuthManager === -->
+    <section class="slide diagram-slide">
+        <div class="slide-content">
+            <h2 class="reveal">Component: AuthManager</h2>
+            <div class="diagram-box reveal" style="flex: 1;">
+                <svg viewBox="0 0 900 480" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Central AuthManager box -->
+                    <rect x="280" y="30" width="340" height="420" rx="12" fill="rgba(155,93,229,0.06)" stroke="#9b5de5" stroke-width="1.5"/>
+                    <text x="450" y="55" text-anchor="middle" fill="#9b5de5" font-size="14" font-weight="700" font-family="var(--font-display)">AuthManager</text>
+                    <text x="450" y="72" text-anchor="middle" fill="#64748b" font-size="8">Central orchestrator for auth lifecycle</text>
+
+                    <!-- Internal methods -->
+                    <rect x="310" y="90" width="280" height="32" rx="6" fill="rgba(6,214,160,0.1)" stroke="#06d6a0" stroke-width="0.7"/>
+                    <text x="450" y="110" text-anchor="middle" fill="#06d6a0" font-size="9">getCredentials(providerId) → Result&lt;Credential&gt;</text>
+
+                    <rect x="310" y="130" width="280" height="32" rx="6" fill="rgba(6,214,160,0.1)" stroke="#06d6a0" stroke-width="0.7"/>
+                    <text x="450" y="150" text-anchor="middle" fill="#06d6a0" font-size="9">getExtracted(provider) → Result&lt;ExtractedCredentials&gt;</text>
+
+                    <rect x="310" y="170" width="280" height="32" rx="6" fill="rgba(6,214,160,0.1)" stroke="#06d6a0" stroke-width="0.7"/>
+                    <text x="450" y="190" text-anchor="middle" fill="#06d6a0" font-size="9">applyExtracted(rules, creds) → ApplyResult</text>
+
+                    <rect x="310" y="210" width="280" height="32" rx="6" fill="rgba(6,214,160,0.1)" stroke="#06d6a0" stroke-width="0.7"/>
+                    <text x="450" y="230" text-anchor="middle" fill="#06d6a0" font-size="9">reauthenticate(providerId) → Result&lt;Credential&gt;</text>
+
+                    <rect x="310" y="250" width="280" height="32" rx="6" fill="rgba(6,214,160,0.08)" stroke="#06d6a0" stroke-width="0.5" stroke-dasharray="3 2"/>
+                    <text x="450" y="270" text-anchor="middle" fill="#64748b" font-size="9">getStatus / getAllStatus / clearCredentials</text>
+
+                    <!-- Internal flow label -->
+                    <text x="450" y="305" text-anchor="middle" fill="#9b5de5" font-size="8" font-weight="600">Internal Flow</text>
+                    <rect x="310" y="312" width="280" height="50" rx="6" fill="rgba(155,93,229,0.08)" stroke="#9b5de5" stroke-width="0.5"/>
+                    <text x="450" y="330" text-anchor="middle" fill="#e2e8f0" font-size="8">1. Check stored → TTL valid? return cached</text>
+                    <text x="450" y="344" text-anchor="middle" fill="#e2e8f0" font-size="8">2. Select source → run extract(rules, ctx)</text>
+                    <text x="450" y="358" text-anchor="middle" fill="#e2e8f0" font-size="8">3. Check required → store encrypted → return</text>
+
+                    <!-- Dependencies section -->
+                    <text x="450" y="385" text-anchor="middle" fill="#9b5de5" font-size="8" font-weight="600">Dependencies (injected)</text>
+                    <rect x="310" y="392" width="85" height="24" rx="4" fill="rgba(239,71,111,0.12)" stroke="#ef476f" stroke-width="0.5"/>
+                    <text x="352" y="408" text-anchor="middle" fill="#ef476f" font-size="8">IStorage</text>
+
+                    <rect x="407" y="392" width="85" height="24" rx="4" fill="rgba(17,138,178,0.12)" stroke="#118ab2" stroke-width="0.5"/>
+                    <text x="450" y="408" text-anchor="middle" fill="#118ab2" font-size="8">IProviderRegistry</text>
+
+                    <rect x="505" y="392" width="85" height="24" rx="4" fill="rgba(255,209,102,0.12)" stroke="#ffd166" stroke-width="0.5"/>
+                    <text x="547" y="408" text-anchor="middle" fill="#ffd166" font-size="8">BrowserConfig</text>
+
+                    <rect x="370" y="424" width="160" height="24" rx="4" fill="rgba(6,214,160,0.08)" stroke="#06d6a0" stroke-width="0.5"/>
+                    <text x="450" y="440" text-anchor="middle" fill="#06d6a0" font-size="8">Map&lt;string, ISourceStrategy&gt;</text>
+
+                    <!-- External components: Left side — Providers -->
+                    <rect x="30" y="90" width="180" height="100" rx="8" fill="rgba(17,138,178,0.08)" stroke="#118ab2" stroke-width="1"/>
+                    <text x="120" y="112" text-anchor="middle" fill="#118ab2" font-size="10" font-weight="600">ProviderRegistry</text>
+                    <text x="120" y="130" text-anchor="middle" fill="#64748b" font-size="8">resolve(url) → Provider</text>
+                    <text x="120" y="145" text-anchor="middle" fill="#64748b" font-size="8">get(id) → ProviderConfig</text>
+                    <text x="120" y="160" text-anchor="middle" fill="#64748b" font-size="8">list() → ProviderConfig[]</text>
+                    <text x="120" y="178" text-anchor="middle" fill="#475569" font-size="7">domain matching + auto-provision</text>
+
+                    <!-- Arrow: ProviderRegistry → AuthManager -->
+                    <line x1="210" y1="130" x2="278" y2="130" stroke="#118ab2" stroke-width="1" marker-end="url(#arrowBlue)"/>
+
+                    <!-- External components: Left side — Storage -->
+                    <rect x="30" y="230" width="180" height="120" rx="8" fill="rgba(239,71,111,0.08)" stroke="#ef476f" stroke-width="1"/>
+                    <text x="120" y="252" text-anchor="middle" fill="#ef476f" font-size="10" font-weight="600">Storage Layer</text>
+                    <rect x="50" y="262" width="140" height="22" rx="4" fill="rgba(239,71,111,0.1)" stroke="#ef476f" stroke-width="0.5"/>
+                    <text x="120" y="277" text-anchor="middle" fill="#e2e8f0" font-size="8">CachedStorage (TTL: 5s)</text>
+                    <rect x="60" y="290" width="120" height="22" rx="4" fill="rgba(239,71,111,0.1)" stroke="#ef476f" stroke-width="0.5"/>
+                    <text x="120" y="305" text-anchor="middle" fill="#e2e8f0" font-size="8">DirectoryStorage</text>
+                    <rect x="70" y="318" width="100" height="22" rx="4" fill="rgba(239,71,111,0.06)" stroke="#ef476f" stroke-width="0.4"/>
+                    <text x="120" y="333" text-anchor="middle" fill="#64748b" font-size="7">AES-256-GCM</text>
+
+                    <!-- Arrow: Storage → AuthManager -->
+                    <line x1="210" y1="280" x2="278" y2="260" stroke="#ef476f" stroke-width="1" marker-end="url(#arrowRed2)"/>
+
+                    <!-- External components: Right side — Source Strategies -->
+                    <rect x="690" y="70" width="180" height="180" rx="8" fill="rgba(255,209,102,0.08)" stroke="#ffd166" stroke-width="1"/>
+                    <text x="780" y="92" text-anchor="middle" fill="#ffd166" font-size="10" font-weight="600">Source Strategies</text>
+                    <text x="780" y="108" text-anchor="middle" fill="#64748b" font-size="7">ISourceStrategy.extract(rules, ctx)</text>
+
+                    <rect x="710" y="118" width="140" height="28" rx="5" fill="rgba(255,209,102,0.12)" stroke="#ffd166" stroke-width="0.7"/>
+                    <text x="780" y="136" text-anchor="middle" fill="#ffd166" font-size="9">BrowserStrategy</text>
+
+                    <rect x="720" y="152" width="120" height="20" rx="4" fill="rgba(255,209,102,0.06)" stroke="#ffd166" stroke-width="0.4"/>
+                    <text x="780" y="165" text-anchor="middle" fill="#64748b" font-size="7">headless → CDP → visible</text>
+
+                    <rect x="710" y="182" width="140" height="28" rx="5" fill="rgba(255,209,102,0.12)" stroke="#ffd166" stroke-width="0.7"/>
+                    <text x="780" y="200" text-anchor="middle" fill="#ffd166" font-size="9">PromptStrategy</text>
+
+                    <rect x="720" y="216" width="120" height="20" rx="4" fill="rgba(255,209,102,0.06)" stroke="#ffd166" stroke-width="0.4"/>
+                    <text x="780" y="229" text-anchor="middle" fill="#64748b" font-size="7">interactive token/cookie input</text>
+
+                    <!-- Arrow: AuthManager → Source Strategies -->
+                    <line x1="622" y1="150" x2="688" y2="150" stroke="#ffd166" stroke-width="1" marker-end="url(#arrowAmber)"/>
+
+                    <!-- External components: Right side — ApplyEngine -->
+                    <rect x="690" y="290" width="180" height="80" rx="8" fill="rgba(6,214,160,0.08)" stroke="#06d6a0" stroke-width="1"/>
+                    <text x="780" y="312" text-anchor="middle" fill="#06d6a0" font-size="10" font-weight="600">ApplyEngine</text>
+                    <text x="780" y="330" text-anchor="middle" fill="#64748b" font-size="8">applyRules(rules, creds)</text>
+                    <text x="780" y="345" text-anchor="middle" fill="#64748b" font-size="8">→ { headers, envVars }</text>
+                    <text x="780" y="362" text-anchor="middle" fill="#475569" font-size="7">cookie | header | bearer | basic</text>
+
+                    <!-- Arrow: AuthManager → ApplyEngine -->
+                    <line x1="622" y1="270" x2="688" y2="310" stroke="#06d6a0" stroke-width="1" marker-end="url(#arrowCyan)"/>
+
+                    <!-- External components: Bottom — CLI Commands -->
+                    <rect x="180" y="460" width="540" height="18" rx="4" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+                    <text x="450" y="473" text-anchor="middle" fill="#475569" font-size="8">CLI Commands: login · get · request · status · run · proxy · watch · sync</text>
+                </svg>
+            </div>
+        </div>
+    </section>
+
     <!-- === SLIDE 6: SEQUENCE — Proxy Flow === -->
     <section class="slide diagram-slide">
         <div class="slide-content">

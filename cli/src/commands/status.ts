@@ -1,4 +1,4 @@
-import type { AuthDeps } from '../deps.js';
+import type { AuthManager } from '../auth-manager.js';
 import { formatExpiry, formatStatusIndicator, formatTable } from '../utils/formatters.js';
 import type { ProviderStatus } from '../types/types.js';
 import { getWatchProviders, type WatchProviderEntry } from '../watch/watch-config.js';
@@ -24,7 +24,7 @@ function buildRows(
 export async function runStatus(
     positionals: string[],
     flags: Record<string, string | boolean | string[]>,
-    deps: AuthDeps,
+    auth: AuthManager,
 ): Promise<void> {
     const providerId = (flags.provider as string) ?? positionals[0];
     const format = detectFormat(flags.format as string | undefined, 'table');
@@ -34,8 +34,8 @@ export async function runStatus(
     const watchMap = new Map(watchEntries.map((e) => [e.providerId, e]));
 
     if (providerId) {
-        const resolved = deps.authManager.providerRegistry.resolveFlexible(providerId);
-        const status = await deps.authManager.getStatus(resolved?.id ?? providerId);
+        const resolved = auth.providerRegistry.resolveFlexible(providerId);
+        const status = await auth.getStatus(resolved?.id ?? providerId);
         if (format === 'table') {
             process.stdout.write(formatTable(buildRows([status], watchMap), tableOptions) + '\n');
         } else {
@@ -46,7 +46,7 @@ export async function runStatus(
         return;
     }
 
-    const statuses = await deps.authManager.getAllStatus();
+    const statuses = await auth.getAllStatus();
 
     if (format === 'table') {
         if (statuses.length === 0) {

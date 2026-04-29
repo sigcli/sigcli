@@ -1,5 +1,5 @@
 import { createInterface } from 'node:readline';
-import type { AuthDeps } from '../deps.js';
+import type { AuthManager } from '../auth-manager.js';
 import type { ProviderConfig } from '../types/types.js';
 import { removeProviderFromConfig } from '../config/loader.js';
 import { ExitCode } from '../utils/exit-codes.js';
@@ -8,7 +8,7 @@ import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
 export async function runRemove(
     positionals: string[],
     flags: Record<string, string | boolean | string[]>,
-    deps: AuthDeps,
+    auth: AuthManager,
 ): Promise<void> {
     if (positionals.length === 0) {
         process.stderr.write(
@@ -23,7 +23,7 @@ export async function runRemove(
     const unknown: string[] = [];
 
     for (const input of positionals) {
-        const provider = deps.authManager.providerRegistry.resolveFlexible(input);
+        const provider = auth.providerRegistry.resolveFlexible(input);
         if (provider) {
             resolved.push(provider);
         } else {
@@ -72,8 +72,8 @@ export async function runRemove(
 
     for (const provider of resolved) {
         try {
-            await deps.storage.delete(provider.id);
-            deps.authManager.providerRegistry.unregister(provider.id);
+            await auth.storage.delete(provider.id);
+            auth.providerRegistry.unregister(provider.id);
             if (!keepConfig) {
                 await removeProviderFromConfig(provider.id);
             }

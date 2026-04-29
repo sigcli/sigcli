@@ -7,7 +7,7 @@ import type {
     ProviderStatus,
     ILogger,
 } from './types/types.js';
-import type { BrowserConfig } from './config/schema.js';
+import type { BrowserConfig, SigConfig } from './config/schema.js';
 import type {
     ISourceStrategy,
     ExtractedCredentials,
@@ -15,6 +15,12 @@ import type {
 } from './types/interfaces/source-strategy.js';
 import type { ApplyRule, ProviderConfigV2 } from './types/extract.js';
 
+import { ProviderRegistry } from './providers/provider-registry.js';
+import { DirectoryStorage } from './storage/directory-storage.js';
+import { CachedStorage } from './storage/cached-storage.js';
+import { BrowserStrategy } from './strategies/browser/index.js';
+import { PromptStrategy } from './strategies/prompt/index.js';
+import { buildStrategyConfig } from './config/validator.js';
 import { createDefaultProvider } from './providers/auto-provision.js';
 import type { Result } from './types/result.js';
 import { ok, err, isOk } from './types/result.js';
@@ -22,6 +28,8 @@ import { ProviderNotFoundError, CredentialNotFoundError, type AuthError } from '
 import { ApplyEngine, type ApplyResult } from './apply/apply-engine.js';
 import { checkRequired } from './strategies/required-checker.js';
 import { parseDuration } from './utils/duration.js';
+import { expandHome } from './utils/path.js';
+import { loadEncryptionKey } from './crypto/encryption.js';
 import {
     extractedToCredential,
     credentialToExtracted,
@@ -29,31 +37,105 @@ import {
 } from './utils/credential-converter.js';
 import { checkTtl, validateCredential, getExpiresAt } from './utils/credential-validator.js';
 
-export interface AuthManagerDeps {
+/**
+ * Dependencies provided by AuthManager to CLI commands.
+ */
+export interface AuthDeps {
+    authManager: AuthManager;
+    config: SigConfig;
+    browserAvailable: boolean;
     storage: IStorage;
     providerRegistry: IProviderRegistry;
-    browserConfig: BrowserConfig;
-    logger?: ILogger;
 }
 
 /**
  * Central orchestrator for authentication lifecycle.
- * Uses the extract/apply system (v2).
  *
  * Flow: check TTL → select source → run extract[] → check required → store
  */
 export class AuthManager {
-    private readonly storage: IStorage;
+    readonly storage: IStorage;
     private readonly providers: IProviderRegistry;
     private readonly browserConfig: BrowserConfig;
     private readonly logger?: ILogger;
     private readonly sourceStrategies = new Map<string, ISourceStrategy>();
 
-    constructor(deps: AuthManagerDeps) {
-        this.storage = deps.storage;
-        this.providers = deps.providerRegistry;
-        this.browserConfig = deps.browserConfig;
-        this.logger = deps.logger;
+    readonly config: SigConfig;
+    readonly browserAvailable: boolean;
+
+    /** @internal Use AuthManager.create() instead */
+    constructor(
+        storage: IStorage,
+        providers: IProviderRegistry,
+        browserConfig: BrowserConfig,
+        config: SigConfig,
+        logger?: ILogger,
+    ) {
+        this.storage = storage;
+        this.providers = providers;
+        this.browserConfig = browserConfig;
+        this.config = config;
+        this.browserAvailable = config.mode !== 'browserless';
+        this.logger = logger;
+    }
+
+    /**
+     * Create an AuthManager from a validated SigConfig.
+     * This is the only way to instantiate — wires all dependencies.
+     */
+    static async create(
+        config: SigConfig,
+        options?: { verbose?: boolean },
+    ): Promise<AuthManager> {
+        const providerConfigs: ProviderConfig[] = Object.entries(config.providers).map(
+            ([id, entry]) => ({
+                id,
+                name: entry.name ?? id,
+                domains: entry.domains,
+                entryUrl: entry.entryUrl ?? '',
+                strategy: entry.strategy ?? entry.source ?? 'browser',
+                strategyConfig: entry.strategy
+                    ? buildStrategyConfig(entry.strategy, entry.config)
+                    : ({ strategy: 'cookie' as const }),
+                acceptedCredentialTypes: entry.acceptedCredentialTypes,
+                setupInstructions: entry.setupInstructions,
+                localStorage: entry.localStorage,
+                ...(entry.forceVisible !== undefined ? { forceVisible: entry.forceVisible } : {}),
+                ...(entry.proxy !== undefined ? { proxy: entry.proxy } : {}),
+                ...(entry.networkProxy !== undefined ? { networkProxy: entry.networkProxy } : {}),
+                ...(entry.loginMode !== undefined ? { loginMode: entry.loginMode } : {}),
+                ...(entry.source !== undefined ? { source: entry.source } : {}),
+                ...(entry.extract !== undefined ? { extract: entry.extract } : {}),
+                ...(entry.apply !== undefined ? { apply: entry.apply } : {}),
+                ...(entry.required !== undefined ? { required: entry.required } : {}),
+                ...(entry.cookiePaths !== undefined ? { cookiePaths: entry.cookiePaths } : {}),
+                ...(entry.ttl !== undefined ? { ttl: entry.ttl } : {}),
+            }),
+        );
+
+        const providerRegistry = new ProviderRegistry(providerConfigs);
+
+        const credDir = expandHome(config.storage.credentialsDir);
+        const encryptionKey = await loadEncryptionKey();
+        const storage = new CachedStorage(new DirectoryStorage(credDir, encryptionKey), {
+            ttlMs: 5000,
+        });
+
+        const logger = options?.verbose ? createConsoleLogger() : undefined;
+        const manager = new AuthManager(storage, providerRegistry, config.browser, config, logger);
+
+        if (manager.browserAvailable) {
+            manager.registerSource(
+                new BrowserStrategy({
+                    browserDataDir: config.browser.browserDataDir,
+                    channel: config.browser.channel,
+                    execPath: config.browser.execPath,
+                }),
+            );
+        }
+        manager.registerSource(new PromptStrategy());
+
+        return manager;
     }
 
     registerSource(source: ISourceStrategy): void {
@@ -327,4 +409,29 @@ export class AuthManager {
     get providerRegistry(): IProviderRegistry {
         return this.providers;
     }
+}
+
+export function createConsoleLogger(): ILogger {
+    return {
+        debug(message: string, ...args: unknown[]) {
+            process.stderr.write(
+                `[DEBUG] ${message}${args.length ? ' ' + args.map(String).join(' ') : ''}\n`,
+            );
+        },
+        info(message: string, ...args: unknown[]) {
+            process.stderr.write(
+                `[INFO] ${message}${args.length ? ' ' + args.map(String).join(' ') : ''}\n`,
+            );
+        },
+        warn(message: string, ...args: unknown[]) {
+            process.stderr.write(
+                `[WARN] ${message}${args.length ? ' ' + args.map(String).join(' ') : ''}\n`,
+            );
+        },
+        error(message: string, ...args: unknown[]) {
+            process.stderr.write(
+                `[ERROR] ${message}${args.length ? ' ' + args.map(String).join(' ') : ''}\n`,
+            );
+        },
+    };
 }

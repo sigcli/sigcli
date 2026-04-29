@@ -1,16 +1,16 @@
-import type { AuthDeps } from '../deps.js';
+import type { AuthManager } from '../auth-manager.js';
 import { formatTable } from '../utils/formatters.js';
 import { detectFormat, formatOutput } from '../utils/formatter.js';
 
 export async function runProviders(
     positionals: string[],
     flags: Record<string, string | boolean | string[]>,
-    deps: AuthDeps,
+    auth: AuthManager,
 ): Promise<void> {
     const format = detectFormat(flags.format as string | undefined, 'table');
-    const providers = deps.authManager.providerRegistry.list();
+    const providers = auth.providerRegistry.list();
 
-    const statuses = await Promise.all(providers.map((p) => deps.authManager.getStatus(p.id)));
+    const statuses = await Promise.all(providers.map((p) => auth.getStatus(p.id)));
 
     if (format === 'table') {
         if (statuses.length === 0) {

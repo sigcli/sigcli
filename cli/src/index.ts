@@ -8,8 +8,6 @@ export { generateConfigYaml } from './config/generator.js';
 export type { InitOptions } from './config/generator.js';
 
 // Dependency wiring
-export { createAuthDeps } from './deps.js';
-export type { AuthDeps } from './deps.js';
 
 // Core types
 export type {

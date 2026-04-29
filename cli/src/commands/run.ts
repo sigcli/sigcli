@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { writeFileSync, unlinkSync } from 'node:fs';
-import type { AuthDeps } from '../deps.js';
+import type { AuthManager } from '../auth-manager.js';
 import { isOk } from '../types/result.js';
 import { ExitCode } from '../utils/exit-codes.js';
 import { credentialToEnvVars } from '../utils/credential-env.js';
@@ -10,7 +10,7 @@ import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
 export async function runRun(
     positionals: string[],
     flags: Record<string, string | boolean | string[]>,
-    deps: AuthDeps,
+    auth: AuthManager,
 ): Promise<void> {
     // Split positionals into providers and command args.
     // Heuristic: iterate positionals, each that matches providerRegistry.get() is a provider.
@@ -18,7 +18,7 @@ export async function runRun(
     const providers: string[] = [];
     let cmdStartIdx = 0;
     for (let i = 0; i < positionals.length; i++) {
-        if (deps.providerRegistry.get(positionals[i])) {
+        if (auth.providerRegistry.get(positionals[i])) {
             providers.push(positionals[i]);
             cmdStartIdx = i + 1;
         } else {
@@ -38,9 +38,9 @@ export async function runRun(
     const explicitMode = providers.length > 0;
 
     if (!explicitMode) {
-        const allProviders = deps.providerRegistry.list();
+        const allProviders = auth.providerRegistry.list();
         for (const p of allProviders) {
-            const credResult = await deps.authManager.getCredentials(p.id);
+            const credResult = await auth.getCredentials(p.id);
             if (isOk(credResult)) {
                 providers.push(p.id);
             }
@@ -59,7 +59,7 @@ export async function runRun(
     const allSecrets: string[] = [];
 
     for (const providerId of providers) {
-        const credResult = await deps.authManager.getCredentials(providerId);
+        const credResult = await auth.getCredentials(providerId);
         if (!isOk(credResult)) {
             if (explicitMode) {
                 process.stderr.write(`Error: ${credResult.error.message}\n`);

@@ -1,4 +1,4 @@
-import type { AuthDeps } from '../deps.js';
+import type { AuthManager } from '../auth-manager.js';
 import { getRemote, getRemotes } from '../sync/remote-config.js';
 import { SyncEngine } from '../sync/sync-engine.js';
 import { SshTransport } from '../sync/transports/ssh.js';
@@ -10,7 +10,7 @@ import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
 export async function runSync(
     positionals: string[],
     flags: Record<string, string | boolean | string[]>,
-    deps: AuthDeps,
+    auth: AuthManager,
 ): Promise<void> {
     const subcommand = positionals[0];
 
@@ -53,7 +53,7 @@ export async function runSync(
         remote = remotes[0];
     }
 
-    const engine = new SyncEngine(deps.storage, remote, deps.config, new SshTransport());
+    const engine = new SyncEngine(auth.storage, remote, auth.config, new SshTransport());
     const force = flags.force === true;
     const provider = typeof flags.provider === 'string' ? [flags.provider] : undefined;
 

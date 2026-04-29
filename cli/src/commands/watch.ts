@@ -1,4 +1,4 @@
-import type { AuthDeps } from '../deps.js';
+import type { AuthManager } from '../auth-manager.js';
 import { addWatchProvider, removeWatchProvider, setWatchInterval } from '../watch/watch-config.js';
 import { getRemote } from '../sync/remote-config.js';
 import { parseDuration } from '../utils/duration.js';
@@ -16,13 +16,13 @@ Subcommands:
 export async function runWatch(
     positionals: string[],
     flags: Record<string, string | boolean | string[]>,
-    deps?: AuthDeps,
+    auth?: AuthManager,
 ): Promise<void> {
     const subcommand = positionals[0];
 
     switch (subcommand) {
         case WatchSubcommand.ADD:
-            await handleAdd(positionals.slice(1), flags, deps);
+            await handleAdd(positionals.slice(1), flags, auth);
             break;
         case WatchSubcommand.REMOVE:
             await handleRemove(positionals.slice(1));
@@ -43,7 +43,7 @@ export async function runWatch(
 async function handleAdd(
     positionals: string[],
     flags: Record<string, string | boolean | string[]>,
-    deps?: AuthDeps,
+    auth?: AuthManager,
 ): Promise<void> {
     const providerId = positionals[0];
     if (!providerId) {
@@ -53,8 +53,8 @@ async function handleAdd(
     }
 
     // Validate provider exists in config
-    if (deps) {
-        const provider = deps.providerRegistry.resolveFlexible(providerId);
+    if (auth) {
+        const provider = auth.providerRegistry.resolveFlexible(providerId);
         if (!provider) {
             process.stderr.write(`Error: Provider "${providerId}" not found in config.\n`);
             process.exitCode = ExitCode.GENERAL_ERROR;

@@ -1,17 +1,17 @@
-import type { AuthDeps } from '../deps.js';
+import type { AuthManager } from '../auth-manager.js';
 import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
 
 export async function runLogout(
     positionals: string[],
     flags: Record<string, string | boolean | string[]>,
-    deps: AuthDeps,
+    auth: AuthManager,
 ): Promise<void> {
     const providerId = positionals[0];
 
     if (providerId) {
-        const resolved = deps.authManager.providerRegistry.resolveFlexible(providerId);
+        const resolved = auth.providerRegistry.resolveFlexible(providerId);
         const resolvedId = resolved?.id ?? providerId;
-        await deps.authManager.clearCredentials(resolvedId);
+        await auth.clearCredentials(resolvedId);
         await logAuditEvent({
             action: AuditAction.LOGOUT,
             status: AuditStatus.SUCCESS,
@@ -19,7 +19,7 @@ export async function runLogout(
         });
         process.stderr.write(`Credentials cleared for "${resolvedId}".\n`);
     } else {
-        await deps.authManager.clearAll();
+        await auth.clearAll();
         await logAuditEvent({
             action: AuditAction.LOGOUT,
             status: AuditStatus.SUCCESS,

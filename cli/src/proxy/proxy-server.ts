@@ -3,7 +3,7 @@ import * as https from 'node:https';
 import * as net from 'node:net';
 import * as tls from 'node:tls';
 import { isOk } from '../types/result.js';
-import type { AuthDeps } from '../deps.js';
+import type { AuthManager } from '../auth-manager.js';
 import type { CaManager } from './ca-manager.js';
 import { applyInjectRules } from './inject.js';
 
@@ -29,8 +29,8 @@ function stripHopByHop(headers: http.IncomingHttpHeaders): http.OutgoingHttpHead
     return out;
 }
 
-function resolveProvider(url: string, deps: AuthDeps) {
-    return deps.providerRegistry.resolve(url);
+function resolveProvider(url: string, auth: AuthManager) {
+    return auth.providerRegistry.resolve(url);
 }
 
 async function applyInjection(
@@ -38,16 +38,16 @@ async function applyInjection(
     baseHeaders: http.OutgoingHttpHeaders,
     bodyBuffer: Buffer | undefined,
     contentType: string | undefined,
-    deps: AuthDeps,
+    auth: AuthManager,
 ): Promise<{ headers: http.OutgoingHttpHeaders; body: Buffer | undefined; url: string }> {
-    const provider = resolveProvider(url, deps);
+    const provider = resolveProvider(url, auth);
     if (!provider) return { headers: baseHeaders, body: bodyBuffer, url };
 
-    const credResult = await deps.authManager.getCredentials(provider.id);
+    const credResult = await auth.getCredentials(provider.id);
     if (!isOk(credResult)) return { headers: baseHeaders, body: bodyBuffer, url };
 
     // Always apply strategy-level credential headers (Cookie, Authorization, etc.)
-    const authHeaders = deps.authManager.applyToRequest(provider.id, credResult.value);
+    const authHeaders = auth.applyToRequest(provider.id, credResult.value);
     const mergedHeaders: http.OutgoingHttpHeaders = { ...baseHeaders };
     for (const [key, value] of Object.entries(authHeaders)) {
         mergedHeaders[key.toLowerCase()] = value;
@@ -71,7 +71,7 @@ async function applyInjection(
 async function handlePlainHttp(
     req: http.IncomingMessage,
     res: http.ServerResponse,
-    deps: AuthDeps,
+    auth: AuthManager,
 ): Promise<void> {
     const rawUrl = req.url ?? '/';
     const targetUrl = rawUrl.startsWith('http') ? rawUrl : `http://${req.headers.host}${rawUrl}`;
@@ -86,7 +86,7 @@ async function handlePlainHttp(
     const baseHeaders = stripHopByHop(req.headers);
     const contentType = req.headers['content-type'];
 
-    const provider = resolveProvider(targetUrl, deps);
+    const provider = resolveProvider(targetUrl, auth);
     const hasBodyRule = provider?.proxy?.inject?.some((r) => r.in === 'body') ?? false;
 
     if (hasBodyRule) {
@@ -99,7 +99,7 @@ async function handlePlainHttp(
             headers,
             body,
             url: injectedUrl,
-        } = await applyInjection(targetUrl, baseHeaders, bodyBuffer, contentType, deps);
+        } = await applyInjection(targetUrl, baseHeaders, bodyBuffer, contentType, auth);
 
         const injParsed = new URL(injectedUrl);
         const outHeaders =
@@ -132,7 +132,7 @@ async function handlePlainHttp(
             baseHeaders,
             undefined,
             contentType,
-            deps,
+            auth,
         );
 
         const injParsed = new URL(injectedUrl);
@@ -164,7 +164,7 @@ async function handleConnectMitm(
     clientSocket: net.Socket,
     hostname: string,
     port: number,
-    deps: AuthDeps,
+    auth: AuthManager,
     caManager: CaManager,
 ): Promise<void> {
     let leafCert: { cert: string; key: string };
@@ -199,7 +199,7 @@ async function handleConnectMitm(
         const baseHeaders = stripHopByHop(parsedHeaders);
         const contentType = parsedHeaders['content-type'];
 
-        const provider = resolveProvider(targetUrl, deps);
+        const provider = resolveProvider(targetUrl, auth);
         const hasBodyRule = provider?.proxy?.inject?.some((r) => r.in === 'body') ?? false;
 
         if (hasBodyRule) {
@@ -208,7 +208,7 @@ async function handleConnectMitm(
                 baseHeaders,
                 bodyBuf ?? Buffer.alloc(0),
                 contentType,
-                deps,
+                auth,
             );
             const outHeaders = {
                 ...result.headers,
@@ -244,7 +244,7 @@ async function handleConnectMitm(
             baseHeaders,
             undefined,
             contentType,
-            deps,
+            auth,
         );
         const injPath = new URL(injectedUrl).pathname + new URL(injectedUrl).search;
 
@@ -332,23 +332,23 @@ function handleConnectTunnel(clientSocket: net.Socket, hostname: string, port: n
 
 export interface ProxyServerOptions {
     port: number;
-    authDeps: AuthDeps;
+    auth: AuthManager;
     caManager: CaManager;
 }
 
 export class ProxyServer {
     private server: http.Server;
     private _port: number;
-    private readonly deps: AuthDeps;
+    private readonly auth: AuthManager;
     private readonly caManager: CaManager;
 
     constructor(opts: ProxyServerOptions) {
         this._port = opts.port;
-        this.deps = opts.authDeps;
+        this.auth = opts.auth;
         this.caManager = opts.caManager;
         this.server = http.createServer();
         this.server.on('request', (req, res) => {
-            handlePlainHttp(req, res, this.deps).catch(() => {
+            handlePlainHttp(req, res, this.auth).catch(() => {
                 if (!res.headersSent) res.writeHead(500);
                 res.end();
             });
@@ -361,14 +361,14 @@ export class ProxyServer {
 
             if (head.length > 0) clientSocket.unshift(head);
 
-            const provider = resolveProvider(`https://${hostname}`, this.deps);
+            const provider = resolveProvider(`https://${hostname}`, this.auth);
             if (provider) {
                 handleConnectMitm(
                     req,
                     clientSocket,
                     hostname,
                     port,
-                    this.deps,
+                    this.auth,
                     this.caManager,
                 ).catch(() => {
                     clientSocket.destroy();

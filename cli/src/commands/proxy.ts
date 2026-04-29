@@ -6,7 +6,7 @@ import { join, dirname } from 'node:path';
 import { readState, isRunning, clearState } from '../proxy/proxy-state.js';
 import { expandHome } from '../utils/path.js';
 import { ExitCode } from '../utils/exit-codes.js';
-import type { AuthDeps } from '../deps.js';
+import type { AuthManager } from '../auth-manager.js';
 import { ProxySubcommand } from '../types/constants.js';
 import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
 
@@ -26,7 +26,7 @@ Subcommands:
 export async function runProxy(
     positionals: string[],
     flags: Record<string, string | boolean | string[]>,
-    deps?: AuthDeps,
+    deps?: AuthManager,
 ): Promise<void> {
     const subcommand = positionals[0];
 
@@ -51,7 +51,7 @@ export async function runProxy(
 
 async function handleStart(
     flags: Record<string, string | boolean | string[]>,
-    deps?: AuthDeps,
+    deps?: AuthManager,
 ): Promise<void> {
     if (!deps) {
         process.stderr.write('Error: Config required. Run "sig init" first.\n');
@@ -79,7 +79,7 @@ async function handleStart(
         const shutdown = () => controller.abort();
         process.on('SIGINT', shutdown);
         process.on('SIGTERM', shutdown);
-        await startDaemon({ port, authDeps: deps }, controller.signal);
+        await startDaemon({ port, auth: deps }, controller.signal);
         return;
     }
 
