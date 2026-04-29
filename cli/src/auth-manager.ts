@@ -85,15 +85,23 @@ export class AuthManager {
     ): Promise<Result<ExtractedCredentials, AuthError>> {
         const key = provider.id;
 
-        // Step 1: Check stored + TTL
+        // Step 1: Check stored credentials
         const stored = await this.storage.get(key);
-        if (stored && provider.ttl) {
-            const ttlMs = parseDuration(provider.ttl);
-            if (ttlMs) {
-                const updatedAt = new Date(stored.updatedAt).getTime();
-                if (Date.now() - updatedAt < ttlMs) {
-                    const cached = stored.metadata?.extractedValues as ExtractedCredentials | undefined;
-                    if (cached) return ok(cached);
+        if (stored) {
+            const cached = stored.metadata?.extractedValues as ExtractedCredentials | undefined;
+            if (cached) {
+                // If TTL is configured, check expiry
+                if (provider.ttl) {
+                    const ttlMs = parseDuration(provider.ttl);
+                    if (ttlMs) {
+                        const updatedAt = new Date(stored.updatedAt).getTime();
+                        if (Date.now() - updatedAt < ttlMs) {
+                            return ok(cached);
+                        }
+                    }
+                } else {
+                    // No TTL = never expires (valid until manually cleared)
+                    return ok(cached);
                 }
             }
         }
