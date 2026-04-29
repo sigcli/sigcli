@@ -2,6 +2,7 @@ import type {
     IStrategy,
     ExtractedCredentials,
     ExtractionContext,
+    ExtractionResult,
 } from '../../types/interfaces/strategy.js';
 import type { ExtractRule } from '../../types/extract.js';
 import type { Result } from '../../types/result.js';
@@ -21,7 +22,7 @@ export class OAuth2Strategy implements IStrategy {
     async extract(
         _rules: ExtractRule[],
         _ctx: ExtractionContext,
-    ): Promise<Result<ExtractedCredentials, AuthError>> {
+    ): Promise<Result<ExtractionResult, AuthError>> {
         return err(new BaseAuthError('OAuth2 strategy is not yet implemented', 'CONFIG_ERROR'));
     }
 }

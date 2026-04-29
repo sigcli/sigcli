@@ -125,6 +125,7 @@ export interface StoredCredential {
     providerId: string;
     strategy: string; // Strategy name that produced this credential
     updatedAt: string; // ISO timestamp
+    expiresAt?: string; // ISO timestamp — computed from cookie expiry
     credentials: Record<string, unknown>;
 }
 

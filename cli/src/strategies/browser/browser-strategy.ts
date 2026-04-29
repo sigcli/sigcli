@@ -8,6 +8,7 @@ import type {
     IStrategy,
     ExtractedCredentials,
     ExtractionContext,
+    ExtractionResult,
 } from '../../types/interfaces/strategy.js';
 import type { IBrowserExtractor } from '../../types/interfaces/browser-extractor.js';
 import type { ExtractRule } from '../../types/extract.js';
@@ -42,6 +43,7 @@ export class BrowserStrategy implements IStrategy {
     readonly name = 'browser';
     readonly needsBrowser = true;
 
+    private lastExpiresAt?: string;
     private readonly extractors: Map<string, IBrowserExtractor>;
     private readonly options: BrowserStrategyOptions;
 
@@ -55,11 +57,11 @@ export class BrowserStrategy implements IStrategy {
     async extract(
         rules: ExtractRule[],
         ctx: ExtractionContext,
-    ): Promise<Result<ExtractedCredentials, AuthError>> {
+    ): Promise<Result<ExtractionResult, AuthError>> {
         // Cascade: headless → CDP
 
         const headlessResult = await this.tryHeadless(rules, ctx);
-        if (headlessResult) return ok(headlessResult);
+        if (headlessResult) return ok({ credentials: headlessResult });
 
         // CDP mode
         return this.extractViaCdp(rules, ctx);
@@ -112,6 +114,7 @@ export class BrowserStrategy implements IStrategy {
                         }
                     } else if (rule.from === 'localStorage') {
                         // todo: should be an extractor: HeadlessStorageExtractor
+                        // todo: if key = x.y.z, did you apply y.z? dlv or lodash
                         const storageKey = rule.key.includes('*') ? null : rule.key.split('.')[0];
                         if (storageKey) {
                             const val = await page.evaluate((k: string) => {
@@ -147,8 +150,8 @@ export class BrowserStrategy implements IStrategy {
     private async extractViaCdp(
         rules: ExtractRule[],
         ctx: ExtractionContext,
-    ): Promise<Result<ExtractedCredentials, AuthError>> {
-        const execPath = this.options.execPath ?? findNativeBrowser(this.options.channel)?.execPath;
+    ): Promise<Result<ExtractionResult, AuthError>> {
+        const execPath = this.options.execPath;
         if (!execPath) {
             return err(new BrowserError('No browser found. Install Chrome, Edge, or Chromium.'));
         }
@@ -175,9 +178,7 @@ export class BrowserStrategy implements IStrategy {
         if (ctx.networkProxy) {
             browserArgs.push(`--proxy-server=${ctx.networkProxy}`);
         }
-        if (ctx.entryUrl) {
-            browserArgs.push(ctx.entryUrl);
-        }
+        browserArgs.push(ctx.entryUrl);
 
         let browser: ChildProcess | undefined;
         const cleanup = () => {
@@ -210,7 +211,7 @@ export class BrowserStrategy implements IStrategy {
             const wsUrl = await waitForBrowserReady(cdpPort, 15000);
             cdpClient = await connectCdpWs(wsUrl);
 
-            const timeout = ctx.timeout ?? 120000;
+            const timeout = ctx.timeout;
             const credentials = await this.pollExtractors(
                 cdpClient,
                 rules,
@@ -220,7 +221,7 @@ export class BrowserStrategy implements IStrategy {
                 timeout,
             );
 
-            return ok(credentials);
+            return ok({ credentials, expiresAt: this.lastExpiresAt });
         } catch (e) {
             if (e instanceof BrowserTimeoutError) {
                 return err(e);
@@ -253,8 +254,9 @@ export class BrowserStrategy implements IStrategy {
                 if (!extractor) continue;
 
                 try {
-                    const result = await extractor.extract(cdp, '', rule, domains, cookiePaths);
+                    const result = await extractor.extract(cdp, rule, domains, cookiePaths);
                     if (result) {
+                        if (result.expiresAt) this.lastExpiresAt = result.expiresAt;
                         credentials[result.name] = result.value;
                     }
                 } catch {
@@ -267,6 +269,8 @@ export class BrowserStrategy implements IStrategy {
                 const unmet = checkRequired(required, credentials);
                 if (unmet.length === 0) return credentials;
             } else {
+                // todo: for old approach, if no required set, it will wait until user not in login page.
+                // here is flaky as we may get stale cookies or irrelevant cookies
                 const allExtracted = rules.every((r) => !!credentials[r.name]);
                 if (allExtracted) return credentials;
             }

@@ -16,10 +16,8 @@ export class StorageExtractor implements IBrowserExtractor {
 
     async extract(
         cdp: CdpWsClient,
-        _sessionId: string,
         rule: ExtractRule,
         _domains: string[],
-        _cookiePaths?: string[],
     ): Promise<{ name: string; value: string } | null> {
         const sessionId = await this.attachToPage(cdp);
         if (!sessionId) return null;

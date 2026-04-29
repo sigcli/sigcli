@@ -8,16 +8,20 @@ import type { ExtractRule } from '../types.js';
  */
 export type ExtractedCredentials = Record<string, string>;
 
+export interface ExtractionResult {
+    credentials: ExtractedCredentials;
+    expiresAt?: string;
+}
+
 /**
  * Context passed to strategies during extraction.
  */
 export interface ExtractionContext {
     entryUrl: string;
     domains: string[];
+    timeout: number;
     networkProxy?: string;
     cookiePaths?: string[];
-    loginMode?: string;
-    timeout?: number;
     required?: string[];
 }
 
@@ -34,7 +38,7 @@ export interface IStrategy {
     extract(
         rules: ExtractRule[],
         ctx: ExtractionContext,
-    ): Promise<Result<ExtractedCredentials, AuthError>>;
+    ): Promise<Result<ExtractionResult, AuthError>>;
 
     validate?(stored: ExtractedCredentials): Result<boolean, AuthError>;
 }

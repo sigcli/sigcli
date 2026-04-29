@@ -163,7 +163,6 @@ export class AuthManager {
             domains: provider.domains,
             networkProxy: provider.networkProxy,
             cookiePaths: provider.cookiePaths,
-            loginMode: provider.loginMode,
             required: provider.required,
             timeout: this.browserConfig.visibleTimeout,
         };
@@ -173,7 +172,8 @@ export class AuthManager {
 
         // Step 4: Check required
         if (provider.required?.length) {
-            const unmet = checkRequired(provider.required, extractResult.value);
+            const { credentials, expiresAt } = extractResult.value;
+            const unmet = checkRequired(provider.required, credentials);
             if (unmet.length > 0) {
                 return err(
                     new CredentialNotFoundError(`Required fields not met: ${unmet.join(', ')}`),
@@ -186,11 +186,12 @@ export class AuthManager {
             providerId: provider.id,
             strategy: provider.strategy,
             updatedAt: new Date().toISOString(),
-            credentials: extractResult.value,
+            credentials: extractResult.value.credentials,
+            ...(extractResult.value.expiresAt ? { expiresAt: extractResult.value.expiresAt } : {}),
         };
         await this.storage.set(key, storedEntry);
 
-        return ok(extractResult.value);
+        return ok(extractResult.value.credentials);
     }
 
     /**

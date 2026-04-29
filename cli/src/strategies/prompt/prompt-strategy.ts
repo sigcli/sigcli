@@ -3,6 +3,7 @@ import type {
     IStrategy,
     ExtractedCredentials,
     ExtractionContext,
+    ExtractionResult,
 } from '../../types/interfaces/strategy.js';
 import type { ExtractRule } from '../../types/extract.js';
 import type { Result } from '../../types/result.js';
@@ -22,7 +23,7 @@ export class PromptStrategy implements IStrategy {
     async extract(
         rules: ExtractRule[],
         _ctx: ExtractionContext,
-    ): Promise<Result<ExtractedCredentials, AuthError>> {
+    ): Promise<Result<ExtractionResult, AuthError>> {
         const credentials: ExtractedCredentials = {};
 
         const rl = readline.createInterface({
@@ -42,7 +43,7 @@ export class PromptStrategy implements IStrategy {
             rl.close();
         }
 
-        return ok(credentials);
+        return ok({ credentials });
     }
 
     private ask(rl: readline.Interface, prompt: string): Promise<string> {
