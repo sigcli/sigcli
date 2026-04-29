@@ -77,8 +77,8 @@ describe('CLI help text grouping (#9)', () => {
         await run(['help']);
         const output = stdoutChunks.join('');
         expect(output).toContain('--as <id>');
-        expect(output).toContain('--token <value>');
-        expect(output).toContain('--cookie');
+        expect(output).toContain('--force');
+        expect(output).toContain('--network-proxy');
         expect(output).toContain('--method <METHOD>');
         expect(output).toContain('--body <json>');
         expect(output).toContain('--keep-config');
