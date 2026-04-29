@@ -5,8 +5,8 @@ import { AuthManager } from './auth-manager.js';
 import { ProviderRegistry } from './providers/provider-registry.js';
 import { DirectoryStorage } from './storage/directory-storage.js';
 import { CachedStorage } from './storage/cached-storage.js';
-import { BrowserSource } from './extraction/browser-source.js';
-import { PromptSource } from './extraction/prompt-source.js';
+import { BrowserStrategy } from './strategies/browser/index.js';
+import { PromptStrategy } from './strategies/prompt/index.js';
 import { buildStrategyConfig } from './config/validator.js';
 import { expandHome } from './utils/path.js';
 import { loadEncryptionKey } from './crypto/encryption.js';
@@ -105,13 +105,13 @@ export async function createAuthDeps(
 
     // Register source strategies
     if (browserAvailable) {
-        authManager.registerSource(new BrowserSource({
+        authManager.registerSource(new BrowserStrategy({
             browserDataDir: config.browser.browserDataDir,
             channel: config.browser.channel,
             execPath: config.browser.execPath,
         }));
     }
-    authManager.registerSource(new PromptSource());
+    authManager.registerSource(new PromptStrategy());
 
     return { authManager, storage, providerRegistry, config, browserAvailable };
 }

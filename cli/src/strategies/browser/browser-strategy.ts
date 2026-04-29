@@ -4,28 +4,28 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn, type ChildProcess } from 'node:child_process';
-import type { ISourceStrategy, ExtractedCredentials, ExtractionContext } from '../core/interfaces/source-strategy.js';
-import type { IBrowserExtractor } from '../core/interfaces/browser-extractor.js';
-import type { ExtractRule } from '../core/types/extract.js';
-import type { CdpWsClient } from '../browser/cdp-ws.js';
-import type { Result } from '../core/result.js';
-import type { AuthError } from '../core/errors.js';
-import { ok, err } from '../core/result.js';
-import { BrowserError, BrowserTimeoutError } from '../core/errors.js';
-import { connectCdpWs } from '../browser/cdp-ws.js';
-import { findNativeBrowser } from '../browser/detect-native.js';
-import { CookieExtractor } from './cookie-extractor.js';
-import { StorageExtractor } from './storage-extractor.js';
-import { checkRequired } from './required-checker.js';
+import type { ISourceStrategy, ExtractedCredentials, ExtractionContext } from '../../core/interfaces/source-strategy.js';
+import type { IBrowserExtractor } from '../../core/interfaces/browser-extractor.js';
+import type { ExtractRule } from '../../core/types/extract.js';
+import type { CdpWsClient } from '../../browser/cdp-ws.js';
+import type { Result } from '../../core/result.js';
+import type { AuthError } from '../../core/errors.js';
+import { ok, err } from '../../core/result.js';
+import { BrowserError, BrowserTimeoutError } from '../../core/errors.js';
+import { connectCdpWs } from '../../browser/cdp-ws.js';
+import { findNativeBrowser } from '../../browser/detect-native.js';
+import { CookieExtractor } from './extractors/cookie.js';
+import { StorageExtractor } from './extractors/storage.js';
+import { checkRequired } from '../../extraction/required-checker.js';
 
-export interface BrowserSourceOptions {
+export interface BrowserStrategyOptions {
     browserDataDir: string;
     execPath?: string;
     channel?: string;
 }
 
 /**
- * BrowserSource — launches a browser via CDP and runs sub-extractors.
+ * BrowserStrategy — launches a browser via CDP and runs sub-extractors.
  *
  * Flow:
  * 1. Find native browser binary
@@ -34,14 +34,14 @@ export interface BrowserSourceOptions {
  * 4. Poll sub-extractors until `required` criteria met or timeout
  * 5. Return extracted credentials
  */
-export class BrowserSource implements ISourceStrategy {
+export class BrowserStrategy implements ISourceStrategy {
     readonly name = 'browser';
     readonly needsBrowser = true;
 
     private readonly extractors: Map<string, IBrowserExtractor>;
-    private readonly options: BrowserSourceOptions;
+    private readonly options: BrowserStrategyOptions;
 
-    constructor(options: BrowserSourceOptions) {
+    constructor(options: BrowserStrategyOptions) {
         this.options = options;
         this.extractors = new Map();
         this.extractors.set('cookies', new CookieExtractor());

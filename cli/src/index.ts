@@ -75,14 +75,23 @@ export type {
 export { ApplyEngine, applyRules, interpolate } from './apply/engine.js';
 export type { ApplyResult } from './apply/engine.js';
 export { checkRequired } from './extraction/required-checker.js';
-export { BrowserSource } from './extraction/browser-source.js';
-export type { BrowserSourceOptions } from './extraction/browser-source.js';
-export { PromptSource } from './extraction/prompt-source.js';
-export { CookieExtractor } from './extraction/cookie-extractor.js';
-export { StorageExtractor } from './extraction/storage-extractor.js';
+export { BrowserStrategy } from './strategies/browser/index.js';
+export { BrowserStrategy as BrowserSource } from './strategies/browser/index.js';
+export type { BrowserStrategyOptions } from './strategies/browser/index.js';
+export type { BrowserStrategyOptions as BrowserSourceOptions } from './strategies/browser/index.js';
+export { PromptStrategy } from './strategies/prompt/index.js';
+export { PromptStrategy as PromptSource } from './strategies/prompt/index.js';
+export { CookieExtractor } from './strategies/browser/index.js';
+export { StorageExtractor } from './strategies/browser/index.js';
+export { OAuth2Strategy } from './strategies/oauth2/index.js';
+export { StrategyRegistry } from './strategies/registry.js';
 
 // AuthManager
 export { AuthManager } from './auth-manager.js';
+
+// Credential helpers
+export { extractedToCredential, credentialToExtracted, toV2Config } from './credential-converter.js';
+export { checkTtl, validateCredential, getExpiresAt } from './credential-validator.js';
 
 // Storage implementations
 export { DirectoryStorage } from './storage/directory-storage.js';

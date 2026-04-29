@@ -7,7 +7,7 @@
  * using the new BrowserSource/CookieExtractor/StorageExtractor.
  */
 import { loadConfig } from '../../src/config/loader.js';
-import { BrowserSource } from '../../src/extraction/browser-source.js';
+import { BrowserStrategy } from '../../src/strategies/browser/index.js';
 import { applyRules } from '../../src/apply/engine.js';
 import { checkRequired } from '../../src/extraction/required-checker.js';
 import { isOk } from '../../src/core/result.js';
@@ -162,7 +162,7 @@ async function main() {
     if (provider.required) console.log(`Required: ${provider.required.join(', ')}`);
     console.log('');
 
-    const browserSource = new BrowserSource({
+    const browserSource = new BrowserStrategy({
         browserDataDir: config.browser.browserDataDir,
         channel: config.browser.channel,
     });

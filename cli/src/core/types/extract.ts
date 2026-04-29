@@ -33,7 +33,7 @@ export interface ProviderConfigV2 {
     domains: string[];
     entryUrl?: string;
 
-    source: 'browser' | 'prompt';
+    source: 'browser' | 'prompt' | 'oauth2';
     ttl?: string;
     required?: string[];
     cookiePaths?: string[];

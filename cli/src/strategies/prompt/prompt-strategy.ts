@@ -1,17 +1,17 @@
 import * as readline from 'node:readline';
-import type { ISourceStrategy, ExtractedCredentials, ExtractionContext } from '../core/interfaces/source-strategy.js';
-import type { ExtractRule } from '../core/types/extract.js';
-import type { Result } from '../core/result.js';
-import type { AuthError } from '../core/errors.js';
-import { ok, err } from '../core/result.js';
-import { ManualSetupRequired } from '../core/errors.js';
+import type { ISourceStrategy, ExtractedCredentials, ExtractionContext } from '../../core/interfaces/source-strategy.js';
+import type { ExtractRule } from '../../core/types/extract.js';
+import type { Result } from '../../core/result.js';
+import type { AuthError } from '../../core/errors.js';
+import { ok, err } from '../../core/result.js';
+import { ManualSetupRequired } from '../../core/errors.js';
 
 /**
- * PromptSource — asks the user for input interactively.
+ * PromptStrategy — asks the user for input interactively.
  *
  * extract[].key is used as the prompt message displayed to the user.
  */
-export class PromptSource implements ISourceStrategy {
+export class PromptStrategy implements ISourceStrategy {
     readonly name = 'prompt';
     readonly needsBrowser = false;
 
