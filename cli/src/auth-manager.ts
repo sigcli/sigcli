@@ -10,13 +10,19 @@ import type {
     ILogger,
 } from './core/types.js';
 import type { BrowserConfig } from './config/schema.js';
+import type { ISourceStrategy, ExtractedCredentials, ExtractionContext } from './core/interfaces/source-strategy.js';
+import type { ExtractRule, ApplyRule, NewProviderConfig } from './core/types/extract.js';
+import type { ApplyResult } from './apply/engine.js';
 import { createDefaultProvider } from './providers/auto-provision.js';
 import type { Result } from './core/result.js';
 import { ok, err, isOk } from './core/result.js';
-import { CredentialTypeError, ProviderNotFoundError, type AuthError } from './core/errors.js';
+import { CredentialTypeError, ProviderNotFoundError, CredentialNotFoundError, type AuthError } from './core/errors.js';
 import { StrategyRegistry } from './strategies/registry.js';
 import { LOGIN_URL_PATTERNS, HttpHeader, CredentialTypeName } from './core/constants.js';
 import { buildUserAgent } from './utils/http.js';
+import { applyRules } from './apply/engine.js';
+import { checkRequired } from './extraction/required-checker.js';
+import { parseDuration } from './utils/duration.js';
 
 export interface AuthManagerDeps {
     storage: IStorage;
@@ -355,5 +361,90 @@ export class AuthManager {
             default:
                 return null;
         }
+    }
+
+    // ========================================================================
+    // NEW: Extract/Apply system (Phase 4)
+    // ========================================================================
+
+    private sourceStrategies = new Map<string, ISourceStrategy>();
+
+    registerSource(source: ISourceStrategy): void {
+        this.sourceStrategies.set(source.name, source);
+    }
+
+    /**
+     * Get credentials using the new extract/apply system.
+     * Flow: check TTL → select source → run extract[] → check required → store
+     */
+    async getExtracted(
+        provider: NewProviderConfig,
+    ): Promise<Result<ExtractedCredentials, AuthError>> {
+        const key = provider.id;
+
+        // Step 1: Check stored + TTL
+        const stored = await this.storage.get(key);
+        if (stored && provider.ttl) {
+            const entry = stored as unknown as { values?: ExtractedCredentials; updatedAt?: string };
+            if (entry.values) {
+                const ttlMs = parseDuration(provider.ttl);
+                if (ttlMs) {
+                    const updatedAt = new Date(entry.updatedAt ?? stored.updatedAt).getTime();
+                    if (Date.now() - updatedAt < ttlMs) {
+                        return ok(entry.values);
+                    }
+                }
+            }
+        }
+
+        // Step 2: Select source strategy
+        const source = this.sourceStrategies.get(provider.source);
+        if (!source) {
+            return err(new ProviderNotFoundError(
+                `No source strategy registered for "${provider.source}"`,
+            ));
+        }
+
+        // Step 3: Run extraction
+        const ctx: ExtractionContext = {
+            entryUrl: provider.entryUrl ?? '',
+            domains: provider.domains,
+            networkProxy: provider.networkProxy,
+            cookiePaths: provider.cookiePaths,
+            loginMode: provider.loginMode,
+            required: provider.required,
+            timeout: this.browserConfig.visibleTimeout,
+        };
+
+        const extractResult = await source.extract(provider.extract, ctx);
+        if (!isOk(extractResult)) return extractResult;
+
+        // Step 4: Check required
+        if (provider.required?.length) {
+            const unmet = checkRequired(provider.required, extractResult.value);
+            if (unmet.length > 0) {
+                return err(new CredentialNotFoundError(
+                    `Required fields not met: ${unmet.join(', ')}`,
+                ));
+            }
+        }
+
+        // Step 5: Store
+        const storedEntry = {
+            values: extractResult.value,
+            providerId: provider.id,
+            source: provider.source,
+            updatedAt: new Date().toISOString(),
+        };
+        await this.storage.set(key, storedEntry as unknown as StoredCredential);
+
+        return ok(extractResult.value);
+    }
+
+    /**
+     * Apply rules to extracted credentials → HTTP headers/query/body.
+     */
+    applyExtracted(rules: ApplyRule[], credentials: ExtractedCredentials): ApplyResult {
+        return applyRules(rules, credentials);
     }
 }
