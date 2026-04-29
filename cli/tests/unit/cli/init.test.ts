@@ -39,7 +39,7 @@ vi.mock('../../../src/crypto/encryption.js', () => ({
 // Import after mocking
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
-import { runInit } from '../../../src/cli/commands/init.js';
+import { runInit } from '../../../src/commands/init.js';
 import { validateConfig } from '../../../src/config/validator.js';
 
 const mockValidateConfig = vi.mocked(validateConfig);

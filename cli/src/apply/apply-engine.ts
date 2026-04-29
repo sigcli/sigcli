@@ -1,5 +1,5 @@
-import type { ApplyRule } from '../core/types/extract.js';
-import type { ExtractedCredentials } from '../core/interfaces/source-strategy.js';
+import type { ApplyRule } from '../types/extract.js';
+import type { ExtractedCredentials } from '../types/interfaces/source-strategy.js';
 
 export interface ApplyResult {
     headers: Record<string, string>;

@@ -1,4 +1,4 @@
-import type { Credential } from '../core/types.js';
+import type { Credential } from '../types/types.js';
 
 export interface CredentialEnvOptions {
     expandCookies?: boolean;

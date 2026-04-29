@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CachedStorage } from '../../../src/storage/cached-storage.js';
 import { MemoryStorage } from '../../../src/storage/memory-storage.js';
-import type { StoredCredential } from '../../../src/core/types.js';
+import type { StoredCredential } from '../../../src/types/types.js';
 
 describe('CachedStorage', () => {
     let inner: MemoryStorage;

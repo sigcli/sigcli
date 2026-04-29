@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validateConfig, buildStrategyConfig } from '../../../src/config/validator.js';
-import { isOk, isErr } from '../../../src/core/result.js';
+import { isOk, isErr } from '../../../src/types/result.js';
 
 /**
  * Helper: returns a minimal valid raw config object.

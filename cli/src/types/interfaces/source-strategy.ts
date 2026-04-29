@@ -1,6 +1,6 @@
 import type { Result } from '../result.js';
 import type { AuthError } from '../errors.js';
-import type { ExtractRule } from '../types/extract.js';
+import type { ExtractRule } from '../extract.js';
 
 /**
  * Extracted credential values — flat key-value map.

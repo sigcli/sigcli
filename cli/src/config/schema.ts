@@ -11,8 +11,8 @@ import type {
     LocalStorageConfig,
     StrategyName,
     ProxyConfig,
-} from '../core/types.js';
-import type { WaitUntilValue } from '../core/constants.js';
+} from '../types/types.js';
+import type { WaitUntilValue } from '../types/constants.js';
 
 // Re-export strategy config types from core/types (the source of truth)
 export type {
@@ -24,7 +24,7 @@ export type {
     StrategyName,
     ProxyConfig,
     ProxyInjectRule,
-} from '../core/types.js';
+} from '../types/types.js';
 
 // ============================================================================
 // Top-level Config Sections

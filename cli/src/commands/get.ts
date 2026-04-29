@@ -1,10 +1,10 @@
-import type { AuthDeps } from '../../deps.js';
-import { isOk } from '../../core/result.js';
-import { formatJson, formatCredentialHeaders } from '../formatters.js';
-import { ExitCode } from '../exit-codes.js';
-import { OutputFormat } from '../../core/constants.js';
-import { logAuditEvent, AuditAction, AuditStatus } from '../../audit/audit-log.js';
-import { extractSensitiveValues, redactOutput } from '../../utils/redact.js';
+import type { AuthDeps } from '../deps.js';
+import { isOk } from '../types/result.js';
+import { formatJson, formatCredentialHeaders } from './formatters.js';
+import { ExitCode } from './exit-codes.js';
+import { OutputFormat } from '../types/constants.js';
+import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
+import { extractSensitiveValues, redactOutput } from '../utils/redact.js';
 
 export async function runGet(
     positionals: string[],

@@ -9,7 +9,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import YAML from 'yaml';
-import type { ExtractRule, ApplyRule, ProviderConfigV2 } from '../core/types/extract.js';
+import type { ExtractRule, ApplyRule, ProviderConfigV2 } from '../types/extract.js';
 
 export const CONFIG_VERSION = 2;
 

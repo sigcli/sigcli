@@ -3,12 +3,12 @@ import { openSync, closeSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
-import { readState, isRunning, clearState } from '../../proxy/proxy-state.js';
-import { expandHome } from '../../utils/path.js';
-import { ExitCode } from '../exit-codes.js';
-import type { AuthDeps } from '../../deps.js';
-import { ProxySubcommand } from '../../core/constants.js';
-import { logAuditEvent, AuditAction, AuditStatus } from '../../audit/audit-log.js';
+import { readState, isRunning, clearState } from '../proxy/proxy-state.js';
+import { expandHome } from '../utils/path.js';
+import { ExitCode } from './exit-codes.js';
+import type { AuthDeps } from '../deps.js';
+import { ProxySubcommand } from '../types/constants.js';
+import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
 
 const USAGE = `Usage: sig proxy <subcommand>
 
@@ -74,7 +74,7 @@ async function handleStart(
 
     // If PROXY_DAEMON=1 env var is set, run in-process (we are the daemon child)
     if (process.env.PROXY_DAEMON === '1') {
-        const { startDaemon } = await import('../../proxy/daemon.js');
+        const { startDaemon } = await import('../proxy/daemon.js');
         const controller = new AbortController();
         const shutdown = () => controller.abort();
         process.on('SIGINT', shutdown);
@@ -84,7 +84,7 @@ async function handleStart(
     }
 
     // Fork a detached background child
-    const entry = join(dirname(fileURLToPath(import.meta.url)), '../../../bin/sig.js');
+    const entry = join(dirname(fileURLToPath(import.meta.url)), '../../bin/sig.js');
 
     const proxyDir = expandHome('~/.sig/proxy');
     await mkdir(proxyDir, { recursive: true });
@@ -180,7 +180,7 @@ async function handleStatus(): Promise<void> {
     }
 
     // Watch status
-    const { getWatchConfig } = await import('../../watch/watch-config.js');
+    const { getWatchConfig } = await import('../watch/watch-config.js');
     const watchConfig = await getWatchConfig();
     const watchProviders = watchConfig ? Object.keys(watchConfig.providers) : [];
 
@@ -199,7 +199,7 @@ async function handleStatus(): Promise<void> {
     }
 
     // Sync/remote status
-    const { getRemotes } = await import('../../sync/remote-config.js');
+    const { getRemotes } = await import('../sync/remote-config.js');
     const remotes = await getRemotes();
 
     process.stdout.write('\n');

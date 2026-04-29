@@ -3,9 +3,9 @@
  * Returns Result<SigConfig, AuthError>.
  */
 
-import type { Result } from '../core/result.js';
-import { ok, err } from '../core/result.js';
-import { ConfigError, type AuthError } from '../core/errors.js';
+import type { Result } from '../types/result.js';
+import { ok, err } from '../types/result.js';
+import { ConfigError, type AuthError } from '../types/errors.js';
 import type {
     SigConfig,
     BrowserConfig,
@@ -17,7 +17,7 @@ import type {
     StrategyName as StrategyNameType,
     StrategyConfig,
 } from './schema.js';
-import { StrategyName, WaitUntil, type WaitUntilValue } from '../core/constants.js';
+import { StrategyName, WaitUntil, type WaitUntilValue } from '../types/constants.js';
 
 const VALID_STRATEGIES: readonly StrategyNameType[] = [
     StrategyName.COOKIE,

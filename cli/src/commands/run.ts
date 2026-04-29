@@ -1,11 +1,11 @@
 import { spawn } from 'node:child_process';
 import { writeFileSync, unlinkSync } from 'node:fs';
-import type { AuthDeps } from '../../deps.js';
-import { isOk } from '../../core/result.js';
-import { ExitCode } from '../exit-codes.js';
-import { credentialToEnvVars } from '../../utils/credential-env.js';
-import { extractSensitiveValues, redactOutput } from '../../utils/redact.js';
-import { logAuditEvent, AuditAction, AuditStatus } from '../../audit/audit-log.js';
+import type { AuthDeps } from '../deps.js';
+import { isOk } from '../types/result.js';
+import { ExitCode } from './exit-codes.js';
+import { credentialToEnvVars } from '../utils/credential-env.js';
+import { extractSensitiveValues, redactOutput } from '../utils/redact.js';
+import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
 
 export async function runRun(
     positionals: string[],

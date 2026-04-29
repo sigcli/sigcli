@@ -1,5 +1,5 @@
 import type { CdpWsClient } from '../../browser/cdp-ws.js';
-import type { ExtractRule } from '../types/extract.js';
+import type { ExtractRule } from '../extract.js';
 
 /**
  * Sub-extractor that runs inside a browser session via CDP.

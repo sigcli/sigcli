@@ -1,7 +1,7 @@
-import type { AuthDeps } from '../../deps.js';
-import { renameProviderInConfig } from '../../config/loader.js';
-import { ExitCode } from '../exit-codes.js';
-import { logAuditEvent, AuditAction, AuditStatus } from '../../audit/audit-log.js';
+import type { AuthDeps } from '../deps.js';
+import { renameProviderInConfig } from '../config/loader.js';
+import { ExitCode } from './exit-codes.js';
+import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
 
 export async function runRename(
     positionals: string[],

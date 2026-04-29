@@ -14,7 +14,7 @@ vi.mock('node:fs/promises', () => ({
 // Import after mocking
 import fs from 'node:fs/promises';
 import { loadConfig, saveConfig, getConfigPath } from '../../../src/config/loader.js';
-import { isOk, isErr } from '../../../src/core/result.js';
+import { isOk, isErr } from '../../../src/types/result.js';
 
 const mockFs = vi.mocked(fs);
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ProviderRegistry } from '../../../src/providers/provider-registry.js';
-import type { ProviderConfig } from '../../../src/core/types.js';
+import type { ProviderConfig } from '../../../src/types/types.js';
 
 const jiraProvider: ProviderConfig = {
     id: 'jira',

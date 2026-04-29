@@ -1,4 +1,4 @@
-import type { Credential, ProxyInjectRule } from '../core/types.js';
+import type { Credential, ProxyInjectRule } from '../types/types.js';
 import type * as http from 'node:http';
 
 export function resolveFrom(credential: Credential, fromPath: string): string | null {

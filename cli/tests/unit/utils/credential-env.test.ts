@@ -6,7 +6,7 @@ import type {
     ApiKeyCredential,
     BasicCredential,
     Cookie,
-} from '../../../src/core/types.js';
+} from '../../../src/types/types.js';
 
 function makeCookie(name: string, value: string): Cookie {
     return {

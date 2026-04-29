@@ -4,19 +4,19 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn, type ChildProcess } from 'node:child_process';
-import type { ISourceStrategy, ExtractedCredentials, ExtractionContext } from '../../core/interfaces/source-strategy.js';
-import type { IBrowserExtractor } from '../../core/interfaces/browser-extractor.js';
-import type { ExtractRule } from '../../core/types/extract.js';
+import type { ISourceStrategy, ExtractedCredentials, ExtractionContext } from '../../types/interfaces/source-strategy.js';
+import type { IBrowserExtractor } from '../../types/interfaces/browser-extractor.js';
+import type { ExtractRule } from '../../types/extract.js';
 import type { CdpWsClient } from '../../browser/cdp-ws.js';
-import type { Result } from '../../core/result.js';
-import type { AuthError } from '../../core/errors.js';
-import { ok, err } from '../../core/result.js';
-import { BrowserError, BrowserTimeoutError } from '../../core/errors.js';
+import type { Result } from '../../types/result.js';
+import type { AuthError } from '../../types/errors.js';
+import { ok, err } from '../../types/result.js';
+import { BrowserError, BrowserTimeoutError } from '../../types/errors.js';
 import { connectCdpWs } from '../../browser/cdp-ws.js';
 import { findNativeBrowser } from '../../browser/detect-native.js';
 import { CookieExtractor } from './extractors/cookie.js';
 import { StorageExtractor } from './extractors/storage.js';
-import { checkRequired } from '../../extraction/required-checker.js';
+import { checkRequired } from '../required-checker.js';
 
 export interface BrowserStrategyOptions {
     browserDataDir: string;

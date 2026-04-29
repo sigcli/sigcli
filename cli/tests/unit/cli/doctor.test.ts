@@ -42,7 +42,7 @@ vi.mock('playwright-core', () => ({
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import { ok, err, ConfigError, getConfigPath, loadConfig } from '../../../src/index.js';
-import { runDoctor } from '../../../src/cli/commands/doctor.js';
+import { runDoctor } from '../../../src/commands/doctor.js';
 import type { SigConfig } from '../../../src/index.js';
 
 const mockExistsSync = vi.mocked(fs.existsSync);

@@ -27,11 +27,11 @@ export type {
     BrowserLaunchOptions,
     ILogger,
     LocalStorageConfig,
-} from './core/types.js';
+} from './types/types.js';
 
 // Result type
-export { ok, err, isOk, isErr } from './core/result.js';
-export type { Result } from './core/result.js';
+export { ok, err, isOk, isErr } from './types/result.js';
+export type { Result } from './types/result.js';
 
 // Errors
 export {
@@ -53,28 +53,28 @@ export {
     BrowserUnavailableError,
     SyncConflictError,
     EncryptionError,
-} from './core/errors.js';
+} from './types/errors.js';
 
 // Interfaces
-export type { IStorage } from './core/interfaces/storage.js';
-export type { IProviderRegistry } from './core/interfaces/provider.js';
+export type { IStorage } from './types/interfaces/storage.js';
+export type { IProviderRegistry } from './types/interfaces/provider.js';
 
 // New interfaces (extract/apply redesign)
 export type {
     ISourceStrategy,
     ExtractedCredentials,
     ExtractionContext,
-} from './core/interfaces/source-strategy.js';
-export type { IBrowserExtractor } from './core/interfaces/browser-extractor.js';
+} from './types/interfaces/source-strategy.js';
+export type { IBrowserExtractor } from './types/interfaces/browser-extractor.js';
 export type {
     ExtractRule,
     ApplyRule,
     ProviderConfigV2,
     StoredCredentialV2,
-} from './core/types/extract.js';
+} from './types/extract.js';
 export { ApplyEngine } from './apply/apply-engine.js';
 export type { ApplyResult } from './apply/apply-engine.js';
-export { checkRequired } from './extraction/required-checker.js';
+export { checkRequired } from './strategies/required-checker.js';
 export { BrowserStrategy } from './strategies/browser/index.js';
 export { BrowserStrategy as BrowserSource } from './strategies/browser/index.js';
 export type { BrowserStrategyOptions } from './strategies/browser/index.js';
@@ -90,8 +90,8 @@ export { StrategyRegistry } from './strategies/registry.js';
 export { AuthManager } from './auth-manager.js';
 
 // Credential helpers
-export { extractedToCredential, credentialToExtracted, toV2Config } from './credential-converter.js';
-export { checkTtl, validateCredential, getExpiresAt } from './credential-validator.js';
+export { extractedToCredential, credentialToExtracted, toV2Config } from './utils/credential-converter.js';
+export { checkTtl, validateCredential, getExpiresAt } from './utils/credential-validator.js';
 
 // Storage implementations
 export { DirectoryStorage } from './storage/directory-storage.js';
@@ -112,8 +112,8 @@ export { connectCdpWs } from './browser/cdp-ws.js';
 export type { CdpWsClient } from './browser/cdp-ws.js';
 
 // CLI
-export { parseArgs } from './cli/main.js';
-export { ExitCode } from './cli/exit-codes.js';
+export { parseArgs } from './commands/main.js';
+export { ExitCode } from './commands/exit-codes.js';
 
 // Sync
 export { SyncEngine } from './sync/sync-engine.js';
@@ -138,8 +138,8 @@ export {
     APP_VERSION,
     SIG_DIR,
     CONFIG_FILENAME,
-} from './core/constants.js';
-export type { WaitUntilValue, LoginModeValue } from './core/constants.js';
+} from './types/constants.js';
+export type { WaitUntilValue, LoginModeValue } from './types/constants.js';
 
 // Utilities
 export { decodeJwt, isJwtExpired, getJwtExpiresAt } from './utils/jwt.js';

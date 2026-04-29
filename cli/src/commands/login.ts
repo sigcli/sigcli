@@ -1,13 +1,13 @@
-import type { AuthDeps } from '../../deps.js';
-import type { ProviderConfig } from '../../core/types.js';
-import type { ProviderEntry, StrategyName } from '../../config/schema.js';
-import { addProviderToConfig } from '../../config/loader.js';
-import { isOk } from '../../core/result.js';
-import { formatJson } from '../formatters.js';
-import { ProviderNotFoundError } from '../../core/errors.js';
-import { BROWSER_REQUIRED_STRATEGIES } from '../../core/constants.js';
-import { ExitCode } from '../exit-codes.js';
-import { logAuditEvent, AuditAction, AuditStatus } from '../../audit/audit-log.js';
+import type { AuthDeps } from '../deps.js';
+import type { ProviderConfig } from '../types/types.js';
+import type { ProviderEntry, StrategyName } from '../config/schema.js';
+import { addProviderToConfig } from '../config/loader.js';
+import { isOk } from '../types/result.js';
+import { formatJson } from './formatters.js';
+import { ProviderNotFoundError } from '../types/errors.js';
+import { BROWSER_REQUIRED_STRATEGIES } from '../types/constants.js';
+import { ExitCode } from './exit-codes.js';
+import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
 
 /** Convert runtime ProviderConfig to the YAML ProviderEntry format. */
 function toProviderEntry(pc: ProviderConfig): ProviderEntry {

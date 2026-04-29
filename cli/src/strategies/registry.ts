@@ -1,4 +1,4 @@
-import type { ISourceStrategy } from '../core/interfaces/source-strategy.js';
+import type { ISourceStrategy } from '../types/interfaces/source-strategy.js';
 
 /**
  * StrategyRegistry — manages source strategy instances by name.

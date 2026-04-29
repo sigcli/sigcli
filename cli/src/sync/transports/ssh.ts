@@ -3,7 +3,7 @@ import { promisify } from 'node:util';
 import path from 'node:path';
 import os from 'node:os';
 import type { RemoteConfig } from '../types.js';
-import type { StoredCredential } from '../../core/types.js';
+import type { StoredCredential } from '../../types/types.js';
 import type { ISyncTransport, RemoteEntry } from '../interfaces/transport.js';
 import { encrypt, decrypt, isEncryptedEnvelope } from '../../crypto/encryption.js';
 

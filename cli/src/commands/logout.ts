@@ -1,5 +1,5 @@
-import type { AuthDeps } from '../../deps.js';
-import { logAuditEvent, AuditAction, AuditStatus } from '../../audit/audit-log.js';
+import type { AuthDeps } from '../deps.js';
+import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
 
 export async function runLogout(
     positionals: string[],

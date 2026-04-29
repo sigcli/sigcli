@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { MemoryStorage } from '../../../src/storage/memory-storage.js';
-import type { StoredCredential } from '../../../src/core/types.js';
+import type { StoredCredential } from '../../../src/types/types.js';
 
 describe('MemoryStorage', () => {
     let storage: MemoryStorage;

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { resolveFrom, applyInjectRules } from '../../../src/proxy/inject.js';
-import type { CookieCredential, BearerCredential } from '../../../src/core/types.js';
+import type { CookieCredential, BearerCredential } from '../../../src/types/types.js';
 
 const cookieCred: CookieCredential = {
     type: 'cookie',

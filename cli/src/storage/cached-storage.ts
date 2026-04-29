@@ -1,5 +1,5 @@
-import type { IStorage } from '../core/interfaces/storage.js';
-import type { StoredCredential, StoredEntry } from '../core/types.js';
+import type { IStorage } from '../types/interfaces/storage.js';
+import type { StoredCredential, StoredEntry } from '../types/types.js';
 
 interface CacheEntry {
     value: StoredCredential | null;

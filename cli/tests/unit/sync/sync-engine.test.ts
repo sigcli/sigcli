@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SyncEngine } from '../../../src/sync/sync-engine.js';
 import { MemoryStorage } from '../../../src/storage/memory-storage.js';
-import type { StoredCredential } from '../../../src/core/types.js';
+import type { StoredCredential } from '../../../src/types/types.js';
 import type { RemoteConfig } from '../../../src/sync/types.js';
 import type { SigConfig } from '../../../src/config/schema.js';
 import type { ISyncTransport } from '../../../src/sync/interfaces/transport.js';

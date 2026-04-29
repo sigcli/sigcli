@@ -1,10 +1,10 @@
 import * as readline from 'node:readline';
-import type { ISourceStrategy, ExtractedCredentials, ExtractionContext } from '../../core/interfaces/source-strategy.js';
-import type { ExtractRule } from '../../core/types/extract.js';
-import type { Result } from '../../core/result.js';
-import type { AuthError } from '../../core/errors.js';
-import { ok, err } from '../../core/result.js';
-import { ManualSetupRequired } from '../../core/errors.js';
+import type { ISourceStrategy, ExtractedCredentials, ExtractionContext } from '../../types/interfaces/source-strategy.js';
+import type { ExtractRule } from '../../types/extract.js';
+import type { Result } from '../../types/result.js';
+import type { AuthError } from '../../types/errors.js';
+import { ok, err } from '../../types/result.js';
+import { ManualSetupRequired } from '../../types/errors.js';
 
 /**
  * PromptStrategy — asks the user for input interactively.

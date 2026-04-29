@@ -5,7 +5,7 @@ import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { DirectoryStorage } from '../../../src/storage/directory-storage.js';
 import { isEncryptedEnvelope } from '../../../src/crypto/encryption.js';
-import type { StoredCredential } from '../../../src/core/types.js';
+import type { StoredCredential } from '../../../src/types/types.js';
 
 describe('DirectoryStorage encryption', () => {
     let tmpDir: string;

@@ -10,14 +10,14 @@ import path from 'node:path';
 import os from 'node:os';
 import { createInterface } from 'node:readline/promises';
 import YAML from 'yaml';
-import { getConfigPath } from '../../config/loader.js';
-import { generateConfigYaml } from '../../config/generator.js';
-import { validateConfig } from '../../config/validator.js';
-import { isOk } from '../../core/result.js';
-import { findChannelBrowser } from '../../browser/detect.js';
-import { generateEncryptionKey } from '../../crypto/encryption.js';
-import { ExitCode } from '../exit-codes.js';
-import { WaitUntil, StrategyName, HttpHeader, AuthScheme } from '../../core/constants.js';
+import { getConfigPath } from '../config/loader.js';
+import { generateConfigYaml } from '../config/generator.js';
+import { validateConfig } from '../config/validator.js';
+import { isOk } from '../types/result.js';
+import { findChannelBrowser } from '../browser/detect.js';
+import { generateEncryptionKey } from '../crypto/encryption.js';
+import { ExitCode } from './exit-codes.js';
+import { WaitUntil, StrategyName, HttpHeader, AuthScheme } from '../types/constants.js';
 
 // ---------------------------------------------------------------------------
 // Strategy templates — one per built-in strategy

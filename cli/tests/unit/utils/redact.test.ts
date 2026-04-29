@@ -4,8 +4,8 @@ import {
     redactOutput,
     createRedactTransform,
 } from '../../../src/utils/redact.js';
-import type { CookieCredential, BearerCredential } from '../../../src/core/types.js';
-import type { Cookie } from '../../../src/core/types.js';
+import type { CookieCredential, BearerCredential } from '../../../src/types/types.js';
+import type { Cookie } from '../../../src/types/types.js';
 
 function makeCookie(name: string, value: string): Cookie {
     return {

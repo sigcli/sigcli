@@ -9,9 +9,9 @@
 import { loadConfig } from '../../src/config/loader.js';
 import { BrowserStrategy } from '../../src/strategies/browser/index.js';
 import { ApplyEngine } from '../../src/apply/apply-engine.js';
-import { checkRequired } from '../../src/extraction/required-checker.js';
-import { isOk } from '../../src/core/result.js';
-import type { ExtractRule, ApplyRule } from '../../src/core/types/extract.js';
+import { checkRequired } from '../../src/strategies/required-checker.js';
+import { isOk } from '../../src/types/result.js';
+import type { ExtractRule, ApplyRule } from '../../src/types/extract.js';
 
 // New-format provider definitions for testing
 const TEST_PROVIDERS: Record<string, {

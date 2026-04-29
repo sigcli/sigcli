@@ -2,7 +2,7 @@ import * as http from 'node:http';
 import * as https from 'node:https';
 import * as net from 'node:net';
 import * as tls from 'node:tls';
-import { isOk } from '../core/result.js';
+import { isOk } from '../types/result.js';
 import type { AuthDeps } from '../deps.js';
 import type { CaManager } from './ca-manager.js';
 import { applyInjectRules } from './inject.js';

@@ -1,9 +1,9 @@
-import type { ISourceStrategy, ExtractedCredentials, ExtractionContext } from '../../core/interfaces/source-strategy.js';
-import type { ExtractRule } from '../../core/types/extract.js';
-import type { Result } from '../../core/result.js';
-import type { AuthError } from '../../core/errors.js';
-import { err } from '../../core/result.js';
-import { AuthError as BaseAuthError } from '../../core/errors.js';
+import type { ISourceStrategy, ExtractedCredentials, ExtractionContext } from '../../types/interfaces/source-strategy.js';
+import type { ExtractRule } from '../../types/extract.js';
+import type { Result } from '../../types/result.js';
+import type { AuthError } from '../../types/errors.js';
+import { err } from '../../types/result.js';
+import { AuthError as BaseAuthError } from '../../types/errors.js';
 
 /**
  * OAuth2Strategy — stub for future OAuth2 PKCE/device-code flow.

@@ -1,11 +1,11 @@
-import type { AuthDeps } from '../../deps.js';
-import { isOk } from '../../core/result.js';
-import { buildUserAgent } from '../../utils/http.js';
-import { formatJson } from '../formatters.js';
-import { HttpHeader } from '../../core/constants.js';
-import { ExitCode } from '../exit-codes.js';
-import { applyInjectRules } from '../../proxy/inject.js';
-import { logAuditEvent, AuditAction, AuditStatus } from '../../audit/audit-log.js';
+import type { AuthDeps } from '../deps.js';
+import { isOk } from '../types/result.js';
+import { buildUserAgent } from '../utils/http.js';
+import { formatJson } from './formatters.js';
+import { HttpHeader } from '../types/constants.js';
+import { ExitCode } from './exit-codes.js';
+import { applyInjectRules } from '../proxy/inject.js';
+import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
 
 export async function runRequest(
     positionals: string[],

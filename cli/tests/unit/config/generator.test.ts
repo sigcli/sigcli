@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import YAML from 'yaml';
 import { generateConfigYaml, type InitOptions } from '../../../src/config/generator.js';
 import { validateConfig } from '../../../src/config/validator.js';
-import { isOk } from '../../../src/core/result.js';
+import { isOk } from '../../../src/types/result.js';
 
 /**
  * Helper: returns minimal valid InitOptions.

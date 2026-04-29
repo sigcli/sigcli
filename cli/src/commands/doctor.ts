@@ -8,13 +8,13 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { getConfigPath, loadConfig } from '../../config/loader.js';
-import { isOk } from '../../core/result.js';
-import { findChannelBrowser } from '../../browser/detect.js';
-import type { SigConfig } from '../../config/schema.js';
-import { BROWSER_REQUIRED_STRATEGIES } from '../../core/constants.js';
-import { expandHome } from '../../utils/path.js';
-import { ExitCode } from '../exit-codes.js';
+import { getConfigPath, loadConfig } from '../config/loader.js';
+import { isOk } from '../types/result.js';
+import { findChannelBrowser } from '../browser/detect.js';
+import type { SigConfig } from '../config/schema.js';
+import { BROWSER_REQUIRED_STRATEGIES } from '../types/constants.js';
+import { expandHome } from '../utils/path.js';
+import { ExitCode } from './exit-codes.js';
 
 interface CheckResult {
     label: string;
@@ -203,7 +203,7 @@ async function checkStoredCredentials(config: SigConfig | undefined): Promise<Ch
                 const cred = data?.credential;
                 if (cred?.type === 'bearer' && cred?.accessToken) {
                     try {
-                        const { isJwtExpired } = await import('../../utils/jwt.js');
+                        const { isJwtExpired } = await import('../utils/jwt.js');
                         if (isJwtExpired(cred.accessToken)) expired++;
                     } catch {
                         // JWT decode failed, skip

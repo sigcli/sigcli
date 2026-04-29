@@ -16,8 +16,8 @@ import {
     APP_VERSION,
     SIG_DIR,
     CONFIG_FILENAME,
-} from '../../../src/core/constants.js';
-import type { WaitUntilValue } from '../../../src/core/constants.js';
+} from '../../../src/types/constants.js';
+import type { WaitUntilValue } from '../../../src/types/constants.js';
 
 describe('constants', () => {
     describe('Command', () => {

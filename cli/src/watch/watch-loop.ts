@@ -5,10 +5,10 @@
 
 import { Cron } from 'croner';
 import type { AuthManager } from '../auth-manager.js';
-import type { IStorage } from '../core/interfaces/storage.js';
-import type { ILogger } from '../core/types.js';
+import type { IStorage } from '../types/interfaces/storage.js';
+import type { ILogger } from '../types/types.js';
 import type { SigConfig } from '../config/schema.js';
-import { isOk } from '../core/result.js';
+import { isOk } from '../types/result.js';
 import { SyncEngine } from '../sync/sync-engine.js';
 import { SshTransport } from '../sync/transports/ssh.js';
 import { getRemote } from '../sync/remote-config.js';

@@ -6,7 +6,7 @@ import {
     formatExpiry,
     formatStatusIndicator,
     stripAnsi,
-} from '../../../src/cli/formatters.js';
+} from '../../../src/commands/formatters.js';
 
 describe('formatJson', () => {
     it('returns pretty-printed JSON for a simple object', () => {

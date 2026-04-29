@@ -1,8 +1,8 @@
-import { getRemotes, addRemote, removeRemote } from '../../sync/remote-config.js';
-import type { RemoteConfig } from '../../sync/types.js';
-import { formatJson, formatTable } from '../formatters.js';
-import { ExitCode } from '../exit-codes.js';
-import { RemoteSubcommand } from '../../core/constants.js';
+import { getRemotes, addRemote, removeRemote } from '../sync/remote-config.js';
+import type { RemoteConfig } from '../sync/types.js';
+import { formatJson, formatTable } from './formatters.js';
+import { ExitCode } from './exit-codes.js';
+import { RemoteSubcommand } from '../types/constants.js';
 
 export async function runRemote(
     positionals: string[],

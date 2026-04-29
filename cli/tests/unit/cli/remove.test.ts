@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AuthManager } from '../../../src/auth-manager.js';
 import { MemoryStorage } from '../../../src/storage/memory-storage.js';
 import { ProviderRegistry } from '../../../src/providers/provider-registry.js';
-import { runRemove } from '../../../src/cli/commands/remove.js';
+import { runRemove } from '../../../src/commands/remove.js';
 import type { AuthDeps } from '../../../src/deps.js';
-import type { ProviderConfig, StoredCredential } from '../../../src/core/types.js';
-import type { IBrowserAdapter } from '../../../src/core/interfaces/browser-adapter.js';
+import type { ProviderConfig, StoredCredential } from '../../../src/types/types.js';
+import type { IBrowserAdapter } from '../../../src/types/interfaces/browser-adapter.js';
 import type { BrowserConfig, SigConfig } from '../../../src/config/schema.js';
 
 // Mock removeProviderFromConfig since it touches the filesystem

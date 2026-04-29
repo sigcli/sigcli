@@ -1,7 +1,7 @@
-import type { Credential, ProviderConfig } from './core/types.js';
-import type { ExtractedCredentials } from './core/interfaces/source-strategy.js';
-import type { ProviderConfigV2 } from './core/types/extract.js';
-import { migrateProvider } from './config/migration.js';
+import type { Credential, ProviderConfig } from '../types/types.js';
+import type { ExtractedCredentials } from '../types/interfaces/source-strategy.js';
+import type { ProviderConfigV2 } from '../types/extract.js';
+import { migrateProvider } from '../config/migration.js';
 
 /**
  * Converts between ExtractedCredentials (v2 flat map) and old Credential format.

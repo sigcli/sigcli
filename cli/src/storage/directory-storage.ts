@@ -1,9 +1,9 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import lockfile from 'proper-lockfile';
-import type { IStorage } from '../core/interfaces/storage.js';
-import type { StoredCredential, StoredEntry } from '../core/types.js';
-import { StorageError } from '../core/errors.js';
+import type { IStorage } from '../types/interfaces/storage.js';
+import type { StoredCredential, StoredEntry } from '../types/types.js';
+import { StorageError } from '../types/errors.js';
 import { sanitizeId } from '../utils/sanitize.js';
 import { encrypt, decrypt, isEncryptedEnvelope } from '../crypto/encryption.js';
 

@@ -1,5 +1,5 @@
-import type { IStorage } from './core/interfaces/storage.js';
-import type { ILogger, ProviderConfig } from './core/types.js';
+import type { IStorage } from './types/interfaces/storage.js';
+import type { ILogger, ProviderConfig } from './types/types.js';
 import type { SigConfig } from './config/schema.js';
 import { AuthManager } from './auth-manager.js';
 import { ProviderRegistry } from './providers/provider-registry.js';

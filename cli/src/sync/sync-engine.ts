@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import YAML from 'yaml';
-import type { IStorage } from '../core/interfaces/storage.js';
+import type { IStorage } from '../types/interfaces/storage.js';
 import type { SigConfig } from '../config/schema.js';
 import { getConfigPath } from '../config/loader.js';
 import type { RemoteConfig, SyncResult } from './types.js';

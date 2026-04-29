@@ -1,5 +1,5 @@
-import type { IProviderRegistry } from '../core/interfaces/provider.js';
-import type { ProviderConfig } from '../core/types.js';
+import type { IProviderRegistry } from '../types/interfaces/provider.js';
+import type { ProviderConfig } from '../types/types.js';
 
 /**
  * Registry for provider configurations.

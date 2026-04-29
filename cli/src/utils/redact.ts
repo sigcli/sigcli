@@ -1,4 +1,4 @@
-import type { Credential } from '../core/types.js';
+import type { Credential } from '../types/types.js';
 import { Transform } from 'node:stream';
 
 const MIN_SECRET_LENGTH = 8;

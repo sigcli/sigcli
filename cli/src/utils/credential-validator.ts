@@ -1,9 +1,9 @@
-import type { Credential, ProviderConfig, StoredCredential } from './core/types.js';
-import type { ProviderConfigV2 } from './core/types/extract.js';
-import { LOGIN_URL_PATTERNS, HttpHeader } from './core/constants.js';
-import { buildUserAgent } from './utils/http.js';
-import { parseDuration } from './utils/duration.js';
-import { ApplyEngine } from './apply/apply-engine.js';
+import type { Credential, ProviderConfig, StoredCredential } from '../types/types.js';
+import type { ProviderConfigV2 } from '../types/extract.js';
+import { LOGIN_URL_PATTERNS, HttpHeader } from '../types/constants.js';
+import { buildUserAgent } from './http.js';
+import { parseDuration } from './duration.js';
+import { ApplyEngine } from '../apply/apply-engine.js';
 import { credentialToExtracted, toV2Config } from './credential-converter.js';
 
 /**

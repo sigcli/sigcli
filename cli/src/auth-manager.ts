@@ -1,25 +1,25 @@
-import type { IStorage } from './core/interfaces/storage.js';
-import type { IProviderRegistry } from './core/interfaces/provider.js';
+import type { IStorage } from './types/interfaces/storage.js';
+import type { IProviderRegistry } from './types/interfaces/provider.js';
 import type {
     Credential,
     ProviderConfig,
     StoredCredential,
     ProviderStatus,
     ILogger,
-} from './core/types.js';
+} from './types/types.js';
 import type { BrowserConfig } from './config/schema.js';
-import type { ISourceStrategy, ExtractedCredentials, ExtractionContext } from './core/interfaces/source-strategy.js';
-import type { ApplyRule, ProviderConfigV2 } from './core/types/extract.js';
+import type { ISourceStrategy, ExtractedCredentials, ExtractionContext } from './types/interfaces/source-strategy.js';
+import type { ApplyRule, ProviderConfigV2 } from './types/extract.js';
 
 import { createDefaultProvider } from './providers/auto-provision.js';
-import type { Result } from './core/result.js';
-import { ok, err, isOk } from './core/result.js';
-import { ProviderNotFoundError, CredentialNotFoundError, type AuthError } from './core/errors.js';
+import type { Result } from './types/result.js';
+import { ok, err, isOk } from './types/result.js';
+import { ProviderNotFoundError, CredentialNotFoundError, type AuthError } from './types/errors.js';
 import { ApplyEngine, type ApplyResult } from './apply/apply-engine.js';
-import { checkRequired } from './extraction/required-checker.js';
+import { checkRequired } from './strategies/required-checker.js';
 import { parseDuration } from './utils/duration.js';
-import { extractedToCredential, credentialToExtracted, toV2Config } from './credential-converter.js';
-import { checkTtl, validateCredential, getExpiresAt } from './credential-validator.js';
+import { extractedToCredential, credentialToExtracted, toV2Config } from './utils/credential-converter.js';
+import { checkTtl, validateCredential, getExpiresAt } from './utils/credential-validator.js';
 
 export interface AuthManagerDeps {
     storage: IStorage;

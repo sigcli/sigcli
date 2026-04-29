@@ -1,8 +1,8 @@
-import type { AuthDeps } from '../../deps.js';
-import { formatExpiry, formatStatusIndicator, formatTable } from '../formatters.js';
-import type { ProviderStatus } from '../../core/types.js';
-import { getWatchProviders, type WatchProviderEntry } from '../../watch/watch-config.js';
-import { detectFormat, formatOutput } from '../../utils/formatter.js';
+import type { AuthDeps } from '../deps.js';
+import { formatExpiry, formatStatusIndicator, formatTable } from './formatters.js';
+import type { ProviderStatus } from '../types/types.js';
+import { getWatchProviders, type WatchProviderEntry } from '../watch/watch-config.js';
+import { detectFormat, formatOutput } from '../utils/formatter.js';
 
 function buildRows(
     statuses: ProviderStatus[],
