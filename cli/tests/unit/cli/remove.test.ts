@@ -378,11 +378,16 @@ describe('runRemove (#11)', () => {
         const { deps } = createDeps([projectProvider, userProvider]);
         deps.projectConfigPath = '/my-project/.sig/config.yaml';
 
-        // Trying to remove both — should block because of the project provider
+        // Trying to remove both — should skip project provider but remove user provider
         await runRemove(['proj-svc', 'my-global'], { force: true }, deps);
 
-        expect(process.exitCode).toBe(1);
+        // No exit code error because user provider removal succeeded
+        expect(process.exitCode).toBeUndefined();
         const stderr = stderrChunks.join('');
+        // Warns about skipped project provider
         expect(stderr).toContain('proj-svc');
+        expect(stderr).toContain('skipping');
+        // Confirms user provider was removed
+        expect(stderr).toContain('Removed 1 provider');
     });
 });

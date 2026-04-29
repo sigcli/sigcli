@@ -856,10 +856,9 @@ sig init --yes              # 接受所有默认值，跳过提示
 sig init --force            # 覆盖现有配置
 sig init --channel chrome   # 指定浏览器（chrome|msedge|chromium）`}</CodeBlock>
                     <P>
-                        项目级配置仅支持 <Code>providers</Code>{' '}
-                        部分。其中定义的 provider 会覆盖全局同 ID 的 provider。解析优先级：项目{' '}
-                        <Code>.sig/config.yaml</Code> {'>'} 全局{' '}
-                        <Code>~/.sig/config.yaml</Code>
+                        项目级配置仅支持 <Code>providers</Code> 部分。其中定义的 provider
+                        会覆盖全局同 ID 的 provider。解析优先级：项目 <Code>.sig/config.yaml</Code>{' '}
+                        {'>'} 全局 <Code>~/.sig/config.yaml</Code>
                         。此文件可安全提交到 Git — 凭证始终存储在用户目录{' '}
                         <Code>~/.sig/credentials/</Code> 中。
                     </P>

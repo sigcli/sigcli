@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import path from 'node:path';
 import os from 'node:os';
 
@@ -13,8 +13,10 @@ vi.mock('node:fs/promises', () => ({
 
 vi.mock('node:fs', () => ({
     existsSync: vi.fn(),
+    realpathSync: vi.fn((p: string) => p),
     default: {
         existsSync: vi.fn(),
+        realpathSync: vi.fn((p: string) => p),
     },
 }));
 
@@ -152,19 +154,30 @@ providers:
     });
 
     describe('loadMergedConfig', () => {
+        const FAKE_CWD = '/workspace/my-project';
+        let cwdSpy: ReturnType<typeof vi.spyOn>;
+
+        beforeEach(() => {
+            cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(FAKE_CWD);
+        });
+
+        afterEach(() => {
+            cwdSpy.mockRestore();
+        });
+
         it('merges project providers over global providers', async () => {
-            // Global config loads first
-            mockFs.readFile.mockImplementation(async (filePath) => {
-                const p = filePath.toString();
-                if (p.includes(os.homedir())) return VALID_GLOBAL_YAML;
-                return VALID_PROJECT_YAML;
+            const projectConfigPath = path.join(FAKE_CWD, '.sig', 'config.yaml');
+            const globalConfigPath = path.join(os.homedir(), '.sig', 'config.yaml');
+
+            mockFs.readFile.mockImplementation(async (filePath: unknown) => {
+                const p = String(filePath);
+                if (p === globalConfigPath) return VALID_GLOBAL_YAML;
+                if (p === projectConfigPath) return VALID_PROJECT_YAML;
+                throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
             });
-            // Project config discovery
             mockExistsSync.mockImplementation((p) => {
                 const s = p.toString();
-                if (s === path.join(os.homedir(), '.sig', 'config.yaml')) return true;
-                if (s.endsWith('.sig/config.yaml') && !s.includes(os.homedir())) return true;
-                return false;
+                return s === projectConfigPath || s === globalConfigPath;
             });
 
             const result = await loadMergedConfig();
@@ -189,16 +202,18 @@ providers:
     entryUrl: https://github.enterprise.com/
     strategy: cookie
 `;
-            mockFs.readFile.mockImplementation(async (filePath) => {
-                const p = filePath.toString();
-                if (p.includes(os.homedir())) return VALID_GLOBAL_YAML;
-                return projectYamlOverride;
+            const projectConfigPath = path.join(FAKE_CWD, '.sig', 'config.yaml');
+            const globalConfigPath = path.join(os.homedir(), '.sig', 'config.yaml');
+
+            mockFs.readFile.mockImplementation(async (filePath: unknown) => {
+                const p = String(filePath);
+                if (p === globalConfigPath) return VALID_GLOBAL_YAML;
+                if (p === projectConfigPath) return projectYamlOverride;
+                throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
             });
             mockExistsSync.mockImplementation((p) => {
                 const s = p.toString();
-                if (s === path.join(os.homedir(), '.sig', 'config.yaml')) return true;
-                if (s.endsWith('.sig/config.yaml') && !s.includes(os.homedir())) return true;
-                return false;
+                return s === projectConfigPath || s === globalConfigPath;
             });
 
             const result = await loadMergedConfig();

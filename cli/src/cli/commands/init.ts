@@ -331,7 +331,7 @@ export async function runInit(
 // ---------------------------------------------------------------------------
 
 async function runInitLocal(
-    positionals: string[],
+    _positionals: string[],
     flags: Record<string, string | boolean | string[]>,
 ): Promise<void> {
     const projectDir = process.cwd();
