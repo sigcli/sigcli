@@ -132,8 +132,7 @@ export async function runHybridFlow<T>(
     // Skip CDP if the Playwright adapter is unavailable (NullBrowserAdapter or stub)
     // We detect this by checking if the adapter has a functional launch method, OR
     // by its name being 'null' (NullBrowserAdapter convention).
-    const browserUnavailable =
-        adapter.name === 'null' || typeof adapter.launch !== 'function';
+    const browserUnavailable = adapter.name === 'null' || typeof adapter.launch !== 'function';
     if (loginMode === LoginMode.CDP && browserUnavailable) {
         return err(
             new BrowserError(
@@ -142,7 +141,8 @@ export async function runHybridFlow<T>(
             ),
         );
     }
-    const useCdp = (loginMode === LoginMode.AUTO || loginMode === LoginMode.CDP) && !browserUnavailable;
+    const useCdp =
+        (loginMode === LoginMode.AUTO || loginMode === LoginMode.CDP) && !browserUnavailable;
     if (useCdp) {
         // Resolve browser binary: explicit execPath → auto-detect → skip
         let execPath = options.execPath ?? options.browserConfig.execPath;

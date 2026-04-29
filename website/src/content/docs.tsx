@@ -692,10 +692,10 @@ sig run my-jira --mount creds.json --mount-format json -- node app.js`}</CodeBlo
                         sig login
                     </SectionHeading>
                     <P>
-                        Authenticates with a provider. Accepts a URL or provider ID. By default
-                        uses a 3-phase cascade: headless Playwright → native CDP (real browser, no
-                        automation markers) → visible Playwright. Use <Code>--mode</Code> to force
-                        a specific mode.
+                        Authenticates with a provider. Accepts a URL or provider ID. By default uses
+                        a 3-phase cascade: headless Playwright → native CDP (real browser, no
+                        automation markers) → visible Playwright. Use <Code>--mode</Code> to force a
+                        specific mode.
                     </P>
                     <CodeBlock lang="bash">{`sig login <url>
 

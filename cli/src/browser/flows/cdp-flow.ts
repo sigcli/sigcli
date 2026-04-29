@@ -139,9 +139,7 @@ async function waitForBrowserReady(port: number, timeoutMs: number): Promise<str
 /**
  * Map a CDP sameSite string to the sigcli Cookie sameSite type.
  */
-function mapSameSite(
-    cdpSameSite: string | undefined,
-): 'Strict' | 'Lax' | 'None' | undefined {
+function mapSameSite(cdpSameSite: string | undefined): 'Strict' | 'Lax' | 'None' | undefined {
     if (!cdpSameSite) return undefined;
     const s = cdpSameSite.toLowerCase();
     if (s === 'strict') return 'Strict';
@@ -159,7 +157,10 @@ function mapCdpCookies(cdpCookies: CdpCookie[], domains: string[]): Cookie[] {
             // CDP domain may have a leading dot (e.g. ".example.com")
             const cookieDomain = c.domain.startsWith('.') ? c.domain.slice(1) : c.domain;
             return domains.some(
-                (d) => cookieDomain === d || cookieDomain.endsWith('.' + d) || d.endsWith('.' + cookieDomain),
+                (d) =>
+                    cookieDomain === d ||
+                    cookieDomain.endsWith('.' + d) ||
+                    d.endsWith('.' + cookieDomain),
             );
         })
         .map((c) => ({
@@ -170,9 +171,7 @@ function mapCdpCookies(cdpCookies: CdpCookie[], domains: string[]): Cookie[] {
             expires: c.expires < 0 ? -1 : Math.floor(c.expires),
             httpOnly: c.httpOnly,
             secure: c.secure,
-            ...(mapSameSite(c.sameSite) !== undefined
-                ? { sameSite: mapSameSite(c.sameSite) }
-                : {}),
+            ...(mapSameSite(c.sameSite) !== undefined ? { sameSite: mapSameSite(c.sameSite) } : {}),
         }));
 }
 
@@ -195,7 +194,13 @@ function removeSingletonLock(browserDataDir: string): void {
  * Matches the existing Playwright approach: get raw value by key, then use dlv for jsonPath.
  */
 async function extractLocalStorageViaCdp(
-    cdpClient: { send: (method: string, params?: Record<string, unknown>, sessionId?: string) => Promise<unknown> },
+    cdpClient: {
+        send: (
+            method: string,
+            params?: Record<string, unknown>,
+            sessionId?: string,
+        ) => Promise<unknown>;
+    },
     configs: LocalStorageConfig[],
     logger: ILogger,
 ): Promise<Record<string, string>> {
@@ -223,29 +228,41 @@ async function extractLocalStorageViaCdp(
             logger.debug('Failed to attach to page target — no sessionId returned');
             return result;
         }
-        logger.debug(`Attached to page target ${pageTarget.targetId} (url: ${pageTarget.url}) with session ${sessionId}`);
+        logger.debug(
+            `Attached to page target ${pageTarget.targetId} (url: ${pageTarget.url}) with session ${sessionId}`,
+        );
 
         // Enable Runtime domain on the page session
         await cdpClient.send('Runtime.enable', {}, sessionId).catch(() => {});
 
         // Check current page URL — localStorage is only accessible from the same origin
-        const urlResult = (await cdpClient.send('Runtime.evaluate', {
-            expression: 'window.location.href',
-            returnByValue: true,
-        }, sessionId)) as { result?: { value?: string } };
+        const urlResult = (await cdpClient.send(
+            'Runtime.evaluate',
+            {
+                expression: 'window.location.href',
+                returnByValue: true,
+            },
+            sessionId,
+        )) as { result?: { value?: string } };
         const currentUrl = urlResult?.result?.value ?? '';
         logger.debug(`Page URL: ${currentUrl}`);
 
         // Read all localStorage keys in a single evaluate call (scoped to page session)
         const keys = configs.map((c) => c.key);
         logger.debug(`Extracting localStorage keys: ${keys.join(', ')}`);
-        const evalResult = (await cdpClient.send('Runtime.evaluate', {
-            expression: `(() => { try { return (${JSON.stringify(keys)}).map(k => localStorage.getItem(k)); } catch(e) { return null; } })()`,
-            returnByValue: true,
-        }, sessionId)) as { result?: { value?: (string | null)[] | null }; exceptionDetails?: unknown };
+        const evalResult = (await cdpClient.send(
+            'Runtime.evaluate',
+            {
+                expression: `(() => { try { return (${JSON.stringify(keys)}).map(k => localStorage.getItem(k)); } catch(e) { return null; } })()`,
+                returnByValue: true,
+            },
+            sessionId,
+        )) as { result?: { value?: (string | null)[] | null }; exceptionDetails?: unknown };
 
         if (evalResult?.exceptionDetails) {
-            logger.debug(`localStorage evaluate exception: ${JSON.stringify(evalResult.exceptionDetails)}`);
+            logger.debug(
+                `localStorage evaluate exception: ${JSON.stringify(evalResult.exceptionDetails)}`,
+            );
         }
 
         const rawValues = evalResult?.result?.value ?? [];
@@ -253,7 +270,9 @@ async function extractLocalStorageViaCdp(
             logger.debug('localStorage access denied on current page origin');
             return result;
         }
-        logger.debug(`localStorage raw values: ${rawValues.map(v => v ? v.slice(0, 30) + '...' : 'null').join(', ')}`);
+        logger.debug(
+            `localStorage raw values: ${rawValues.map((v) => (v ? v.slice(0, 30) + '...' : 'null')).join(', ')}`,
+        );
 
         for (let i = 0; i < configs.length; i++) {
             const config = configs[i];
@@ -378,12 +397,7 @@ export async function runCdpFlow(
         try {
             wsUrl = await waitForBrowserReady(cdpPort, 15_000);
         } catch {
-            return err(
-                new BrowserTimeoutError(
-                    'waiting for native browser to start',
-                    15_000,
-                ),
-            );
+            return err(new BrowserTimeoutError('waiting for native browser to start', 15_000));
         }
 
         logger.info(`Connected to browser CDP at port ${cdpPort}`);
@@ -394,9 +408,7 @@ export async function runCdpFlow(
             cdpClient = await connectCdpWs(wsUrl);
         } catch (e) {
             return err(
-                new BrowserError(
-                    `Failed to connect to browser CDP: ${(e as Error).message}`,
-                ),
+                new BrowserError(`Failed to connect to browser CDP: ${(e as Error).message}`),
             );
         }
 
@@ -439,33 +451,48 @@ export async function runCdpFlow(
                             const lsDeadline = Date.now() + 15_000; // max 15s for localStorage
                             while (Date.now() < lsDeadline) {
                                 await new Promise((r) => setTimeout(r, 2000));
-                                localStorageValues = await extractLocalStorageViaCdp(cdpClient, options.localStorage, logger);
-                                if (localStorageValues && Object.keys(localStorageValues).length > 0) break;
+                                localStorageValues = await extractLocalStorageViaCdp(
+                                    cdpClient,
+                                    options.localStorage,
+                                    logger,
+                                );
+                                if (
+                                    localStorageValues &&
+                                    Object.keys(localStorageValues).length > 0
+                                )
+                                    break;
                                 logger.debug('localStorage not ready yet, retrying...');
                             }
                         }
                         if (localStorageValues && Object.keys(localStorageValues).length > 0) {
-                            logger.info(`Extracted ${Object.keys(localStorageValues).length} localStorage value(s).`);
+                            logger.info(
+                                `Extracted ${Object.keys(localStorageValues).length} localStorage value(s).`,
+                            );
                         }
                         cdpClient.close();
                         return ok({ cookies: filtered, localStorage: localStorageValues });
                     }
                 } else if (filtered.length > 0) {
-                    logger.info(
-                        `Authentication detected — ${filtered.length} cookie(s) found.`,
-                    );
+                    logger.info(`Authentication detected — ${filtered.length} cookie(s) found.`);
                     let localStorageValues: Record<string, string> | undefined;
                     if (options.localStorage?.length) {
                         const lsDeadline = Date.now() + 15_000;
                         while (Date.now() < lsDeadline) {
                             await new Promise((r) => setTimeout(r, 2000));
-                            localStorageValues = await extractLocalStorageViaCdp(cdpClient, options.localStorage, logger);
-                            if (localStorageValues && Object.keys(localStorageValues).length > 0) break;
+                            localStorageValues = await extractLocalStorageViaCdp(
+                                cdpClient,
+                                options.localStorage,
+                                logger,
+                            );
+                            if (localStorageValues && Object.keys(localStorageValues).length > 0)
+                                break;
                             logger.debug('localStorage not ready yet, retrying...');
                         }
                     }
                     if (localStorageValues && Object.keys(localStorageValues).length > 0) {
-                        logger.info(`Extracted ${Object.keys(localStorageValues).length} localStorage value(s).`);
+                        logger.info(
+                            `Extracted ${Object.keys(localStorageValues).length} localStorage value(s).`,
+                        );
                     }
                     cdpClient.close();
                     return ok({ cookies: filtered, localStorage: localStorageValues });
@@ -486,7 +513,9 @@ export async function runCdpFlow(
         }
 
         cdpClient.close();
-        return err(new BrowserTimeoutError('waiting for authentication via native browser', timeout));
+        return err(
+            new BrowserTimeoutError('waiting for authentication via native browser', timeout),
+        );
     } finally {
         // Always kill browser on exit
         cleanup();

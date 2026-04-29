@@ -912,9 +912,9 @@ sig run my-jira --mount creds.json --mount-format json -- node app.js`}</CodeBlo
                         sig login
                     </SectionHeading>
                     <P>
-                        向提供者进行认证。接受 URL 或提供者 ID。默认使用三阶段级联：
-                        Playwright 无头模式 → 原生 CDP（真实浏览器，无自动化标记） →
-                        Playwright 可视模式。使用 <Code>--mode</Code> 强制指定模式。
+                        向提供者进行认证。接受 URL 或提供者 ID。默认使用三阶段级联： Playwright
+                        无头模式 → 原生 CDP（真实浏览器，无自动化标记） → Playwright 可视模式。使用{' '}
+                        <Code>--mode</Code> 强制指定模式。
                     </P>
                     <CodeBlock lang="bash">{`sig login <url>
 

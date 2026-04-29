@@ -75,9 +75,7 @@ function buildTextFrame(payload: string): Buffer {
 // Frame parser: returns parsed frame and bytes consumed, or null if incomplete
 // ============================================================================
 
-function tryParseFrame(
-    buf: Buffer,
-): { opcode: number; payload: Buffer; consumed: number } | null {
+function tryParseFrame(buf: Buffer): { opcode: number; payload: Buffer; consumed: number } | null {
     if (buf.length < 2) return null;
 
     const byte1 = buf[1];
@@ -166,7 +164,11 @@ export function connectCdpWs(wsUrl: string): Promise<CdpWsClient> {
         let nextId = 1;
 
         const client: CdpWsClient = {
-            send(method: string, params?: Record<string, unknown>, sessionId?: string): Promise<unknown> {
+            send(
+                method: string,
+                params?: Record<string, unknown>,
+                sessionId?: string,
+            ): Promise<unknown> {
                 return new Promise<unknown>((res, rej) => {
                     const id = nextId++;
                     pending.set(id, { resolve: res, reject: rej });

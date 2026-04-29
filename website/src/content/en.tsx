@@ -220,8 +220,8 @@ $ sig request https://my-jira.example.com/rest/api/2/myself`}</CodeBlock>
                     <P>
                         The 3-phase cascade is the key insight — headless Playwright is fast and
                         invisible, native CDP uses your real browser with no automation markers
-                        (bypassing anti-bot detection on X, Reddit, etc.), and visible Playwright
-                        is the last resort. sig detects the difference automatically.
+                        (bypassing anti-bot detection on X, Reddit, etc.), and visible Playwright is
+                        the last resort. sig detects the difference automatically.
                     </P>
                     <P>
                         <Code>sig doctor</Code> verifies Node, Playwright, config parsing, and that
