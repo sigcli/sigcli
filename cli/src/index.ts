@@ -72,7 +72,7 @@ export type {
     ProviderConfigV2,
     StoredCredentialV2,
 } from './core/types/extract.js';
-export { applyRules, interpolate } from './apply/engine.js';
+export { ApplyEngine, applyRules, interpolate } from './apply/engine.js';
 export type { ApplyResult } from './apply/engine.js';
 export { checkRequired } from './extraction/required-checker.js';
 export { BrowserSource } from './extraction/browser-source.js';
