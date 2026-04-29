@@ -1,5 +1,6 @@
 import net from 'node:net';
 import http from 'node:http';
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -59,6 +60,8 @@ export class BrowserSource implements ISourceStrategy {
         const expandedDataDir = this.options.browserDataDir.startsWith('~')
             ? path.join(os.homedir(), this.options.browserDataDir.slice(1))
             : this.options.browserDataDir;
+
+        removeSingletonLock(expandedDataDir);
 
         let cdpPort: number;
         try {
@@ -235,4 +238,13 @@ function fetchJson(url: string): Promise<Record<string, unknown>> {
             reject(new Error(`Timeout fetching ${url}`));
         });
     });
+}
+
+function removeSingletonLock(dataDir: string): void {
+    const lockFile = path.join(dataDir, 'SingletonLock');
+    try {
+        fs.unlinkSync(lockFile);
+    } catch {
+        // Not critical
+    }
 }

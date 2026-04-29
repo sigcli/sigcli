@@ -1,4 +1,3 @@
-import type { IBrowserAdapter } from './core/interfaces/browser-adapter.js';
 import type { IStorage } from './core/interfaces/storage.js';
 import type { IProviderRegistry } from './core/interfaces/provider.js';
 import type {
@@ -10,13 +9,13 @@ import type {
 } from './core/types.js';
 import type { BrowserConfig } from './config/schema.js';
 import type { ISourceStrategy, ExtractedCredentials, ExtractionContext } from './core/interfaces/source-strategy.js';
-import type { ExtractRule, ApplyRule, NewProviderConfig } from './core/types/extract.js';
+import type { ApplyRule, NewProviderConfig } from './core/types/extract.js';
 import type { ApplyResult } from './apply/engine.js';
 import { createDefaultProvider } from './providers/auto-provision.js';
 import type { Result } from './core/result.js';
 import { ok, err, isOk } from './core/result.js';
-import { CredentialTypeError, ProviderNotFoundError, CredentialNotFoundError, type AuthError } from './core/errors.js';
-import { LOGIN_URL_PATTERNS, HttpHeader, CredentialTypeName } from './core/constants.js';
+import { ProviderNotFoundError, CredentialNotFoundError, type AuthError } from './core/errors.js';
+import { LOGIN_URL_PATTERNS, HttpHeader } from './core/constants.js';
 import { buildUserAgent } from './utils/http.js';
 import { applyRules } from './apply/engine.js';
 import { checkRequired } from './extraction/required-checker.js';
@@ -26,7 +25,6 @@ import { migrateProvider } from './config/migration.js';
 export interface AuthManagerDeps {
     storage: IStorage;
     providerRegistry: IProviderRegistry;
-    browserAdapterFactory: () => IBrowserAdapter;
     browserConfig: BrowserConfig;
     logger?: ILogger;
 }
@@ -40,7 +38,6 @@ export interface AuthManagerDeps {
 export class AuthManager {
     private readonly storage: IStorage;
     private readonly providers: IProviderRegistry;
-    private readonly browserAdapterFactory: () => IBrowserAdapter;
     private readonly browserConfig: BrowserConfig;
     private readonly logger?: ILogger;
     private readonly sourceStrategies = new Map<string, ISourceStrategy>();
@@ -48,7 +45,6 @@ export class AuthManager {
     constructor(deps: AuthManagerDeps) {
         this.storage = deps.storage;
         this.providers = deps.providerRegistry;
-        this.browserAdapterFactory = deps.browserAdapterFactory;
         this.browserConfig = deps.browserConfig;
         this.logger = deps.logger;
     }

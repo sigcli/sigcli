@@ -5,8 +5,6 @@ import { AuthManager } from './auth-manager.js';
 import { ProviderRegistry } from './providers/provider-registry.js';
 import { DirectoryStorage } from './storage/directory-storage.js';
 import { CachedStorage } from './storage/cached-storage.js';
-import { PlaywrightAdapter } from './browser/adapters/playwright.adapter.js';
-import { NullBrowserAdapter } from './browser/adapters/null.adapter.js';
 import { BrowserSource } from './extraction/browser-source.js';
 import { PromptSource } from './extraction/prompt-source.js';
 import { EnvSource } from './extraction/env-source.js';
@@ -88,29 +86,25 @@ export async function createAuthDeps(
         ttlMs: 5000,
     });
 
-    // 3. Build browser adapter factory
+    // 3. Build AuthManager with source strategies
     const browserConfig = config.browser;
     const browserAvailable = config.mode !== 'browserless';
-    const browserAdapterFactory = browserAvailable
-        ? () => new PlaywrightAdapter(browserConfig)
-        : () => new NullBrowserAdapter('Running in browserless mode (mode: browserless)');
-
-    // 4. Build AuthManager with source strategies
     const logger = options?.verbose ? createConsoleLogger() : undefined;
     const authManager = new AuthManager({
         storage,
         providerRegistry,
-        browserAdapterFactory,
         browserConfig,
         logger,
     });
 
     // Register source strategies
-    authManager.registerSource(new BrowserSource({
-        browserDataDir: config.browser.browserDataDir,
-        channel: config.browser.channel,
-        execPath: config.browser.execPath,
-    }));
+    if (browserAvailable) {
+        authManager.registerSource(new BrowserSource({
+            browserDataDir: config.browser.browserDataDir,
+            channel: config.browser.channel,
+            execPath: config.browser.execPath,
+        }));
+    }
     authManager.registerSource(new PromptSource());
     authManager.registerSource(new EnvSource());
 

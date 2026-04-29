@@ -29,10 +29,8 @@ export class CookieExtractor implements IBrowserExtractor {
         _sessionId: string,
         rule: ExtractRule,
         domains: string[],
-        cookiePaths?: string[],
+        _cookiePaths?: string[],
     ): Promise<{ name: string; value: string } | null> {
-        const urls = this.buildUrls(domains, cookiePaths);
-
         const result = (await cdp.send('Storage.getCookies', {
             browserContextId: undefined,
         })) as { cookies: CdpCookie[] } | null;
@@ -47,19 +45,6 @@ export class CookieExtractor implements IBrowserExtractor {
             .join('; ');
 
         return { name: rule.name, value: serialized };
-    }
-
-    private buildUrls(domains: string[], cookiePaths?: string[]): string[] {
-        const urls: string[] = [];
-        for (const d of domains) {
-            urls.push(`https://${d}/`);
-            if (cookiePaths) {
-                for (const p of cookiePaths) {
-                    urls.push(`https://${d}${p}`);
-                }
-            }
-        }
-        return urls;
     }
 
     private filterByDomain(cookies: CdpCookie[], domains: string[]): CdpCookie[] {

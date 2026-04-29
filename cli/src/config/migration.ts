@@ -126,14 +126,14 @@ export function migrateProvider(id: string, entry: Record<string, unknown>): V2P
             const headerName = (config.headerName as string) ?? 'Authorization';
             const headerPrefix = (config.headerPrefix as string) ?? 'Bearer';
             const message = (config.setupInstructions as string) ?? 'Paste your API token';
-            extract.push({ from: 'prompt' as ExtractRule['from'], name: 'token', key: message });
+            extract.push({ from: 'prompt', name: 'token', key: message });
             apply.push({ in: 'header', name: headerName, value: `${headerPrefix} \${token}` });
             break;
         }
         case 'basic': {
             source = 'prompt';
             const message = (config.setupInstructions as string) ?? 'Enter username:password';
-            extract.push({ from: 'prompt' as ExtractRule['from'], name: 'credentials', key: message });
+            extract.push({ from: 'prompt', name: 'credentials', key: message });
             apply.push({ in: 'header', name: 'Authorization', value: 'Basic ${credentials}' });
             break;
         }

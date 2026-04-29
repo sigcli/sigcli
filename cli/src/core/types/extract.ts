@@ -3,12 +3,12 @@ import type { WaitUntilValue } from '../constants.js';
 /**
  * Extract rule — unified 3-field schema.
  *
- * - from: where to extract (cookies | localStorage | eval)
+ * - from: where to extract (cookies | localStorage | eval | prompt | env)
  * - name: storage key for the extracted value
- * - key: what to extract (* = all, specific name, glob, dot-path)
+ * - key: what to extract (* = all, specific name, glob, dot-path, prompt message, env var name)
  */
 export interface ExtractRule {
-    from: 'cookies' | 'localStorage' | 'eval';
+    from: 'cookies' | 'localStorage' | 'eval' | 'prompt' | 'env';
     name: string;
     key: string;
 }
