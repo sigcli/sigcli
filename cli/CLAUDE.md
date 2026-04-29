@@ -22,7 +22,9 @@ core/ (types, interfaces, Result, errors) ── zero external deps, imported by
 - **`src/cli/`** — CLI commands (init, doctor, get, login, request, status, logout, providers, remote, sync, watch, rename, remove, completion, proxy). Each command is a standalone module. `init`, `doctor`, and `completion` run without deps (before config exists).
 - **`src/strategies/`** — Each strategy: private class + exported `*StrategyFactory` (IAuthStrategyFactory).
 - **`src/browser/adapters/`** — Browser automation. PlaywrightAdapter is the reference. Three-class pattern: Adapter → Session → Page.
-- **`src/browser/flows/`** — `runHybridFlow` (headless→visible fallback), `extractOAuthTokens`, `isLoginPage`, `startHeaderCapture` (x-headers).
+- **`src/browser/flows/`** — `runHybridFlow` (headless→CDP→visible cascade), `runCdpFlow` (native browser CDP), `extractOAuthTokens`, `isLoginPage`, `startHeaderCapture` (x-headers).
+- **`src/browser/detect-native.ts`** — Native browser binary detection (Chrome/Edge/Chromium) across macOS/Windows/Linux.
+- **`src/browser/cdp-ws.ts`** — Minimal raw WebSocket CDP client (Node 18 compatible, no external deps).
 - **`src/storage/`** — DirectoryStorage (per-file JSON + file lock + AES-256-GCM encryption), CachedStorage (TTL decorator), MemoryStorage (tests).
 - **`src/crypto/`** — Encryption at rest. AES-256-GCM encrypt/decrypt, key generation/loading. Key stored at `~/.sig/encryption.key`.
 - **`src/providers/`** — ProviderRegistry (URL→provider via domain matching), config-loader (YAML/JSON).
@@ -59,6 +61,8 @@ core/ (types, interfaces, Result, errors) ── zero external deps, imported by
 13. **Mode**: `mode: browser | browserless` config field (default `browser`). Set via `sig init --remote` on headless/remote machines. In `browserless` mode, `NullBrowserAdapter` is used and browser-dependent commands guide users to `sig sync pull`, `--cookie`, or `--token`.
 14. **localStorage**: Provider-level `localStorage` config in `config.yaml` (`LocalStorageConfig[]`). Each entry has `name` (output key), `key` (localStorage key to read), and optional `jsonPath` (dot-delimited path into parsed JSON value). Extracted after browser auth, stored on the credential as `localStorage: Record<string, string>`, included in `sig get` JSON output but NOT applied as HTTP headers. Useful for Slack (xoxc token in localStorage alongside xoxd cookie).
 15. **Encryption**: All credentials encrypted at rest with AES-256-GCM. Key at `~/.sig/encryption.key` (mode 0o400, 32 bytes). `DirectoryStorage` encrypts on write, decrypts on read; legacy unencrypted files are read transparently. `SshTransport` uses a per-remote encryption key. SDK provides decrypt-only (no key generation).
+16. **Login modes**: `--mode auto|cdp|headless|visible`. Default `auto` cascade: headless Playwright (fast, no interaction) → native CDP (real browser, no automation markers) → visible Playwright (fallback). Provider-level `loginMode` config overrides. CDP launches the user's real browser via `--remote-debugging-port`, connects via raw WebSocket, polls `Storage.getCookies`. No `navigator.webdriver` flag — bypasses anti-bot detection on sites like X/Reddit.
+17. **Native browser detection**: `src/browser/detect-native.ts` finds Chrome/Edge/Chromium on macOS/Windows/Linux. Configurable via `browser.execPath` in config. Falls back to auto-detection if not set.
 
 ## Commands
 
@@ -78,6 +82,8 @@ sig init --remote          # Set up for headless/remote machine (browser disable
 sig doctor                 # Check environment and config
 sig get <provider|url>     # Get credential headers
 sig login <url>            # Authenticate (browser or token)
+  --mode <mode>              Login mode: auto|cdp|headless|visible (default: auto)
+  --force                    Skip stored/refresh, go straight to auth
 sig request <url>          # Make authenticated HTTP request
 sig status [provider]      # Show auth status
 sig logout [provider]      # Clear credentials

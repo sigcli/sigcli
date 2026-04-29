@@ -37,6 +37,7 @@ export interface BrowserConfig {
     headlessTimeout: number;
     visibleTimeout: number;
     waitUntil: WaitUntilValue;
+    execPath?: string; // Native browser binary path for CDP mode
 }
 
 export interface StorageConfig {
@@ -96,4 +97,5 @@ export interface ProviderEntry {
     forceVisible?: boolean;
     proxy?: ProxyConfig;
     networkProxy?: string; // e.g. "socks5://127.0.0.1:1080"
+    loginMode?: string; // 'auto' | 'cdp' | 'headless' | 'visible'
 }
