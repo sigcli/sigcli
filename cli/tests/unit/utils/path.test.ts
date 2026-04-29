@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import os from 'node:os';
 import path from 'node:path';
-import { expandHome } from '../../../src/utils/path.js';
+import { expandHome, encodeProjectPath } from '../../../src/utils/path.js';
 
 describe('expandHome', () => {
     const home = os.homedir();
@@ -43,5 +43,25 @@ describe('expandHome', () => {
 
     it('handles ~/. (dot after tilde slash)', () => {
         expect(expandHome('~/.ssh')).toBe(path.join(home, '.ssh'));
+    });
+});
+
+describe('encodeProjectPath', () => {
+    it('encodes absolute path like ~/.claude convention', () => {
+        expect(encodeProjectPath('/Users/foo/bar')).toBe('-Users-foo-bar');
+    });
+
+    it('encodes deeply nested path', () => {
+        expect(encodeProjectPath('/Users/foo/hanke-dev/sigcli')).toBe(
+            '-Users-foo-hanke-dev-sigcli',
+        );
+    });
+
+    it('handles root path', () => {
+        expect(encodeProjectPath('/')).toBe('-');
+    });
+
+    it('handles single-level path', () => {
+        expect(encodeProjectPath('/tmp')).toBe('-tmp');
     });
 });

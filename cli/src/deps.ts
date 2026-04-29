@@ -1,3 +1,5 @@
+import path from 'node:path';
+import os from 'node:os';
 import type { IStorage } from './core/interfaces/storage.js';
 import type { ILogger, ProviderConfig, ProviderSource } from './core/types.js';
 import type { SigConfig } from './config/schema.js';
@@ -10,10 +12,11 @@ import { BasicAuthStrategyFactory } from './strategies/basic-auth.strategy.js';
 import { ProviderRegistry } from './providers/provider-registry.js';
 import { DirectoryStorage } from './storage/directory-storage.js';
 import { CachedStorage } from './storage/cached-storage.js';
+import { RoutingStorage } from './storage/routing-storage.js';
 import { PlaywrightAdapter } from './browser/adapters/playwright.adapter.js';
 import { NullBrowserAdapter } from './browser/adapters/null.adapter.js';
 import { buildStrategyConfig } from './config/validator.js';
-import { expandHome } from './utils/path.js';
+import { expandHome, encodeProjectPath } from './utils/path.js';
 import { loadEncryptionKey } from './crypto/encryption.js';
 
 /**
@@ -99,12 +102,26 @@ export async function createAuthDeps(
     strategyRegistry.register(new ApiTokenStrategyFactory());
     strategyRegistry.register(new BasicAuthStrategyFactory());
 
-    // 3. Build storage (CachedStorage wrapping DirectoryStorage)
+    // 3. Build storage (project-aware routing + caching)
     const credDir = expandHome(config.storage.credentialsDir);
     const encryptionKey = await loadEncryptionKey();
-    const storage = new CachedStorage(new DirectoryStorage(credDir, encryptionKey), {
-        ttlMs: 5000,
-    });
+
+    let storage: IStorage;
+    if (options?.projectConfigPath && options?.providerSources) {
+        // Project context: route project-scoped providers to ~/.sig/projects/<encoded>/credentials/
+        const projectRoot = path.dirname(path.dirname(options.projectConfigPath));
+        const encoded = encodeProjectPath(projectRoot);
+        const projectCredDir = path.join(os.homedir(), '.sig', 'projects', encoded, 'credentials');
+
+        const userStorage = new DirectoryStorage(credDir, encryptionKey);
+        const projectStorage = new DirectoryStorage(projectCredDir, encryptionKey);
+        storage = new CachedStorage(
+            new RoutingStorage(userStorage, projectStorage, options.providerSources),
+            { ttlMs: 5000 },
+        );
+    } else {
+        storage = new CachedStorage(new DirectoryStorage(credDir, encryptionKey), { ttlMs: 5000 });
+    }
 
     // 4. Build browser adapter factory using config.browser
     const browserConfig = config.browser;
