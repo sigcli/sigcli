@@ -91,6 +91,44 @@ const TEST_PROVIDERS: Record<string, {
             { in: 'header', name: 'Cookie', value: '${session}' },
         ],
     },
+    'sap-cats': {
+        domains: ['sapit-finance-prod-eagle.launchpad.cfapps.eu10.hana.ondemand.com'],
+        entryUrl: 'https://sapit-finance-prod-eagle.launchpad.cfapps.eu10.hana.ondemand.com/',
+        source: 'browser',
+        ttl: '12h',
+        extract: [
+            { from: 'cookies', name: 'session', key: '*' },
+        ],
+        apply: [
+            { in: 'header', name: 'Cookie', value: '${session}' },
+        ],
+    },
+    'zhihu': {
+        domains: ['www.zhihu.com', 'zhihu.com'],
+        entryUrl: 'https://www.zhihu.com/signin',
+        source: 'browser',
+        ttl: '7d',
+        required: ['session.z_c0'],
+        extract: [
+            { from: 'cookies', name: 'session', key: '*' },
+        ],
+        apply: [
+            { in: 'header', name: 'Cookie', value: '${session}' },
+        ],
+    },
+    'bilibili': {
+        domains: ['www.bilibili.com', 'bilibili.com', 'api.bilibili.com'],
+        entryUrl: 'https://www.bilibili.com/',
+        source: 'browser',
+        ttl: '7d',
+        required: ['session.SESSDATA', 'session.bili_jct'],
+        extract: [
+            { from: 'cookies', name: 'session', key: '*' },
+        ],
+        apply: [
+            { in: 'header', name: 'Cookie', value: '${session}' },
+        ],
+    },
 };
 
 async function main() {
