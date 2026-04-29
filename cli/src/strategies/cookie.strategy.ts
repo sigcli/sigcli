@@ -24,6 +24,17 @@ import type { WaitUntilValue } from '../core/constants.js';
 const DEFAULT_TTL = '24h';
 
 /**
+ * Build cookie query URLs: domains × (cookiePaths ∪ ["/"]).
+ * Root "/" is always included so cookies with path=/ are never missed.
+ */
+export function buildCookieUrls(domains: string[], cookiePaths: string[]): string[] {
+    // Normalize: strip trailing slashes (except bare "/") before deduplicating
+    const normalized = cookiePaths.map((p) => (p === '/' ? p : p.replace(/\/+$/, '')));
+    const paths = normalized.length > 0 ? [...new Set(['/', ...normalized])] : ['/'];
+    return domains.flatMap((d) => paths.map((p) => `https://${d}${p}`));
+}
+
+/**
  * Cookie-based authentication strategy.
  * Launches a browser, navigates to the login page, waits for user auth,
  * then extracts cookies from the authenticated session.
@@ -31,11 +42,13 @@ const DEFAULT_TTL = '24h';
 class CookieStrategy implements IAuthStrategy {
     private readonly ttlMs: number;
     private readonly requiredCookies: string[];
+    private readonly cookiePaths: string[];
     private readonly waitUntil?: WaitUntilValue;
 
     constructor(config: CookieStrategyConfig) {
         this.ttlMs = parseDuration(config.ttl ?? DEFAULT_TTL);
         this.requiredCookies = config.requiredCookies ?? [];
+        this.cookiePaths = config.cookiePaths ?? [];
         this.waitUntil = config.waitUntil;
     }
 
@@ -48,9 +61,13 @@ class CookieStrategy implements IAuthStrategy {
             return ok(false);
         }
 
-        // Check individual cookie expiry
+        // Check cookie expiry — only consider requiredCookies if configured
         const now = Date.now() / 1000;
-        const hasExpired = credential.cookies.some((c) => c.expires > 0 && c.expires < now);
+        const cookiesToCheck =
+            this.requiredCookies.length > 0
+                ? credential.cookies.filter((c) => this.requiredCookies.includes(c.name))
+                : credential.cookies;
+        const hasExpired = cookiesToCheck.some((c) => c.expires > 0 && c.expires < now);
         if (hasExpired) return ok(false);
 
         // Ensure we have at least one cookie
@@ -78,16 +95,48 @@ class CookieStrategy implements IAuthStrategy {
             entryUrl: provider.entryUrl,
             browserConfig: context.browserConfig,
             forceVisible: provider.forceVisible ?? false,
+            loginMode: provider.loginMode,
             waitUntil: this.waitUntil,
             xHeaders: provider.xHeaders,
             providerDomains: provider.domains,
+            requiredCookies: this.requiredCookies,
+            cookiePaths: this.cookiePaths,
+            browserDataDir: context.browserConfig.browserDataDir,
+            execPath: context.browserConfig.execPath,
             localStorage: provider.localStorage,
             logger: context.logger ?? stderrLogger,
+            ...(context.networkProxy !== undefined ? { networkProxy: context.networkProxy } : {}),
+
+            extractCredentialsFromCookies: async (cookies, localStorageValues) => {
+                // CDP mode: cookies already extracted by the CDP flow
+                if (cookies.length === 0) {
+                    return err(
+                        new BrowserError(
+                            'No cookies found after authentication via native browser.',
+                            provider.id,
+                        ),
+                    );
+                }
+                const diagnostics: AuthDiagnostics = {
+                    authDetectedImmediately: false,
+                    oauthTokensDetected: false,
+                    cookiesExtracted: cookies.length,
+                };
+                const credential: CookieCredential = {
+                    type: CredentialTypeName.COOKIE,
+                    cookies,
+                    obtainedAt: new Date().toISOString(),
+                    ...(localStorageValues && Object.keys(localStorageValues).length > 0
+                        ? { localStorage: localStorageValues }
+                        : {}),
+                };
+                return ok({ credential, diagnostics });
+            },
 
             isAuthenticated: async (page) => {
                 // If requiredCookies is set, auth is complete only when those cookies exist
                 if (this.requiredCookies.length > 0) {
-                    const urls = provider.domains.map((d) => `https://${d}/`);
+                    const urls = buildCookieUrls(provider.domains, this.cookiePaths);
                     const cookies = await page.cookies(urls);
                     const cookieNames = new Set(cookies.map((c) => c.name));
                     return this.requiredCookies.every((name) => cookieNames.has(name));
@@ -100,10 +149,13 @@ class CookieStrategy implements IAuthStrategy {
 
             extractCredentials: async (page, xHeaders, localStorage, meta) => {
                 // Only extract cookies matching this provider's domains (not all cookies from the shared profile)
-                // Include both domain roots AND current page URL (to capture path-scoped cookies like /wiki)
-                const urls = provider.domains.map((d) => `https://${d}/`);
-                const currentUrl = page.url();
-                if (currentUrl && !urls.includes(currentUrl)) urls.push(currentUrl);
+                // Use cookiePaths to query sub-paths (e.g. /wiki for path-scoped cookies)
+                const urls = buildCookieUrls(provider.domains, this.cookiePaths);
+                // When no cookiePaths configured, also include current page URL as fallback
+                if (this.cookiePaths.length === 0) {
+                    const currentUrl = page.url();
+                    if (currentUrl && !urls.includes(currentUrl)) urls.push(currentUrl);
+                }
                 const cookies = await page.cookies(urls);
                 if (cookies.length === 0) {
                     return err(

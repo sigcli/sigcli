@@ -180,6 +180,7 @@ export function validateConfig(raw: Record<string, unknown>): Result<SigConfig, 
             typeof browserRaw.waitUntil === 'string'
                 ? (browserRaw.waitUntil as BrowserConfig['waitUntil'])
                 : WaitUntil.LOAD,
+        ...(typeof browserRaw.execPath === 'string' ? { execPath: browserRaw.execPath } : {}),
     };
 
     const storageRaw = raw.storage as Record<string, unknown>;
@@ -281,6 +282,16 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
         errors.push(`Provider "${id}": forceVisible must be a boolean`);
     }
 
+    // Validate loginMode at provider level
+    const VALID_LOGIN_MODES = ['auto', 'cdp', 'headless', 'visible'];
+    if (raw.loginMode !== undefined) {
+        if (typeof raw.loginMode !== 'string' || !VALID_LOGIN_MODES.includes(raw.loginMode)) {
+            errors.push(
+                `Provider "${id}": loginMode must be one of: ${VALID_LOGIN_MODES.join(', ')}`,
+            );
+        }
+    }
+
     // Validate localStorage entries
     if (raw.localStorage !== undefined) {
         if (!Array.isArray(raw.localStorage)) {
@@ -335,6 +346,21 @@ function validateStrategyConfig(
                 );
             }
         }
+
+        if (config.cookiePaths !== undefined) {
+            if (!Array.isArray(config.cookiePaths)) {
+                errors.push(`Provider "${id}": config.cookiePaths must be an array`);
+            } else {
+                for (let i = 0; i < config.cookiePaths.length; i++) {
+                    const p = config.cookiePaths[i];
+                    if (typeof p !== 'string' || !p.startsWith('/')) {
+                        errors.push(
+                            `Provider "${id}": config.cookiePaths[${i}] must be a path starting with "/"`,
+                        );
+                    }
+                }
+            }
+        }
     }
 
     if (strategy === StrategyName.OAUTH2) {
@@ -370,6 +396,13 @@ export function buildStrategyConfig(
                     : {}),
                 ...(Array.isArray(c.requiredCookies)
                     ? { requiredCookies: c.requiredCookies as string[] }
+                    : {}),
+                ...(Array.isArray(c.cookiePaths)
+                    ? {
+                          cookiePaths: (c.cookiePaths as string[]).map(
+                              (p) => p.replace(/[?#].*$/, '').replace(/\/+$/, '') || '/',
+                          ),
+                      }
                     : {}),
             };
 
@@ -492,5 +525,7 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
                   },
               }
             : {}),
+        ...(typeof raw.networkProxy === 'string' ? { networkProxy: raw.networkProxy } : {}),
+        ...(typeof raw.loginMode === 'string' ? { loginMode: raw.loginMode } : {}),
     };
 }

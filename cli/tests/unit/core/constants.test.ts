@@ -226,7 +226,7 @@ describe('constants', () => {
         });
 
         it('APP_VERSION is a semver string', () => {
-            expect(APP_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
+            expect(APP_VERSION).toMatch(/^\d+\.\d+\.\d+(-[\w.]+)?$/);
         });
     });
 

@@ -428,6 +428,155 @@ describe('validateConfig', () => {
         }
     });
 
+    it('accepts cookie config with valid cookiePaths', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    wiki: {
+                        domains: ['wiki.example.com'],
+                        entryUrl: 'https://wiki.example.com/wiki/display/Home',
+                        strategy: 'cookie',
+                        config: {
+                            requiredCookies: ['seraph.confluence'],
+                            cookiePaths: ['/wiki'],
+                        },
+                    },
+                },
+            }),
+        );
+        expect(isOk(result)).toBe(true);
+    });
+
+    it('returns error when cookiePaths is not an array', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    bad: {
+                        domains: ['x.com'],
+                        entryUrl: 'https://x.com/',
+                        strategy: 'cookie',
+                        config: { cookiePaths: '/wiki' },
+                    },
+                },
+            }),
+        );
+        expect(isErr(result)).toBe(true);
+        if (!result.ok) {
+            expect(result.error.message).toContain('cookiePaths must be an array');
+        }
+    });
+
+    it('returns error when cookiePaths entry does not start with /', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    bad: {
+                        domains: ['x.com'],
+                        entryUrl: 'https://x.com/',
+                        strategy: 'cookie',
+                        config: { cookiePaths: ['wiki'] },
+                    },
+                },
+            }),
+        );
+        expect(isErr(result)).toBe(true);
+        if (!result.ok) {
+            expect(result.error.message).toContain(
+                'cookiePaths[0] must be a path starting with "/"',
+            );
+        }
+    });
+
+    it('returns error when cookiePaths entry is not a string', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    bad: {
+                        domains: ['x.com'],
+                        entryUrl: 'https://x.com/',
+                        strategy: 'cookie',
+                        config: { cookiePaths: [123] },
+                    },
+                },
+            }),
+        );
+        expect(isErr(result)).toBe(true);
+        if (!result.ok) {
+            expect(result.error.message).toContain(
+                'cookiePaths[0] must be a path starting with "/"',
+            );
+        }
+    });
+
+    it('normalizes cookiePaths by stripping query string', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    wiki: {
+                        domains: ['x.com'],
+                        entryUrl: 'https://x.com/',
+                        strategy: 'cookie',
+                        config: { cookiePaths: ['/wiki?foo=bar'] },
+                    },
+                },
+            }),
+        );
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+            const strat = buildStrategyConfig('cookie', result.value.providers.wiki.config);
+            expect(strat.strategy).toBe('cookie');
+            if (strat.strategy === 'cookie') {
+                expect(strat.cookiePaths).toEqual(['/wiki']);
+            }
+        }
+    });
+
+    it('normalizes cookiePaths by stripping fragment', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    wiki: {
+                        domains: ['x.com'],
+                        entryUrl: 'https://x.com/',
+                        strategy: 'cookie',
+                        config: { cookiePaths: ['/wiki#section'] },
+                    },
+                },
+            }),
+        );
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+            const strat = buildStrategyConfig('cookie', result.value.providers.wiki.config);
+            expect(strat.strategy).toBe('cookie');
+            if (strat.strategy === 'cookie') {
+                expect(strat.cookiePaths).toEqual(['/wiki']);
+            }
+        }
+    });
+
+    it('normalizes cookiePaths by stripping trailing slash', () => {
+        const result = validateConfig(
+            validRawConfig({
+                providers: {
+                    wiki: {
+                        domains: ['x.com'],
+                        entryUrl: 'https://x.com/',
+                        strategy: 'cookie',
+                        config: { cookiePaths: ['/wiki/'] },
+                    },
+                },
+            }),
+        );
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+            const strat = buildStrategyConfig('cookie', result.value.providers.wiki.config);
+            expect(strat.strategy).toBe('cookie');
+            if (strat.strategy === 'cookie') {
+                expect(strat.cookiePaths).toEqual(['/wiki']);
+            }
+        }
+    });
+
     it('returns error when oauth2 config contains cookie-only fields', () => {
         const result = validateConfig(
             validRawConfig({
@@ -831,6 +980,37 @@ describe('buildStrategyConfig', () => {
     });
 
     // ---- ignores wrong-typed values ----
+
+    it('builds cookie strategy config with cookiePaths', () => {
+        const result = buildStrategyConfig('cookie', {
+            ttl: '12h',
+            requiredCookies: ['seraph.confluence'],
+            cookiePaths: ['/wiki'],
+        });
+        expect(result).toEqual({
+            strategy: 'cookie',
+            ttl: '12h',
+            requiredCookies: ['seraph.confluence'],
+            cookiePaths: ['/wiki'],
+        });
+    });
+
+    it('builds cookie strategy config with multiple cookiePaths', () => {
+        const result = buildStrategyConfig('cookie', {
+            cookiePaths: ['/wiki', '/app'],
+        });
+        expect(result).toEqual({
+            strategy: 'cookie',
+            cookiePaths: ['/wiki', '/app'],
+        });
+    });
+
+    it('ignores non-array cookiePaths in buildStrategyConfig', () => {
+        const result = buildStrategyConfig('cookie', {
+            cookiePaths: '/wiki',
+        });
+        expect(result).toEqual({ strategy: 'cookie' });
+    });
 
     it('ignores fields with wrong types (non-string ttl, non-array requiredCookies)', () => {
         const result = buildStrategyConfig('cookie', {

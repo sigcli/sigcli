@@ -38,6 +38,7 @@ function toProviderEntry(pc: ProviderConfig): ProviderEntry {
         ...(pc.localStorage ? { localStorage: pc.localStorage } : {}),
         ...(pc.forceVisible !== undefined ? { forceVisible: pc.forceVisible } : {}),
         ...(pc.proxy ? { proxy: pc.proxy } : {}),
+        ...(pc.networkProxy ? { networkProxy: pc.networkProxy } : {}),
     };
 }
 
@@ -89,6 +90,20 @@ export async function runLogin(
 
     const hasOverrides = flags.strategy !== undefined || typeof flags.as === 'string';
     const provider = hasOverrides ? { ...baseProvider } : baseProvider;
+
+    const networkProxy =
+        typeof flags['network-proxy'] === 'string' ? flags['network-proxy'] : undefined;
+
+    // Apply networkProxy to auto-provisioned providers so it persists in config
+    if (networkProxy !== undefined && provider.autoProvisioned) {
+        provider.networkProxy = networkProxy;
+    }
+
+    // --mode <mode>: override login mode (auto|cdp|headless|visible)
+    const loginMode = typeof flags.mode === 'string' ? flags.mode : undefined;
+    if (loginMode) {
+        provider.loginMode = loginMode;
+    }
 
     // --as <id>: override the provider ID (useful for auto-provisioned providers)
     if (typeof flags.as === 'string') {
@@ -326,7 +341,10 @@ export async function runLogin(
 
     process.stderr.write(`  [3/3] Opening browser...\n`);
     process.stderr.write(`Authenticating with "${provider.name}" via browser...\n`);
-    const result = await deps.authManager.forceReauth(provider.id);
+    const result = await deps.authManager.forceReauth(
+        provider.id,
+        networkProxy !== undefined ? { networkProxy } : undefined,
+    );
     if (!isOk(result)) {
         await logAuditEvent({
             action: AuditAction.LOGIN,
