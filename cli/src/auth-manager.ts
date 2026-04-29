@@ -10,12 +10,12 @@ import type {
 import type { BrowserConfig } from './config/schema.js';
 import type { ISourceStrategy, ExtractedCredentials, ExtractionContext } from './core/interfaces/source-strategy.js';
 import type { ApplyRule, ProviderConfigV2 } from './core/types/extract.js';
-import type { ApplyResult } from './apply/engine.js';
+
 import { createDefaultProvider } from './providers/auto-provision.js';
 import type { Result } from './core/result.js';
 import { ok, err, isOk } from './core/result.js';
 import { ProviderNotFoundError, CredentialNotFoundError, type AuthError } from './core/errors.js';
-import { applyRules } from './apply/engine.js';
+import { ApplyEngine, type ApplyResult } from './apply/apply-engine.js';
 import { checkRequired } from './extraction/required-checker.js';
 import { parseDuration } from './utils/duration.js';
 import { extractedToCredential, credentialToExtracted, toV2Config } from './credential-converter.js';
@@ -156,7 +156,7 @@ export class AuthManager {
      * Apply rules to extracted credentials.
      */
     applyExtracted(rules: ApplyRule[], credentials: ExtractedCredentials): ApplyResult {
-        return applyRules(rules, credentials);
+        return ApplyEngine.applyRules(rules, credentials);
     }
 
     /**
@@ -169,7 +169,7 @@ export class AuthManager {
         const newProvider = toV2Config(provider);
         // Convert old credential to extracted format
         const extracted = credentialToExtracted(credential);
-        const result = applyRules(newProvider.apply, extracted);
+        const result = ApplyEngine.applyRules(newProvider.apply, extracted);
         return result.headers;
     }
 

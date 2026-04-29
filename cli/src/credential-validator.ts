@@ -3,7 +3,7 @@ import type { ProviderConfigV2 } from './core/types/extract.js';
 import { LOGIN_URL_PATTERNS, HttpHeader } from './core/constants.js';
 import { buildUserAgent } from './utils/http.js';
 import { parseDuration } from './utils/duration.js';
-import { applyRules } from './apply/engine.js';
+import { ApplyEngine } from './apply/apply-engine.js';
 import { credentialToExtracted, toV2Config } from './credential-converter.js';
 
 /**
@@ -30,7 +30,7 @@ export async function validateCredential(
     try {
         const v2 = toV2Config(provider);
         const extracted = credentialToExtracted(credential);
-        const result = applyRules(v2.apply, extracted);
+        const result = ApplyEngine.applyRules(v2.apply, extracted);
         const headers = result.headers;
         const response = await fetch(provider.entryUrl, {
             method: 'GET',

@@ -8,7 +8,7 @@
  */
 import { loadConfig } from '../../src/config/loader.js';
 import { BrowserStrategy } from '../../src/strategies/browser/index.js';
-import { applyRules } from '../../src/apply/engine.js';
+import { ApplyEngine } from '../../src/apply/apply-engine.js';
 import { checkRequired } from '../../src/extraction/required-checker.js';
 import { isOk } from '../../src/core/result.js';
 import type { ExtractRule, ApplyRule } from '../../src/core/types/extract.js';
@@ -200,7 +200,7 @@ async function main() {
     }
 
     // Apply rules
-    const applied = applyRules(provider.apply, credentials);
+    const applied = ApplyEngine.applyRules(provider.apply, credentials);
     console.log('\n--- Applied Headers ---');
     for (const [name, value] of Object.entries(applied.headers)) {
         const display = value.length > 80 ? value.slice(0, 80) + '...' : value;
