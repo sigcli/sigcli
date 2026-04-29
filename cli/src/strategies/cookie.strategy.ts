@@ -61,9 +61,13 @@ class CookieStrategy implements IAuthStrategy {
             return ok(false);
         }
 
-        // Check individual cookie expiry
+        // Check cookie expiry — only consider requiredCookies if configured
         const now = Date.now() / 1000;
-        const hasExpired = credential.cookies.some((c) => c.expires > 0 && c.expires < now);
+        const cookiesToCheck =
+            this.requiredCookies.length > 0
+                ? credential.cookies.filter((c) => this.requiredCookies.includes(c.name))
+                : credential.cookies;
+        const hasExpired = cookiesToCheck.some((c) => c.expires > 0 && c.expires < now);
         if (hasExpired) return ok(false);
 
         // Ensure we have at least one cookie
