@@ -1,24 +1,10 @@
 import type { AuthDeps } from '../../deps.js';
-import type { Credential } from '../../core/types.js';
 import { isOk } from '../../core/result.js';
 import { formatJson, formatCredentialHeaders } from '../formatters.js';
 import { ExitCode } from '../exit-codes.js';
-import { CredentialTypeName, HttpHeader, OutputFormat } from '../../core/constants.js';
+import { OutputFormat } from '../../core/constants.js';
 import { logAuditEvent, AuditAction, AuditStatus } from '../../audit/audit-log.js';
 import { extractSensitiveValues, redactOutput } from '../../utils/redact.js';
-
-const PRIMARY_HEADERS = [HttpHeader.COOKIE.toLowerCase(), HttpHeader.AUTHORIZATION.toLowerCase()];
-
-function getLocalStorage(credential: Credential): Record<string, string> | undefined {
-    if (
-        credential.type === CredentialTypeName.COOKIE ||
-        credential.type === CredentialTypeName.BEARER
-    ) {
-        const ls = credential.localStorage;
-        if (ls && Object.keys(ls).length > 0) return ls;
-    }
-    return undefined;
-}
 
 export async function runGet(
     positionals: string[],
@@ -28,7 +14,9 @@ export async function runGet(
     const target = positionals[0];
     if (!target) {
         process.stderr.write(
-            'Usage: sig get <provider|url>\n\n⚠ Least secure method — credentials may appear in stdout, shell history, and pipes.\nValues are redacted by default. Use --no-redaction only when needed.\nPrefer "sig request" or "sig run" for automation.\n',
+            'Usage: sig get <provider|url>\n\n' +
+                'Values are redacted by default. Use --no-redaction only when needed.\n' +
+                'Prefer "sig request" or "sig run" for automation.\n',
         );
         process.exitCode = ExitCode.GENERAL_ERROR;
         return;
@@ -52,7 +40,7 @@ export async function runGet(
             process.stderr.write(`Error: ${result.error.message}\n`);
             if (result.error.code === 'BROWSER_UNAVAILABLE') {
                 process.stderr.write(
-                    `Hint: Run "sig login ${target} --token <token>" or "sig sync pull" to get credentials.\n`,
+                    `Hint: Run "sig login ${target}" or "sig sync pull" to get credentials.\n`,
                 );
             }
             process.exitCode =
@@ -80,7 +68,7 @@ export async function runGet(
             process.stderr.write(`Error: ${result.error.message}\n`);
             if (result.error.code === 'BROWSER_UNAVAILABLE') {
                 process.stderr.write(
-                    `Hint: Run "sig login ${target} --token <token>" or "sig sync pull" to get credentials.\n`,
+                    `Hint: Run "sig login ${target}" or "sig sync pull" to get credentials.\n`,
                 );
             }
             process.exitCode =
@@ -93,6 +81,7 @@ export async function runGet(
         credential = result.value.credential;
     }
 
+    // Apply credential to get headers
     const headers = deps.authManager.applyToRequest(providerId, credential);
     const noRedaction = flags['no-redaction'] === true;
     await logAuditEvent({
@@ -109,11 +98,6 @@ export async function runGet(
         return;
     }
 
-    const primaryEntry =
-        entries.find(([name]) => PRIMARY_HEADERS.includes(name.toLowerCase())) ?? entries[0];
-    const [primaryHeaderName, primaryHeaderValue] = primaryEntry;
-
-    const format = (flags.format as string) ?? OutputFormat.JSON;
     if (noRedaction) {
         process.stderr.write(
             'Warning: Outputting raw credential values — do not expose to untrusted processes.\n',
@@ -122,24 +106,16 @@ export async function runGet(
     const secrets = noRedaction ? [] : extractSensitiveValues(credential);
     const redact = (text: string): string => (noRedaction ? text : redactOutput(text, secrets));
 
+    const format = (flags.format as string) ?? OutputFormat.JSON;
     switch (format) {
         case OutputFormat.JSON: {
-            const credentialObj: Record<string, unknown> = {
-                type: credential.type,
-                headerName: primaryHeaderName,
-                value: redact(primaryHeaderValue),
-            };
-            const ls = getLocalStorage(credential);
-            if (ls) {
-                const redactedLs: Record<string, string> = {};
-                for (const [k, v] of Object.entries(ls)) {
-                    redactedLs[k] = redact(v);
-                }
-                credentialObj.localStorage = redactedLs;
+            const redactedHeaders: Record<string, string> = {};
+            for (const [k, v] of Object.entries(headers)) {
+                redactedHeaders[k] = redact(v);
             }
             const output = {
                 provider: providerId,
-                credential: credentialObj,
+                headers: redactedHeaders,
             };
             process.stdout.write(formatJson(output) + '\n');
             break;
@@ -153,13 +129,9 @@ export async function runGet(
             break;
         }
         case OutputFormat.VALUE: {
-            process.stdout.write(redact(primaryHeaderValue) + '\n');
-            const ls = getLocalStorage(credential);
-            if (ls) {
-                for (const [name, value] of Object.entries(ls)) {
-                    process.stdout.write(`${name}=${redact(value)}\n`);
-                }
-            }
+            // Output just the first header value (no JSON wrapper)
+            const firstValue = entries[0][1];
+            process.stdout.write(redact(firstValue) + '\n');
             break;
         }
         default: {
