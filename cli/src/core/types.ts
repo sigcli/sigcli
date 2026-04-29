@@ -151,7 +151,7 @@ export interface ProviderConfig {
     forceVisible?: boolean; // Skip headless, go straight to visible browser mode
     proxy?: ProxyConfig; // MITM proxy injection rules
     networkProxy?: string; // Browser network proxy, e.g. "socks5://127.0.0.1:1080"
-    loginMode?: string; // 'auto' | 'cdp' | 'headless' | 'visible'
+    loginMode?: string; // Login mode cascade: 'auto' (headless→CDP→visible), 'cdp' (native browser only), 'headless', 'visible'
 }
 
 // ============================================================================

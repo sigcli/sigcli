@@ -693,13 +693,20 @@ sig run my-jira --mount creds.json --mount-format json -- node app.js`}</CodeBlo
                     </SectionHeading>
                     <P>
                         Authenticates with a provider. Accepts a URL or provider ID. By default
-                        launches Playwright headless; falls back to a visible window when a login
-                        page is detected.
+                        uses a 3-phase cascade: headless Playwright → native CDP (real browser, no
+                        automation markers) → visible Playwright. Use <Code>--mode</Code> to force
+                        a specific mode.
                     </P>
                     <CodeBlock lang="bash">{`sig login <url>
 
 # Browser SSO (opens browser automatically)
 sig login https://jira.example.com
+
+# Force native CDP mode (bypasses anti-bot detection on X, Reddit, etc.)
+sig login https://x.com --mode cdp
+
+# Force headless only (fastest, but blocked by some sites)
+sig login https://jira.example.com --mode headless
 
 # Custom provider ID
 sig login https://jira.example.com --as my-jira

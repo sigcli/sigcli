@@ -11,7 +11,8 @@ mode: browser
 browser:
     browserDataDir: ~/.sig/browser-data # Persistent browser profile directory
     channel: chrome # Browser channel (chrome, msedge, chromium)
-    headlessTimeout: 30000 # Timeout for headless auth attempt (ms)
+    # execPath: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome  # Native browser path for CDP mode (auto-detected if not set)
+    headlessTimeout: 10000 # Timeout for headless auth attempt (ms)
     visibleTimeout: 120000 # Timeout for visible/user-assisted auth (ms)
     waitUntil: load # Default page load condition (load, networkidle, domcontentloaded, commit)
 
@@ -143,3 +144,14 @@ providers:
     #     - name: token                      # output key in `sig get` JSON
     #       key: localConfig_v2              # localStorage key to read
     #       jsonPath: teams.<TEAM_ID>.token    # dot-path into parsed JSON value
+
+    # Native CDP login mode — for sites that block Playwright automation (X, Reddit)
+    # Uses the real browser with no automation markers. Cascade: headless → CDP → visible.
+    # twitter:
+    #   domains: ["x.com", "twitter.com"]
+    #   entryUrl: https://x.com/i/flow/login
+    #   strategy: cookie
+    #   loginMode: cdp                           # Skip headless, use native browser CDP directly
+    #   networkProxy: socks5://127.0.0.1:1080    # Passed as --proxy-server to browser
+    #   config:
+    #     requiredCookies: ["ct0", "auth_token"]
