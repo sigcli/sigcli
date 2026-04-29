@@ -138,6 +138,13 @@ export interface ProviderConfig {
     proxy?: ProxyConfig; // MITM proxy injection rules
     networkProxy?: string; // Browser network proxy, e.g. "socks5://127.0.0.1:1080"
     loginMode?: string; // Login mode cascade: 'auto' (headless→CDP→visible), 'cdp' (native browser only), 'headless', 'visible'
+    // v2 fields (extract/apply system)
+    source?: string;
+    extract?: Array<{ from: string; name: string; key: string }>;
+    apply?: Array<{ in: string; name: string; value: string }>;
+    required?: string[];
+    cookiePaths?: string[];
+    ttl?: string;
 }
 
 // ============================================================================

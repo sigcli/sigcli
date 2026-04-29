@@ -74,6 +74,13 @@ export async function createAuthDeps(
             ...(entry.proxy !== undefined ? { proxy: entry.proxy } : {}),
             ...(entry.networkProxy !== undefined ? { networkProxy: entry.networkProxy } : {}),
             ...(entry.loginMode !== undefined ? { loginMode: entry.loginMode } : {}),
+            // v2 fields
+            ...(entry.source !== undefined ? { source: entry.source } : {}),
+            ...(entry.extract !== undefined ? { extract: entry.extract } : {}),
+            ...(entry.apply !== undefined ? { apply: entry.apply } : {}),
+            ...(entry.required !== undefined ? { required: entry.required } : {}),
+            ...(entry.cookiePaths !== undefined ? { cookiePaths: entry.cookiePaths } : {}),
+            ...(entry.ttl !== undefined ? { ttl: entry.ttl } : {}),
         }),
     );
 

@@ -331,6 +331,24 @@ export class AuthManager {
     // ========================================================================
 
     private toNewConfig(provider: ProviderConfig): ProviderConfigV2 {
+        // If provider already has v2 fields, use them directly
+        if (provider.extract && provider.apply && provider.source) {
+            return {
+                id: provider.id,
+                name: provider.name,
+                domains: provider.domains,
+                entryUrl: provider.entryUrl,
+                source: provider.source as ProviderConfigV2['source'],
+                extract: provider.extract as ProviderConfigV2['extract'],
+                apply: provider.apply as ProviderConfigV2['apply'],
+                required: provider.required,
+                cookiePaths: provider.cookiePaths,
+                ttl: provider.ttl,
+                networkProxy: provider.networkProxy,
+                loginMode: provider.loginMode,
+            };
+        }
+        // Fall back to migration for v1 providers
         const migrated = migrateProvider(provider.id, {
             name: provider.name,
             domains: provider.domains,

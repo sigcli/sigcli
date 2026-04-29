@@ -485,5 +485,12 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
             : {}),
         ...(typeof raw.networkProxy === 'string' ? { networkProxy: raw.networkProxy } : {}),
         ...(typeof raw.loginMode === 'string' ? { loginMode: raw.loginMode } : {}),
+        // v2 fields
+        ...(typeof raw.source === 'string' ? { source: raw.source } : {}),
+        ...(Array.isArray(raw.extract) ? { extract: raw.extract } : {}),
+        ...(Array.isArray(raw.apply) ? { apply: raw.apply } : {}),
+        ...(Array.isArray(raw.required) ? { required: raw.required } : {}),
+        ...(Array.isArray(raw.cookiePaths) ? { cookiePaths: raw.cookiePaths } : {}),
+        ...(typeof raw.ttl === 'string' ? { ttl: raw.ttl } : {}),
     };
 }
