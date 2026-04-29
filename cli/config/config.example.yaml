@@ -1,7 +1,9 @@
 # SigCLI unified configuration
 # Copy this to ~/.sig/config.yaml and customize for your services.
 #
-# All configuration lives in this single file — no env vars, no cascade.
+# Project-level overrides: run "sig init --local" to create .sig/config.yaml
+# in a project directory. Only the "providers" section is supported there.
+# Project providers override global providers with the same ID.
 
 # Mode: "browser" (default) or "browserless" (remote/headless machines)
 # Use "sig init --remote" to set up browserless mode.

@@ -37,17 +37,24 @@ export async function runRemove(
         return;
     }
 
-    // Block remove of project-level providers
+    // Separate project-level providers (cannot be removed via CLI)
     const projectProviders = resolved.filter((p) => p.source === 'project');
+    const userProviders = resolved.filter((p) => p.source !== 'project');
+
     if (projectProviders.length > 0) {
         const configPath = deps.projectConfigPath ?? '.sig/config.yaml';
         const ids = projectProviders.map((p) => p.id).join(', ');
         process.stderr.write(
-            `Error: Provider(s) ${ids} defined in project config.\n` +
+            `Warning: Provider(s) ${ids} defined in project config — skipping.\n` +
                 `Edit ${configPath} directly to remove them.\n`,
         );
-        process.exitCode = ExitCode.GENERAL_ERROR;
-        return;
+        if (userProviders.length === 0) {
+            process.exitCode = ExitCode.GENERAL_ERROR;
+            return;
+        }
+        // Continue with user providers only
+        resolved.length = 0;
+        resolved.push(...userProviders);
     }
 
     // Confirmation (unless --force)

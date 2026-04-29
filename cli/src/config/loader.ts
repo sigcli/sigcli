@@ -4,13 +4,13 @@
  * Project config: .sig/config.yaml (providers only, discovered by walking up from CWD)
  */
 
-import { existsSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import YAML from 'yaml';
 import type { Result } from '../core/result.js';
-import { ok, err } from '../core/result.js';
+import { ok, err, isOk, isErr } from '../core/result.js';
 import { ConfigError, type AuthError } from '../core/errors.js';
 import type { SigConfig, ProviderEntry, ProjectConfig } from './schema.js';
 import type { ProviderSource } from '../core/types.js';
@@ -134,16 +134,31 @@ export function getConfigPath(): string {
 }
 
 /**
+ * Resolve a path to its canonical form (following symlinks).
+ * Falls back to the original path if resolution fails (e.g., path doesn't exist).
+ */
+function safeRealpath(p: string): string {
+    try {
+        return realpathSync(p);
+    } catch {
+        return p;
+    }
+}
+
+/**
  * Walk up from startDir looking for .sig/config.yaml.
  * Returns the path if found, null otherwise.
+ * Skips the global ~/.sig directory (symlink-safe comparison).
  */
 export function findProjectConfigPath(startDir?: string): string | null {
     let dir = startDir ?? process.cwd();
-    const globalSigDir = path.join(os.homedir(), '.sig');
+    const globalSigDir = safeRealpath(path.join(os.homedir(), '.sig'));
     while (true) {
-        const candidate = path.join(dir, '.sig', 'config.yaml');
-        // Skip if this is the global ~/.sig directory
-        if (path.join(dir, '.sig') !== globalSigDir && existsSync(candidate)) {
+        const sigDir = path.join(dir, '.sig');
+        const candidate = path.join(sigDir, 'config.yaml');
+        // Skip if this resolves to the global ~/.sig directory
+        const isGlobal = safeRealpath(sigDir) === globalSigDir;
+        if (!isGlobal && existsSync(candidate)) {
             return candidate;
         }
         const parent = path.dirname(dir);
@@ -205,7 +220,7 @@ export interface MergedConfigResult {
 export async function loadMergedConfig(): Promise<Result<MergedConfigResult, AuthError>> {
     // 1. Load global config (mandatory)
     const globalResult = await loadConfig();
-    if (!('value' in globalResult)) return globalResult;
+    if (isErr(globalResult)) return globalResult;
     const config = globalResult.value;
 
     // 2. Track provider sources
@@ -218,14 +233,20 @@ export async function loadMergedConfig(): Promise<Result<MergedConfigResult, Aut
     const projectPath = findProjectConfigPath();
     if (projectPath) {
         const projectResult = await loadProjectConfig(projectPath);
-        if ('value' in projectResult) {
+        if (isOk(projectResult)) {
             // Merge: project providers override global
             for (const [id, entry] of Object.entries(projectResult.value.providers)) {
                 config.providers[id] = entry;
                 providerSources[id] = 'project';
             }
+        } else {
+            // Warn user their project config has issues — don't silently ignore
+            process.stderr.write(
+                `Warning: Project config at ${projectPath} has errors:\n` +
+                    `  ${projectResult.error.message}\n` +
+                    '  Continuing with global config only.\n',
+            );
         }
-        // If project config fails validation, log warning but continue with global only
     }
 
     return ok({ config, providerSources, projectConfigPath: projectPath });
