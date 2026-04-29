@@ -18,6 +18,7 @@ export interface ExtractionContext {
     cookiePaths?: string[];
     loginMode?: string;
     timeout?: number;
+    required?: string[];
 }
 
 /**

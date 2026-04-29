@@ -65,12 +65,15 @@ export class CookieExtractor implements IBrowserExtractor {
     private filterByDomain(cookies: CdpCookie[], domains: string[]): CdpCookie[] {
         return cookies.filter((c) => {
             const cookieDomain = c.domain.startsWith('.') ? c.domain.slice(1) : c.domain;
-            return domains.some(
-                (d) =>
-                    cookieDomain === d ||
-                    cookieDomain.endsWith('.' + d) ||
-                    d.endsWith('.' + cookieDomain),
-            );
+            return domains.some((d) => {
+                // Exact match
+                if (cookieDomain === d) return true;
+                // Cookie domain is parent of provider domain (e.g. slack.com matches sap.enterprise.slack.com)
+                if (d.endsWith('.' + cookieDomain)) return true;
+                // Cookie domain is subdomain of provider domain
+                if (cookieDomain.endsWith('.' + d)) return true;
+                return false;
+            });
         });
     }
 }

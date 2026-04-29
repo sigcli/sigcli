@@ -15,6 +15,7 @@ import { connectCdpWs } from '../browser/cdp-ws.js';
 import { findNativeBrowser } from '../browser/detect-native.js';
 import { CookieExtractor } from './cookie-extractor.js';
 import { StorageExtractor } from './storage-extractor.js';
+import { checkRequired } from './required-checker.js';
 
 export interface BrowserSourceOptions {
     browserDataDir: string;
@@ -112,6 +113,7 @@ export class BrowserSource implements ISourceStrategy {
                 rules,
                 ctx.domains,
                 ctx.cookiePaths,
+                ctx.required,
                 timeout,
             );
 
@@ -135,6 +137,7 @@ export class BrowserSource implements ISourceStrategy {
         rules: ExtractRule[],
         domains: string[],
         cookiePaths?: string[],
+        required?: string[],
         timeout = 120000,
     ): Promise<ExtractedCredentials> {
         const deadline = Date.now() + timeout;
@@ -162,14 +165,18 @@ export class BrowserSource implements ISourceStrategy {
                 }
             }
 
-            // Check if we have all non-empty values
-            const allExtracted = rules.every((r) => !!credentials[r.name]);
-            if (allExtracted) return credentials;
+            // Check completion: required criteria or all values present
+            if (required?.length) {
+                const unmet = checkRequired(required, credentials);
+                if (unmet.length === 0) return credentials;
+            } else {
+                const allExtracted = rules.every((r) => !!credentials[r.name]);
+                if (allExtracted) return credentials;
+            }
 
             await new Promise((r) => setTimeout(r, pollInterval));
         }
 
-        // Return whatever we have at timeout (required checker handles validation upstream)
         return credentials;
     }
 }

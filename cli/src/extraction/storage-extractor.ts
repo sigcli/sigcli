@@ -116,13 +116,14 @@ export class StorageExtractor implements IBrowserExtractor {
                 expression: `(() => {
                     try {
                         const regex = new RegExp(${JSON.stringify(regex)});
+                        const matches = [];
                         for (let i = 0; i < localStorage.length; i++) {
                             const k = localStorage.key(i);
                             if (k && regex.test(k)) {
-                                return localStorage.getItem(k);
+                                matches.push(localStorage.getItem(k));
                             }
                         }
-                        return null;
+                        return JSON.stringify(matches);
                     } catch(e) { return null; }
                 })()`,
                 returnByValue: true,
@@ -130,7 +131,43 @@ export class StorageExtractor implements IBrowserExtractor {
             sessionId,
         )) as { result?: { value?: string | null } };
 
-        return result?.result?.value ?? null;
+        const raw = result?.result?.value;
+        if (!raw) return null;
+
+        try {
+            const matches = JSON.parse(raw) as (string | null)[];
+            if (!matches?.length) return null;
+
+            // Try to extract JWT secret from MSAL-style JSON entries
+            for (const entry of matches) {
+                if (!entry) continue;
+                const jwt = this.extractJwtFromEntry(entry);
+                if (jwt) return jwt;
+            }
+
+            // Fallback: return first non-null match as-is
+            return matches.find((m) => m != null) ?? null;
+        } catch {
+            return raw;
+        }
+    }
+
+    private extractJwtFromEntry(entry: string): string | null {
+        // If entry is JSON with a "secret" field containing a JWT, extract it
+        try {
+            const parsed = JSON.parse(entry);
+            if (parsed?.secret && typeof parsed.secret === 'string') {
+                if (parsed.secret.startsWith('eyJ')) {
+                    return parsed.secret;
+                }
+            }
+        } catch {
+            // Not JSON — check if the entry itself is a JWT
+            if (entry.startsWith('eyJ') && entry.includes('.')) {
+                return entry;
+            }
+        }
+        return null;
     }
 
     private globToRegex(pattern: string): string {
