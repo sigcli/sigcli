@@ -1,12 +1,13 @@
+import dlv from 'dlv';
 import type { ExtractedCredentials } from '../core/interfaces/source-strategy.js';
 
 /**
  * Check completion criteria.
  *
  * Format:
- *   "name.field" — credentials[name] contains field
+ *   "name.field" — use dlv to traverse into credentials[name]
  *     For cookies: checks "field=" appears in the cookie string
- *     For other: checks the value is non-empty
+ *     For other: traverses dot-path into the value
  *   "name" (no dot) — credentials[name] is non-empty
  *
  * Returns list of unmet requirements (empty = all satisfied).
@@ -29,8 +30,27 @@ export function checkRequired(
             const value = credentials[name];
             if (!value) {
                 unmet.push(req);
-            } else if (!value.includes(`${field}=`)) {
-                unmet.push(req);
+                continue;
+            }
+            // For cookie strings, check "field=" presence
+            if (value.includes('=') && value.includes(';')) {
+                if (!value.includes(`${field}=`)) {
+                    unmet.push(req);
+                }
+            } else {
+                // For JSON-like values, use dlv for dot-path traversal
+                try {
+                    const parsed = JSON.parse(value);
+                    const resolved = dlv(parsed, field);
+                    if (resolved == null || resolved === '') {
+                        unmet.push(req);
+                    }
+                } catch {
+                    // Not JSON — treat as plain string, check non-empty
+                    if (!value) {
+                        unmet.push(req);
+                    }
+                }
             }
         }
     }
