@@ -1,28 +1,26 @@
+import type { Credential } from '../types/types.js';
 import type { AuthManager } from '../auth-manager.js';
 import type { ProviderConfig } from '../types/types.js';
-import type { ProviderEntry, StrategyName } from '../config/schema.js';
+import type { ProviderEntry } from '../config/schema.js';
 import { addProviderToConfig } from '../config/loader.js';
 import { isOk } from '../types/result.js';
 import { formatJson } from '../utils/formatters.js';
 import { ProviderNotFoundError } from '../types/errors.js';
-import { BROWSER_REQUIRED_STRATEGIES } from '../types/constants.js';
 import { ExitCode } from '../utils/exit-codes.js';
 import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
 
 /** Convert runtime ProviderConfig to the YAML ProviderEntry format. */
 function toProviderEntry(pc: ProviderConfig): ProviderEntry {
-    const { strategy: _s, ...strategyRest } = pc.strategyConfig;
     return {
         ...(pc.name !== pc.id ? { name: pc.name } : {}),
         domains: pc.domains,
-        entryUrl: pc.entryUrl ?? `https://${pc.domains[0]}/`,
-        strategy: pc.strategy as StrategyName,
-        ...(Object.keys(strategyRest).length > 0 ? { config: strategyRest } : {}),
-        ...(pc.acceptedCredentialTypes
-            ? { acceptedCredentialTypes: pc.acceptedCredentialTypes }
-            : {}),
-        ...(pc.localStorage ? { localStorage: pc.localStorage } : {}),
-        ...(pc.forceVisible !== undefined ? { forceVisible: pc.forceVisible } : {}),
+        entryUrl: pc.entryUrl,
+        strategy: pc.strategy as ProviderEntry['strategy'],
+        extract: pc.extract,
+        apply: pc.apply,
+        ...(pc.required?.length ? { required: pc.required } : {}),
+        ...(pc.cookiePaths?.length ? { cookiePaths: pc.cookiePaths } : {}),
+        ...(pc.ttl ? { ttl: pc.ttl } : {}),
         ...(pc.proxy ? { proxy: pc.proxy } : {}),
         ...(pc.networkProxy ? { networkProxy: pc.networkProxy } : {}),
     };
@@ -102,7 +100,7 @@ export async function runLogin(
     }
 
     // Step 4: Check browser availability for browser-based strategies
-    if (!auth.browserAvailable && BROWSER_REQUIRED_STRATEGIES.has(provider.strategy)) {
+    if (!auth.browserAvailable && provider.strategy === 'browser') {
         process.stderr.write(
             `Browser is not available on this machine.\n` +
                 `Provider "${provider.name}" uses "${provider.strategy}" strategy which requires a browser.\n\n` +

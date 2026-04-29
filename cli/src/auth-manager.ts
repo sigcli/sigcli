@@ -20,7 +20,6 @@ import { DirectoryStorage } from './storage/directory-storage.js';
 import { CachedStorage } from './storage/cached-storage.js';
 import { BrowserStrategy } from './strategies/browser/index.js';
 import { PromptStrategy } from './strategies/prompt/index.js';
-import { buildStrategyConfig } from './config/validator.js';
 import { createDefaultProvider } from './providers/auto-provision.js';
 import type { Result } from './types/result.js';
 import { ok, err, isOk } from './types/result.js';
@@ -72,31 +71,22 @@ export class AuthManager {
      * This is the only way to instantiate — wires all dependencies.
      */
     static async create(config: SigConfig, options?: { verbose?: boolean }): Promise<AuthManager> {
-        const providerConfigs: ProviderConfig[] = Object.entries(config.providers).map(
+        const providerConfigs = Object.entries(config.providers).map(
             ([id, entry]) => ({
                 id,
                 name: entry.name ?? id,
                 domains: entry.domains,
-                entryUrl: entry.entryUrl ?? '',
-                strategy: entry.strategy ?? entry.source ?? 'browser',
-                strategyConfig: entry.strategy
-                    ? buildStrategyConfig(entry.strategy, entry.config)
-                    : { strategy: 'cookie' as const },
-                acceptedCredentialTypes: entry.acceptedCredentialTypes,
-                setupInstructions: entry.setupInstructions,
-                localStorage: entry.localStorage,
-                ...(entry.forceVisible !== undefined ? { forceVisible: entry.forceVisible } : {}),
+                entryUrl: entry.entryUrl,
+                strategy: entry.strategy,
+                extract: entry.extract,
+                apply: entry.apply,
                 ...(entry.proxy !== undefined ? { proxy: entry.proxy } : {}),
                 ...(entry.networkProxy !== undefined ? { networkProxy: entry.networkProxy } : {}),
-                ...(entry.loginMode !== undefined ? { loginMode: entry.loginMode } : {}),
-                ...(entry.source !== undefined ? { source: entry.source } : {}),
-                ...(entry.extract !== undefined ? { extract: entry.extract } : {}),
-                ...(entry.apply !== undefined ? { apply: entry.apply } : {}),
                 ...(entry.required !== undefined ? { required: entry.required } : {}),
                 ...(entry.cookiePaths !== undefined ? { cookiePaths: entry.cookiePaths } : {}),
                 ...(entry.ttl !== undefined ? { ttl: entry.ttl } : {}),
             }),
-        );
+        ) as ProviderConfig[];
 
         const providerRegistry = new ProviderRegistry(providerConfigs);
 
@@ -181,10 +171,10 @@ export class AuthManager {
         }
 
         // Step 2: Select source strategy
-        const source = this.sourceStrategies.get(provider.source);
+        const source = this.sourceStrategies.get(provider.strategy);
         if (!source) {
             return err(
-                new ProviderNotFoundError(`No source strategy registered for "${provider.source}"`),
+                new ProviderNotFoundError(`No source strategy registered for "${provider.strategy}"`),
             );
         }
 
@@ -218,7 +208,7 @@ export class AuthManager {
         const storedEntry: StoredCredential = {
             credential,
             providerId: provider.id,
-            strategy: provider.source,
+            strategy: provider.strategy,
             updatedAt: new Date().toISOString(),
             metadata: { extractedValues: extractResult.value },
         };

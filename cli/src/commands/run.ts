@@ -1,3 +1,4 @@
+import type { Credential } from '../types/types.js';
 import { spawn } from 'node:child_process';
 import { writeFileSync, unlinkSync } from 'node:fs';
 import type { AuthManager } from '../auth-manager.js';

@@ -248,7 +248,7 @@ function checkBrowserRequired(
     const browserProviders = Object.entries(config.providers)
         .filter(
             ([, entry]) =>
-                entry.source === 'browser' ||
+                entry.strategy === 'browser' ||
                 (entry.strategy && BROWSER_REQUIRED_STRATEGIES.has(entry.strategy)),
         )
         .map(([id]) => id);

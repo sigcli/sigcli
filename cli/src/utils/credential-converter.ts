@@ -35,7 +35,6 @@ export function extractedToCredential(
             type: 'cookie' as const,
             cookies,
             obtainedAt: new Date().toISOString(),
-            ...(Object.keys(extra).length > 0 ? { localStorage: extra } : {}),
         };
     }
     if (extracted.access_token) {
@@ -75,7 +74,6 @@ export function credentialToExtracted(credential: Credential): ExtractedCredenti
         case 'cookie':
             return {
                 session: credential.cookies.map((c) => `${c.name}=${c.value}`).join('; '),
-                ...(credential.localStorage ?? {}),
             };
         case 'bearer':
             return { access_token: credential.accessToken };
@@ -91,20 +89,19 @@ export function credentialToExtracted(credential: Credential): ExtractedCredenti
  */
 export function toV2Config(provider: ProviderConfig): ProviderConfigV2 {
     // If provider already has v2 fields, use them directly
-    if (provider.extract && provider.apply && provider.source) {
+    if (provider.extract && provider.apply && provider.strategy) {
         return {
             id: provider.id,
             name: provider.name,
             domains: provider.domains,
             entryUrl: provider.entryUrl,
-            source: provider.source as ProviderConfigV2['source'],
+            strategy: provider.strategy as ProviderConfigV2['strategy'],
             extract: provider.extract as ProviderConfigV2['extract'],
             apply: provider.apply as ProviderConfigV2['apply'],
             required: provider.required,
             cookiePaths: provider.cookiePaths,
             ttl: provider.ttl,
             networkProxy: provider.networkProxy,
-            loginMode: provider.loginMode,
         };
     }
     // Fall back to migration for v1 providers
@@ -113,10 +110,7 @@ export function toV2Config(provider: ProviderConfig): ProviderConfigV2 {
         domains: provider.domains,
         entryUrl: provider.entryUrl,
         strategy: provider.strategy,
-        config: provider.strategyConfig as unknown as Record<string, unknown>,
-        localStorage: provider.localStorage,
         networkProxy: provider.networkProxy,
-        loginMode: provider.loginMode,
     });
     return { id: provider.id, ...migrated } as unknown as ProviderConfigV2;
 }

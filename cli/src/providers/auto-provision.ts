@@ -58,8 +58,9 @@ export function createDefaultProvider(url: string, existingIds?: Set<string>): P
         name: hostname,
         domains: [hostname],
         entryUrl: `${parsed.protocol}//${parsed.host}/`,
-        strategy: 'cookie',
-        strategyConfig: { strategy: 'cookie' },
+        strategy: 'browser',
+        extract: [{ from: 'cookies' as const, name: 'session', key: '*' }],
+        apply: [{ in: 'header' as const, name: 'Cookie', value: '${session}' }],
         autoProvisioned: true,
     };
 }

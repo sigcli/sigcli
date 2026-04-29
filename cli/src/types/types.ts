@@ -123,25 +123,30 @@ export interface ProxyConfig {
 // Provider Configuration
 // ============================================================================
 
+export interface ExtractRule {
+    from: string;
+    name: string;
+    key: string;
+}
+
+export interface ApplyRule {
+    in: string;
+    name: string;
+    value: string;
+}
+
 export interface ProviderConfig {
     id: string;
     name: string;
     domains: string[]; // Exact or glob: ["*.example.com", "api.example.com"]
-    entryUrl?: string; // Starting URL for browser auth
+    entryUrl: string; // Starting URL for browser auth
     strategy: string; // Strategy name: "cookie", "oauth2", "api-token", "basic"
-    strategyConfig: StrategyConfig; // Discriminated union strategy config
-    acceptedCredentialTypes?: CredentialType[]; // Enforce which credential types are valid
-    setupInstructions?: string; // Shown when manual setup is needed
-    localStorage?: LocalStorageConfig[]; // localStorage values to extract during browser auth
     autoProvisioned?: boolean; // True if created by auto-provision (not from config file)
-    forceVisible?: boolean; // Skip headless, go straight to visible browser mode
     proxy?: ProxyConfig; // MITM proxy injection rules
     networkProxy?: string; // Browser network proxy, e.g. "socks5://127.0.0.1:1080"
-    loginMode?: string; // Login mode cascade: 'auto' (headless→CDP→visible), 'cdp' (native browser only), 'headless', 'visible'
     // v2 fields (extract/apply system)
-    source?: string;
-    extract?: Array<{ from: string; name: string; key: string }>;
-    apply?: Array<{ in: string; name: string; value: string }>;
+    extract: ExtractRule[];
+    apply: ApplyRule[];
     required?: string[];
     cookiePaths?: string[];
     ttl?: string;

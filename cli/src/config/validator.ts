@@ -264,17 +264,17 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
     }
 
     if (typeof raw.entryUrl !== 'string' || raw.entryUrl.length === 0) {
-        if (!raw.source) {
+        if (!raw.strategy) {
             errors.push(`Provider "${id}": missing required field "entryUrl"`);
         }
     }
 
     // Accept either v1 (strategy) or v2 (source + extract + apply)
-    if (raw.source) {
+    if (raw.strategy) {
         const VALID_SOURCES = ['browser', 'prompt', 'env'];
-        if (!VALID_SOURCES.includes(raw.source as string)) {
+        if (!VALID_SOURCES.includes(raw.strategy as string)) {
             errors.push(
-                `Provider "${id}": invalid source "${raw.source}". Valid: ${VALID_SOURCES.join(', ')}`,
+                `Provider "${id}": invalid source "${raw.strategy}". Valid: ${VALID_SOURCES.join(', ')}`,
             );
         }
         if (!Array.isArray(raw.extract)) {
@@ -455,44 +455,13 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
         ...(typeof raw.name === 'string' ? { name: raw.name } : {}),
         domains: raw.domains as string[],
         entryUrl: raw.entryUrl as string,
-        strategy: raw.strategy as StrategyNameType,
-        ...(raw.config && typeof raw.config === 'object'
-            ? { config: raw.config as Record<string, unknown> }
-            : {}),
-        ...(Array.isArray(raw.acceptedCredentialTypes)
-            ? { acceptedCredentialTypes: raw.acceptedCredentialTypes }
-            : {}),
-        ...(typeof raw.setupInstructions === 'string'
-            ? { setupInstructions: raw.setupInstructions }
-            : {}),
-        ...(Array.isArray(raw.localStorage) ? { localStorage: raw.localStorage } : {}),
-        ...(typeof raw.forceVisible === 'boolean' ? { forceVisible: raw.forceVisible } : {}),
-        ...(raw.proxy && typeof raw.proxy === 'object'
-            ? {
-                  proxy: {
-                      inject: Array.isArray((raw.proxy as Record<string, unknown>).inject)
-                          ? (
-                                (raw.proxy as Record<string, unknown>).inject as Array<
-                                    Record<string, unknown>
-                                >
-                            ).map((r) => ({
-                                in: r.in as 'header' | 'body' | 'query',
-                                action: r.action as 'set' | 'append' | 'remove',
-                                name: r.name as string,
-                                ...(r.from !== undefined ? { from: r.from as string } : {}),
-                            }))
-                          : undefined,
-                  },
-              }
-            : {}),
-        ...(typeof raw.networkProxy === 'string' ? { networkProxy: raw.networkProxy } : {}),
-        ...(typeof raw.loginMode === 'string' ? { loginMode: raw.loginMode } : {}),
-        // v2 fields
-        ...(typeof raw.source === 'string' ? { source: raw.source } : {}),
-        ...(Array.isArray(raw.extract) ? { extract: raw.extract } : {}),
-        ...(Array.isArray(raw.apply) ? { apply: raw.apply } : {}),
+        strategy: raw.strategy as ProviderEntry['strategy'],
+        extract: raw.extract as ProviderEntry['extract'],
+        apply: raw.apply as ProviderEntry['apply'],
         ...(Array.isArray(raw.required) ? { required: raw.required } : {}),
         ...(Array.isArray(raw.cookiePaths) ? { cookiePaths: raw.cookiePaths } : {}),
         ...(typeof raw.ttl === 'string' ? { ttl: raw.ttl } : {}),
+        ...(raw.proxy && typeof raw.proxy === 'object' ? { proxy: raw.proxy as any } : {}),
+        ...(typeof raw.networkProxy === 'string' ? { networkProxy: raw.networkProxy } : {}),
     };
 }

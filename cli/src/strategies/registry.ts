@@ -3,7 +3,7 @@ import type { ISourceStrategy } from '../types/interfaces/source-strategy.js';
 /**
  * StrategyRegistry — manages source strategy instances by name.
  *
- * Used by AuthManager to look up which strategy handles a given provider.source.
+ * Used by AuthManager to look up which strategy handles a given provider.strategy.
  */
 export class StrategyRegistry {
     private strategies = new Map<string, ISourceStrategy>();

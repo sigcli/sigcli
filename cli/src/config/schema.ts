@@ -86,9 +86,9 @@ export interface SigConfig {
 export interface ProviderEntry {
     name?: string;
     domains: string[];
-    entryUrl?: string;
+    entryUrl: string;
     // v1 fields
-    strategy?: StrategyName;
+    strategy: 'browser' | 'prompt' | 'oauth2';
     config?: Record<string, unknown>;
     acceptedCredentialTypes?: CredentialType[];
     setupInstructions?: string;
@@ -97,8 +97,8 @@ export interface ProviderEntry {
     proxy?: ProxyConfig;
     // v2 fields
     source?: string;
-    extract?: Array<{ from: string; name: string; key: string }>;
-    apply?: Array<{ in: string; name: string; value: string }>;
+    extract: Array<{ from: string; name: string; key: string }>;
+    apply: Array<{ in: string; name: string; value: string }>;
     required?: string[];
     cookiePaths?: string[];
     ttl?: string;

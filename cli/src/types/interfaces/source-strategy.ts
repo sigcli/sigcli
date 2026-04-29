@@ -23,7 +23,7 @@ export interface ExtractionContext {
 
 /**
  * A source strategy knows HOW to acquire credentials.
- * Selected by provider.source field.
+ * Selected by provider.strategy field.
  *
  * Implementations: BrowserSource, PromptSource
  */
