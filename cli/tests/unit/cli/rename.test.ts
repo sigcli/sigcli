@@ -215,4 +215,24 @@ describe('runRename', () => {
         expect(providerRegistry.get('jira')).not.toBeNull();
         expect(providerRegistry.get('some-id')).toBeNull();
     });
+
+    it('blocks rename of project-level provider', async () => {
+        const projectProvider: ProviderConfig = {
+            id: 'proj-jira',
+            name: 'proj-jira',
+            domains: ['jira.project.com'],
+            strategy: 'cookie',
+            strategyConfig: { strategy: 'cookie' },
+            source: 'project',
+        };
+        const { deps } = createDeps([projectProvider]);
+        deps.projectConfigPath = '/my-project/.sig/config.yaml';
+
+        await runRename(['proj-jira', 'new-name'], {}, deps);
+
+        expect(process.exitCode).toBe(1);
+        const stderr = stderrChunks.join('');
+        expect(stderr).toContain('defined in project config');
+        expect(stderr).toContain('/my-project/.sig/config.yaml');
+    });
 });

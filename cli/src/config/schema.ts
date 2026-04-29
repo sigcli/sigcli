@@ -97,3 +97,11 @@ export interface ProviderEntry {
     networkProxy?: string; // e.g. "socks5://127.0.0.1:1080"
     loginMode?: string; // 'auto' | 'cdp' | 'headless' | 'visible'
 }
+
+// ============================================================================
+// Project-Level Config (providers only, no browser/storage/mode)
+// ============================================================================
+
+export interface ProjectConfig {
+    providers: Record<string, ProviderEntry>;
+}

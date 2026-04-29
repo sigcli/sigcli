@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { loadConfig, getConfigPath } from '../config/loader.js';
+import { loadMergedConfig, getConfigPath } from '../config/loader.js';
 import { createAuthDeps } from '../deps.js';
 import { isOk } from '../core/result.js';
 import type { AuthDeps } from '../deps.js';
@@ -137,7 +137,8 @@ Watch:
   watch set-interval <dur>     Set default check interval
 
 Setup:
-  init                         Create ~/.sig/config.yaml
+  init                         Create ~/.sig/config.yaml (global)
+    --local                      Create .sig/config.yaml in current directory (project-level)
     --remote                     Headless machine setup (mode: browserless)
     --yes                        Accept defaults, skip prompts
     --force                      Overwrite existing config
@@ -203,15 +204,15 @@ export async function run(args: string[]): Promise<void> {
             return;
         }
 
-        const configResult = await loadConfig();
+        const configResult = await loadMergedConfig();
         if (!isOk(configResult)) {
             process.stderr.write(`Config error: ${configResult.error.message}\n`);
             process.exitCode = ExitCode.GENERAL_ERROR;
             return;
         }
-        const config = configResult.value;
+        const { config, providerSources, projectConfigPath } = configResult.value;
         const verbose = flags.verbose === true;
-        deps = await createAuthDeps(config, { verbose });
+        deps = await createAuthDeps(config, { verbose, providerSources, projectConfigPath });
     }
 
     switch (command) {

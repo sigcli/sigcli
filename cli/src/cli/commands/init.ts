@@ -11,8 +11,8 @@ import os from 'node:os';
 import { createInterface } from 'node:readline/promises';
 import YAML from 'yaml';
 import { getConfigPath } from '../../config/loader.js';
-import { generateConfigYaml } from '../../config/generator.js';
-import { validateConfig } from '../../config/validator.js';
+import { generateConfigYaml, generateProjectConfigYaml } from '../../config/generator.js';
+import { validateConfig, validateProjectConfig } from '../../config/validator.js';
 import { isOk } from '../../core/result.js';
 import { findChannelBrowser } from '../../browser/detect.js';
 import { generateEncryptionKey } from '../../crypto/encryption.js';
@@ -158,6 +158,13 @@ export async function runInit(
     positionals: string[],
     flags: Record<string, string | boolean | string[]>,
 ): Promise<void> {
+    const local = flags.local === true || positionals[0] === '.';
+
+    if (local) {
+        await runInitLocal(positionals, flags);
+        return;
+    }
+
     const configPath = getConfigPath();
     const sigDir = path.dirname(configPath);
     const force = flags.force === true;
@@ -316,5 +323,116 @@ export async function runInit(
         process.stderr.write('  sig providers         List configured providers\n');
         process.stderr.write('  sig doctor            Check your setup\n');
     }
+    process.stderr.write('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Local (project-level) init
+// ---------------------------------------------------------------------------
+
+async function runInitLocal(
+    _positionals: string[],
+    flags: Record<string, string | boolean | string[]>,
+): Promise<void> {
+    const projectDir = process.cwd();
+    const sigDir = path.join(projectDir, '.sig');
+    const configPath = path.join(sigDir, 'config.yaml');
+    const gitignorePath = path.join(sigDir, '.gitignore');
+    const force = flags.force === true;
+    const yes = flags.yes === true;
+
+    // Check if project config already exists
+    if (fs.existsSync(configPath) && !force) {
+        process.stderr.write(
+            `Project config already exists: ${configPath}\n` + 'Use --force to overwrite.\n',
+        );
+        process.exitCode = ExitCode.GENERAL_ERROR;
+        return;
+    }
+
+    // Warn if global config is missing
+    const globalConfigPath = getConfigPath();
+    if (!fs.existsSync(globalConfigPath)) {
+        process.stderr.write(
+            'Warning: Global config not found at ~/.sig/config.yaml.\n' +
+                "Project-level config created, but you'll need global config for authentication.\n" +
+                'Run "sig init" to set up global config.\n\n',
+        );
+    }
+
+    let providers: Array<{
+        id: string;
+        domains: string[];
+        strategy: string;
+        entryUrl: string;
+        config?: Record<string, unknown>;
+    }> = [];
+
+    // Interactive mode
+    const isTTY = process.stdin.isTTY && process.stdout.isTTY;
+    if (isTTY && !yes) {
+        const rl = createInterface({ input: process.stdin, output: process.stdout });
+        try {
+            process.stderr.write(
+                '\nSetting up project-level SigCLI config.\n' +
+                    'This creates .sig/config.yaml with project-specific providers.\n\n',
+            );
+            providers = await promptProviders(rl);
+        } finally {
+            rl.close();
+        }
+    }
+
+    // Generate project config YAML
+    const yaml = generateProjectConfigYaml({
+        providers: providers.length > 0 ? providers : undefined,
+    });
+
+    // Validate generated config
+    let raw: unknown;
+    try {
+        raw = YAML.parse(yaml);
+    } catch (e: unknown) {
+        process.stderr.write(`Bug: generated invalid YAML: ${(e as Error).message}\n`);
+        process.exitCode = ExitCode.GENERAL_ERROR;
+        return;
+    }
+
+    const validationResult = validateProjectConfig(raw as Record<string, unknown>);
+    if (!isOk(validationResult)) {
+        process.stderr.write(
+            `Bug: generated project config failed validation: ${validationResult.error.message}\n`,
+        );
+        process.exitCode = ExitCode.GENERAL_ERROR;
+        return;
+    }
+
+    // Create .sig/ directory
+    await fsp.mkdir(sigDir, { recursive: true });
+
+    // Write config
+    await fsp.writeFile(configPath, yaml, 'utf-8');
+
+    // Create .gitignore as safety net
+    if (!fs.existsSync(gitignorePath)) {
+        await fsp.writeFile(
+            gitignorePath,
+            '# Never commit credentials or browser data\ncredentials/\nbrowser-data/\nencryption.key\n',
+            'utf-8',
+        );
+    }
+
+    // Success message
+    process.stderr.write(`\n  Project config written to ${configPath}\n`);
+    if (providers.length > 0) {
+        process.stderr.write(`  Providers: ${providers.map((p) => p.id).join(', ')}\n`);
+    }
+    process.stderr.write('\nThis config is safe to commit to your repository.\n');
+    process.stderr.write(
+        'Credentials are stored per-user in ~/.sig/projects/<project>/credentials/ (not here).\n',
+    );
+    process.stderr.write('\nNext steps:\n');
+    process.stderr.write('  sig providers         List providers (project + global)\n');
+    process.stderr.write('  sig login <url>       Authenticate with a service\n');
     process.stderr.write('\n');
 }

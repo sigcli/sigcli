@@ -10,3 +10,11 @@ export function expandHome(p: string): string {
     }
     return p;
 }
+
+/**
+ * Encode a filesystem path as a directory name for project-namespaced storage.
+ * Mirrors ~/.claude's convention: /Users/foo/bar → -Users-foo-bar
+ */
+export function encodeProjectPath(projectRoot: string): string {
+    return '-' + projectRoot.replace(/^\//, '').replace(/\//g, '-');
+}

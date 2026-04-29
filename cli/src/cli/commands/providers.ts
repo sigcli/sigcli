@@ -17,22 +17,30 @@ export async function runProviders(
             process.stderr.write('No providers configured.\n');
             return;
         }
-        const rows = statuses.map((s) => ({
-            id: s.id,
-            name: s.name,
-            strategy: s.strategy,
-            status: s.valid ? 'authenticated' : 'not authenticated',
-        }));
+        const rows = statuses.map((s) => {
+            const provider = deps.authManager.providerRegistry.get(s.id);
+            return {
+                id: s.id,
+                name: s.name,
+                strategy: s.strategy,
+                source: `[${provider?.source ?? 'user'}]`,
+                status: s.valid ? 'authenticated' : 'not authenticated',
+            };
+        });
         process.stdout.write(formatTable(rows) + '\n');
     } else {
-        const output = statuses.map((s) => ({
-            id: s.id,
-            name: s.name,
-            strategy: s.strategy,
-            configured: s.configured,
-            valid: s.valid,
-            credentialType: s.credentialType ?? null,
-        }));
+        const output = statuses.map((s) => {
+            const provider = deps.authManager.providerRegistry.get(s.id);
+            return {
+                id: s.id,
+                name: s.name,
+                strategy: s.strategy,
+                source: provider?.source ?? 'user',
+                configured: s.configured,
+                valid: s.valid,
+                credentialType: s.credentialType ?? null,
+            };
+        });
         process.stdout.write(formatOutput(output, format) + '\n');
     }
 }

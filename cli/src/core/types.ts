@@ -123,6 +123,8 @@ export interface ProxyConfig {
 // Provider Configuration
 // ============================================================================
 
+export type ProviderSource = 'project' | 'user';
+
 export interface ProviderConfig {
     id: string;
     name: string;
@@ -138,6 +140,7 @@ export interface ProviderConfig {
     proxy?: ProxyConfig; // MITM proxy injection rules
     networkProxy?: string; // Browser network proxy, e.g. "socks5://127.0.0.1:1080"
     loginMode?: string; // Login mode cascade: 'auto' (headless→CDP→visible), 'cdp' (native browser only), 'headless', 'visible'
+    source?: ProviderSource; // Where this provider was loaded from (project or user config)
 }
 
 // ============================================================================
