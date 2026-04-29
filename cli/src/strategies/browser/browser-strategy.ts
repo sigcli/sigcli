@@ -1,3 +1,4 @@
+import dlv from 'dlv';
 import net from 'node:net';
 import http from 'node:http';
 import fs from 'node:fs';
@@ -89,14 +90,15 @@ export class BrowserStrategy implements IStrategy {
             try {
                 const page = browserCtx.pages()[0] ?? (await browserCtx.newPage());
                 if (ctx.entryUrl) {
-                    // todo: waitUntil, timeout are from config
-                    await page.goto(ctx.entryUrl, { waitUntil: 'load', timeout: 15000 });
+                    await page.goto(ctx.entryUrl, {
+                        waitUntil: 'load',
+                        timeout: ctx.timeout ?? 15000,
+                    });
                 }
 
                 const credentials: ExtractedCredentials = {};
                 for (const rule of rules) {
                     if (rule.from === 'cookies') {
-                        // todo: should be an extractor: HeadlessCookieExtractor
                         const cookies = await browserCtx.cookies();
                         const domainFiltered = cookies.filter(
                             (c: { domain: string; name: string; value: string }) => {
@@ -113,9 +115,7 @@ export class BrowserStrategy implements IStrategy {
                                 .join('; ');
                         }
                     } else if (rule.from === 'localStorage') {
-                        // todo: should be an extractor: HeadlessStorageExtractor
-                        // todo: if key = x.y.z, did you apply y.z? dlv or lodash
-                        const storageKey = rule.key.includes('*') ? null : rule.key.split('.')[0];
+                        const { storageKey, jsonPath } = this.parseStorageKey(rule.key);
                         if (storageKey) {
                             const val = await page.evaluate((k: string) => {
                                 try {
@@ -124,7 +124,15 @@ export class BrowserStrategy implements IStrategy {
                                     return null;
                                 }
                             }, storageKey);
-                            if (val) credentials[rule.name] = val;
+                            if (val && jsonPath) {
+                                try {
+                                    const p = JSON.parse(val);
+                                    const r = dlv(p, jsonPath);
+                                    if (r != null) credentials[rule.name] = String(r);
+                                } catch {}
+                            } else if (val) {
+                                credentials[rule.name] = val;
+                            }
                         }
                     }
                 }
@@ -259,16 +267,22 @@ export class BrowserStrategy implements IStrategy {
                         // Compute expiresAt from cookies if available
                         if (result.cookies?.length && required?.length) {
                             const requiredNames = required
-                                .filter((r) => r.startsWith(rule.name + "."))
+                                .filter((r) => r.startsWith(rule.name + '.'))
                                 .map((r) => r.slice(rule.name.length + 1));
                             const source = requiredNames.length
                                 ? result.cookies.filter((c) => requiredNames.includes(c.name))
                                 : result.cookies;
-                            const expiries = source.filter((c) => c.expires > 0).map((c) => c.expires * 1000);
-                            if (expiries.length > 0) this.lastExpiresAt = new Date(Math.min(...expiries)).toISOString();
+                            const expiries = source
+                                .filter((c) => c.expires > 0)
+                                .map((c) => c.expires * 1000);
+                            if (expiries.length > 0)
+                                this.lastExpiresAt = new Date(Math.min(...expiries)).toISOString();
                         } else if (result.cookies?.length) {
-                            const expiries = result.cookies.filter((c) => c.expires > 0).map((c) => c.expires * 1000);
-                            if (expiries.length > 0) this.lastExpiresAt = new Date(Math.min(...expiries)).toISOString();
+                            const expiries = result.cookies
+                                .filter((c) => c.expires > 0)
+                                .map((c) => c.expires * 1000);
+                            if (expiries.length > 0)
+                                this.lastExpiresAt = new Date(Math.min(...expiries)).toISOString();
                         }
                         credentials[result.name] = result.value;
                     }
@@ -282,8 +296,8 @@ export class BrowserStrategy implements IStrategy {
                 const unmet = checkRequired(required, credentials);
                 if (unmet.length === 0) return credentials;
             } else {
-                // todo: for old approach, if no required set, it will wait until user not in login page.
-                // here is flaky as we may get stale cookies or irrelevant cookies
+                // Without required, we just wait for all extract rules to return non-empty.
+
                 const allExtracted = rules.every((r) => !!credentials[r.name]);
                 if (allExtracted) return credentials;
             }
@@ -292,6 +306,13 @@ export class BrowserStrategy implements IStrategy {
         }
 
         return credentials;
+    }
+
+    private parseStorageKey(key: string): { storageKey: string | null; jsonPath?: string } {
+        if (key.includes('*')) return { storageKey: null };
+        const dotIndex = key.indexOf('.');
+        if (dotIndex === -1) return { storageKey: key };
+        return { storageKey: key.slice(0, dotIndex), jsonPath: key.slice(dotIndex + 1) };
     }
 }
 
