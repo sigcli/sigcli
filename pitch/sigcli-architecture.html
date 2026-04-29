@@ -1,0 +1,2124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SigCLI Architecture — Redesign Proposal</title>
+
+    <!-- Fonts: JetBrains Mono for code/tech aesthetic + Clash Display for headings -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Outfit:wght@300;400;600;700;800&display=swap" />
+
+    <style>
+        /* === CSS CUSTOM PROPERTIES === */
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #0f1629;
+            --bg-card: #141b2d;
+            --bg-card-hover: #1a2340;
+            --text-primary: #e2e8f0;
+            --text-secondary: #64748b;
+            --text-muted: #475569;
+            --accent-cyan: #06d6a0;
+            --accent-cyan-dim: rgba(6, 214, 160, 0.15);
+            --accent-magenta: #ef476f;
+            --accent-magenta-dim: rgba(239, 71, 111, 0.15);
+            --accent-amber: #ffd166;
+            --accent-amber-dim: rgba(255, 209, 102, 0.15);
+            --accent-blue: #118ab2;
+            --accent-blue-dim: rgba(17, 138, 178, 0.15);
+            --accent-purple: #9b5de5;
+            --accent-purple-dim: rgba(155, 93, 229, 0.15);
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-accent: rgba(6, 214, 160, 0.3);
+            --glow-cyan: 0 0 20px rgba(6, 214, 160, 0.3);
+            --glow-magenta: 0 0 20px rgba(239, 71, 111, 0.3);
+
+            --font-display: 'Outfit', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --title-size: clamp(2rem, 5vw, 4rem);
+            --h2-size: clamp(1.5rem, 3.5vw, 2.5rem);
+            --h3-size: clamp(1rem, 2vw, 1.4rem);
+            --body-size: clamp(0.7rem, 1.2vw, 0.95rem);
+            --small-size: clamp(0.6rem, 0.9vw, 0.8rem);
+            --slide-padding: clamp(1.5rem, 4vw, 4rem);
+            --content-gap: clamp(0.75rem, 2vw, 1.5rem);
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 0.6s;
+        }
+
+        /* === BASE RESET === */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* === VIEWPORT BASE (mandatory) === */
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+        }
+        html {
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-height: 100%;
+            overflow: hidden;
+            padding: var(--slide-padding);
+        }
+        img, .image-container {
+            max-width: 100%;
+            max-height: min(50vh, 400px);
+            object-fit: contain;
+        }
+
+        @media (max-height: 700px) {
+            :root {
+                --slide-padding: clamp(0.75rem, 3vw, 2rem);
+                --content-gap: clamp(0.4rem, 1.5vw, 1rem);
+                --title-size: clamp(1.25rem, 4.5vw, 2.5rem);
+                --h2-size: clamp(1rem, 3vw, 1.75rem);
+            }
+        }
+        @media (max-height: 600px) {
+            :root {
+                --slide-padding: clamp(0.5rem, 2.5vw, 1.5rem);
+                --content-gap: clamp(0.3rem, 1vw, 0.75rem);
+                --title-size: clamp(1.1rem, 4vw, 2rem);
+                --body-size: clamp(0.65rem, 1vw, 0.85rem);
+            }
+            .nav-dots, .decorative { display: none; }
+        }
+        @media (max-height: 500px) {
+            :root {
+                --slide-padding: clamp(0.4rem, 2vw, 1rem);
+                --title-size: clamp(1rem, 3.5vw, 1.5rem);
+                --h2-size: clamp(0.9rem, 2.5vw, 1.25rem);
+                --body-size: clamp(0.6rem, 0.9vw, 0.75rem);
+            }
+        }
+        @media (max-width: 600px) {
+            :root { --title-size: clamp(1.25rem, 7vw, 2.5rem); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.2s !important;
+            }
+            html { scroll-behavior: auto; }
+        }
+
+        /* === GLOBAL STYLES === */
+        body {
+            font-family: var(--font-mono);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        h1, h2, h3 {
+            font-family: var(--font-display);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        /* === SLIDE BACKGROUNDS === */
+        .slide {
+            background: var(--bg-primary);
+        }
+        .slide::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 20% 80%, rgba(6, 214, 160, 0.04) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(239, 71, 111, 0.03) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        .slide::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        /* === ANIMATIONS === */
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .reveal:nth-child(1) { transition-delay: 0.05s; }
+        .reveal:nth-child(2) { transition-delay: 0.12s; }
+        .reveal:nth-child(3) { transition-delay: 0.19s; }
+        .reveal:nth-child(4) { transition-delay: 0.26s; }
+        .reveal:nth-child(5) { transition-delay: 0.33s; }
+        .reveal:nth-child(6) { transition-delay: 0.4s; }
+
+        /* === TITLE SLIDE === */
+        .title-slide .slide-content {
+            align-items: center;
+            text-align: center;
+            gap: clamp(0.5rem, 1.5vw, 1.5rem);
+        }
+        .title-slide h1 {
+            font-size: var(--title-size);
+            background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-blue) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .title-slide .subtitle {
+            font-size: clamp(0.9rem, 1.8vw, 1.3rem);
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-weight: 300;
+        }
+        .title-slide .badge {
+            display: inline-block;
+            padding: 0.3em 0.8em;
+            border: 1px solid var(--accent-cyan);
+            border-radius: 4px;
+            font-size: var(--small-size);
+            color: var(--accent-cyan);
+            letter-spacing: 0.05em;
+        }
+
+        /* === SECTION HEADERS === */
+        .section-header .slide-content {
+            align-items: flex-start;
+            gap: clamp(0.3rem, 1vw, 0.8rem);
+        }
+        .section-number {
+            font-family: var(--font-display);
+            font-size: clamp(3rem, 8vw, 7rem);
+            font-weight: 800;
+            color: var(--bg-card);
+            -webkit-text-stroke: 1px var(--accent-cyan);
+            line-height: 1;
+        }
+        .section-title {
+            font-size: var(--h2-size);
+            color: var(--text-primary);
+        }
+        .section-desc {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            max-width: 60ch;
+        }
+
+        /* === DIAGRAM CONTAINERS === */
+        .diagram-slide .slide-content {
+            gap: clamp(0.5rem, 1.5vw, 1rem);
+        }
+        .diagram-slide h2 {
+            font-size: var(--h3-size);
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
+        .diagram-box {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: clamp(0.75rem, 2vw, 1.5rem);
+            max-height: min(75vh, 600px);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* === DIAGRAM SVG STYLES === */
+        .diagram-box svg {
+            width: 100%;
+            height: 100%;
+            max-height: min(65vh, 550px);
+        }
+        .diagram-box svg text {
+            font-family: var(--font-mono);
+        }
+
+        /* === COMPARISON SLIDES === */
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(0.5rem, 1.5vw, 1rem);
+            flex: 1;
+            max-height: min(70vh, 550px);
+        }
+        @media (max-width: 800px) {
+            .compare-grid {
+                grid-template-columns: 1fr;
+                max-height: min(80vh, 650px);
+            }
+        }
+        .compare-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: clamp(0.5rem, 1.5vw, 1.2rem);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.3rem, 0.8vw, 0.6rem);
+            overflow: hidden;
+        }
+        .compare-panel.current {
+            border-color: var(--accent-magenta-dim);
+        }
+        .compare-panel.proposed {
+            border-color: var(--accent-cyan-dim);
+        }
+        .panel-label {
+            font-size: var(--small-size);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 600;
+        }
+        .panel-label.current { color: var(--accent-magenta); }
+        .panel-label.proposed { color: var(--accent-cyan); }
+
+        /* === FLOW BLOCKS === */
+        .flow-block {
+            display: flex;
+            align-items: center;
+            gap: clamp(0.3rem, 0.6vw, 0.5rem);
+            padding: clamp(0.3rem, 0.6vw, 0.5rem) clamp(0.5rem, 1vw, 0.8rem);
+            border-radius: 6px;
+            font-size: var(--small-size);
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-secondary);
+        }
+        .flow-block.highlight {
+            border-color: var(--accent-cyan);
+            background: var(--accent-cyan-dim);
+        }
+        .flow-block.removed {
+            border-color: var(--accent-magenta);
+            background: var(--accent-magenta-dim);
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        .flow-arrow {
+            color: var(--text-muted);
+            font-size: var(--small-size);
+            text-align: center;
+        }
+
+        /* === SEQUENCE DIAGRAM STYLES === */
+        .seq-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.2rem, 0.5vw, 0.4rem);
+            max-height: min(72vh, 580px);
+            overflow: hidden;
+        }
+        .seq-actors {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 clamp(0.5rem, 2vw, 2rem);
+        }
+        .seq-actor {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.2rem;
+        }
+        .seq-actor-icon {
+            width: clamp(28px, 3vw, 40px);
+            height: clamp(28px, 3vw, 40px);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(0.7rem, 1.2vw, 1rem);
+        }
+        .seq-actor-name {
+            font-size: var(--small-size);
+            color: var(--text-secondary);
+            text-align: center;
+            white-space: nowrap;
+        }
+        .seq-messages {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.15rem, 0.4vw, 0.3rem);
+            position: relative;
+            padding: 0 clamp(0.5rem, 2vw, 2rem);
+        }
+        .seq-msg {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: var(--small-size);
+            color: var(--text-secondary);
+            position: relative;
+        }
+        .seq-msg-line {
+            flex: 1;
+            height: 1px;
+            background: var(--border-accent);
+            position: relative;
+        }
+        .seq-msg-line::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: -3px;
+            border: 4px solid transparent;
+            border-left-color: var(--accent-cyan);
+        }
+        .seq-msg-line.reverse::after {
+            left: 0;
+            right: auto;
+            border-left-color: transparent;
+            border-right-color: var(--accent-amber);
+        }
+        .seq-msg-label {
+            font-size: clamp(0.55rem, 0.8vw, 0.7rem);
+            white-space: nowrap;
+            padding: 0.1em 0.4em;
+            background: var(--bg-card);
+            border-radius: 3px;
+            position: absolute;
+            top: -0.8em;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* === USE CASE STYLES === */
+        .usecase-grid {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: clamp(0.4rem, 1vw, 0.8rem);
+            align-items: center;
+            flex: 1;
+            max-height: min(72vh, 580px);
+        }
+        .actor-col {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.4rem, 1vw, 0.8rem);
+        }
+        .actor-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: clamp(0.3rem, 0.5vw, 0.5rem) clamp(0.5rem, 1vw, 0.8rem);
+            border-radius: 8px;
+            font-size: var(--small-size);
+            font-weight: 500;
+            border: 1px solid var(--border-subtle);
+            white-space: nowrap;
+        }
+        .system-box {
+            background: var(--bg-card);
+            border: 2px solid var(--accent-cyan);
+            border-radius: 16px;
+            padding: clamp(0.75rem, 2vw, 1.5rem);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.3rem, 0.7vw, 0.5rem);
+            box-shadow: var(--glow-cyan);
+        }
+        .system-box h3 {
+            font-size: var(--body-size);
+            color: var(--accent-cyan);
+            text-align: center;
+            font-weight: 600;
+        }
+        .usecase-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: clamp(0.25rem, 0.5vw, 0.4rem) clamp(0.4rem, 0.8vw, 0.7rem);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            font-size: var(--small-size);
+        }
+        .usecase-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* === PROGRESS BAR === */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));
+            z-index: 1000;
+            transition: width 0.3s ease;
+        }
+
+        /* === NAV DOTS === */
+        .nav-dots {
+            position: fixed;
+            right: clamp(0.5rem, 1.5vw, 1.5rem);
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 100;
+        }
+        .nav-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            padding: 0;
+        }
+        .nav-dot.active {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px var(--accent-cyan);
+            transform: scale(1.3);
+        }
+
+        /* === DATA FLOW === */
+        .data-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(0.2rem, 0.5vw, 0.4rem);
+            flex-wrap: wrap;
+            flex: 1;
+        }
+        .flow-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+            padding: clamp(0.4rem, 1vw, 0.8rem);
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            min-width: clamp(60px, 8vw, 100px);
+            text-align: center;
+        }
+        .flow-node-icon {
+            font-size: clamp(1rem, 2vw, 1.5rem);
+        }
+        .flow-node-label {
+            font-size: var(--small-size);
+            color: var(--text-secondary);
+            line-height: 1.2;
+        }
+        .flow-connector {
+            color: var(--accent-cyan);
+            font-size: clamp(0.8rem, 1.5vw, 1.2rem);
+        }
+
+        /* === YAML CODE BLOCK === */
+        .code-block {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: clamp(0.5rem, 1.2vw, 1rem);
+            font-family: var(--font-mono);
+            font-size: clamp(0.55rem, 0.85vw, 0.75rem);
+            line-height: 1.5;
+            overflow: hidden;
+            white-space: pre;
+            color: var(--text-secondary);
+        }
+        .code-block .key { color: var(--accent-cyan); }
+        .code-block .val { color: var(--accent-amber); }
+        .code-block .comment { color: var(--text-muted); font-style: italic; }
+        .code-block .str { color: var(--accent-purple); }
+
+        /* === LAYER DIAGRAM === */
+        .layer-stack {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.2rem, 0.4vw, 0.3rem);
+            flex: 1;
+        }
+        .layer {
+            display: flex;
+            align-items: center;
+            gap: clamp(0.3rem, 0.6vw, 0.5rem);
+            padding: clamp(0.3rem, 0.6vw, 0.5rem) clamp(0.5rem, 1vw, 0.8rem);
+            border-radius: 8px;
+            font-size: var(--small-size);
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-secondary);
+        }
+        .layer-icon {
+            width: clamp(20px, 2.5vw, 28px);
+            height: clamp(20px, 2.5vw, 28px);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(0.6rem, 1vw, 0.85rem);
+            flex-shrink: 0;
+        }
+        .layer-children {
+            display: flex;
+            gap: clamp(0.2rem, 0.4vw, 0.3rem);
+            flex-wrap: wrap;
+            margin-left: clamp(1.5rem, 3vw, 2.5rem);
+        }
+        .layer-child {
+            padding: clamp(0.2rem, 0.3vw, 0.3rem) clamp(0.4rem, 0.7vw, 0.6rem);
+            border-radius: 4px;
+            font-size: clamp(0.5rem, 0.75vw, 0.65rem);
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-card);
+        }
+
+        /* === SLIDE-SPECIFIC OVERRIDES === */
+        .slide-usecase .slide-content {
+            gap: clamp(0.4rem, 1vw, 0.8rem);
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    <nav class="nav-dots" id="navDots"></nav>
+
+    <!-- === SLIDE 1: TITLE === -->
+    <section class="slide title-slide">
+        <div class="slide-content">
+            <div class="badge reveal">ISSUE #87 — ARCHITECTURE REDESIGN</div>
+            <h1 class="reveal">SigCLI</h1>
+            <p class="subtitle reveal">Declarative Extract/Apply Rules</p>
+            <p class="reveal" style="font-size: var(--small-size); color: var(--text-muted); margin-top: clamp(0.5rem, 1vw, 1rem);">Replacing strategy classes with composable credential rules</p>
+        </div>
+    </section>
+
+    <!-- === SLIDE 2: USE CASE DIAGRAM === -->
+    <section class="slide diagram-slide slide-usecase">
+        <div class="slide-content">
+            <h2 class="reveal">Use Case Diagram</h2>
+            <div class="usecase-grid reveal">
+                <!-- Left Actors -->
+                <div class="actor-col">
+                    <div class="actor-badge" style="background: var(--accent-cyan-dim); border-color: var(--accent-cyan);">
+                        <span>&#128104;&#8205;&#128187;</span> Developer
+                    </div>
+                    <div class="actor-badge" style="background: var(--accent-purple-dim); border-color: var(--accent-purple);">
+                        <span>&#129302;</span> AI Agent
+                    </div>
+                    <div class="actor-badge" style="background: var(--accent-amber-dim); border-color: var(--accent-amber);">
+                        <span>&#9881;&#65039;</span> CI/CD
+                    </div>
+                </div>
+
+                <!-- System -->
+                <div class="system-box">
+                    <h3>SigCLI</h3>
+                    <div class="usecase-item"><div class="usecase-dot" style="background: var(--accent-cyan);"></div> sig login (browser auth)</div>
+                    <div class="usecase-item"><div class="usecase-dot" style="background: var(--accent-cyan);"></div> sig get (retrieve creds)</div>
+                    <div class="usecase-item"><div class="usecase-dot" style="background: var(--accent-cyan);"></div> sig request (auth HTTP)</div>
+                    <div class="usecase-item"><div class="usecase-dot" style="background: var(--accent-amber);"></div> sig run (inject env vars)</div>
+                    <div class="usecase-item"><div class="usecase-dot" style="background: var(--accent-purple);"></div> sig proxy (MITM inject)</div>
+                    <div class="usecase-item"><div class="usecase-dot" style="background: var(--accent-blue);"></div> sig watch (auto-refresh)</div>
+                    <div class="usecase-item"><div class="usecase-dot" style="background: var(--accent-blue);"></div> sig sync (remote push/pull)</div>
+                </div>
+
+                <!-- Right Actors -->
+                <div class="actor-col">
+                    <div class="actor-badge" style="background: var(--accent-blue-dim); border-color: var(--accent-blue);">
+                        <span>&#127760;</span> Proxy Daemon
+                    </div>
+                    <div class="actor-badge" style="background: var(--accent-magenta-dim); border-color: var(--accent-magenta);">
+                        <span>&#128421;&#65039;</span> Remote Machine
+                    </div>
+                    <div class="actor-badge" style="background: var(--accent-amber-dim); border-color: var(--accent-amber);">
+                        <span>&#128274;</span> Browser (CDP)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- === SLIDE 3: USE CASE — ACTOR INTERACTIONS === -->
+    <section class="slide diagram-slide">
+        <div class="slide-content">
+            <h2 class="reveal">Actor Interactions</h2>
+            <div class="diagram-box reveal" style="flex: 1;">
+                <svg viewBox="0 0 900 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Actors (left) -->
+                    <rect x="10" y="30" width="120" height="36" rx="8" fill="#141b2d" stroke="#06d6a0" stroke-width="1.5"/>
+                    <text x="70" y="53" text-anchor="middle" fill="#06d6a0" font-size="11">Developer</text>
+
+                    <rect x="10" y="90" width="120" height="36" rx="8" fill="#141b2d" stroke="#9b5de5" stroke-width="1.5"/>
+                    <text x="70" y="113" text-anchor="middle" fill="#9b5de5" font-size="11">AI Agent</text>
+
+                    <rect x="10" y="150" width="120" height="36" rx="8" fill="#141b2d" stroke="#ffd166" stroke-width="1.5"/>
+                    <text x="70" y="173" text-anchor="middle" fill="#ffd166" font-size="11">CI/CD Pipeline</text>
+
+                    <!-- Actors (right) -->
+                    <rect x="770" y="30" width="120" height="36" rx="8" fill="#141b2d" stroke="#118ab2" stroke-width="1.5"/>
+                    <text x="830" y="53" text-anchor="middle" fill="#118ab2" font-size="11">Proxy Daemon</text>
+
+                    <rect x="770" y="90" width="120" height="36" rx="8" fill="#141b2d" stroke="#ef476f" stroke-width="1.5"/>
+                    <text x="830" y="113" text-anchor="middle" fill="#ef476f" font-size="11">Remote Machine</text>
+
+                    <rect x="770" y="150" width="120" height="36" rx="8" fill="#141b2d" stroke="#ffd166" stroke-width="1.5"/>
+                    <text x="830" y="173" text-anchor="middle" fill="#ffd166" font-size="11">Browser (CDP)</text>
+
+                    <!-- System boundary -->
+                    <rect x="200" y="10" width="500" height="400" rx="16" fill="none" stroke="#06d6a0" stroke-width="2" stroke-dasharray="4 4" opacity="0.4"/>
+                    <text x="450" y="35" text-anchor="middle" fill="#06d6a0" font-size="13" font-weight="600">SigCLI System</text>
+
+                    <!-- Use cases (ellipses) -->
+                    <ellipse cx="350" cy="80" rx="80" ry="24" fill="rgba(6,214,160,0.1)" stroke="#06d6a0" stroke-width="1"/>
+                    <text x="350" y="85" text-anchor="middle" fill="#e2e8f0" font-size="10">sig login</text>
+
+                    <ellipse cx="550" cy="80" rx="80" ry="24" fill="rgba(6,214,160,0.1)" stroke="#06d6a0" stroke-width="1"/>
+                    <text x="550" y="85" text-anchor="middle" fill="#e2e8f0" font-size="10">sig get</text>
+
+                    <ellipse cx="350" cy="150" rx="80" ry="24" fill="rgba(255,209,102,0.1)" stroke="#ffd166" stroke-width="1"/>
+                    <text x="350" y="155" text-anchor="middle" fill="#e2e8f0" font-size="10">sig request</text>
+
+                    <ellipse cx="550" cy="150" rx="80" ry="24" fill="rgba(255,209,102,0.1)" stroke="#ffd166" stroke-width="1"/>
+                    <text x="550" y="155" text-anchor="middle" fill="#e2e8f0" font-size="10">sig run</text>
+
+                    <ellipse cx="350" cy="220" rx="80" ry="24" fill="rgba(155,93,229,0.1)" stroke="#9b5de5" stroke-width="1"/>
+                    <text x="350" y="225" text-anchor="middle" fill="#e2e8f0" font-size="10">sig proxy</text>
+
+                    <ellipse cx="550" cy="220" rx="80" ry="24" fill="rgba(17,138,178,0.1)" stroke="#118ab2" stroke-width="1"/>
+                    <text x="550" y="225" text-anchor="middle" fill="#e2e8f0" font-size="10">sig watch</text>
+
+                    <ellipse cx="350" cy="290" rx="80" ry="24" fill="rgba(17,138,178,0.1)" stroke="#118ab2" stroke-width="1"/>
+                    <text x="350" y="295" text-anchor="middle" fill="#e2e8f0" font-size="10">sig sync</text>
+
+                    <ellipse cx="550" cy="290" rx="80" ry="24" fill="rgba(239,71,111,0.1)" stroke="#ef476f" stroke-width="1"/>
+                    <text x="550" y="295" text-anchor="middle" fill="#e2e8f0" font-size="10">sig status</text>
+
+                    <ellipse cx="450" cy="365" rx="90" ry="24" fill="rgba(6,214,160,0.1)" stroke="#06d6a0" stroke-width="1"/>
+                    <text x="450" y="370" text-anchor="middle" fill="#e2e8f0" font-size="10">Extract / Apply Engine</text>
+
+                    <!-- Connections: Developer -->
+                    <line x1="130" y1="48" x2="270" y2="75" stroke="#06d6a0" stroke-width="0.8" opacity="0.6"/>
+                    <line x1="130" y1="48" x2="470" y2="75" stroke="#06d6a0" stroke-width="0.8" opacity="0.6"/>
+                    <line x1="130" y1="48" x2="270" y2="145" stroke="#ffd166" stroke-width="0.8" opacity="0.6"/>
+
+                    <!-- Connections: AI Agent -->
+                    <line x1="130" y1="108" x2="470" y2="80" stroke="#9b5de5" stroke-width="0.8" opacity="0.6"/>
+                    <line x1="130" y1="108" x2="470" y2="150" stroke="#9b5de5" stroke-width="0.8" opacity="0.6"/>
+                    <line x1="130" y1="108" x2="270" y2="150" stroke="#9b5de5" stroke-width="0.8" opacity="0.6"/>
+
+                    <!-- Connections: CI/CD -->
+                    <line x1="130" y1="168" x2="470" y2="150" stroke="#ffd166" stroke-width="0.8" opacity="0.6"/>
+                    <line x1="130" y1="168" x2="470" y2="80" stroke="#ffd166" stroke-width="0.8" opacity="0.6"/>
+
+                    <!-- Connections: Proxy -->
+                    <line x1="770" y1="48" x2="430" y2="218" stroke="#118ab2" stroke-width="0.8" opacity="0.6"/>
+                    <line x1="770" y1="48" x2="630" y2="218" stroke="#118ab2" stroke-width="0.8" opacity="0.6"/>
+
+                    <!-- Connections: Remote -->
+                    <line x1="770" y1="108" x2="430" y2="288" stroke="#ef476f" stroke-width="0.8" opacity="0.6"/>
+
+                    <!-- Connections: Browser -->
+                    <line x1="770" y1="168" x2="430" y2="80" stroke="#ffd166" stroke-width="0.8" opacity="0.6"/>
+
+                    <!-- Internal: use cases to engine -->
+                    <line x1="350" y1="104" x2="420" y2="341" stroke="#06d6a0" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+                    <line x1="550" y1="104" x2="480" y2="341" stroke="#06d6a0" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+                    <line x1="350" y1="244" x2="420" y2="341" stroke="#9b5de5" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <!-- === SLIDE 4: SEQUENCE — sig login === -->
+    <section class="slide diagram-slide">
+        <div class="slide-content">
+            <h2 class="reveal">Sequence: sig login (browser source)</h2>
+            <div class="diagram-box reveal" style="flex: 1;">
+                <svg viewBox="0 0 900 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Actors: removed "Browser" — cascade is internal to BrowserSource -->
+                    <rect x="60" y="10" width="70" height="30" rx="6" fill="#141b2d" stroke="#06d6a0"/>
+                    <text x="95" y="30" text-anchor="middle" fill="#06d6a0" font-size="9">User</text>
+
+                    <rect x="220" y="10" width="70" height="30" rx="6" fill="#141b2d" stroke="#06d6a0"/>
+                    <text x="255" y="30" text-anchor="middle" fill="#06d6a0" font-size="9">CLI</text>
+
+                    <rect x="380" y="10" width="100" height="30" rx="6" fill="#141b2d" stroke="#9b5de5"/>
+                    <text x="430" y="30" text-anchor="middle" fill="#9b5de5" font-size="9">AuthManager</text>
+
+                    <rect x="560" y="10" width="110" height="30" rx="6" fill="#141b2d" stroke="#ffd166"/>
+                    <text x="615" y="30" text-anchor="middle" fill="#ffd166" font-size="9">BrowserSource</text>
+
+                    <rect x="770" y="10" width="70" height="30" rx="6" fill="#141b2d" stroke="#ef476f"/>
+                    <text x="805" y="30" text-anchor="middle" fill="#ef476f" font-size="9">Storage</text>
+
+                    <!-- Lifelines -->
+                    <line x1="95" y1="40" x2="95" y2="390" stroke="#06d6a0" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+                    <line x1="255" y1="40" x2="255" y2="390" stroke="#06d6a0" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+                    <line x1="430" y1="40" x2="430" y2="390" stroke="#9b5de5" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+                    <line x1="615" y1="40" x2="615" y2="390" stroke="#ffd166" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+                    <line x1="805" y1="40" x2="805" y2="390" stroke="#ef476f" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+
+                    <!-- 1: User -> CLI -->
+                    <line x1="95" y1="65" x2="250" y2="65" stroke="#06d6a0" stroke-width="1" marker-end="url(#arrowCyan)"/>
+                    <text x="172" y="58" text-anchor="middle" fill="#e2e8f0" font-size="8">sig login &lt;url&gt;</text>
+
+                    <!-- 2: CLI -> AuthManager -->
+                    <line x1="255" y1="88" x2="425" y2="88" stroke="#06d6a0" stroke-width="1" marker-end="url(#arrowCyan)"/>
+                    <text x="340" y="81" text-anchor="middle" fill="#e2e8f0" font-size="8">getCredentials(providerId)</text>
+
+                    <!-- 3: AuthManager -> Storage (check stored) -->
+                    <line x1="430" y1="110" x2="800" y2="110" stroke="#9b5de5" stroke-width="1" marker-end="url(#arrowPurple)"/>
+                    <text x="615" y="103" text-anchor="middle" fill="#e2e8f0" font-size="8">load stored + check TTL</text>
+
+                    <!-- 4: Storage -> AuthManager (expired) -->
+                    <line x1="800" y1="130" x2="435" y2="130" stroke="#ef476f" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#arrowRed)"/>
+                    <text x="617" y="123" text-anchor="middle" fill="#64748b" font-size="8">expired / not found</text>
+
+                    <!-- 5: AuthManager selects source from provider.source -->
+                    <rect x="400" y="143" width="160" height="22" rx="4" fill="rgba(155,93,229,0.12)" stroke="#9b5de5" stroke-width="0.5"/>
+                    <text x="480" y="158" text-anchor="middle" fill="#9b5de5" font-size="7">select source from provider.source</text>
+
+                    <!-- 6: AuthManager -> BrowserSource -->
+                    <line x1="430" y1="178" x2="610" y2="178" stroke="#ffd166" stroke-width="1" marker-end="url(#arrowAmber)"/>
+                    <text x="520" y="171" text-anchor="middle" fill="#e2e8f0" font-size="8">source.extract(rules, ctx)</text>
+
+                    <!-- BrowserSource internal cascade box -->
+                    <rect x="565" y="192" width="165" height="120" rx="8" fill="rgba(255,209,102,0.06)" stroke="#ffd166" stroke-width="0.5" stroke-dasharray="4 3"/>
+                    <text x="647" y="208" text-anchor="middle" fill="#ffd166" font-size="7" font-weight="600">cascade (internal):</text>
+
+                    <!-- Step 1: Headless -->
+                    <text x="647" y="225" text-anchor="middle" fill="#118ab2" font-size="8">1. tryHeadless()</text>
+                    <text x="647" y="238" text-anchor="middle" fill="#64748b" font-size="7">Playwright headless — fast, no window</text>
+                    <text x="647" y="252" text-anchor="middle" fill="#64748b" font-size="7">fail ↓</text>
+
+                    <!-- Step 2: CDP -->
+                    <text x="647" y="268" text-anchor="middle" fill="#118ab2" font-size="8">2. extractViaCdp()</text>
+                    <text x="647" y="281" text-anchor="middle" fill="#64748b" font-size="7">Native browser — user interacts</text>
+                    <text x="647" y="294" text-anchor="middle" fill="#64748b" font-size="7">poll extractors until required met</text>
+
+                    <!-- Sub-extractors label -->
+                    <rect x="575" y="315" width="145" height="30" rx="4" fill="rgba(255,209,102,0.1)" stroke="#ffd166" stroke-width="0.5"/>
+                    <text x="647" y="329" text-anchor="middle" fill="#ffd166" font-size="7">sub-extractors:</text>
+                    <text x="647" y="341" text-anchor="middle" fill="#64748b" font-size="7">CookieExtractor | StorageExtractor</text>
+
+                    <!-- 7: BrowserSource -> AuthManager (return) -->
+                    <line x1="610" y1="360" x2="435" y2="360" stroke="#ffd166" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#arrowAmber2)"/>
+                    <text x="522" y="353" text-anchor="middle" fill="#e2e8f0" font-size="8">ExtractedCredentials</text>
+
+                    <!-- 8: AuthManager -> Storage (store) -->
+                    <line x1="430" y1="382" x2="800" y2="382" stroke="#ef476f" stroke-width="1" marker-end="url(#arrowRed2)"/>
+                    <text x="615" y="375" text-anchor="middle" fill="#e2e8f0" font-size="8">store (AES-256-GCM encrypted)</text>
+
+                    <!-- Arrow markers -->
+                    <defs>
+                        <marker id="arrowCyan" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                            <path d="M0,0 L8,3 L0,6" fill="#06d6a0"/>
+                        </marker>
+                        <marker id="arrowPurple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                            <path d="M0,0 L8,3 L0,6" fill="#9b5de5"/>
+                        </marker>
+                        <marker id="arrowRed" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
+                            <path d="M8,0 L0,3 L8,6" fill="#ef476f"/>
+                        </marker>
+                        <marker id="arrowAmber" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                            <path d="M0,0 L8,3 L0,6" fill="#ffd166"/>
+                        </marker>
+                        <marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                            <path d="M0,0 L8,3 L0,6" fill="#118ab2"/>
+                        </marker>
+                        <marker id="arrowBlue2" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
+                            <path d="M8,0 L0,3 L8,6" fill="#118ab2"/>
+                        </marker>
+                        <marker id="arrowAmber2" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
+                            <path d="M8,0 L0,3 L8,6" fill="#ffd166"/>
+                        </marker>
+                        <marker id="arrowRed2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                            <path d="M0,0 L8,3 L0,6" fill="#ef476f"/>
+                        </marker>
+                    </defs>
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <!-- === SLIDE 5: SEQUENCE — sig get === -->
+    <section class="slide diagram-slide">
+        <div class="slide-content">
+            <h2 class="reveal">Sequence: sig get (retrieve credentials)</h2>
+            <div class="diagram-box reveal" style="flex: 1;">
+                <svg viewBox="0 0 900 350" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Actors (no separate Apply Engine — it's just a function call in CLI) -->
+                    <rect x="100" y="10" width="70" height="30" rx="6" fill="#141b2d" stroke="#06d6a0"/>
+                    <text x="135" y="30" text-anchor="middle" fill="#06d6a0" font-size="9">User</text>
+
+                    <rect x="300" y="10" width="70" height="30" rx="6" fill="#141b2d" stroke="#06d6a0"/>
+                    <text x="335" y="30" text-anchor="middle" fill="#06d6a0" font-size="9">CLI</text>
+
+                    <rect x="500" y="10" width="90" height="30" rx="6" fill="#141b2d" stroke="#9b5de5"/>
+                    <text x="545" y="30" text-anchor="middle" fill="#9b5de5" font-size="9">AuthManager</text>
+
+                    <rect x="700" y="10" width="70" height="30" rx="6" fill="#141b2d" stroke="#ef476f"/>
+                    <text x="735" y="30" text-anchor="middle" fill="#ef476f" font-size="9">Storage</text>
+
+                    <!-- Lifelines -->
+                    <line x1="135" y1="40" x2="135" y2="340" stroke="#06d6a0" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+                    <line x1="335" y1="40" x2="335" y2="340" stroke="#06d6a0" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+                    <line x1="545" y1="40" x2="545" y2="340" stroke="#9b5de5" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+                    <line x1="735" y1="40" x2="735" y2="340" stroke="#ef476f" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+
+                    <!-- Messages -->
+                    <line x1="135" y1="70" x2="330" y2="70" stroke="#06d6a0" stroke-width="1" marker-end="url(#arrowCyan)"/>
+                    <text x="232" y="63" text-anchor="middle" fill="#e2e8f0" font-size="8">sig get &lt;provider&gt;</text>
+
+                    <line x1="335" y1="100" x2="540" y2="100" stroke="#06d6a0" stroke-width="1" marker-end="url(#arrowCyan)"/>
+                    <text x="437" y="93" text-anchor="middle" fill="#e2e8f0" font-size="8">getExtracted(provider)</text>
+
+                    <line x1="545" y1="130" x2="730" y2="130" stroke="#9b5de5" stroke-width="1" marker-end="url(#arrowPurple)"/>
+                    <text x="637" y="123" text-anchor="middle" fill="#e2e8f0" font-size="8">load stored credentials</text>
+
+                    <!-- TTL check box -->
+                    <rect x="595" y="145" width="100" height="35" rx="6" fill="rgba(239,71,111,0.1)" stroke="#ef476f" stroke-width="0.5"/>
+                    <text x="645" y="160" text-anchor="middle" fill="#ef476f" font-size="8">check TTL</text>
+                    <text x="645" y="173" text-anchor="middle" fill="#64748b" font-size="7">valid? return</text>
+
+                    <line x1="730" y1="195" x2="550" y2="195" stroke="#ef476f" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#arrowRed)"/>
+                    <text x="640" y="188" text-anchor="middle" fill="#e2e8f0" font-size="8">ExtractedCredentials</text>
+
+                    <line x1="540" y1="225" x2="340" y2="225" stroke="#9b5de5" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#arrowRed)"/>
+                    <text x="440" y="218" text-anchor="middle" fill="#e2e8f0" font-size="8">ExtractedCredentials</text>
+
+                    <!-- CLI applies rules (inline function call) -->
+                    <rect x="285" y="240" width="100" height="35" rx="6" fill="rgba(6,214,160,0.1)" stroke="#06d6a0" stroke-width="0.5"/>
+                    <text x="335" y="255" text-anchor="middle" fill="#06d6a0" font-size="8">applyRules()</text>
+                    <text x="335" y="268" text-anchor="middle" fill="#64748b" font-size="7">creds → headers</text>
+
+                    <line x1="330" y1="295" x2="140" y2="295" stroke="#06d6a0" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#arrowRed)"/>
+                    <text x="235" y="288" text-anchor="middle" fill="#e2e8f0" font-size="8">{provider, headers: {...}}</text>
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <!-- === SLIDE 6: SEQUENCE — Proxy Flow === -->
+    <section class="slide diagram-slide">
+        <div class="slide-content">
+            <h2 class="reveal">Sequence: Proxy Request (MITM inject)</h2>
+            <div class="diagram-box reveal" style="flex: 1;">
+                <svg viewBox="0 0 900 350" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Actors -->
+                    <rect x="40" y="10" width="80" height="30" rx="6" fill="#141b2d" stroke="#06d6a0"/>
+                    <text x="80" y="30" text-anchor="middle" fill="#06d6a0" font-size="9">Client App</text>
+
+                    <rect x="210" y="10" width="90" height="30" rx="6" fill="#141b2d" stroke="#118ab2"/>
+                    <text x="255" y="30" text-anchor="middle" fill="#118ab2" font-size="9">Proxy Server</text>
+
+                    <rect x="390" y="10" width="90" height="30" rx="6" fill="#141b2d" stroke="#9b5de5"/>
+                    <text x="435" y="30" text-anchor="middle" fill="#9b5de5" font-size="9">Provider Reg</text>
+
+                    <rect x="560" y="10" width="90" height="30" rx="6" fill="#141b2d" stroke="#ffd166"/>
+                    <text x="605" y="30" text-anchor="middle" fill="#ffd166" font-size="9">Apply Engine</text>
+
+                    <rect x="740" y="10" width="90" height="30" rx="6" fill="#141b2d" stroke="#ef476f"/>
+                    <text x="785" y="30" text-anchor="middle" fill="#ef476f" font-size="9">Target Server</text>
+
+                    <!-- Lifelines -->
+                    <line x1="80" y1="40" x2="80" y2="340" stroke="#06d6a0" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+                    <line x1="255" y1="40" x2="255" y2="340" stroke="#118ab2" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+                    <line x1="435" y1="40" x2="435" y2="340" stroke="#9b5de5" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+                    <line x1="605" y1="40" x2="605" y2="340" stroke="#ffd166" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+                    <line x1="785" y1="40" x2="785" y2="340" stroke="#ef476f" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+
+                    <!-- Messages -->
+                    <line x1="80" y1="70" x2="250" y2="70" stroke="#06d6a0" stroke-width="1" marker-end="url(#arrowCyan)"/>
+                    <text x="165" y="63" text-anchor="middle" fill="#e2e8f0" font-size="8">CONNECT jira.example.com</text>
+
+                    <line x1="255" y1="100" x2="430" y2="100" stroke="#118ab2" stroke-width="1" marker-end="url(#arrowBlue)"/>
+                    <text x="342" y="93" text-anchor="middle" fill="#e2e8f0" font-size="8">resolve(hostname)</text>
+
+                    <line x1="430" y1="125" x2="260" y2="125" stroke="#9b5de5" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#arrowBlue2)"/>
+                    <text x="345" y="118" text-anchor="middle" fill="#e2e8f0" font-size="8">provider config + apply rules</text>
+
+                    <line x1="255" y1="160" x2="600" y2="160" stroke="#ffd166" stroke-width="1" marker-end="url(#arrowAmber)"/>
+                    <text x="427" y="153" text-anchor="middle" fill="#e2e8f0" font-size="8">apply(credential, rules)</text>
+
+                    <!-- Apply engine box -->
+                    <rect x="555" y="175" width="100" height="50" rx="6" fill="rgba(255,209,102,0.1)" stroke="#ffd166" stroke-width="0.5"/>
+                    <text x="605" y="192" text-anchor="middle" fill="#ffd166" font-size="8">inject headers</text>
+                    <text x="605" y="207" text-anchor="middle" fill="#ffd166" font-size="8">inject body</text>
+                    <text x="605" y="222" text-anchor="middle" fill="#ffd166" font-size="8">inject query</text>
+
+                    <line x1="600" y1="240" x2="260" y2="240" stroke="#ffd166" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#arrowBlue2)"/>
+                    <text x="430" y="233" text-anchor="middle" fill="#e2e8f0" font-size="8">modified request</text>
+
+                    <line x1="255" y1="270" x2="780" y2="270" stroke="#118ab2" stroke-width="1" marker-end="url(#arrowBlue)"/>
+                    <text x="517" y="263" text-anchor="middle" fill="#e2e8f0" font-size="8">forward (TLS terminated, creds injected)</text>
+
+                    <line x1="780" y1="300" x2="260" y2="300" stroke="#ef476f" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#arrowBlue2)"/>
+                    <text x="520" y="293" text-anchor="middle" fill="#e2e8f0" font-size="8">response</text>
+
+                    <line x1="250" y1="325" x2="85" y2="325" stroke="#118ab2" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#arrowBlue2)"/>
+                    <text x="167" y="318" text-anchor="middle" fill="#e2e8f0" font-size="8">proxied response</text>
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <!-- === SLIDE 7: SEQUENCE — sig run === -->
+    <section class="slide diagram-slide">
+        <div class="slide-content">
+            <h2 class="reveal">Sequence: sig run (env injection)</h2>
+            <div class="diagram-box reveal" style="flex: 1;">
+                <svg viewBox="0 0 900 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Actors -->
+                    <rect x="70" y="10" width="70" height="30" rx="6" fill="#141b2d" stroke="#06d6a0"/>
+                    <text x="105" y="30" text-anchor="middle" fill="#06d6a0" font-size="9">User</text>
+
+                    <rect x="250" y="10" width="70" height="30" rx="6" fill="#141b2d" stroke="#06d6a0"/>
+                    <text x="285" y="30" text-anchor="middle" fill="#06d6a0" font-size="9">CLI</text>
+
+                    <rect x="430" y="10" width="90" height="30" rx="6" fill="#141b2d" stroke="#9b5de5"/>
+                    <text x="475" y="30" text-anchor="middle" fill="#9b5de5" font-size="9">AuthManager</text>
+
+                    <rect x="620" y="10" width="90" height="30" rx="6" fill="#141b2d" stroke="#ffd166"/>
+                    <text x="665" y="30" text-anchor="middle" fill="#ffd166" font-size="9">Apply Engine</text>
+
+                    <rect x="790" y="10" width="80" height="30" rx="6" fill="#141b2d" stroke="#118ab2"/>
+                    <text x="830" y="30" text-anchor="middle" fill="#118ab2" font-size="9">Child Proc</text>
+
+                    <!-- Lifelines -->
+                    <line x1="105" y1="40" x2="105" y2="310" stroke="#06d6a0" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+                    <line x1="285" y1="40" x2="285" y2="310" stroke="#06d6a0" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+                    <line x1="475" y1="40" x2="475" y2="310" stroke="#9b5de5" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+                    <line x1="665" y1="40" x2="665" y2="310" stroke="#ffd166" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+                    <line x1="830" y1="40" x2="830" y2="310" stroke="#118ab2" stroke-width="0.5" stroke-dasharray="3 3" opacity="0.3"/>
+
+                    <!-- Messages -->
+                    <line x1="105" y1="70" x2="280" y2="70" stroke="#06d6a0" stroke-width="1" marker-end="url(#arrowCyan)"/>
+                    <text x="192" y="63" text-anchor="middle" fill="#e2e8f0" font-size="8">sig run jira wiki -- curl ...</text>
+
+                    <line x1="285" y1="100" x2="470" y2="100" stroke="#06d6a0" stroke-width="1" marker-end="url(#arrowCyan)"/>
+                    <text x="377" y="93" text-anchor="middle" fill="#e2e8f0" font-size="8">getCredentials([jira, wiki])</text>
+
+                    <line x1="470" y1="130" x2="290" y2="130" stroke="#9b5de5" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#arrowRed)"/>
+                    <text x="380" y="123" text-anchor="middle" fill="#e2e8f0" font-size="8">credential maps</text>
+
+                    <line x1="285" y1="160" x2="660" y2="160" stroke="#ffd166" stroke-width="1" marker-end="url(#arrowAmber)"/>
+                    <text x="472" y="153" text-anchor="middle" fill="#e2e8f0" font-size="8">apply rules → env format</text>
+
+                    <line x1="660" y1="185" x2="290" y2="185" stroke="#ffd166" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#arrowRed)"/>
+                    <text x="475" y="178" text-anchor="middle" fill="#e2e8f0" font-size="8">SIG_JIRA_COOKIE=..., SIG_WIKI_COOKIE=...</text>
+
+                    <!-- Spawn box -->
+                    <rect x="240" y="205" width="100" height="30" rx="6" fill="rgba(6,214,160,0.1)" stroke="#06d6a0" stroke-width="0.5"/>
+                    <text x="290" y="224" text-anchor="middle" fill="#06d6a0" font-size="8">spawn process</text>
+
+                    <line x1="285" y1="250" x2="825" y2="250" stroke="#118ab2" stroke-width="1" marker-end="url(#arrowBlue)"/>
+                    <text x="555" y="243" text-anchor="middle" fill="#e2e8f0" font-size="8">exec(cmd, { env: {...merged} })</text>
+
+                    <line x1="825" y1="280" x2="110" y2="280" stroke="#118ab2" stroke-width="1" stroke-dasharray="4 2" marker-end="url(#arrowRed)"/>
+                    <text x="467" y="273" text-anchor="middle" fill="#e2e8f0" font-size="8">stdout/stderr (pass-through)</text>
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <!-- === SLIDE 8: BLOCK DIAGRAM — CURRENT === -->
+    <section class="slide diagram-slide">
+        <div class="slide-content">
+            <h2 class="reveal">Block Diagram: Current Architecture</h2>
+            <div class="compare-grid reveal">
+                <div class="compare-panel current" style="grid-column: 1 / -1;">
+                    <span class="panel-label current">CURRENT — Strategy Class Hierarchy</span>
+                    <div class="layer-stack">
+                        <div class="layer" style="border-color: var(--accent-cyan); background: var(--accent-cyan-dim);">
+                            <div class="layer-icon" style="background: var(--accent-cyan-dim);">&#9001;</div>
+                            <span>CLI Commands</span>
+                            <span style="color: var(--text-muted); margin-left: auto; font-size: var(--small-size);">login, get, request, run, status, proxy</span>
+                        </div>
+                        <div class="flow-arrow">&#x25BC;</div>
+                        <div class="layer" style="border-color: var(--accent-purple); background: var(--accent-purple-dim);">
+                            <div class="layer-icon" style="background: var(--accent-purple-dim);">&#x2699;</div>
+                            <span>AuthManager</span>
+                            <span style="color: var(--text-muted); margin-left: auto; font-size: var(--small-size);">validate → refresh → authenticate → applyToRequest</span>
+                        </div>
+                        <div class="flow-arrow">&#x25BC;</div>
+                        <div class="layer" style="border-color: var(--accent-magenta); background: var(--accent-magenta-dim);">
+                            <div class="layer-icon" style="background: var(--accent-magenta-dim);">&#x1F3ED;</div>
+                            <span>Strategy Registry</span>
+                            <span style="color: var(--text-muted); margin-left: auto; font-size: var(--small-size);">factory pattern, hard-coded per type</span>
+                        </div>
+                        <div class="layer-children">
+                            <div class="layer-child" style="border-color: var(--accent-magenta);">CookieStrategy</div>
+                            <div class="layer-child" style="border-color: var(--accent-magenta);">OAuth2Strategy</div>
+                            <div class="layer-child" style="border-color: var(--accent-magenta);">ApiTokenStrategy</div>
+                            <div class="layer-child" style="border-color: var(--accent-magenta);">BasicAuthStrategy</div>
+                        </div>
+                        <div class="flow-arrow">&#x25BC;</div>
+                        <div style="display: flex; gap: clamp(0.3rem, 0.6vw, 0.5rem);">
+                            <div class="layer" style="flex: 1; border-color: var(--accent-blue); background: var(--accent-blue-dim);">
+                                <div class="layer-icon" style="background: var(--accent-blue-dim);">&#x1F310;</div>
+                                <span>Browser Flows</span>
+                            </div>
+                            <div class="layer" style="flex: 1; border-color: var(--accent-amber); background: var(--accent-amber-dim);">
+                                <div class="layer-icon" style="background: var(--accent-amber-dim);">&#x1F4E6;</div>
+                                <span>Proxy Inject (separate)</span>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">&#x25BC;</div>
+                        <div class="layer" style="border-color: var(--accent-amber); background: var(--accent-amber-dim);">
+                            <div class="layer-icon" style="background: var(--accent-amber-dim);">&#x1F512;</div>
+                            <span>Storage (AES-256-GCM)</span>
+                            <span style="color: var(--text-muted); margin-left: auto; font-size: var(--small-size);">discriminated Credential union</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- === SLIDE 9: BLOCK DIAGRAM — PROPOSED === -->
+    <section class="slide diagram-slide">
+        <div class="slide-content">
+            <h2 class="reveal">Block Diagram: Proposed Architecture</h2>
+            <div class="compare-grid reveal">
+                <div class="compare-panel proposed" style="grid-column: 1 / -1;">
+                    <span class="panel-label proposed">PROPOSED — Source Strategy + Extract/Apply Rules</span>
+                    <div class="layer-stack">
+                        <div class="layer" style="border-color: var(--accent-cyan); background: var(--accent-cyan-dim);">
+                            <div class="layer-icon" style="background: var(--accent-cyan-dim);">&#9001;</div>
+                            <span>CLI Commands</span>
+                            <span style="color: var(--text-muted); margin-left: auto; font-size: var(--small-size);">login, get, request, run, proxy (same UX)</span>
+                        </div>
+                        <div class="flow-arrow">&#x25BC;</div>
+                        <div class="layer" style="border-color: var(--accent-purple); background: var(--accent-purple-dim);">
+                            <div class="layer-icon" style="background: var(--accent-purple-dim);">&#x2699;</div>
+                            <span>AuthManager</span>
+                            <span style="color: var(--text-muted); margin-left: auto; font-size: var(--small-size);">check TTL → select source → run extract[] → check required → store</span>
+                        </div>
+                        <div class="flow-arrow">&#x25BC;</div>
+                        <div style="display: flex; gap: clamp(0.3rem, 0.6vw, 0.5rem);">
+                            <div style="flex: 1.2; display: flex; flex-direction: column; gap: clamp(0.2rem, 0.3vw, 0.25rem);">
+                                <div class="layer" style="border-color: var(--accent-cyan); background: var(--accent-cyan-dim);">
+                                    <div class="layer-icon" style="background: var(--accent-cyan-dim);">&#x1F4E5;</div>
+                                    <span>Source: BrowserSource</span>
+                                </div>
+                                <div class="layer-children">
+                                    <div class="layer-child" style="border-color: var(--accent-cyan);">CookieExtractor</div>
+                                    <div class="layer-child" style="border-color: var(--accent-cyan);">StorageExtractor</div>
+                                    <div class="layer-child" style="border-color: var(--accent-purple);">EvalExtractor</div>
+                                </div>
+                                <div class="layer" style="border-color: var(--accent-amber); background: var(--accent-amber-dim); margin-top: clamp(0.2rem, 0.3vw, 0.25rem);">
+                                    <div class="layer-icon" style="background: var(--accent-amber-dim);">&#x1F4AC;</div>
+                                    <span>Source: PromptSource</span>
+                                </div>
+                                <div class="layer" style="border-color: var(--accent-blue); background: var(--accent-blue-dim); margin-top: clamp(0.2rem, 0.3vw, 0.25rem);">
+                                    <div class="layer-icon" style="background: var(--accent-blue-dim);">&#x1F4CB;</div>
+                                    <span>Source: EnvSource</span>
+                                </div>
+                            </div>
+                            <div style="flex: 0.8; display: flex; flex-direction: column; gap: clamp(0.2rem, 0.3vw, 0.25rem);">
+                                <div class="layer" style="border-color: var(--accent-amber); background: var(--accent-amber-dim);">
+                                    <div class="layer-icon" style="background: var(--accent-amber-dim);">&#x1F4E4;</div>
+                                    <span>Apply Engine</span>
+                                </div>
+                                <div class="layer-children">
+                                    <div class="layer-child" style="border-color: var(--accent-amber);">in: header</div>
+                                    <div class="layer-child" style="border-color: var(--accent-amber);">in: body</div>
+                                    <div class="layer-child" style="border-color: var(--accent-amber);">in: query</div>
+                                </div>
+                                <div style="font-size: var(--small-size); color: var(--text-muted); padding: 0.3em 0.5em;">template: "${name}"</div>
+                                <div style="font-size: var(--small-size); color: var(--text-muted); padding: 0 0.5em;">unified for get/request/proxy/run</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">&#x25BC;</div>
+                        <div style="display: flex; gap: clamp(0.3rem, 0.6vw, 0.5rem);">
+                            <div class="layer" style="flex: 1; border-color: var(--accent-blue); background: var(--accent-blue-dim);">
+                                <div class="layer-icon" style="background: var(--accent-blue-dim);">&#x1F310;</div>
+                                <span>Browser (CDP-first)</span>
+                                <span style="color: var(--text-muted); margin-left: auto; font-size: var(--small-size);">Storage.getCookies + Runtime.evaluate</span>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">&#x25BC;</div>
+                        <div class="layer" style="border-color: var(--accent-magenta); background: var(--accent-magenta-dim);">
+                            <div class="layer-icon" style="background: var(--accent-magenta-dim);">&#x1F512;</div>
+                            <span>Storage (AES-256-GCM)</span>
+                            <span style="color: var(--text-muted); margin-left: auto; font-size: var(--small-size);">Record&lt;name, string&gt; per provider</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- === SLIDE 10: EXTRACTION MODEL (from sketch) === -->
+    <section class="slide diagram-slide">
+        <div class="slide-content">
+            <h2 class="reveal">Extraction Model: Source Strategies</h2>
+            <div class="diagram-box reveal" style="flex: 1;">
+                <svg viewBox="0 0 920 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Extractor box -->
+                    <rect x="20" y="160" width="130" height="60" rx="12" fill="rgba(6,214,160,0.1)" stroke="#06d6a0" stroke-width="2"/>
+                    <text x="85" y="185" text-anchor="middle" fill="#06d6a0" font-size="12" font-weight="600">Extractor</text>
+                    <text x="85" y="205" text-anchor="middle" fill="#64748b" font-size="9">orchestrates sources</text>
+
+                    <!-- Arrow to source strategies -->
+                    <path d="M 150 190 L 210 190" stroke="#06d6a0" stroke-width="2" marker-end="url(#arrowCyan)"/>
+
+                    <!-- Source Strategies container -->
+                    <rect x="210" y="30" width="240" height="340" rx="16" fill="rgba(155,93,229,0.05)" stroke="#9b5de5" stroke-width="1.5"/>
+                    <text x="330" y="55" text-anchor="middle" fill="#9b5de5" font-size="11" font-weight="600">Source Strategies</text>
+                    <text x="330" y="72" text-anchor="middle" fill="#64748b" font-size="8">(how to acquire credentials)</text>
+
+                    <!-- Browser source -->
+                    <rect x="240" y="90" width="180" height="55" rx="10" fill="rgba(17,138,178,0.15)" stroke="#118ab2" stroke-width="1.5"/>
+                    <text x="330" y="112" text-anchor="middle" fill="#118ab2" font-size="11" font-weight="600">browser</text>
+                    <text x="330" y="130" text-anchor="middle" fill="#64748b" font-size="8">headless / CDP / visible cascade</text>
+
+                    <!-- User Prompt source -->
+                    <rect x="240" y="165" width="180" height="50" rx="10" fill="rgba(255,209,102,0.15)" stroke="#ffd166" stroke-width="1.5"/>
+                    <text x="330" y="187" text-anchor="middle" fill="#ffd166" font-size="11" font-weight="600">user prompt</text>
+                    <text x="330" y="203" text-anchor="middle" fill="#64748b" font-size="8">ask for token / password / key</text>
+
+                    <!-- OAuth2 source -->
+                    <rect x="240" y="235" width="180" height="55" rx="10" fill="rgba(239,71,111,0.15)" stroke="#ef476f" stroke-width="1.5"/>
+                    <text x="330" y="257" text-anchor="middle" fill="#ef476f" font-size="11" font-weight="600">oauth2</text>
+                    <text x="330" y="275" text-anchor="middle" fill="#64748b" font-size="8">token endpoint + refresh grant</text>
+
+                    <!-- Env source -->
+                    <rect x="240" y="310" width="180" height="45" rx="10" fill="rgba(6,214,160,0.12)" stroke="#06d6a0" stroke-width="1"/>
+                    <text x="330" y="335" text-anchor="middle" fill="#06d6a0" font-size="11">env</text>
+                    <text x="330" y="350" text-anchor="middle" fill="#64748b" font-size="8">read from environment var</text>
+
+                    <!-- Arrow from Browser to sub-extractors -->
+                    <path d="M 420 117 L 510 117" stroke="#118ab2" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+                    <!-- Browser Sub-extractors container -->
+                    <rect x="510" y="30" width="240" height="270" rx="16" fill="rgba(17,138,178,0.05)" stroke="#118ab2" stroke-width="1.5"/>
+                    <text x="630" y="55" text-anchor="middle" fill="#118ab2" font-size="11" font-weight="600">Browser Sub-extractors</text>
+                    <text x="630" y="72" text-anchor="middle" fill="#64748b" font-size="8">(what to extract from page)</text>
+
+                    <!-- Cookie sub-extractor -->
+                    <rect x="540" y="87" width="180" height="45" rx="8" fill="rgba(6,214,160,0.1)" stroke="#06d6a0" stroke-width="1.2"/>
+                    <text x="630" y="107" text-anchor="middle" fill="#06d6a0" font-size="10" font-weight="500">cookie</text>
+                    <text x="630" y="123" text-anchor="middle" fill="#64748b" font-size="8">names[], paths[], domains</text>
+
+                    <!-- LocalStorage sub-extractor -->
+                    <rect x="540" y="145" width="180" height="45" rx="8" fill="rgba(255,209,102,0.1)" stroke="#ffd166" stroke-width="1.2"/>
+                    <text x="630" y="165" text-anchor="middle" fill="#ffd166" font-size="10" font-weight="500">localStorage</text>
+                    <text x="630" y="181" text-anchor="middle" fill="#64748b" font-size="8">key, jsonPath, sessionStorage</text>
+
+                    <!-- Eval(js) sub-extractor -->
+                    <rect x="540" y="203" width="180" height="50" rx="8" fill="rgba(155,93,229,0.1)" stroke="#9b5de5" stroke-width="1.2"/>
+                    <text x="630" y="223" text-anchor="middle" fill="#9b5de5" font-size="10" font-weight="500">eval(js)</text>
+                    <text x="630" y="242" text-anchor="middle" fill="#64748b" font-size="8">custom JS expression in page</text>
+
+                    <!-- Arrow from sub-extractors to credential store -->
+                    <path d="M 750 160 L 810 160" stroke="#06d6a0" stroke-width="1.5" marker-end="url(#arrowCyan)"/>
+                    <!-- Arrow from prompt to credential store -->
+                    <path d="M 420 190 C 500 190, 770 280, 810 280" stroke="#ffd166" stroke-width="1" stroke-dasharray="4 3"/>
+                    <!-- Arrow from oauth2 to credential store -->
+                    <path d="M 420 262 C 500 262, 770 310, 810 310" stroke="#ef476f" stroke-width="1" stroke-dasharray="4 3"/>
+                    <!-- Arrow from env to credential store -->
+                    <path d="M 420 332 C 500 332, 770 340, 810 340" stroke="#06d6a0" stroke-width="1" stroke-dasharray="4 3"/>
+
+                    <!-- Credential Store -->
+                    <rect x="810" y="130" width="100" height="230" rx="12" fill="rgba(6,214,160,0.08)" stroke="#06d6a0" stroke-width="1.5"/>
+                    <text x="860" y="155" text-anchor="middle" fill="#06d6a0" font-size="9" font-weight="600">Credential</text>
+                    <text x="860" y="170" text-anchor="middle" fill="#06d6a0" font-size="9" font-weight="600">Store</text>
+
+                    <rect x="822" y="185" width="76" height="22" rx="4" fill="#141b2d" stroke="#06d6a0" stroke-width="0.6"/>
+                    <text x="860" y="200" text-anchor="middle" fill="#64748b" font-size="7">session: "..."</text>
+
+                    <rect x="822" y="215" width="76" height="22" rx="4" fill="#141b2d" stroke="#ffd166" stroke-width="0.6"/>
+                    <text x="860" y="230" text-anchor="middle" fill="#64748b" font-size="7">token: "..."</text>
+
+                    <rect x="822" y="245" width="76" height="22" rx="4" fill="#141b2d" stroke="#9b5de5" stroke-width="0.6"/>
+                    <text x="860" y="260" text-anchor="middle" fill="#64748b" font-size="7">custom: "..."</text>
+
+                    <rect x="822" y="275" width="76" height="22" rx="4" fill="#141b2d" stroke="#ef476f" stroke-width="0.6"/>
+                    <text x="860" y="290" text-anchor="middle" fill="#64748b" font-size="7">access: "..."</text>
+
+                    <rect x="822" y="305" width="76" height="22" rx="4" fill="#141b2d" stroke="#06d6a0" stroke-width="0.6"/>
+                    <text x="860" y="320" text-anchor="middle" fill="#64748b" font-size="7">secret: "..."</text>
+
+                    <!-- Legend at bottom -->
+                    <text x="460" y="390" text-anchor="middle" fill="#64748b" font-size="9">Each source strategy knows HOW to get creds | Sub-extractors define WHAT to pull from browser</text>
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <!-- === SLIDE 11: C4 MODEL — CONTEXT (Level 1) === -->
+    <section class="slide diagram-slide">
+        <div class="slide-content">
+            <h2 class="reveal">C4 Model — Level 1: System Context</h2>
+            <div class="diagram-box reveal" style="flex: 1;">
+                <svg viewBox="0 0 920 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- People/Actors -->
+                    <!-- Developer -->
+                    <circle cx="150" cy="60" r="20" fill="none" stroke="#06d6a0" stroke-width="1.5"/>
+                    <text x="150" y="65" text-anchor="middle" fill="#06d6a0" font-size="9">Dev</text>
+                    <text x="150" y="95" text-anchor="middle" fill="#64748b" font-size="8">[Person]</text>
+                    <text x="150" y="107" text-anchor="middle" fill="#64748b" font-size="7">Authenticates to</text>
+                    <text x="150" y="117" text-anchor="middle" fill="#64748b" font-size="7">web services</text>
+
+                    <!-- AI Agent -->
+                    <circle cx="150" cy="340" r="20" fill="none" stroke="#9b5de5" stroke-width="1.5"/>
+                    <text x="150" y="345" text-anchor="middle" fill="#9b5de5" font-size="9">AI</text>
+                    <text x="150" y="375" text-anchor="middle" fill="#64748b" font-size="8">[Agent]</text>
+                    <text x="150" y="387" text-anchor="middle" fill="#64748b" font-size="7">Consumes creds</text>
+
+                    <!-- SigCLI System (center) -->
+                    <rect x="310" y="120" width="280" height="160" rx="16" fill="rgba(6,214,160,0.08)" stroke="#06d6a0" stroke-width="2"/>
+                    <text x="450" y="180" text-anchor="middle" fill="#06d6a0" font-size="14" font-weight="700">SigCLI</text>
+                    <text x="450" y="200" text-anchor="middle" fill="#64748b" font-size="9">[Software System]</text>
+                    <text x="450" y="220" text-anchor="middle" fill="#64748b" font-size="8">Manages browser-based auth,</text>
+                    <text x="450" y="234" text-anchor="middle" fill="#64748b" font-size="8">stores encrypted credentials,</text>
+                    <text x="450" y="248" text-anchor="middle" fill="#64748b" font-size="8">injects into HTTP requests</text>
+
+                    <!-- External Systems (right) -->
+                    <!-- Web Services -->
+                    <rect x="700" y="40" width="170" height="70" rx="10" fill="rgba(64,115,142,0.1)" stroke="#475569" stroke-width="1" stroke-dasharray="4 3"/>
+                    <text x="785" y="68" text-anchor="middle" fill="#64748b" font-size="10">Web Services</text>
+                    <text x="785" y="83" text-anchor="middle" fill="#475569" font-size="8">[External System]</text>
+                    <text x="785" y="98" text-anchor="middle" fill="#475569" font-size="7">Jira, Wiki, Teams, GitHub...</text>
+
+                    <!-- Browser -->
+                    <rect x="700" y="150" width="170" height="70" rx="10" fill="rgba(17,138,178,0.1)" stroke="#118ab2" stroke-width="1" stroke-dasharray="4 3"/>
+                    <text x="785" y="178" text-anchor="middle" fill="#118ab2" font-size="10">Browser Engine</text>
+                    <text x="785" y="193" text-anchor="middle" fill="#475569" font-size="8">[External System]</text>
+                    <text x="785" y="208" text-anchor="middle" fill="#475569" font-size="7">Playwright / Native CDP</text>
+
+                    <!-- Remote Machines -->
+                    <rect x="700" y="260" width="170" height="70" rx="10" fill="rgba(239,71,111,0.1)" stroke="#ef476f" stroke-width="1" stroke-dasharray="4 3"/>
+                    <text x="785" y="288" text-anchor="middle" fill="#ef476f" font-size="10">Remote Machines</text>
+                    <text x="785" y="303" text-anchor="middle" fill="#475569" font-size="8">[External System]</text>
+                    <text x="785" y="318" text-anchor="middle" fill="#475569" font-size="7">SSH credential sync</text>
+
+                    <!-- Connections -->
+                    <!-- Dev -> SigCLI -->
+                    <path d="M 170 75 C 220 95, 280 130, 310 155" stroke="#06d6a0" stroke-width="1.2"/>
+                    <text x="225" y="105" fill="#06d6a0" font-size="7">sig login/get/run</text>
+
+                    <!-- AI -> SigCLI -->
+                    <path d="M 170 325 C 220 310, 280 280, 310 250" stroke="#9b5de5" stroke-width="1.2"/>
+                    <text x="225" y="300" fill="#9b5de5" font-size="7">sig get (JSON)</text>
+
+                    <!-- SigCLI -> Web Services -->
+                    <path d="M 590 160 L 700 85" stroke="#64748b" stroke-width="1"/>
+                    <text x="640" y="110" fill="#64748b" font-size="7">auth requests</text>
+
+                    <!-- SigCLI -> Browser -->
+                    <path d="M 590 200 L 700 190" stroke="#118ab2" stroke-width="1"/>
+                    <text x="640" y="188" fill="#118ab2" font-size="7">automate login</text>
+
+                    <!-- SigCLI -> Remote -->
+                    <path d="M 590 250 L 700 290" stroke="#ef476f" stroke-width="1"/>
+                    <text x="640" y="278" fill="#ef476f" font-size="7">sync creds (SSH)</text>
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <!-- === SLIDE 12: C4 MODEL — CONTAINER (Level 2) === -->
+    <section class="slide diagram-slide">
+        <div class="slide-content">
+            <h2 class="reveal">C4 Model — Level 2: Container</h2>
+            <div class="diagram-box reveal" style="flex: 1;">
+                <svg viewBox="0 0 920 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- System boundary -->
+                    <rect x="20" y="15" width="880" height="395" rx="16" fill="none" stroke="#06d6a0" stroke-width="1" stroke-dasharray="6 4" opacity="0.4"/>
+                    <text x="460" y="38" text-anchor="middle" fill="#06d6a0" font-size="10">SigCLI System Boundary</text>
+
+                    <!-- CLI Container -->
+                    <rect x="50" y="55" width="180" height="90" rx="10" fill="rgba(6,214,160,0.1)" stroke="#06d6a0" stroke-width="1.5"/>
+                    <text x="140" y="80" text-anchor="middle" fill="#06d6a0" font-size="11" font-weight="600">CLI</text>
+                    <text x="140" y="95" text-anchor="middle" fill="#64748b" font-size="8">[Container: Node.js]</text>
+                    <text x="140" y="112" text-anchor="middle" fill="#64748b" font-size="7">Commands: login, get,</text>
+                    <text x="140" y="124" text-anchor="middle" fill="#64748b" font-size="7">request, run, proxy, watch</text>
+
+                    <!-- AuthManager Container -->
+                    <rect x="300" y="55" width="200" height="90" rx="10" fill="rgba(155,93,229,0.1)" stroke="#9b5de5" stroke-width="1.5"/>
+                    <text x="400" y="80" text-anchor="middle" fill="#9b5de5" font-size="11" font-weight="600">AuthManager</text>
+                    <text x="400" y="95" text-anchor="middle" fill="#64748b" font-size="8">[Container: Orchestrator]</text>
+                    <text x="400" y="112" text-anchor="middle" fill="#64748b" font-size="7">TTL check → extraction →</text>
+                    <text x="400" y="124" text-anchor="middle" fill="#64748b" font-size="7">store → apply</text>
+
+                    <!-- Extraction Engine -->
+                    <rect x="50" y="185" width="200" height="100" rx="10" fill="rgba(255,209,102,0.1)" stroke="#ffd166" stroke-width="1.5"/>
+                    <text x="150" y="210" text-anchor="middle" fill="#ffd166" font-size="11" font-weight="600">Extraction Engine</text>
+                    <text x="150" y="225" text-anchor="middle" fill="#64748b" font-size="8">[Container: Source Strategies]</text>
+                    <text x="150" y="245" text-anchor="middle" fill="#64748b" font-size="7">browser (cookie/ls/eval)</text>
+                    <text x="150" y="257" text-anchor="middle" fill="#64748b" font-size="7">prompt | oauth2 | env</text>
+                    <text x="150" y="269" text-anchor="middle" fill="#64748b" font-size="7">composable sub-extractors</text>
+
+                    <!-- Apply Engine -->
+                    <rect x="300" y="185" width="200" height="100" rx="10" fill="rgba(17,138,178,0.1)" stroke="#118ab2" stroke-width="1.5"/>
+                    <text x="400" y="210" text-anchor="middle" fill="#118ab2" font-size="11" font-weight="600">Apply Engine</text>
+                    <text x="400" y="225" text-anchor="middle" fill="#64748b" font-size="8">[Container: Rule Processor]</text>
+                    <text x="400" y="245" text-anchor="middle" fill="#64748b" font-size="7">header / body / query inject</text>
+                    <text x="400" y="257" text-anchor="middle" fill="#64748b" font-size="7">template: "Bearer ${token}"</text>
+                    <text x="400" y="269" text-anchor="middle" fill="#64748b" font-size="7">unified for get/request/proxy</text>
+
+                    <!-- Storage -->
+                    <rect x="560" y="55" width="180" height="90" rx="10" fill="rgba(239,71,111,0.1)" stroke="#ef476f" stroke-width="1.5"/>
+                    <text x="650" y="80" text-anchor="middle" fill="#ef476f" font-size="11" font-weight="600">Credential Storage</text>
+                    <text x="650" y="95" text-anchor="middle" fill="#64748b" font-size="8">[Container: Encrypted FS]</text>
+                    <text x="650" y="112" text-anchor="middle" fill="#64748b" font-size="7">AES-256-GCM per-file</text>
+                    <text x="650" y="124" text-anchor="middle" fill="#64748b" font-size="7">~/.sig/credentials/</text>
+
+                    <!-- Proxy Daemon -->
+                    <rect x="560" y="185" width="180" height="100" rx="10" fill="rgba(255,209,102,0.12)" stroke="#ffd166" stroke-width="1.5"/>
+                    <text x="650" y="210" text-anchor="middle" fill="#ffd166" font-size="11" font-weight="600">Proxy Daemon</text>
+                    <text x="650" y="225" text-anchor="middle" fill="#64748b" font-size="8">[Container: MITM Server]</text>
+                    <text x="650" y="245" text-anchor="middle" fill="#64748b" font-size="7">TLS termination (ECDSA CA)</text>
+                    <text x="650" y="257" text-anchor="middle" fill="#64748b" font-size="7">credential injection</text>
+                    <text x="650" y="269" text-anchor="middle" fill="#64748b" font-size="7">auto-refresh via watch</text>
+
+                    <!-- Config -->
+                    <rect x="800" y="55" width="90" height="70" rx="10" fill="rgba(6,214,160,0.08)" stroke="#06d6a0" stroke-width="1"/>
+                    <text x="845" y="80" text-anchor="middle" fill="#06d6a0" font-size="10">Config</text>
+                    <text x="845" y="95" text-anchor="middle" fill="#64748b" font-size="7">[YAML]</text>
+                    <text x="845" y="110" text-anchor="middle" fill="#64748b" font-size="7">~/.sig/config.yaml</text>
+
+                    <!-- Sync Engine -->
+                    <rect x="50" y="320" width="200" height="75" rx="10" fill="rgba(239,71,111,0.08)" stroke="#ef476f" stroke-width="1"/>
+                    <text x="150" y="345" text-anchor="middle" fill="#ef476f" font-size="10" font-weight="600">Sync Engine</text>
+                    <text x="150" y="360" text-anchor="middle" fill="#64748b" font-size="8">[Container: SSH Transport]</text>
+                    <text x="150" y="378" text-anchor="middle" fill="#64748b" font-size="7">push/pull encrypted creds</text>
+
+                    <!-- Browser Adapter -->
+                    <rect x="300" y="320" width="200" height="75" rx="10" fill="rgba(17,138,178,0.08)" stroke="#118ab2" stroke-width="1"/>
+                    <text x="400" y="345" text-anchor="middle" fill="#118ab2" font-size="10" font-weight="600">Browser Adapter</text>
+                    <text x="400" y="360" text-anchor="middle" fill="#64748b" font-size="8">[Container: Playwright/CDP]</text>
+                    <text x="400" y="378" text-anchor="middle" fill="#64748b" font-size="7">headless → CDP → visible</text>
+
+                    <!-- Connections -->
+                    <path d="M 230 100 L 300 100" stroke="#06d6a0" stroke-width="1" marker-end="url(#arrowCyan)"/>
+                    <path d="M 400 145 L 400 185" stroke="#9b5de5" stroke-width="1" marker-end="url(#arrowPurple)"/>
+                    <path d="M 340 145 L 200 185" stroke="#ffd166" stroke-width="1" marker-end="url(#arrowAmber)"/>
+                    <path d="M 500 100 L 560 100" stroke="#9b5de5" stroke-width="1" marker-end="url(#arrowPurple)"/>
+                    <path d="M 500 235 L 560 235" stroke="#118ab2" stroke-width="1" marker-end="url(#arrowBlue)"/>
+                    <path d="M 150 285 L 150 320" stroke="#ffd166" stroke-width="1" marker-end="url(#arrowAmber)"/>
+                    <path d="M 250 260 L 300 340" stroke="#118ab2" stroke-width="1" marker-end="url(#arrowBlue)"/>
+                    <path d="M 740 100 L 800 85" stroke="#06d6a0" stroke-width="0.8" stroke-dasharray="3 3"/>
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <!-- === SLIDE 13: C4 MODEL — COMPONENT (Level 3) === -->
+    <section class="slide diagram-slide">
+        <div class="slide-content">
+            <h2 class="reveal">C4 Model — Level 3: Component (Extraction Engine)</h2>
+            <div class="diagram-box reveal" style="flex: 1;">
+                <svg viewBox="0 0 920 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Container boundary -->
+                    <rect x="20" y="15" width="880" height="375" rx="16" fill="none" stroke="#ffd166" stroke-width="1" stroke-dasharray="6 4" opacity="0.4"/>
+                    <text x="460" y="38" text-anchor="middle" fill="#ffd166" font-size="10">Extraction Engine [Container]</text>
+
+                    <!-- Extractor Orchestrator -->
+                    <rect x="50" y="155" width="150" height="80" rx="10" fill="rgba(6,214,160,0.1)" stroke="#06d6a0" stroke-width="1.5"/>
+                    <text x="125" y="180" text-anchor="middle" fill="#06d6a0" font-size="10" font-weight="600">Extractor</text>
+                    <text x="125" y="195" text-anchor="middle" fill="#64748b" font-size="7">[Component]</text>
+                    <text x="125" y="212" text-anchor="middle" fill="#64748b" font-size="7">Reads extract[] config</text>
+                    <text x="125" y="224" text-anchor="middle" fill="#64748b" font-size="7">Dispatches to sources</text>
+
+                    <!-- Browser Source Strategy -->
+                    <rect x="270" y="55" width="170" height="80" rx="10" fill="rgba(17,138,178,0.12)" stroke="#118ab2" stroke-width="1.5"/>
+                    <text x="355" y="78" text-anchor="middle" fill="#118ab2" font-size="10" font-weight="600">BrowserSource</text>
+                    <text x="355" y="93" text-anchor="middle" fill="#64748b" font-size="7">[Component: Strategy]</text>
+                    <text x="355" y="110" text-anchor="middle" fill="#64748b" font-size="7">Launches browser session</text>
+                    <text x="355" y="122" text-anchor="middle" fill="#64748b" font-size="7">Runs sub-extractors on page</text>
+
+                    <!-- Prompt Source -->
+                    <rect x="270" y="155" width="170" height="70" rx="10" fill="rgba(255,209,102,0.12)" stroke="#ffd166" stroke-width="1.5"/>
+                    <text x="355" y="178" text-anchor="middle" fill="#ffd166" font-size="10" font-weight="600">PromptSource</text>
+                    <text x="355" y="193" text-anchor="middle" fill="#64748b" font-size="7">[Component: Strategy]</text>
+                    <text x="355" y="210" text-anchor="middle" fill="#64748b" font-size="7">Interactive user input</text>
+
+                    <!-- OAuth2 Source -->
+                    <rect x="270" y="245" width="170" height="80" rx="10" fill="rgba(239,71,111,0.12)" stroke="#ef476f" stroke-width="1.5"/>
+                    <text x="355" y="268" text-anchor="middle" fill="#ef476f" font-size="10" font-weight="600">OAuth2Source</text>
+                    <text x="355" y="283" text-anchor="middle" fill="#64748b" font-size="7">[Component: Strategy]</text>
+                    <text x="355" y="300" text-anchor="middle" fill="#64748b" font-size="7">Token endpoint POST</text>
+                    <text x="355" y="312" text-anchor="middle" fill="#64748b" font-size="7">Refresh grant support</text>
+
+                    <!-- Env Source -->
+                    <rect x="270" y="345" width="170" height="40" rx="10" fill="rgba(6,214,160,0.08)" stroke="#06d6a0" stroke-width="1"/>
+                    <text x="355" y="370" text-anchor="middle" fill="#06d6a0" font-size="10">EnvSource</text>
+
+                    <!-- Sub-extractors (right side) -->
+                    <rect x="530" y="45" width="140" height="55" rx="8" fill="rgba(6,214,160,0.08)" stroke="#06d6a0" stroke-width="1.2"/>
+                    <text x="600" y="67" text-anchor="middle" fill="#06d6a0" font-size="9" font-weight="500">CookieExtractor</text>
+                    <text x="600" y="82" text-anchor="middle" fill="#64748b" font-size="7">Storage.getCookies()</text>
+                    <text x="600" y="93" text-anchor="middle" fill="#64748b" font-size="7">filter by names/paths</text>
+
+                    <rect x="530" y="115" width="140" height="55" rx="8" fill="rgba(255,209,102,0.08)" stroke="#ffd166" stroke-width="1.2"/>
+                    <text x="600" y="137" text-anchor="middle" fill="#ffd166" font-size="9" font-weight="500">StorageExtractor</text>
+                    <text x="600" y="152" text-anchor="middle" fill="#64748b" font-size="7">localStorage.getItem()</text>
+                    <text x="600" y="163" text-anchor="middle" fill="#64748b" font-size="7">+ jsonPath traversal</text>
+
+                    <rect x="530" y="185" width="140" height="55" rx="8" fill="rgba(155,93,229,0.08)" stroke="#9b5de5" stroke-width="1.2"/>
+                    <text x="600" y="207" text-anchor="middle" fill="#9b5de5" font-size="9" font-weight="500">EvalExtractor</text>
+                    <text x="600" y="222" text-anchor="middle" fill="#64748b" font-size="7">page.evaluate(expr)</text>
+                    <text x="600" y="233" text-anchor="middle" fill="#64748b" font-size="7">custom JS in page ctx</text>
+
+                    <!-- Interface box -->
+                    <rect x="720" y="55" width="170" height="130" rx="10" fill="rgba(6,214,160,0.05)" stroke="#06d6a0" stroke-width="1" stroke-dasharray="4 3"/>
+                    <text x="805" y="78" text-anchor="middle" fill="#06d6a0" font-size="9" font-weight="600">ISourceStrategy</text>
+                    <text x="805" y="95" text-anchor="middle" fill="#64748b" font-size="7">[Interface]</text>
+                    <text x="805" y="115" text-anchor="middle" fill="#64748b" font-size="7">name: string</text>
+                    <text x="805" y="130" text-anchor="middle" fill="#64748b" font-size="7">needsBrowser: boolean</text>
+                    <text x="805" y="145" text-anchor="middle" fill="#64748b" font-size="7">extract(config, ctx)</text>
+                    <text x="805" y="160" text-anchor="middle" fill="#64748b" font-size="7">  → Record&lt;string, string&gt;</text>
+                    <text x="805" y="178" text-anchor="middle" fill="#64748b" font-size="7">validate?(stored)</text>
+
+                    <!-- IBrowserExtractor interface -->
+                    <rect x="720" y="210" width="170" height="100" rx="10" fill="rgba(17,138,178,0.05)" stroke="#118ab2" stroke-width="1" stroke-dasharray="4 3"/>
+                    <text x="805" y="233" text-anchor="middle" fill="#118ab2" font-size="9" font-weight="600">IBrowserExtractor</text>
+                    <text x="805" y="250" text-anchor="middle" fill="#64748b" font-size="7">[Interface]</text>
+                    <text x="805" y="270" text-anchor="middle" fill="#64748b" font-size="7">type: cookie|ls|eval</text>
+                    <text x="805" y="285" text-anchor="middle" fill="#64748b" font-size="7">extract(page, config)</text>
+                    <text x="805" y="300" text-anchor="middle" fill="#64748b" font-size="7">  → { name: string, value }</text>
+
+                    <!-- Connections -->
+                    <path d="M 200 180 L 270 95" stroke="#06d6a0" stroke-width="1" marker-end="url(#arrowCyan)"/>
+                    <path d="M 200 195 L 270 190" stroke="#06d6a0" stroke-width="1" marker-end="url(#arrowCyan)"/>
+                    <path d="M 200 210 L 270 280" stroke="#06d6a0" stroke-width="1" marker-end="url(#arrowCyan)"/>
+                    <path d="M 200 225 L 270 365" stroke="#06d6a0" stroke-width="0.8" marker-end="url(#arrowCyan)"/>
+                    <path d="M 440 95 L 530 72" stroke="#118ab2" stroke-width="1" marker-end="url(#arrowBlue)"/>
+                    <path d="M 440 95 L 530 142" stroke="#118ab2" stroke-width="1" marker-end="url(#arrowBlue)"/>
+                    <path d="M 440 95 L 530 212" stroke="#118ab2" stroke-width="1" marker-end="url(#arrowBlue)"/>
+
+                    <!-- Implements arrows -->
+                    <path d="M 440 85 C 500 60, 680 60, 720 90" stroke="#64748b" stroke-width="0.7" stroke-dasharray="3 3"/>
+                    <path d="M 440 185 C 550 180, 680 130, 720 130" stroke="#64748b" stroke-width="0.7" stroke-dasharray="3 3"/>
+                    <path d="M 440 275 C 550 260, 680 150, 720 155" stroke="#64748b" stroke-width="0.7" stroke-dasharray="3 3"/>
+                    <path d="M 670 142 C 690 180, 700 220, 720 240" stroke="#64748b" stroke-width="0.7" stroke-dasharray="3 3"/>
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <!-- === SLIDE 14: SIDE-BY-SIDE COMPARISON === -->
+    <section class="slide diagram-slide">
+        <div class="slide-content">
+            <h2 class="reveal">Before vs After: What Changes</h2>
+            <div class="compare-grid reveal">
+                <div class="compare-panel current">
+                    <span class="panel-label current">Removed</span>
+                    <div class="flow-block removed">IAuthStrategy interface</div>
+                    <div class="flow-block removed">IAuthStrategyFactory</div>
+                    <div class="flow-block removed">StrategyRegistry</div>
+                    <div class="flow-block removed">CookieStrategy class</div>
+                    <div class="flow-block removed">OAuth2Strategy class</div>
+                    <div class="flow-block removed">ApiTokenStrategy class</div>
+                    <div class="flow-block removed">BasicAuthStrategy class</div>
+                    <div class="flow-block removed">Discriminated Credential union</div>
+                    <div class="flow-block removed">strategy.applyToRequest()</div>
+                    <div class="flow-block removed">config: { strategyConfig } nesting</div>
+                    <div class="flow-block removed">Separate proxy inject logic</div>
+                </div>
+                <div class="compare-panel proposed">
+                    <span class="panel-label proposed">Added</span>
+                    <div class="flow-block highlight">source: browser | prompt | env</div>
+                    <div class="flow-block highlight">extract[]: { from, name, key }</div>
+                    <div class="flow-block highlight">apply[]: { in, name, value }</div>
+                    <div class="flow-block highlight">required[]: name.field completion</div>
+                    <div class="flow-block highlight">ISourceStrategy interface</div>
+                    <div class="flow-block highlight">BrowserSource + sub-extractors</div>
+                    <div class="flow-block highlight">Unified Apply Engine (all commands)</div>
+                    <div class="flow-block highlight">CDP-first (no Playwright for extract)</div>
+                    <div class="flow-block highlight">Template: "Bearer ${name}"</div>
+                    <div class="flow-block" style="border-color: var(--accent-blue);">Config migration function</div>
+                    <div class="flow-block" style="border-color: var(--accent-blue);">Record&lt;name, string&gt; storage</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- === SLIDE 15: DATA FLOW DIAGRAM === -->
+    <section class="slide diagram-slide">
+        <div class="slide-content">
+            <h2 class="reveal">Data Flow: Credential Lifecycle</h2>
+            <div class="diagram-box reveal" style="flex: 1;">
+                <svg viewBox="0 0 900 380" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Row 1: Config to Provider -->
+                    <rect x="30" y="30" width="130" height="50" rx="10" fill="rgba(6,214,160,0.1)" stroke="#06d6a0" stroke-width="1.5"/>
+                    <text x="95" y="50" text-anchor="middle" fill="#06d6a0" font-size="10" font-weight="600">config.yaml</text>
+                    <text x="95" y="67" text-anchor="middle" fill="#64748b" font-size="8">extract + apply rules</text>
+
+                    <path d="M 160 55 L 210 55" stroke="#06d6a0" stroke-width="1.5" marker-end="url(#arrowCyan)"/>
+
+                    <rect x="210" y="30" width="130" height="50" rx="10" fill="rgba(155,93,229,0.1)" stroke="#9b5de5" stroke-width="1.5"/>
+                    <text x="275" y="50" text-anchor="middle" fill="#9b5de5" font-size="10" font-weight="600">Provider Registry</text>
+                    <text x="275" y="67" text-anchor="middle" fill="#64748b" font-size="8">domain matching</text>
+
+                    <path d="M 340 55 L 390 55" stroke="#9b5de5" stroke-width="1.5" marker-end="url(#arrowPurple)"/>
+
+                    <rect x="390" y="30" width="130" height="50" rx="10" fill="rgba(155,93,229,0.1)" stroke="#9b5de5" stroke-width="1.5"/>
+                    <text x="455" y="50" text-anchor="middle" fill="#9b5de5" font-size="10" font-weight="600">AuthManager</text>
+                    <text x="455" y="67" text-anchor="middle" fill="#64748b" font-size="8">orchestrates lifecycle</text>
+
+                    <!-- Row 2: Extraction -->
+                    <path d="M 455 80 L 455 120" stroke="#ffd166" stroke-width="1.5" marker-end="url(#arrowAmber)"/>
+
+                    <rect x="310" y="120" width="290" height="80" rx="12" fill="rgba(255,209,102,0.06)" stroke="#ffd166" stroke-width="1.5"/>
+                    <text x="455" y="140" text-anchor="middle" fill="#ffd166" font-size="11" font-weight="600">Extraction Engine</text>
+
+                    <!-- Source boxes inside -->
+                    <rect x="325" y="150" width="60" height="22" rx="4" fill="#141b2d" stroke="#06d6a0" stroke-width="0.8"/>
+                    <text x="355" y="165" text-anchor="middle" fill="#06d6a0" font-size="8">cookies</text>
+
+                    <rect x="395" y="150" width="70" height="22" rx="4" fill="#141b2d" stroke="#06d6a0" stroke-width="0.8"/>
+                    <text x="430" y="165" text-anchor="middle" fill="#06d6a0" font-size="8">localStorage</text>
+
+                    <rect x="475" y="150" width="50" height="22" rx="4" fill="#141b2d" stroke="#9b5de5" stroke-width="0.8"/>
+                    <text x="500" y="165" text-anchor="middle" fill="#9b5de5" font-size="8">prompt</text>
+
+                    <rect x="535" y="150" width="50" height="22" rx="4" fill="#141b2d" stroke="#9b5de5" stroke-width="0.8"/>
+                    <text x="560" y="165" text-anchor="middle" fill="#9b5de5" font-size="8">env</text>
+
+                    <!-- Browser connection -->
+                    <rect x="650" y="120" width="120" height="80" rx="10" fill="rgba(17,138,178,0.1)" stroke="#118ab2" stroke-width="1.5"/>
+                    <text x="710" y="145" text-anchor="middle" fill="#118ab2" font-size="10" font-weight="600">Browser</text>
+                    <text x="710" y="163" text-anchor="middle" fill="#64748b" font-size="8">Headless</text>
+                    <text x="710" y="177" text-anchor="middle" fill="#64748b" font-size="8">CDP</text>
+                    <text x="710" y="191" text-anchor="middle" fill="#64748b" font-size="8">Visible</text>
+
+                    <line x1="600" y1="160" x2="650" y2="160" stroke="#118ab2" stroke-width="1" stroke-dasharray="3 3"/>
+
+                    <!-- Row 3: Storage -->
+                    <path d="M 455 200 L 455 240" stroke="#ef476f" stroke-width="1.5" marker-end="url(#arrowRed2)"/>
+
+                    <rect x="310" y="240" width="290" height="50" rx="10" fill="rgba(239,71,111,0.1)" stroke="#ef476f" stroke-width="1.5"/>
+                    <text x="455" y="260" text-anchor="middle" fill="#ef476f" font-size="10" font-weight="600">Credential Store</text>
+                    <text x="455" y="277" text-anchor="middle" fill="#64748b" font-size="8">flat map: { session: "...", token: "...", key: "..." }</text>
+
+                    <!-- Row 4: Apply -->
+                    <path d="M 455 290 L 455 320" stroke="#ffd166" stroke-width="1.5" marker-end="url(#arrowAmber)"/>
+
+                    <rect x="310" y="320" width="290" height="50" rx="12" fill="rgba(255,209,102,0.06)" stroke="#ffd166" stroke-width="1.5"/>
+                    <text x="455" y="340" text-anchor="middle" fill="#ffd166" font-size="11" font-weight="600">Apply Engine</text>
+                    <text x="455" y="358" text-anchor="middle" fill="#64748b" font-size="8">header | body | query injection (template: "Bearer ${token}")</text>
+
+                    <!-- Output -->
+                    <path d="M 600 345 L 700 345" stroke="#06d6a0" stroke-width="1.5" marker-end="url(#arrowCyan)"/>
+
+                    <rect x="700" y="320" width="160" height="50" rx="10" fill="rgba(6,214,160,0.1)" stroke="#06d6a0" stroke-width="1.5"/>
+                    <text x="780" y="340" text-anchor="middle" fill="#06d6a0" font-size="10" font-weight="600">HTTP Request</text>
+                    <text x="780" y="358" text-anchor="middle" fill="#64748b" font-size="8">sig get | request | proxy | run</text>
+
+                    <!-- AES badge on storage -->
+                    <rect x="610" y="250" width="80" height="20" rx="4" fill="#141b2d" stroke="#ef476f" stroke-width="0.8"/>
+                    <text x="650" y="264" text-anchor="middle" fill="#ef476f" font-size="7">AES-256-GCM</text>
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <!-- === SLIDE 16: CONFIG — FINAL DESIGN === -->
+    <section class="slide diagram-slide">
+        <div class="slide-content">
+            <h2 class="reveal">Config: Before vs After (Final)</h2>
+            <div class="compare-grid reveal">
+                <div class="compare-panel current">
+                    <span class="panel-label current">Before</span>
+                    <div class="code-block"><span class="key">providers</span>:
+  <span class="key">reddit</span>:
+    <span class="key">domains</span>: [<span class="str">www.reddit.com</span>]
+    <span class="key">entryUrl</span>: <span class="str">https://www.reddit.com/login</span>
+    <span class="key">strategy</span>: <span class="val">cookie</span>
+    <span class="key">networkProxy</span>: <span class="str">socks5://127.0.0.1:3333</span>
+    <span class="key">config</span>:
+      <span class="key">ttl</span>: <span class="str">"7d"</span>
+      <span class="key">requiredCookies</span>: [<span class="str">reddit_session</span>, <span class="str">token_v2</span>]
+
+  <span class="key">app-slack</span>:
+    <span class="key">domains</span>: [<span class="str">sap.enterprise.slack.com</span>]
+    <span class="key">entryUrl</span>: <span class="str">https://app.slack.com/client/E7RBBBXHB</span>
+    <span class="key">strategy</span>: <span class="val">cookie</span>
+    <span class="key">config</span>:
+      <span class="key">ttl</span>: <span class="str">"7d"</span>
+      <span class="key">requiredCookies</span>: [<span class="str">d</span>]
+    <span class="key">localStorage</span>:
+      - <span class="key">name</span>: <span class="str">xoxc-token</span>
+        <span class="key">key</span>: <span class="str">localConfig_v2</span>
+        <span class="key">jsonPath</span>: <span class="str">teams.E7RBBBXHB.token</span>
+
+  <span class="key">ms-teams</span>:
+    <span class="key">domains</span>: [<span class="str">teams.cloud.microsoft</span>]
+    <span class="key">strategy</span>: <span class="val">oauth2</span>
+    <span class="key">config</span>:
+      <span class="key">audiences</span>: [<span class="str">https://ic3.teams.office.com</span>]</div>
+                </div>
+                <div class="compare-panel proposed">
+                    <span class="panel-label proposed">After</span>
+                    <div class="code-block"><span class="key">providers</span>:
+  <span class="key">reddit</span>:
+    <span class="key">domains</span>: [<span class="str">www.reddit.com</span>]
+    <span class="key">entryUrl</span>: <span class="str">https://www.reddit.com/login</span>
+    <span class="key">source</span>: <span class="val">browser</span>
+    <span class="key">ttl</span>: <span class="str">"7d"</span>
+    <span class="key">networkProxy</span>: <span class="str">socks5://127.0.0.1:3333</span>
+    <span class="key">required</span>: [<span class="str">session.reddit_session</span>, <span class="str">session.token_v2</span>]
+    <span class="key">extract</span>:
+      - <span class="key">from</span>: <span class="val">cookies</span>
+        <span class="key">name</span>: <span class="val">session</span>
+        <span class="key">key</span>: <span class="str">"*"</span>
+
+  <span class="key">app-slack</span>:
+    <span class="key">domains</span>: [<span class="str">sap.enterprise.slack.com</span>]
+    <span class="key">entryUrl</span>: <span class="str">https://app.slack.com/client/E7RBBBXHB</span>
+    <span class="key">source</span>: <span class="val">browser</span>
+    <span class="key">ttl</span>: <span class="str">"7d"</span>
+    <span class="key">required</span>: [<span class="str">session.d</span>, <span class="str">xoxc-token</span>]
+    <span class="key">extract</span>:
+      - <span class="key">from</span>: <span class="val">cookies</span>
+        <span class="key">name</span>: <span class="val">session</span>
+        <span class="key">key</span>: <span class="str">"*"</span>
+      - <span class="key">from</span>: <span class="val">localStorage</span>
+        <span class="key">name</span>: <span class="val">xoxc-token</span>
+        <span class="key">key</span>: <span class="str">localConfig_v2.teams.E7RBBBXHB.token</span>
+
+  <span class="key">ms-teams</span>:
+    <span class="key">domains</span>: [<span class="str">teams.cloud.microsoft</span>]
+    <span class="key">entryUrl</span>: <span class="str">https://teams.cloud.microsoft/v2/</span>
+    <span class="key">source</span>: <span class="val">browser</span>
+    <span class="key">required</span>: [<span class="str">access_token</span>]
+    <span class="key">extract</span>:
+      - <span class="key">from</span>: <span class="val">localStorage</span>
+        <span class="key">name</span>: <span class="val">access_token</span>
+        <span class="key">key</span>: <span class="str">msal.*.accesstoken.*.ic3.teams.office.com</span>
+    <span class="key">apply</span>:
+      - <span class="key">in</span>: <span class="val">header</span>
+        <span class="key">name</span>: <span class="str">Authorization</span>
+        <span class="key">value</span>: <span class="str">"Bearer ${access_token}"</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- === SLIDE 17: EXTRACT MODEL SPEC === -->
+    <section class="slide diagram-slide">
+        <div class="slide-content">
+            <h2 class="reveal">Extract Model: Unified 3-Field Schema</h2>
+            <div style="display: flex; flex-direction: column; gap: clamp(0.4rem, 1vw, 0.8rem); flex: 1; max-height: min(72vh, 580px);" class="reveal">
+                <div style="display: flex; gap: clamp(0.3rem, 0.8vw, 0.6rem);">
+                    <div class="flow-block highlight" style="flex: 1; flex-direction: column; align-items: flex-start; padding: clamp(0.5rem, 1vw, 0.8rem);">
+                        <span style="color: var(--accent-cyan); font-weight: 700; font-size: var(--body-size);">extract[]</span>
+                        <span style="font-size: var(--small-size); color: var(--text-secondary); margin-top: 0.3em;">Every entry has exactly 3 fields:</span>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(0.3rem, 0.8vw, 0.6rem);">
+                    <div class="flow-block" style="flex-direction: column; align-items: flex-start; padding: clamp(0.5rem, 1vw, 0.8rem); border-color: var(--accent-cyan);">
+                        <span style="color: var(--accent-cyan); font-weight: 600;">from</span>
+                        <span style="font-size: var(--small-size); color: var(--text-secondary);">从哪里提取</span>
+                        <span style="font-size: var(--small-size); color: var(--text-muted); margin-top: 0.3em;">cookies | localStorage | eval</span>
+                    </div>
+                    <div class="flow-block" style="flex-direction: column; align-items: flex-start; padding: clamp(0.5rem, 1vw, 0.8rem); border-color: var(--accent-amber);">
+                        <span style="color: var(--accent-amber); font-weight: 600;">name</span>
+                        <span style="font-size: var(--small-size); color: var(--text-secondary);">存储为什么名字</span>
+                        <span style="font-size: var(--small-size); color: var(--text-muted); margin-top: 0.3em;">credential store key</span>
+                    </div>
+                    <div class="flow-block" style="flex-direction: column; align-items: flex-start; padding: clamp(0.5rem, 1vw, 0.8rem); border-color: var(--accent-purple);">
+                        <span style="color: var(--accent-purple); font-weight: 600;">key</span>
+                        <span style="font-size: var(--small-size); color: var(--text-secondary);">取什么</span>
+                        <span style="font-size: var(--small-size); color: var(--text-muted); margin-top: 0.3em;">* | name | glob | dot-path</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: clamp(0.3rem, 0.8vw, 0.6rem);">
+                    <div class="flow-block" style="flex: 1; flex-direction: column; align-items: flex-start; padding: clamp(0.5rem, 1vw, 0.8rem); border-color: var(--accent-magenta);">
+                        <span style="color: var(--accent-magenta); font-weight: 700; font-size: var(--body-size);">required[]</span>
+                        <span style="font-size: var(--small-size); color: var(--text-secondary);">Provider-level completion check. Format: <code style="color: var(--accent-cyan);">name.field</code></span>
+                        <span style="font-size: var(--small-size); color: var(--text-muted); margin-top: 0.3em;">session.reddit_session — cookie "reddit_session" must exist in extract "session"</span>
+                        <span style="font-size: var(--small-size); color: var(--text-muted);">xoxc-token — extract "xoxc-token" must be non-empty (no dot = whole value check)</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: clamp(0.3rem, 0.8vw, 0.6rem);">
+                    <div class="flow-block" style="flex: 1; flex-direction: column; align-items: flex-start; padding: clamp(0.5rem, 1vw, 0.8rem); border-color: var(--accent-blue);">
+                        <span style="color: var(--accent-blue); font-weight: 700; font-size: var(--body-size);">Provider-level fields</span>
+                        <div style="display: grid; grid-template-columns: auto 1fr; gap: 0.2em 0.8em; font-size: var(--small-size); margin-top: 0.3em;">
+                            <code style="color: var(--accent-cyan);">source</code><span style="color: var(--text-secondary);">browser | prompt | env</span>
+                            <code style="color: var(--accent-cyan);">ttl</code><span style="color: var(--text-secondary);">when to re-extract ("7d", "12h")</span>
+                            <code style="color: var(--accent-cyan);">required</code><span style="color: var(--text-secondary);">completion criteria (name.field format)</span>
+                            <code style="color: var(--accent-cyan);">cookiePaths</code><span style="color: var(--text-secondary);">extra URL paths to query cookies from</span>
+                            <code style="color: var(--accent-cyan);">apply</code><span style="color: var(--text-secondary);">how to inject into HTTP requests</span>
+                            <code style="color: var(--accent-cyan);">networkProxy</code><span style="color: var(--text-secondary);">SOCKS proxy for browser</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- === SLIDE 18: FULL CONFIG EXAMPLE === -->
+    <section class="slide diagram-slide">
+        <div class="slide-content">
+            <h2 class="reveal">Full Config: Real Providers</h2>
+            <div class="compare-grid reveal">
+                <div class="compare-panel proposed" style="grid-column: 1 / -1;">
+                    <span class="panel-label proposed">~/.sig/config.yaml (after refactoring)</span>
+                    <div class="code-block"><span class="key">mode</span>: <span class="val">browser</span>
+<span class="key">browser</span>:
+  <span class="key">channel</span>: <span class="val">msedge</span>
+  <span class="key">browserDataDir</span>: <span class="str">~/.sig/browser-data</span>
+<span class="key">storage</span>:
+  <span class="key">credentialsDir</span>: <span class="str">~/.sig/credentials</span>
+
+<span class="key">providers</span>:
+  <span class="key">sap-jira</span>:                                  <span class="comment"># simplest case</span>
+    <span class="key">domains</span>: [<span class="str">jira.tools.sap</span>]
+    <span class="key">entryUrl</span>: <span class="str">https://jira.tools.sap/</span>
+    <span class="key">source</span>: <span class="val">browser</span>
+    <span class="key">ttl</span>: <span class="str">"10d"</span>
+    <span class="key">extract</span>:
+      - <span class="key">from</span>: <span class="val">cookies</span>
+        <span class="key">name</span>: <span class="val">session</span>
+        <span class="key">key</span>: <span class="str">"*"</span>
+    <span class="key">apply</span>:
+      - <span class="key">in</span>: <span class="val">header</span>
+        <span class="key">name</span>: <span class="str">Cookie</span>
+        <span class="key">value</span>: <span class="str">"${session}"</span>
+
+  <span class="key">sap-wiki</span>:                                   <span class="comment"># cookie path scoping</span>
+    <span class="key">domains</span>: [<span class="str">wiki.one.int.sap</span>]
+    <span class="key">entryUrl</span>: <span class="str">https://wiki.one.int.sap/</span>
+    <span class="key">source</span>: <span class="val">browser</span>
+    <span class="key">ttl</span>: <span class="str">"12h"</span>
+    <span class="key">cookiePaths</span>: [<span class="str">"/wiki"</span>]
+    <span class="key">extract</span>:
+      - <span class="key">from</span>: <span class="val">cookies</span>
+        <span class="key">name</span>: <span class="val">session</span>
+        <span class="key">key</span>: <span class="str">"*"</span>
+    <span class="key">apply</span>:
+      - <span class="key">in</span>: <span class="val">header</span>
+        <span class="key">name</span>: <span class="str">Cookie</span>
+        <span class="key">value</span>: <span class="str">"${session}"</span>
+
+  <span class="key">reddit</span>:                                     <span class="comment"># required cookies</span>
+    <span class="key">domains</span>: [<span class="str">www.reddit.com</span>, <span class="str">reddit.com</span>]
+    <span class="key">entryUrl</span>: <span class="str">https://www.reddit.com/login</span>
+    <span class="key">source</span>: <span class="val">browser</span>
+    <span class="key">ttl</span>: <span class="str">"7d"</span>
+    <span class="key">networkProxy</span>: <span class="str">socks5://127.0.0.1:3333</span>
+    <span class="key">required</span>: [<span class="str">session.reddit_session</span>, <span class="str">session.token_v2</span>]
+    <span class="key">extract</span>:
+      - <span class="key">from</span>: <span class="val">cookies</span>
+        <span class="key">name</span>: <span class="val">session</span>
+        <span class="key">key</span>: <span class="str">"*"</span>
+    <span class="key">apply</span>:
+      - <span class="key">in</span>: <span class="val">header</span>
+        <span class="key">name</span>: <span class="str">Cookie</span>
+        <span class="key">value</span>: <span class="str">"${session}"</span>
+
+  <span class="key">app-slack</span>:                                  <span class="comment"># cookies + localStorage</span>
+    <span class="key">domains</span>: [<span class="str">sap.enterprise.slack.com</span>]
+    <span class="key">entryUrl</span>: <span class="str">https://app.slack.com/client/E7RBBBXHB</span>
+    <span class="key">source</span>: <span class="val">browser</span>
+    <span class="key">ttl</span>: <span class="str">"7d"</span>
+    <span class="key">required</span>: [<span class="str">session.d</span>, <span class="str">xoxc-token</span>]
+    <span class="key">extract</span>:
+      - <span class="key">from</span>: <span class="val">cookies</span>
+        <span class="key">name</span>: <span class="val">session</span>
+        <span class="key">key</span>: <span class="str">"*"</span>
+      - <span class="key">from</span>: <span class="val">localStorage</span>
+        <span class="key">name</span>: <span class="val">xoxc-token</span>
+        <span class="key">key</span>: <span class="str">localConfig_v2.teams.E7RBBBXHB.token</span>
+    <span class="key">apply</span>:
+      - <span class="key">in</span>: <span class="val">header</span>
+        <span class="key">name</span>: <span class="str">Cookie</span>
+        <span class="key">value</span>: <span class="str">"${session}"</span>
+      - <span class="key">in</span>: <span class="val">header</span>
+        <span class="key">name</span>: <span class="str">Authorization</span>
+        <span class="key">value</span>: <span class="str">"Bearer ${xoxc-token}"</span>
+
+  <span class="key">ms-teams</span>:                                   <span class="comment"># OAuth2 via localStorage</span>
+    <span class="key">domains</span>: [<span class="str">teams.cloud.microsoft</span>]
+    <span class="key">entryUrl</span>: <span class="str">https://teams.cloud.microsoft/v2/</span>
+    <span class="key">source</span>: <span class="val">browser</span>
+    <span class="key">required</span>: [<span class="str">access_token</span>]
+    <span class="key">extract</span>:
+      - <span class="key">from</span>: <span class="val">localStorage</span>
+        <span class="key">name</span>: <span class="val">access_token</span>
+        <span class="key">key</span>: <span class="str">msal.*.accesstoken.*.ic3.teams.office.com</span>
+    <span class="key">apply</span>:
+      - <span class="key">in</span>: <span class="val">header</span>
+        <span class="key">name</span>: <span class="str">Authorization</span>
+        <span class="key">value</span>: <span class="str">"Bearer ${access_token}"</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- === SLIDE 19: APPLY (INJECT) CONFIG === -->
+    <section class="slide diagram-slide">
+        <div class="slide-content">
+            <h2 class="reveal">Apply Rules: Credential Injection</h2>
+            <div style="display: flex; flex-direction: column; gap: clamp(0.4rem, 1vw, 0.8rem); flex: 1; max-height: min(72vh, 580px);" class="reveal">
+                <div style="display: flex; gap: clamp(0.3rem, 0.8vw, 0.6rem);">
+                    <div class="flow-block highlight" style="flex: 1; flex-direction: column; align-items: flex-start; padding: clamp(0.5rem, 1vw, 0.8rem);">
+                        <span style="color: var(--accent-cyan); font-weight: 700; font-size: var(--body-size);">apply[]</span>
+                        <span style="font-size: var(--small-size); color: var(--text-secondary);">How extracted values get injected into HTTP requests. Unified for sig get / sig request / proxy.</span>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(0.3rem, 0.8vw, 0.6rem);">
+                    <div class="flow-block" style="flex-direction: column; align-items: flex-start; padding: clamp(0.5rem, 1vw, 0.8rem); border-color: var(--accent-cyan);">
+                        <span style="color: var(--accent-cyan); font-weight: 600;">in</span>
+                        <span style="font-size: var(--small-size); color: var(--text-secondary);">注入到哪里</span>
+                        <span style="font-size: var(--small-size); color: var(--text-muted); margin-top: 0.3em;">header | body | query</span>
+                    </div>
+                    <div class="flow-block" style="flex-direction: column; align-items: flex-start; padding: clamp(0.5rem, 1vw, 0.8rem); border-color: var(--accent-amber);">
+                        <span style="color: var(--accent-amber); font-weight: 600;">name</span>
+                        <span style="font-size: var(--small-size); color: var(--text-secondary);">字段名</span>
+                        <span style="font-size: var(--small-size); color: var(--text-muted); margin-top: 0.3em;">Cookie, Authorization, X-Token...</span>
+                    </div>
+                    <div class="flow-block" style="flex-direction: column; align-items: flex-start; padding: clamp(0.5rem, 1vw, 0.8rem); border-color: var(--accent-purple);">
+                        <span style="color: var(--accent-purple); font-weight: 600;">value</span>
+                        <span style="font-size: var(--small-size); color: var(--text-secondary);">值（支持模板）</span>
+                        <span style="font-size: var(--small-size); color: var(--text-muted); margin-top: 0.3em;">"Bearer ${name}" | "${name}"</span>
+                    </div>
+                </div>
+                <div class="compare-grid" style="flex: 1; max-height: none;">
+                    <div class="compare-panel proposed" style="border-color: var(--accent-cyan-dim);">
+                        <span class="panel-label proposed">Cookie provider</span>
+                        <div class="code-block"><span class="comment"># extract + apply always required</span>
+<span class="key">sap-jira</span>:
+  <span class="key">source</span>: <span class="val">browser</span>
+  <span class="key">ttl</span>: <span class="str">"10d"</span>
+  <span class="key">extract</span>:
+    - <span class="key">from</span>: <span class="val">cookies</span>
+      <span class="key">name</span>: <span class="val">session</span>
+      <span class="key">key</span>: <span class="str">"*"</span>
+  <span class="key">apply</span>:
+    - <span class="key">in</span>: <span class="val">header</span>
+      <span class="key">name</span>: <span class="str">Cookie</span>
+      <span class="key">value</span>: <span class="str">"${session}"</span></div>
+                    </div>
+                    <div class="compare-panel proposed" style="border-color: var(--accent-amber-dim);">
+                        <span class="panel-label proposed">OAuth2 (localStorage)</span>
+                        <div class="code-block"><span class="key">ms-teams</span>:
+  <span class="key">source</span>: <span class="val">browser</span>
+  <span class="key">required</span>: [<span class="str">access_token</span>]
+  <span class="key">extract</span>:
+    - <span class="key">from</span>: <span class="val">localStorage</span>
+      <span class="key">name</span>: <span class="val">access_token</span>
+      <span class="key">key</span>: <span class="str">msal.*.accesstoken.*</span>
+  <span class="key">apply</span>:
+    - <span class="key">in</span>: <span class="val">header</span>
+      <span class="key">name</span>: <span class="str">Authorization</span>
+      <span class="key">value</span>: <span class="str">"Bearer ${access_token}"</span></div>
+                    </div>
+                </div>
+                <div class="compare-grid" style="flex: 1; max-height: none;">
+                    <div class="compare-panel proposed" style="border-color: var(--accent-purple-dim);">
+                        <span class="panel-label proposed">Multiple injections</span>
+                        <div class="code-block"><span class="comment"># Slack: cookie + custom header</span>
+<span class="key">app-slack</span>:
+  <span class="key">extract</span>:
+    - <span class="key">from</span>: <span class="val">cookies</span>
+      <span class="key">name</span>: <span class="val">session</span>
+      <span class="key">key</span>: <span class="str">"*"</span>
+    - <span class="key">from</span>: <span class="val">localStorage</span>
+      <span class="key">name</span>: <span class="val">xoxc-token</span>
+      <span class="key">key</span>: <span class="str">localConfig_v2.teams.*.token</span>
+  <span class="key">apply</span>:
+    - <span class="key">in</span>: <span class="val">header</span>
+      <span class="key">name</span>: <span class="str">Cookie</span>
+      <span class="key">value</span>: <span class="str">"${session}"</span>
+    - <span class="key">in</span>: <span class="val">header</span>
+      <span class="key">name</span>: <span class="str">Authorization</span>
+      <span class="key">value</span>: <span class="str">"Bearer ${xoxc-token}"</span></div>
+                    </div>
+                    <div class="compare-panel proposed" style="border-color: var(--accent-magenta-dim);">
+                        <span class="panel-label proposed">Proxy inject (body/query)</span>
+                        <div class="code-block"><span class="comment"># inject into body or query params</span>
+<span class="key">legacy-api</span>:
+  <span class="key">source</span>: <span class="val">prompt</span>
+  <span class="key">extract</span>:
+    - <span class="key">from</span>: <span class="val">prompt</span>
+      <span class="key">name</span>: <span class="val">api_key</span>
+      <span class="key">key</span>: <span class="str">"Paste your API key"</span>
+  <span class="key">apply</span>:
+    - <span class="key">in</span>: <span class="val">query</span>
+      <span class="key">name</span>: <span class="str">api_key</span>
+      <span class="key">value</span>: <span class="str">"${api_key}"</span>
+    - <span class="key">in</span>: <span class="val">header</span>
+      <span class="key">name</span>: <span class="str">X-Request-ID</span>
+      <span class="key">value</span>: <span class="str">"static-value"</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- === SLIDE 20: DESIGN DECISIONS === -->
+    <section class="slide diagram-slide">
+        <div class="slide-content">
+            <h2 class="reveal">Design Decisions (Locked In)</h2>
+            <div style="display: flex; flex-direction: column; gap: clamp(0.3rem, 0.7vw, 0.5rem); flex: 1; max-height: min(72vh, 580px);" class="reveal">
+                <div class="flow-block" style="border-color: var(--accent-cyan); padding: clamp(0.4rem, 0.8vw, 0.7rem) clamp(0.6rem, 1.2vw, 1rem);">
+                    <span style="color: var(--accent-cyan); font-weight: 600; min-width: 1.5em;">1.</span>
+                    <span><strong style="color: var(--text-primary);">source = strategy</strong> — <code style="color: var(--accent-cyan);">browser</code> | <code style="color: var(--accent-cyan);">prompt</code> | <code style="color: var(--accent-cyan);">env</code>. Determines HOW to acquire.</span>
+                </div>
+                <div class="flow-block" style="border-color: var(--accent-amber); padding: clamp(0.4rem, 0.8vw, 0.7rem) clamp(0.6rem, 1.2vw, 1rem);">
+                    <span style="color: var(--accent-amber); font-weight: 600; min-width: 1.5em;">2.</span>
+                    <span><strong style="color: var(--text-primary);">extract[] is uniform</strong> — 3 fields only: <code style="color: var(--accent-cyan);">from</code>, <code style="color: var(--accent-cyan);">name</code>, <code style="color: var(--accent-cyan);">key</code>. Same schema for cookies/localStorage/eval.</span>
+                </div>
+                <div class="flow-block" style="border-color: var(--accent-purple); padding: clamp(0.4rem, 0.8vw, 0.7rem) clamp(0.6rem, 1.2vw, 1rem);">
+                    <span style="color: var(--accent-purple); font-weight: 600; min-width: 1.5em;">3.</span>
+                    <span><strong style="color: var(--text-primary);">required = completion check</strong> — <code style="color: var(--accent-cyan);">name.field</code> format. Poll until all satisfied.</span>
+                </div>
+                <div class="flow-block" style="border-color: var(--accent-magenta); padding: clamp(0.4rem, 0.8vw, 0.7rem) clamp(0.6rem, 1.2vw, 1rem);">
+                    <span style="color: var(--accent-magenta); font-weight: 600; min-width: 1.5em;">4.</span>
+                    <span><strong style="color: var(--text-primary);">OAuth2 → browser + localStorage</strong> — No separate oauth2 strategy. MSAL tokens extracted via localStorage key pattern.</span>
+                </div>
+                <div class="flow-block" style="border-color: var(--accent-blue); padding: clamp(0.4rem, 0.8vw, 0.7rem) clamp(0.6rem, 1.2vw, 1rem);">
+                    <span style="color: var(--accent-blue); font-weight: 600; min-width: 1.5em;">5.</span>
+                    <span><strong style="color: var(--text-primary);">CDP-first extraction</strong> — All browser sub-extractors (cookies, localStorage, eval) use CDP. No Playwright for extraction.</span>
+                </div>
+                <div class="flow-block" style="border-color: var(--accent-cyan); padding: clamp(0.4rem, 0.8vw, 0.7rem) clamp(0.6rem, 1.2vw, 1rem);">
+                    <span style="color: var(--accent-cyan); font-weight: 600; min-width: 1.5em;">6.</span>
+                    <span><strong style="color: var(--text-primary);">extract + apply always required</strong> — No implicit defaults. Explicit is better than implicit. Every provider declares both.</span>
+                </div>
+                <div class="flow-block" style="border-color: var(--accent-amber); padding: clamp(0.4rem, 0.8vw, 0.7rem) clamp(0.6rem, 1.2vw, 1rem);">
+                    <span style="color: var(--accent-amber); font-weight: 600; min-width: 1.5em;">7.</span>
+                    <span><strong style="color: var(--text-primary);">Flat config</strong> — No <code style="color: var(--accent-magenta);">strategy:</code> / <code style="color: var(--accent-magenta);">strategyConfig:</code> / <code style="color: var(--accent-magenta);">config:</code> nesting. Everything at provider level.</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        /* === SLIDE PRESENTATION CONTROLLER === */
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.currentSlide = 0;
+                this.setupIntersectionObserver();
+                this.setupKeyboardNav();
+                this.setupTouchNav();
+                this.setupProgressBar();
+                this.setupNavDots();
+            }
+
+            setupIntersectionObserver() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                            const idx = Array.from(this.slides).indexOf(entry.target);
+                            this.currentSlide = idx;
+                            this.updateProgressBar();
+                            this.updateNavDots();
+                        }
+                    });
+                }, { threshold: 0.3 });
+
+                this.slides.forEach(slide => observer.observe(slide));
+            }
+
+            setupKeyboardNav() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') {
+                        e.preventDefault();
+                        this.goToSlide(Math.min(this.currentSlide + 1, this.slides.length - 1));
+                    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        this.goToSlide(Math.max(this.currentSlide - 1, 0));
+                    } else if (e.key === 'Home') {
+                        e.preventDefault();
+                        this.goToSlide(0);
+                    } else if (e.key === 'End') {
+                        e.preventDefault();
+                        this.goToSlide(this.slides.length - 1);
+                    }
+                });
+            }
+
+            setupTouchNav() {
+                let startY = 0;
+                document.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; });
+                document.addEventListener('touchend', (e) => {
+                    const diff = startY - e.changedTouches[0].clientY;
+                    if (Math.abs(diff) > 50) {
+                        if (diff > 0) this.goToSlide(Math.min(this.currentSlide + 1, this.slides.length - 1));
+                        else this.goToSlide(Math.max(this.currentSlide - 1, 0));
+                    }
+                });
+            }
+
+            setupProgressBar() {
+                this.progressBar = document.getElementById('progressBar');
+                this.updateProgressBar();
+            }
+
+            setupNavDots() {
+                const container = document.getElementById('navDots');
+                container.innerHTML = '';
+                this.slides.forEach((_, i) => {
+                    const dot = document.createElement('button');
+                    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+                    dot.setAttribute('aria-label', `Go to slide ${i + 1}`);
+                    dot.addEventListener('click', () => this.goToSlide(i));
+                    container.appendChild(dot);
+                });
+            }
+
+            goToSlide(index) {
+                this.slides[index].scrollIntoView({ behavior: 'smooth' });
+            }
+
+            updateProgressBar() {
+                const progress = ((this.currentSlide + 1) / this.slides.length) * 100;
+                this.progressBar.style.width = progress + '%';
+            }
+
+            updateNavDots() {
+                document.querySelectorAll('.nav-dot').forEach((dot, i) => {
+                    dot.classList.toggle('active', i === this.currentSlide);
+                });
+            }
+        }
+
+        new SlidePresentation();
+    </script>
+</body>
+</html>
