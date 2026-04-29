@@ -109,6 +109,7 @@ export { StrategyRegistry } from './strategies/registry.js';
 // Storage implementations
 export { DirectoryStorage } from './storage/directory-storage.js';
 export { CachedStorage } from './storage/cached-storage.js';
+export { RoutingStorage } from './storage/routing-storage.js';
 export { MemoryStorage } from './storage/memory-storage.js';
 
 // Provider system
@@ -165,7 +166,7 @@ export { decodeJwt, isJwtExpired, getJwtExpiresAt } from './utils/jwt.js';
 export { parseDuration, formatDuration } from './utils/duration.js';
 export { buildUserAgent } from './utils/http.js';
 export { sanitizeId } from './utils/sanitize.js';
-export { expandHome } from './utils/path.js';
+export { expandHome, encodeProjectPath } from './utils/path.js';
 
 // Crypto
 export {

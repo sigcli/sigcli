@@ -428,7 +428,9 @@ async function runInitLocal(
         process.stderr.write(`  Providers: ${providers.map((p) => p.id).join(', ')}\n`);
     }
     process.stderr.write('\nThis config is safe to commit to your repository.\n');
-    process.stderr.write('Credentials are stored per-user in ~/.sig/credentials/ (not here).\n');
+    process.stderr.write(
+        'Credentials are stored per-user in ~/.sig/projects/<project>/credentials/ (not here).\n',
+    );
     process.stderr.write('\nNext steps:\n');
     process.stderr.write('  sig providers         List providers (project + global)\n');
     process.stderr.write('  sig login <url>       Authenticate with a service\n');

@@ -517,6 +517,6 @@ describe('runInit --local', () => {
         const stderr = stderrChunks.join('');
         expect(stderr).toContain('Project config written to');
         expect(stderr).toContain('safe to commit');
-        expect(stderr).toContain('~/.sig/credentials/');
+        expect(stderr).toContain('~/.sig/projects/');
     });
 });
