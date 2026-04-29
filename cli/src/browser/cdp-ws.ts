@@ -14,7 +14,7 @@ import crypto from 'node:crypto';
 import { URL } from 'node:url';
 
 export interface CdpWsClient {
-    send(method: string, params?: Record<string, unknown>): Promise<unknown>;
+    send(method: string, params?: Record<string, unknown>, sessionId?: string): Promise<unknown>;
     close(): void;
 }
 
@@ -166,11 +166,16 @@ export function connectCdpWs(wsUrl: string): Promise<CdpWsClient> {
         let nextId = 1;
 
         const client: CdpWsClient = {
-            send(method: string, params?: Record<string, unknown>): Promise<unknown> {
+            send(method: string, params?: Record<string, unknown>, sessionId?: string): Promise<unknown> {
                 return new Promise<unknown>((res, rej) => {
                     const id = nextId++;
                     pending.set(id, { resolve: res, reject: rej });
-                    const msg = JSON.stringify({ id, method, params: params ?? {} });
+                    const msg = JSON.stringify({
+                        id,
+                        method,
+                        params: params ?? {},
+                        ...(sessionId ? { sessionId } : {}),
+                    });
                     socket.write(buildTextFrame(msg));
                 });
             },

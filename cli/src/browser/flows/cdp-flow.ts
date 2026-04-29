@@ -22,11 +22,12 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import type { Cookie, ILogger } from '../../core/types.js';
+import type { Cookie, LocalStorageConfig, ILogger } from '../../core/types.js';
 import type { Result } from '../../core/result.js';
 import { ok, err } from '../../core/result.js';
 import { BrowserError, BrowserTimeoutError, type AuthError } from '../../core/errors.js';
 import { connectCdpWs } from '../cdp-ws.js';
+import dlv from 'dlv';
 
 // ============================================================================
 // Types
@@ -42,10 +43,12 @@ export interface CdpFlowOptions {
     timeout: number;
     logger: ILogger;
     networkProxy?: string; // e.g. "socks5://127.0.0.1:3333"
+    localStorage?: LocalStorageConfig[]; // localStorage values to extract after auth
 }
 
 export interface CdpFlowResult {
     cookies: Cookie[];
+    localStorage?: Record<string, string>;
 }
 
 // CDP cookie as returned by Storage.getCookies
@@ -185,6 +188,100 @@ function removeSingletonLock(browserDataDir: string): void {
     } catch {
         // Not critical — continue even if removal fails
     }
+}
+
+/**
+ * Extract localStorage values via CDP Runtime.evaluate on the first page target.
+ * Matches the existing Playwright approach: get raw value by key, then use dlv for jsonPath.
+ */
+async function extractLocalStorageViaCdp(
+    cdpClient: { send: (method: string, params?: Record<string, unknown>, sessionId?: string) => Promise<unknown> },
+    configs: LocalStorageConfig[],
+    logger: ILogger,
+): Promise<Record<string, string>> {
+    const result: Record<string, string> = {};
+    if (configs.length === 0) return result;
+
+    try {
+        // Get page targets
+        const targetsResult = (await cdpClient.send('Target.getTargets')) as {
+            targetInfos: Array<{ targetId: string; type: string; url: string }>;
+        };
+        const pageTarget = targetsResult?.targetInfos?.find((t) => t.type === 'page');
+        if (!pageTarget) {
+            logger.debug('No page target found for localStorage extraction');
+            return result;
+        }
+
+        // Attach to the page target to access its JS context
+        const attachResult = (await cdpClient.send('Target.attachToTarget', {
+            targetId: pageTarget.targetId,
+            flatten: true,
+        })) as { sessionId: string };
+        const sessionId = attachResult?.sessionId;
+        if (!sessionId) {
+            logger.debug('Failed to attach to page target — no sessionId returned');
+            return result;
+        }
+        logger.debug(`Attached to page target ${pageTarget.targetId} (url: ${pageTarget.url}) with session ${sessionId}`);
+
+        // Enable Runtime domain on the page session
+        await cdpClient.send('Runtime.enable', {}, sessionId).catch(() => {});
+
+        // Check current page URL — localStorage is only accessible from the same origin
+        const urlResult = (await cdpClient.send('Runtime.evaluate', {
+            expression: 'window.location.href',
+            returnByValue: true,
+        }, sessionId)) as { result?: { value?: string } };
+        const currentUrl = urlResult?.result?.value ?? '';
+        logger.debug(`Page URL: ${currentUrl}`);
+
+        // Read all localStorage keys in a single evaluate call (scoped to page session)
+        const keys = configs.map((c) => c.key);
+        logger.debug(`Extracting localStorage keys: ${keys.join(', ')}`);
+        const evalResult = (await cdpClient.send('Runtime.evaluate', {
+            expression: `(() => { try { return (${JSON.stringify(keys)}).map(k => localStorage.getItem(k)); } catch(e) { return null; } })()`,
+            returnByValue: true,
+        }, sessionId)) as { result?: { value?: (string | null)[] | null }; exceptionDetails?: unknown };
+
+        if (evalResult?.exceptionDetails) {
+            logger.debug(`localStorage evaluate exception: ${JSON.stringify(evalResult.exceptionDetails)}`);
+        }
+
+        const rawValues = evalResult?.result?.value ?? [];
+        if (!rawValues) {
+            logger.debug('localStorage access denied on current page origin');
+            return result;
+        }
+        logger.debug(`localStorage raw values: ${(rawValues as (string|null)[]).map(v => v ? v.slice(0, 30) + '...' : 'null').join(', ')}`);
+
+        for (let i = 0; i < configs.length; i++) {
+            const config = configs[i];
+            const raw = rawValues[i];
+            if (raw == null) continue;
+
+            if (config.jsonPath) {
+                try {
+                    const parsed: unknown = JSON.parse(raw);
+                    const value = dlv(parsed as Record<string, unknown>, config.jsonPath);
+                    if (typeof value === 'string') {
+                        result[config.name] = value;
+                    }
+                } catch {
+                    // Invalid JSON — skip
+                }
+            } else {
+                result[config.name] = raw;
+            }
+        }
+
+        // Detach from target
+        await cdpClient.send('Target.detachFromTarget', { sessionId }).catch(() => {});
+    } catch (e) {
+        logger.debug(`localStorage extraction error: ${(e as Error).message}`);
+    }
+
+    return result;
 }
 
 // ============================================================================
@@ -336,17 +433,42 @@ export async function runCdpFlow(
                     const allPresent = requiredCookies.every((name) => cookieNames.has(name));
                     if (allPresent) {
                         logger.info('Authentication detected — all required cookies found.');
+                        // Poll localStorage until values appear (Slack needs time to hydrate)
+                        let localStorageValues: Record<string, string> | undefined;
+                        if (options.localStorage?.length) {
+                            const lsDeadline = Date.now() + 15_000; // max 15s for localStorage
+                            while (Date.now() < lsDeadline) {
+                                await new Promise((r) => setTimeout(r, 2000));
+                                localStorageValues = await extractLocalStorageViaCdp(cdpClient, options.localStorage, logger);
+                                if (localStorageValues && Object.keys(localStorageValues).length > 0) break;
+                                logger.debug('localStorage not ready yet, retrying...');
+                            }
+                        }
+                        if (localStorageValues && Object.keys(localStorageValues).length > 0) {
+                            logger.info(`Extracted ${Object.keys(localStorageValues).length} localStorage value(s).`);
+                        }
                         cdpClient.close();
-                        return ok({ cookies: filtered });
+                        return ok({ cookies: filtered, localStorage: localStorageValues });
                     }
                 } else if (filtered.length > 0) {
-                    // No specific cookies required — check if we have any cookies
-                    // and we're not still on a login page (heuristic: the URL changed)
                     logger.info(
                         `Authentication detected — ${filtered.length} cookie(s) found.`,
                     );
+                    let localStorageValues: Record<string, string> | undefined;
+                    if (options.localStorage?.length) {
+                        const lsDeadline = Date.now() + 15_000;
+                        while (Date.now() < lsDeadline) {
+                            await new Promise((r) => setTimeout(r, 2000));
+                            localStorageValues = await extractLocalStorageViaCdp(cdpClient, options.localStorage, logger);
+                            if (localStorageValues && Object.keys(localStorageValues).length > 0) break;
+                            logger.debug('localStorage not ready yet, retrying...');
+                        }
+                    }
+                    if (localStorageValues && Object.keys(localStorageValues).length > 0) {
+                        logger.info(`Extracted ${Object.keys(localStorageValues).length} localStorage value(s).`);
+                    }
                     cdpClient.close();
-                    return ok({ cookies: filtered });
+                    return ok({ cookies: filtered, localStorage: localStorageValues });
                 }
             } catch (e) {
                 // CDP error — browser may be navigating, ignore and retry

@@ -43,6 +43,7 @@ export interface HybridFlowOptions {
     /** Variant of extractCredentials used in CDP mode (raw cookies already available) */
     extractCredentialsFromCookies?: (
         cookies: Cookie[],
+        localStorage?: Record<string, string>,
     ) => Promise<Result<unknown, AuthError>>;
     /** Global browser config (timeouts, waitUntil defaults) */
     browserConfig: BrowserConfig;
@@ -146,7 +147,7 @@ export async function runHybridFlow<T>(
         // Resolve browser binary: explicit execPath → auto-detect → skip
         let execPath = options.execPath ?? options.browserConfig.execPath;
         if (!execPath) {
-            const detected = findNativeBrowser();
+            const detected = findNativeBrowser(options.browserConfig.channel);
             if (detected) {
                 execPath = detected.execPath;
                 logger.warn(
@@ -173,6 +174,7 @@ export async function runHybridFlow<T>(
                 timeout: visibleTimeout,
                 logger,
                 networkProxy: options.networkProxy,
+                localStorage: options.localStorage,
             });
 
             if (cdpResult.ok) {
@@ -180,6 +182,7 @@ export async function runHybridFlow<T>(
                 if (options.extractCredentialsFromCookies) {
                     const credResult = await options.extractCredentialsFromCookies(
                         cdpResult.value.cookies,
+                        cdpResult.value.localStorage,
                     );
                     if (credResult.ok) return credResult as Result<T, AuthError>;
                     // Fall through to visible if CDP credential extraction fails

@@ -107,7 +107,7 @@ class CookieStrategy implements IAuthStrategy {
             logger: context.logger ?? stderrLogger,
             ...(context.networkProxy !== undefined ? { networkProxy: context.networkProxy } : {}),
 
-            extractCredentialsFromCookies: async (cookies) => {
+            extractCredentialsFromCookies: async (cookies, localStorageValues) => {
                 // CDP mode: cookies already extracted by the CDP flow
                 if (cookies.length === 0) {
                     return err(
@@ -126,6 +126,9 @@ class CookieStrategy implements IAuthStrategy {
                     type: CredentialTypeName.COOKIE,
                     cookies,
                     obtainedAt: new Date().toISOString(),
+                    ...(localStorageValues && Object.keys(localStorageValues).length > 0
+                        ? { localStorage: localStorageValues }
+                        : {}),
                 };
                 return ok({ credential, diagnostics });
             },
