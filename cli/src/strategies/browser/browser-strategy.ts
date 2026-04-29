@@ -256,7 +256,20 @@ export class BrowserStrategy implements IStrategy {
                 try {
                     const result = await extractor.extract(cdp, rule, domains, cookiePaths);
                     if (result) {
-                        if (result.expiresAt) this.lastExpiresAt = result.expiresAt;
+                        // Compute expiresAt from cookies if available
+                        if (result.cookies?.length && required?.length) {
+                            const requiredNames = required
+                                .filter((r) => r.startsWith(rule.name + "."))
+                                .map((r) => r.slice(rule.name.length + 1));
+                            const source = requiredNames.length
+                                ? result.cookies.filter((c) => requiredNames.includes(c.name))
+                                : result.cookies;
+                            const expiries = source.filter((c) => c.expires > 0).map((c) => c.expires * 1000);
+                            if (expiries.length > 0) this.lastExpiresAt = new Date(Math.min(...expiries)).toISOString();
+                        } else if (result.cookies?.length) {
+                            const expiries = result.cookies.filter((c) => c.expires > 0).map((c) => c.expires * 1000);
+                            if (expiries.length > 0) this.lastExpiresAt = new Date(Math.min(...expiries)).toISOString();
+                        }
                         credentials[result.name] = result.value;
                     }
                 } catch {

@@ -137,6 +137,7 @@ export class StorageExtractor implements IBrowserExtractor {
             if (!matches?.length) return null;
 
             // Try to extract JWT secret from MSAL-style JSON entries
+            // todo: why this is needed? it's not a generic pattern. should implemented by a good approach e.g. lodash or dlv
             for (const entry of matches) {
                 if (!entry) continue;
                 const jwt = this.extractJwtFromEntry(entry);

@@ -15,5 +15,5 @@ export interface IBrowserExtractor {
         rule: ExtractRule,
         domains: string[],
         cookiePaths?: string[],
-    ): Promise<{ name: string; value: string; expiresAt?: string } | null>;
+    ): Promise<{ name: string; value: string; cookies?: Array<{ name: string; expires: number }> } | null>;
 }

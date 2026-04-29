@@ -2,7 +2,7 @@ import type { IBrowserExtractor } from '../../../types/interfaces/browser-extrac
 import type { CdpWsClient } from '../../../browser/cdp-ws.js';
 import type { ExtractRule } from '../../../types/extract.js';
 
-interface CdpCookie {
+export interface CdpCookie {
     name: string;
     value: string;
     domain: string;
@@ -28,9 +28,8 @@ export class CookieExtractor implements IBrowserExtractor {
         cdp: CdpWsClient,
         rule: ExtractRule,
         domains: string[],
-        // todo: should extract cookies from paths, e.g. path of /y on x.com, should get all from x.com and x.com/y
         _cookiePaths?: string[],
-    ): Promise<{ name: string; value: string; expiresAt?: string } | null> {
+    ): Promise<{ name: string; value: string; cookies: CdpCookie[] } | null> {
         const result = (await cdp.send('Storage.getCookies', {
             browserContextId: undefined,
         })) as { cookies: CdpCookie[] } | null;
@@ -42,12 +41,7 @@ export class CookieExtractor implements IBrowserExtractor {
 
         const serialized = filtered.map((c) => `${c.name}=${c.value}`).join('; ');
 
-        // Compute expiresAt from minimum cookie expiry
-        const expiries = filtered.filter((c) => c.expires > 0).map((c) => c.expires * 1000);
-        const expiresAt =
-            expiries.length > 0 ? new Date(Math.min(...expiries)).toISOString() : undefined;
-
-        return { name: rule.name, value: serialized, expiresAt };
+        return { name: rule.name, value: serialized, cookies: filtered };
     }
 
     private filterByDomain(cookies: CdpCookie[], domains: string[]): CdpCookie[] {
