@@ -864,7 +864,7 @@ describe('validateConfig', () => {
         }
     });
 
-    it('parses optional provider fields (name, entryUrl, acceptedCredentialTypes, xHeaders)', () => {
+    it('parses optional provider fields (name, entryUrl, acceptedCredentialTypes)', () => {
         const result = validateConfig(
             validRawConfig({
                 providers: {
@@ -876,7 +876,6 @@ describe('validateConfig', () => {
                         config: { clientId: 'abc', scopes: ['openid'] },
                         acceptedCredentialTypes: ['bearer'],
                         setupInstructions: 'Go to settings',
-                        xHeaders: [{ name: 'X-Custom', pattern: '.*' }],
                     },
                 },
             }),
@@ -888,7 +887,6 @@ describe('validateConfig', () => {
             expect(p.entryUrl).toBe('https://full.example.com/login');
             expect(p.acceptedCredentialTypes).toEqual(['bearer']);
             expect(p.setupInstructions).toBe('Go to settings');
-            expect(p.xHeaders).toEqual([{ name: 'X-Custom', pattern: '.*' }]);
         }
     });
 });

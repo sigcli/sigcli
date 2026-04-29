@@ -48,13 +48,6 @@ def test_read_basic_provider(tmp_path: Path):
     assert result.credential.username == "admin"
 
 
-def test_read_cookie_with_xheaders(tmp_path: Path):
-    copy_fixture("cookie-xheaders.json", tmp_path, "xiaohongshu.json")
-    result = read_provider_file("xiaohongshu", tmp_path)
-    assert result.credential.type == "cookie"
-    assert result.credential.xHeaders["x-csrf-token"] == "csrf-abc"
-
-
 def test_read_credential_with_localstorage(tmp_path: Path):
     copy_fixture("bearer-localstorage.json", tmp_path, "slack.json")
     result = read_provider_file("slack", tmp_path)

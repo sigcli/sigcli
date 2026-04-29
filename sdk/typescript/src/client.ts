@@ -32,14 +32,10 @@ export class SigClient extends EventEmitter<SigClientEvents> {
      * Returns a plain object whose keys are HTTP header names and values are header values.
      * The headers produced depend on the credential type stored for the provider:
      *
-     * - **cookie** -- `{ Cookie: "name=value; ...", ...xHeaders }`
-     * - **bearer** -- `{ Authorization: "Bearer <token>", ...xHeaders }`
+     * - **cookie** -- `{ Cookie: "name=value; ..." }`
+     * - **bearer** -- `{ Authorization: "Bearer <token>" }`
      * - **api-key** -- `{ [headerName]: "[prefix] <key>" }`
      * - **basic** -- `{ Authorization: "Basic <base64>" }`
-     *
-     * For `cookie` and `bearer` types, any captured `xHeaders` (e.g. CSRF tokens,
-     * origin headers) are merged into the result. The primary header (`Cookie` or
-     * `Authorization`) always takes precedence over xHeaders with the same name.
      *
      * @param providerId - The provider identifier (e.g. "my-jira", "github")
      * @returns A promise resolving to a `Record<string, string>` of HTTP headers
@@ -49,7 +45,7 @@ export class SigClient extends EventEmitter<SigClientEvents> {
      * @example
      * ```typescript
      * const headers = await client.getHeaders('my-jira');
-     * // cookie provider: { Cookie: "sid=abc; csrf=xyz", "x-csrf-token": "tok" }
+     * // cookie provider: { Cookie: "sid=abc; csrf=xyz" }
      * // bearer provider: { Authorization: "Bearer eyJhbG..." }
      * const res = await fetch('https://jira.example.com/rest/api/2/search', { headers });
      * ```
@@ -66,8 +62,8 @@ export class SigClient extends EventEmitter<SigClientEvents> {
      * has no stored credential or the file cannot be read/parsed. The returned object
      * is a discriminated union on the `type` field:
      *
-     * - `CookieCredential` -- `{ type: "cookie", cookies, obtainedAt, xHeaders?, localStorage? }`
-     * - `BearerCredential` -- `{ type: "bearer", accessToken, refreshToken?, expiresAt?, scopes?, tokenEndpoint?, xHeaders?, localStorage? }`
+     * - `CookieCredential` -- `{ type: "cookie", cookies, obtainedAt, localStorage? }`
+     * - `BearerCredential` -- `{ type: "bearer", accessToken, refreshToken?, expiresAt?, scopes?, tokenEndpoint?, localStorage? }`
      * - `ApiKeyCredential` -- `{ type: "api-key", key, headerName, headerPrefix? }`
      * - `BasicCredential` -- `{ type: "basic", username, password }`
      *

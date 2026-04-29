@@ -71,7 +71,6 @@ class OAuth2Strategy implements IAuthStrategy {
             browserConfig: context.browserConfig,
             forceVisible: provider.forceVisible ?? false,
             loginMode: provider.loginMode,
-            xHeaders: provider.xHeaders,
             providerDomains: provider.domains,
             browserDataDir: context.browserConfig.browserDataDir,
             execPath: context.browserConfig.execPath,
@@ -85,7 +84,7 @@ class OAuth2Strategy implements IAuthStrategy {
                 return await hasOAuthTokens(page, this.strategyConfig.audiences);
             },
 
-            extractCredentials: async (page, xHeaders, localStorage, meta) => {
+            extractCredentials: async (page, localStorage, meta) => {
                 const result = await extractOAuthTokens(page, {
                     audiences: this.strategyConfig.audiences,
                     extractRefreshToken: true,
@@ -94,10 +93,6 @@ class OAuth2Strategy implements IAuthStrategy {
                 if (!result.ok) return result;
 
                 const credential = result.value;
-                // Attach captured headers to the bearer credential
-                if (xHeaders && Object.keys(xHeaders).length > 0) {
-                    credential.xHeaders = xHeaders;
-                }
                 // Attach captured localStorage values to the bearer credential
                 if (localStorage && Object.keys(localStorage).length > 0) {
                     credential.localStorage = localStorage;
@@ -167,7 +162,6 @@ class OAuth2Strategy implements IAuthStrategy {
                 expiresAt,
                 scopes: tokenResponse.scope?.split(' '),
                 tokenEndpoint: credential.tokenEndpoint,
-                ...(credential.xHeaders ? { xHeaders: credential.xHeaders } : {}),
                 ...(credential.localStorage ? { localStorage: credential.localStorage } : {}),
             };
 
@@ -182,11 +176,7 @@ class OAuth2Strategy implements IAuthStrategy {
     applyToRequest(credential: Credential): Record<string, string> {
         if (credential.type !== CredentialTypeName.BEARER) return {};
 
-        // Apply x-headers first, then set Authorization so it always wins
-        const headers: Record<string, string> = { ...credential.xHeaders };
-        headers[HttpHeader.AUTHORIZATION] = `${AuthScheme.BEARER} ${credential.accessToken}`;
-
-        return headers;
+        return { [HttpHeader.AUTHORIZATION]: `${AuthScheme.BEARER} ${credential.accessToken}` };
     }
 }
 

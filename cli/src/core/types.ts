@@ -66,7 +66,6 @@ export interface CookieCredential {
     type: 'cookie';
     cookies: Cookie[];
     obtainedAt: string; // ISO timestamp
-    xHeaders?: Record<string, string>; // Extra captured HTTP headers (e.g. x-s, x-t)
     localStorage?: Record<string, string>; // Extracted localStorage values (e.g. xoxc token)
 }
 
@@ -77,7 +76,6 @@ export interface BearerCredential {
     expiresAt?: string; // ISO timestamp
     scopes?: string[];
     tokenEndpoint?: string; // For refresh
-    xHeaders?: Record<string, string>; // Extra captured HTTP headers (e.g. x-s, x-t)
     localStorage?: Record<string, string>; // Extracted localStorage values
 }
 
@@ -95,17 +93,6 @@ export interface BasicCredential {
 }
 
 export type Credential = CookieCredential | BearerCredential | ApiKeyCredential | BasicCredential;
-
-// ============================================================================
-// X-Header Configuration (extra HTTP headers captured during browser auth)
-// ============================================================================
-
-export interface XHeaderConfig {
-    name: string; // Header name to capture (case-insensitive match)
-    source?: 'request' | 'response'; // Where to capture from (default: both)
-    urlPattern?: string; // Only capture from URLs matching this pattern
-    staticValue?: string; // Use a fixed value instead of capturing dynamically
-}
 
 // ============================================================================
 // LocalStorage Configuration (values extracted from browser localStorage)
@@ -145,7 +132,6 @@ export interface ProviderConfig {
     strategyConfig: StrategyConfig; // Discriminated union strategy config
     acceptedCredentialTypes?: CredentialType[]; // Enforce which credential types are valid
     setupInstructions?: string; // Shown when manual setup is needed
-    xHeaders?: XHeaderConfig[]; // Extra HTTP headers to capture during browser auth
     localStorage?: LocalStorageConfig[]; // localStorage values to extract during browser auth
     autoProvisioned?: boolean; // True if created by auto-provision (not from config file)
     forceVisible?: boolean; // Skip headless, go straight to visible browser mode

@@ -64,15 +64,6 @@ describe('readProviderFile', () => {
         }
     });
 
-    it('reads cookie with xHeaders', async () => {
-        await copyFixture('cookie-xheaders.json', 'xiaohongshu.json');
-        const result = await readProviderFile('xiaohongshu', tmpDir);
-        if (result.credential.type === 'cookie') {
-            expect(result.credential.xHeaders).toBeDefined();
-            expect(result.credential.xHeaders!['x-csrf-token']).toBe('csrf-abc');
-        }
-    });
-
     it('reads credential with localStorage', async () => {
         await copyFixture('bearer-localstorage.json', 'slack.json');
         const result = await readProviderFile('slack', tmpDir);

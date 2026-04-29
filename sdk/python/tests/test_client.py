@@ -132,16 +132,6 @@ def test_watch_is_idempotent(tmp_path: Path):
     client.close()
 
 
-def test_get_headers_includes_xheaders(tmp_path: Path):
-    setup_fixtures(tmp_path)
-    client = SigClient(credentials_dir=tmp_path)
-    headers = client.get_headers("xiaohongshu")
-    assert headers["Cookie"] == "id_token=tok123"
-    assert headers["x-csrf-token"] == "csrf-abc"
-    assert headers["origin"] == "https://www.xiaohongshu.com"
-    client.close()
-
-
 def test_get_local_storage_empty_for_provider_without_localstorage(tmp_path: Path):
     setup_fixtures(tmp_path)
     client = SigClient(credentials_dir=tmp_path)

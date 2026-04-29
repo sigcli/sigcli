@@ -209,7 +209,7 @@ Available formats for `sig status`, `sig providers`, `sig remote list`, `sig wat
 sig status --format json    # structured JSON, not a TTY table
 sig providers --format json
 sig remote list --format json
-sig get <provider> --format json   # includes type, headerName, value, xHeaders
+sig get <provider> --format json   # includes type, headerName, value, localStorage
 ```
 
 ### Auto-refresh with watch daemon

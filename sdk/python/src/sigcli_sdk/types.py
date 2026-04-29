@@ -18,7 +18,6 @@ class CookieCredential:
     type: Literal["cookie"]
     cookies: Sequence[Cookie]
     obtainedAt: str
-    xHeaders: dict[str, str] = field(default_factory=dict)
     localStorage: dict[str, str] = field(default_factory=dict)
 
 @dataclass(frozen=True)
@@ -29,7 +28,6 @@ class BearerCredential:
     expiresAt: Optional[str] = None
     scopes: Optional[Sequence[str]] = None
     tokenEndpoint: Optional[str] = None
-    xHeaders: dict[str, str] = field(default_factory=dict)
     localStorage: dict[str, str] = field(default_factory=dict)
 
 @dataclass(frozen=True)

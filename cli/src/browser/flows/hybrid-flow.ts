@@ -5,7 +5,6 @@ import type {
 } from '../../core/interfaces/browser-adapter.js';
 import type {
     BrowserLaunchOptions,
-    XHeaderConfig,
     LocalStorageConfig,
     ILogger,
     Cookie,
@@ -16,7 +15,6 @@ import type { BrowserConfig } from '../../config/schema.js';
 import type { Result } from '../../core/result.js';
 import { err } from '../../core/result.js';
 import { AuthError, BrowserError, BrowserTimeoutError } from '../../core/errors.js';
-import { startHeaderCapture } from './header-capture.js';
 import { extractLocalStorage } from './localstorage-capture.js';
 import { runCdpFlow } from './cdp-flow.js';
 import { findNativeBrowser } from '../detect-native.js';
@@ -36,7 +34,6 @@ export interface HybridFlowOptions {
     /** Called once auth is detected to extract credentials */
     extractCredentials: (
         page: IBrowserPage,
-        xHeaders?: Record<string, string>,
         localStorage?: Record<string, string>,
         meta?: { immediateAuth: boolean },
     ) => Promise<Result<unknown, AuthError>>;
@@ -55,9 +52,7 @@ export interface HybridFlowOptions {
     waitUntil?: WaitUntilValue;
     /** Custom browser launch args */
     browserArgs?: string[];
-    /** X-header configs — extra HTTP headers to capture during browser auth */
-    xHeaders?: XHeaderConfig[];
-    /** Provider domains used for filtering x-header capture and CDP cookie filtering */
+    /** Provider domains used for CDP cookie filtering */
     providerDomains?: string[];
     /** Required cookie names for CDP polling (CDP mode) */
     requiredCookies?: string[];
@@ -255,7 +250,6 @@ async function attemptAuth<T>(
     options: HybridFlowOptions & { headless: boolean; timeout: number; logger: ILogger },
 ): Promise<Result<T, AuthError>> {
     let session: IBrowserSession | undefined;
-    let headerCleanup: (() => void) | undefined;
     const logger = options.logger;
 
     try {
@@ -276,18 +270,6 @@ async function attemptAuth<T>(
         session = await adapter.launch(launchOptions);
         const page = await session.newPage();
 
-        // Set up x-header capture before navigation (so we capture all traffic)
-        let xHeaders: Record<string, string> | undefined;
-        if (options.xHeaders && options.xHeaders.length > 0) {
-            const capture = startHeaderCapture(
-                page,
-                options.xHeaders,
-                options.providerDomains ?? [],
-            );
-            xHeaders = capture.xHeaders;
-            headerCleanup = capture.cleanup;
-        }
-
         // Navigate to entry URL
         // Strategy can override global waitUntil (e.g. cookie forces 'networkidle')
         const waitUntil = options.waitUntil ?? options.browserConfig.waitUntil;
@@ -303,7 +285,7 @@ async function attemptAuth<T>(
         if (await options.isAuthenticated(page)) {
             logger.info('Cached session found, extracting credentials...');
             const localStorageValues = await captureLocalStorageValues(page, options.localStorage);
-            const result = await options.extractCredentials(page, xHeaders, localStorageValues, {
+            const result = await options.extractCredentials(page, localStorageValues, {
                 immediateAuth: true,
             });
             return result as Result<T, AuthError>;
@@ -325,7 +307,7 @@ async function attemptAuth<T>(
         }
 
         const localStorageValues = await captureLocalStorageValues(page, options.localStorage);
-        const result = await options.extractCredentials(page, xHeaders, localStorageValues, {
+        const result = await options.extractCredentials(page, localStorageValues, {
             immediateAuth: false,
         });
         return result as Result<T, AuthError>;
@@ -335,9 +317,6 @@ async function attemptAuth<T>(
         }
         return err(new BrowserError((e as Error).message));
     } finally {
-        if (headerCleanup) {
-            headerCleanup();
-        }
         if (session) {
             await session.close().catch(() => {});
         }

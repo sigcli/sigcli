@@ -126,15 +126,6 @@ describe('SigClient', () => {
         client.close();
     });
 
-    it('getHeaders includes xHeaders for cookie provider', async () => {
-        const client = new SigClient({ credentialsDir: tmpDir });
-        const headers = await client.getHeaders('xiaohongshu');
-        expect(headers['Cookie']).toBe('id_token=tok123');
-        expect(headers['x-csrf-token']).toBe('csrf-abc');
-        expect(headers['origin']).toBe('https://www.xiaohongshu.com');
-        client.close();
-    });
-
     it('getLocalStorage returns empty object for provider without localStorage', async () => {
         const client = new SigClient({ credentialsDir: tmpDir });
         const ls = await client.getLocalStorage('my-jira');

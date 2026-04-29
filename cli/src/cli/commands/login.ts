@@ -34,7 +34,6 @@ function toProviderEntry(pc: ProviderConfig): ProviderEntry {
         ...(pc.acceptedCredentialTypes
             ? { acceptedCredentialTypes: pc.acceptedCredentialTypes }
             : {}),
-        ...(pc.xHeaders ? { xHeaders: pc.xHeaders } : {}),
         ...(pc.localStorage ? { localStorage: pc.localStorage } : {}),
         ...(pc.forceVisible !== undefined ? { forceVisible: pc.forceVisible } : {}),
         ...(pc.proxy ? { proxy: pc.proxy } : {}),

@@ -889,8 +889,7 @@ providers:
                     <P>
                         The <Code>from</Code> field resolves paths against the stored credential:{' '}
                         <Code>credential.cookies</Code>, <Code>credential.accessToken</Code>,{' '}
-                        <Code>credential.localStorage.&lt;key&gt;</Code>,{' '}
-                        <Code>credential.xHeaders.&lt;key&gt;</Code>. Body injection supports{' '}
+                        <Code>credential.localStorage.&lt;key&gt;</Code>. Body injection supports{' '}
                         <Code>application/json</Code> and{' '}
                         <Code>application/x-www-form-urlencoded</Code> content types.
                     </P>
@@ -979,9 +978,7 @@ SIG_MY_JIRA_COOKIE            # full cookie string, e.g. "SESSION=abc; ..."
 SIG_MY_JIRA_COOKIE_SESSION=abc123
 SIG_MY_JIRA_COOKIE_CSRF_TOKEN=xyz
 
-# Custom x-headers captured from browser traffic
-SIG_MY_JIRA_HEADER_X_AUSERNAME=alice
-SIG_MY_JIRA_HEADER_X_ATTOKEN=xyz`}</CodeBlock>
+`}</CodeBlock>
 
                     <P>Example: reading credentials inside a Python script:</P>
                     <CodeBlock lang="bash">{`import os
@@ -1031,12 +1028,7 @@ providers:
     url: https://jira.example.com
     strategy: cookie
     requiredCookies:
-      - SESSION
-    xHeaders:
-      - name: X-User
-        header: x-user
-      - name: X-Token
-        header: x-token`}</CodeBlock>
+      - SESSION`}</CodeBlock>
 
                     <SectionHeading id="config-providers" level={2}>
                         Provider config options
@@ -1049,9 +1041,6 @@ providers:
       - SESSION
     cookiePaths:                 # extra paths for path-scoped cookies
       - /wiki
-    xHeaders:                    # capture these response headers
-      - name: X-User        # internal name
-        header: x-user      # actual HTTP header name
     forceVisible: true           # always open visible browser (default: false)
     waitUntil: networkidle       # load event: load|domcontentloaded|networkidle
     ttl: 8h                      # credential TTL (e.g. 1h, 8h, 7d)`}</CodeBlock>

@@ -7,14 +7,10 @@ import type { Credential } from './types.js';
 export function formatHeaders(credential: Credential): Record<string, string> {
     switch (credential.type) {
         case 'cookie': {
-            const headers: Record<string, string> = { ...credential.xHeaders };
-            headers['Cookie'] = credential.cookies.map((c) => `${c.name}=${c.value}`).join('; ');
-            return headers;
+            return { Cookie: credential.cookies.map((c) => `${c.name}=${c.value}`).join('; ') };
         }
         case 'bearer': {
-            const headers: Record<string, string> = { ...credential.xHeaders };
-            headers['Authorization'] = `Bearer ${credential.accessToken}`;
-            return headers;
+            return { Authorization: `Bearer ${credential.accessToken}` };
         }
         case 'api-key': {
             const value = credential.headerPrefix

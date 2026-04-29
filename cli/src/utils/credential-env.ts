@@ -24,11 +24,6 @@ export function credentialToEnvVars(
         case 'bearer': {
             env[`${p}_TOKEN`] = credential.accessToken;
             env[`${p}_AUTH_HEADER`] = `Bearer ${credential.accessToken}`;
-            if (credential.xHeaders) {
-                for (const [k, v] of Object.entries(credential.xHeaders)) {
-                    env[`${p}_HEADER_${normalizeKey(k)}`] = v;
-                }
-            }
             if (credential.localStorage) {
                 for (const [k, v] of Object.entries(credential.localStorage)) {
                     env[`${p}_LOCAL_${normalizeKey(k)}`] = v;
@@ -41,11 +36,6 @@ export function credentialToEnvVars(
             if (options.expandCookies) {
                 for (const c of credential.cookies) {
                     env[`${p}_COOKIE_${normalizeKey(c.name)}`] = c.value;
-                }
-            }
-            if (credential.xHeaders) {
-                for (const [k, v] of Object.entries(credential.xHeaders)) {
-                    env[`${p}_HEADER_${normalizeKey(k)}`] = v;
                 }
             }
             if (credential.localStorage) {

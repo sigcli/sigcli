@@ -75,7 +75,6 @@ export async function createAuthDeps(
             strategyConfig: buildStrategyConfig(entry.strategy, entry.config),
             acceptedCredentialTypes: entry.acceptedCredentialTypes,
             setupInstructions: entry.setupInstructions,
-            xHeaders: entry.xHeaders,
             localStorage: entry.localStorage,
             ...(entry.forceVisible !== undefined ? { forceVisible: entry.forceVisible } : {}),
             ...(entry.proxy !== undefined ? { proxy: entry.proxy } : {}),

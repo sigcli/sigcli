@@ -449,7 +449,6 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
         ...(typeof raw.setupInstructions === 'string'
             ? { setupInstructions: raw.setupInstructions }
             : {}),
-        ...(Array.isArray(raw.xHeaders) ? { xHeaders: raw.xHeaders } : {}),
         ...(Array.isArray(raw.localStorage) ? { localStorage: raw.localStorage } : {}),
         ...(typeof raw.forceVisible === 'boolean' ? { forceVisible: raw.forceVisible } : {}),
         ...(raw.proxy && typeof raw.proxy === 'object'

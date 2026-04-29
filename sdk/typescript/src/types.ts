@@ -16,7 +16,6 @@ export interface CookieCredential {
     readonly type: 'cookie';
     readonly cookies: readonly Cookie[];
     readonly obtainedAt: string;
-    readonly xHeaders?: Readonly<Record<string, string>>;
     readonly localStorage?: Readonly<Record<string, string>>;
 }
 
@@ -28,7 +27,6 @@ export interface BearerCredential {
     readonly expiresAt?: string;
     readonly scopes?: readonly string[];
     readonly tokenEndpoint?: string;
-    readonly xHeaders?: Readonly<Record<string, string>>;
     readonly localStorage?: Readonly<Record<string, string>>;
 }
 

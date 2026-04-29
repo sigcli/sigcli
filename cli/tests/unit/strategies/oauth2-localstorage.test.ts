@@ -36,20 +36,6 @@ describe('OAuth2Strategy — localStorage on credential', () => {
         expect(headers['xoxc-token']).toBeUndefined();
     });
 
-    it('credential with both xHeaders and localStorage', () => {
-        const cred = makeCred({
-            xHeaders: { 'x-custom': 'header-val' },
-            localStorage: { 'xoxc-token': 'xoxc-abc123' },
-        });
-
-        const headers = strategy.applyToRequest(cred);
-
-        // xHeaders should be applied, localStorage should not
-        expect(headers['Authorization']).toBe('Bearer eyJhbGciOiJSUzI1NiJ9.test-token');
-        expect(headers['x-custom']).toBe('header-val');
-        expect(headers['xoxc-token']).toBeUndefined();
-    });
-
     it('validate works with empty localStorage', () => {
         const cred = makeCred({
             localStorage: {},
@@ -105,43 +91,6 @@ describe('OAuth2Strategy — localStorage preserved during refresh', () => {
                     'session-key': 'session-value',
                     'user-token': 'tok-123',
                 });
-            }
-        } finally {
-            globalThis.fetch = originalFetch;
-        }
-    });
-
-    it('preserves xHeaders alongside localStorage during refresh', async () => {
-        const strategy = factory.create({
-            strategy: 'oauth2',
-            tokenEndpoint: 'https://auth.example.com/token',
-            clientId: 'test-client',
-        });
-
-        const original = makeCred({
-            refreshToken: 'refresh-abc',
-            tokenEndpoint: 'https://auth.example.com/token',
-            xHeaders: { 'x-session': 'sess-val' },
-            localStorage: { 'local-key': 'local-val' },
-        });
-
-        const originalFetch = globalThis.fetch;
-        globalThis.fetch = async () =>
-            new Response(
-                JSON.stringify({
-                    access_token: 'new-token',
-                    expires_in: 3600,
-                }),
-                { status: 200, headers: { 'Content-Type': 'application/json' } },
-            );
-
-        try {
-            const result = await strategy.refresh(original, { strategy: 'oauth2' });
-            expect(isOk(result)).toBe(true);
-            if (result.ok && result.value) {
-                const refreshed = result.value as BearerCredential;
-                expect(refreshed.xHeaders).toEqual({ 'x-session': 'sess-val' });
-                expect(refreshed.localStorage).toEqual({ 'local-key': 'local-val' });
             }
         } finally {
             globalThis.fetch = originalFetch;

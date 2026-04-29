@@ -32,14 +32,6 @@ export function resolveFrom(credential: Credential, fromPath: string): string | 
         return null;
     }
 
-    if (rest.startsWith('xHeaders.')) {
-        const headerKey = rest.slice('xHeaders.'.length);
-        if ((credential.type === 'cookie' || credential.type === 'bearer') && credential.xHeaders) {
-            return credential.xHeaders[headerKey] ?? null;
-        }
-        return null;
-    }
-
     if (rest.startsWith('localStorage.')) {
         const lsKey = rest.slice('localStorage.'.length);
         if (

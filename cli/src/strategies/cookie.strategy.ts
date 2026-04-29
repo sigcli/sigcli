@@ -97,7 +97,6 @@ class CookieStrategy implements IAuthStrategy {
             forceVisible: provider.forceVisible ?? false,
             loginMode: provider.loginMode,
             waitUntil: this.waitUntil,
-            xHeaders: provider.xHeaders,
             providerDomains: provider.domains,
             requiredCookies: this.requiredCookies,
             cookiePaths: this.cookiePaths,
@@ -147,7 +146,7 @@ class CookieStrategy implements IAuthStrategy {
                 return !onLoginPage;
             },
 
-            extractCredentials: async (page, xHeaders, localStorage, meta) => {
+            extractCredentials: async (page, localStorage, meta) => {
                 // Only extract cookies matching this provider's domains (not all cookies from the shared profile)
                 // Use cookiePaths to query sub-paths (e.g. /wiki for path-scoped cookies)
                 const urls = buildCookieUrls(provider.domains, this.cookiePaths);
@@ -182,7 +181,6 @@ class CookieStrategy implements IAuthStrategy {
                     type: CredentialTypeName.COOKIE,
                     cookies,
                     obtainedAt: new Date().toISOString(),
-                    ...(xHeaders && Object.keys(xHeaders).length > 0 ? { xHeaders } : {}),
                     ...(localStorage && Object.keys(localStorage).length > 0
                         ? { localStorage }
                         : {}),
@@ -203,11 +201,7 @@ class CookieStrategy implements IAuthStrategy {
 
         const cookieStr = credential.cookies.map((c) => `${c.name}=${c.value}`).join('; ');
 
-        // Apply x-headers first, then set Cookie so it always wins
-        const headers: Record<string, string> = { ...credential.xHeaders };
-        headers[HttpHeader.COOKIE] = cookieStr;
-
-        return headers;
+        return { [HttpHeader.COOKIE]: cookieStr };
     }
 }
 

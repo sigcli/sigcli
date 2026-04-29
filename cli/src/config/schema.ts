@@ -8,7 +8,6 @@
 
 import type {
     CredentialType,
-    XHeaderConfig,
     LocalStorageConfig,
     StrategyName,
     ProxyConfig,
@@ -92,7 +91,6 @@ export interface ProviderEntry {
     config?: Record<string, unknown>;
     acceptedCredentialTypes?: CredentialType[];
     setupInstructions?: string;
-    xHeaders?: XHeaderConfig[];
     localStorage?: LocalStorageConfig[];
     forceVisible?: boolean;
     proxy?: ProxyConfig;
