@@ -253,7 +253,7 @@ async function extractLocalStorageViaCdp(
             logger.debug('localStorage access denied on current page origin');
             return result;
         }
-        logger.debug(`localStorage raw values: ${(rawValues as (string|null)[]).map(v => v ? v.slice(0, 30) + '...' : 'null').join(', ')}`);
+        logger.debug(`localStorage raw values: ${rawValues.map(v => v ? v.slice(0, 30) + '...' : 'null').join(', ')}`);
 
         for (let i = 0; i < configs.length; i++) {
             const config = configs[i];
@@ -262,8 +262,8 @@ async function extractLocalStorageViaCdp(
 
             if (config.jsonPath) {
                 try {
-                    const parsed: unknown = JSON.parse(raw);
-                    const value = dlv(parsed as Record<string, unknown>, config.jsonPath);
+                    const parsed = JSON.parse(raw) as Record<string, unknown>;
+                    const value = dlv(parsed, config.jsonPath);
                     if (typeof value === 'string') {
                         result[config.name] = value;
                     }
@@ -377,7 +377,7 @@ export async function runCdpFlow(
         let wsUrl: string;
         try {
             wsUrl = await waitForBrowserReady(cdpPort, 15_000);
-        } catch (e) {
+        } catch {
             return err(
                 new BrowserTimeoutError(
                     'waiting for native browser to start',
