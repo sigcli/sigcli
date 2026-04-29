@@ -2,9 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AuthManager } from '../../../src/auth-manager.js';
 import { MemoryStorage } from '../../../src/storage/memory-storage.js';
 import { ProviderRegistry } from '../../../src/providers/provider-registry.js';
-import { StrategyRegistry } from '../../../src/strategies/registry.js';
-import { CookieStrategyFactory } from '../../../src/strategies/cookie.strategy.js';
-import { ApiTokenStrategyFactory } from '../../../src/strategies/api-token.strategy.js';
 import { runRemove } from '../../../src/cli/commands/remove.js';
 import type { AuthDeps } from '../../../src/deps.js';
 import type { ProviderConfig, StoredCredential } from '../../../src/core/types.js';
@@ -84,9 +81,6 @@ function createDeps(providers?: ProviderConfig[]): {
     providerRegistry: ProviderRegistry;
 } {
     const storage = new MemoryStorage();
-    const strategyRegistry = new StrategyRegistry();
-    strategyRegistry.register(new CookieStrategyFactory());
-    strategyRegistry.register(new ApiTokenStrategyFactory());
 
     const providerRegistry = new ProviderRegistry(
         providers ?? [providerJira, providerConfluence, providerGithub],
@@ -94,7 +88,6 @@ function createDeps(providers?: ProviderConfig[]): {
 
     const authManager = new AuthManager({
         storage,
-        strategyRegistry,
         providerRegistry,
         browserAdapterFactory: () => ({}) as IBrowserAdapter,
         browserConfig,
@@ -110,7 +103,6 @@ function createDeps(providers?: ProviderConfig[]): {
         authManager,
         storage,
         providerRegistry,
-        strategyRegistry,
         config,
         browserAvailable: true,
     };

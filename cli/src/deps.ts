@@ -2,16 +2,14 @@ import type { IStorage } from './core/interfaces/storage.js';
 import type { ILogger, ProviderConfig } from './core/types.js';
 import type { SigConfig } from './config/schema.js';
 import { AuthManager } from './auth-manager.js';
-import { StrategyRegistry } from './strategies/registry.js';
-import { CookieStrategyFactory } from './strategies/cookie.strategy.js';
-import { OAuth2StrategyFactory } from './strategies/oauth2.strategy.js';
-import { ApiTokenStrategyFactory } from './strategies/api-token.strategy.js';
-import { BasicAuthStrategyFactory } from './strategies/basic-auth.strategy.js';
 import { ProviderRegistry } from './providers/provider-registry.js';
 import { DirectoryStorage } from './storage/directory-storage.js';
 import { CachedStorage } from './storage/cached-storage.js';
 import { PlaywrightAdapter } from './browser/adapters/playwright.adapter.js';
 import { NullBrowserAdapter } from './browser/adapters/null.adapter.js';
+import { BrowserSource } from './extraction/browser-source.js';
+import { PromptSource } from './extraction/prompt-source.js';
+import { EnvSource } from './extraction/env-source.js';
 import { buildStrategyConfig } from './config/validator.js';
 import { expandHome } from './utils/path.js';
 import { loadEncryptionKey } from './crypto/encryption.js';
@@ -23,7 +21,6 @@ export interface AuthDeps {
     authManager: AuthManager;
     storage: IStorage;
     providerRegistry: ProviderRegistry;
-    strategyRegistry: StrategyRegistry;
     config: SigConfig;
     browserAvailable: boolean;
 }
@@ -58,7 +55,6 @@ export function createConsoleLogger(): ILogger {
 
 /**
  * Create the auth dependency graph from a validated SigConfig.
- * No env vars, no cascade — config is the single source of truth.
  */
 export async function createAuthDeps(
     config: SigConfig,
@@ -85,37 +81,38 @@ export async function createAuthDeps(
 
     const providerRegistry = new ProviderRegistry(providerConfigs);
 
-    // 2. Build strategy registry with built-in strategies
-    const strategyRegistry = new StrategyRegistry();
-    strategyRegistry.register(new CookieStrategyFactory());
-    strategyRegistry.register(new OAuth2StrategyFactory());
-    strategyRegistry.register(new ApiTokenStrategyFactory());
-    strategyRegistry.register(new BasicAuthStrategyFactory());
-
-    // 3. Build storage (CachedStorage wrapping DirectoryStorage)
+    // 2. Build storage (CachedStorage wrapping DirectoryStorage)
     const credDir = expandHome(config.storage.credentialsDir);
     const encryptionKey = await loadEncryptionKey();
     const storage = new CachedStorage(new DirectoryStorage(credDir, encryptionKey), {
         ttlMs: 5000,
     });
 
-    // 4. Build browser adapter factory using config.browser
+    // 3. Build browser adapter factory
     const browserConfig = config.browser;
     const browserAvailable = config.mode !== 'browserless';
     const browserAdapterFactory = browserAvailable
         ? () => new PlaywrightAdapter(browserConfig)
         : () => new NullBrowserAdapter('Running in browserless mode (mode: browserless)');
 
-    // 5. Build AuthManager
+    // 4. Build AuthManager with source strategies
     const logger = options?.verbose ? createConsoleLogger() : undefined;
     const authManager = new AuthManager({
         storage,
-        strategyRegistry,
         providerRegistry,
         browserAdapterFactory,
         browserConfig,
         logger,
     });
 
-    return { authManager, storage, providerRegistry, strategyRegistry, config, browserAvailable };
+    // Register source strategies
+    authManager.registerSource(new BrowserSource({
+        browserDataDir: config.browser.browserDataDir,
+        channel: config.browser.channel,
+        execPath: config.browser.execPath,
+    }));
+    authManager.registerSource(new PromptSource());
+    authManager.registerSource(new EnvSource());
+
+    return { authManager, storage, providerRegistry, config, browserAvailable };
 }

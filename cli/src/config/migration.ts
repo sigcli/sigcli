@@ -71,7 +71,7 @@ export function migrateV1ToV2(raw: Record<string, unknown>): V2Config {
     };
 }
 
-function migrateProvider(id: string, entry: Record<string, unknown>): V2ProviderEntry {
+export function migrateProvider(id: string, entry: Record<string, unknown>): V2ProviderEntry {
     const strategy = entry.strategy as string;
     const config = (entry.config ?? {}) as Record<string, unknown>;
     const domains = (entry.domains ?? []) as string[];

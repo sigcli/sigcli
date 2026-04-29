@@ -21,11 +21,6 @@ export type {
     CredentialType,
     Cookie,
     ProviderConfig,
-    StrategyConfig,
-    CookieStrategyConfig,
-    OAuth2StrategyConfig,
-    ApiTokenStrategyConfig,
-    BasicStrategyConfig,
     StoredCredential,
     StoredEntry,
     ProviderStatus,
@@ -62,12 +57,7 @@ export {
     EncryptionError,
 } from './core/errors.js';
 
-// Interfaces (for implementing custom adapters/strategies)
-export type {
-    IAuthStrategy,
-    IAuthStrategyFactory,
-    AuthContext,
-} from './core/interfaces/auth-strategy.js';
+// Interfaces
 export type {
     IBrowserAdapter,
     IBrowserSession,
@@ -104,13 +94,6 @@ export { StorageExtractor } from './extraction/storage-extractor.js';
 
 // AuthManager
 export { AuthManager } from './auth-manager.js';
-
-// Strategy factories (for custom registration)
-export { CookieStrategyFactory } from './strategies/cookie.strategy.js';
-export { OAuth2StrategyFactory } from './strategies/oauth2.strategy.js';
-export { ApiTokenStrategyFactory } from './strategies/api-token.strategy.js';
-export { BasicAuthStrategyFactory } from './strategies/basic-auth.strategy.js';
-export { StrategyRegistry } from './strategies/registry.js';
 
 // Storage implementations
 export { DirectoryStorage } from './storage/directory-storage.js';
