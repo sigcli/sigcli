@@ -49,7 +49,7 @@ core/ (types, interfaces, Result, errors) ── zero external deps, imported by
 - **`src/cli/`** — CLI commands (init, doctor, get, login, request, status, logout, providers, remote, sync, watch, rename, remove, completion).
 - **`src/strategies/`** — Each strategy: private class + exported `*StrategyFactory` (IAuthStrategyFactory).
 - **`src/browser/adapters/`** — Browser automation. Three-class pattern: Adapter → Session → Page.
-- **`src/browser/flows/`** — `runHybridFlow`, `extractOAuthTokens`, `isLoginPage`, `startHeaderCapture`.
+- **`src/browser/flows/`** — `runHybridFlow`, `extractOAuthTokens`, `isLoginPage`.
 - **`src/storage/`** — DirectoryStorage (per-file JSON + file lock + AES-256-GCM encryption), CachedStorage, MemoryStorage.
 - **`src/crypto/`** — Encryption at rest. AES-256-GCM encrypt/decrypt, key generation/loading. Key stored at `~/.sig/encryption.key`.
 - **`src/providers/`** — ProviderRegistry, config-loader.

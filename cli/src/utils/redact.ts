@@ -14,12 +14,10 @@ export function extractSensitiveValues(credential: Credential): string[] {
         case 'bearer':
             add(credential.accessToken);
             if (credential.refreshToken) add(credential.refreshToken);
-            for (const v of Object.values(credential.xHeaders ?? {})) add(v);
             for (const v of Object.values(credential.localStorage ?? {})) add(v);
             break;
         case 'cookie':
             for (const c of credential.cookies) add(c.value);
-            for (const v of Object.values(credential.xHeaders ?? {})) add(v);
             for (const v of Object.values(credential.localStorage ?? {})) add(v);
             break;
         case 'api-key':

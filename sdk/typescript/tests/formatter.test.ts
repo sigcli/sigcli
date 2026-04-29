@@ -78,74 +78,6 @@ describe('formatHeaders', () => {
         expect(headers).toEqual({ Authorization: `Basic ${expected}` });
     });
 
-    it('includes xHeaders for cookie credentials', () => {
-        const cred: CookieCredential = {
-            type: 'cookie',
-            cookies: [
-                {
-                    name: 'id_token',
-                    value: 'tok123',
-                    domain: '.xiaohongshu.com',
-                    path: '/',
-                    expires: -1,
-                    httpOnly: true,
-                    secure: true,
-                },
-            ],
-            obtainedAt: '2026-04-13T10:00:00.000Z',
-            xHeaders: {
-                'x-csrf-token': 'csrf-abc',
-                origin: 'https://www.xiaohongshu.com',
-            },
-        };
-        const headers = formatHeaders(cred);
-        expect(headers['Cookie']).toBe('id_token=tok123');
-        expect(headers['x-csrf-token']).toBe('csrf-abc');
-        expect(headers['origin']).toBe('https://www.xiaohongshu.com');
-    });
-
-    it('includes xHeaders for bearer credentials', () => {
-        const cred: BearerCredential = {
-            type: 'bearer',
-            accessToken: 'tok',
-            xHeaders: { 'X-Custom': 'val' },
-        };
-        const headers = formatHeaders(cred);
-        expect(headers['Authorization']).toBe('Bearer tok');
-        expect(headers['X-Custom']).toBe('val');
-    });
-
-    it('Cookie header overwrites any xHeaders Cookie', () => {
-        const cred: CookieCredential = {
-            type: 'cookie',
-            cookies: [
-                {
-                    name: 'a',
-                    value: 'b',
-                    domain: '.x.com',
-                    path: '/',
-                    expires: -1,
-                    httpOnly: false,
-                    secure: false,
-                },
-            ],
-            obtainedAt: '2026-04-13T10:00:00.000Z',
-            xHeaders: { Cookie: 'should-be-overwritten' },
-        };
-        const headers = formatHeaders(cred);
-        expect(headers['Cookie']).toBe('a=b');
-    });
-
-    it('Authorization header overwrites any xHeaders Authorization for bearer', () => {
-        const cred: BearerCredential = {
-            type: 'bearer',
-            accessToken: 'real-token',
-            xHeaders: { Authorization: 'should-be-overwritten' },
-        };
-        const headers = formatHeaders(cred);
-        expect(headers['Authorization']).toBe('Bearer real-token');
-    });
-
     it('formats cookie credential with empty cookies array', () => {
         const cred: CookieCredential = {
             type: 'cookie',
@@ -177,30 +109,6 @@ describe('formatHeaders', () => {
         expect(headers['Cookie']).not.toContain(';');
     });
 
-    it('handles cookie credential with both xHeaders and localStorage', () => {
-        const cred: CookieCredential = {
-            type: 'cookie',
-            cookies: [
-                {
-                    name: 'd',
-                    value: 'xoxd-abc',
-                    domain: '.slack.com',
-                    path: '/',
-                    expires: -1,
-                    httpOnly: true,
-                    secure: true,
-                },
-            ],
-            obtainedAt: '2026-04-13T10:00:00.000Z',
-            xHeaders: { 'x-custom': 'val' },
-            localStorage: { token: 'xoxc-123' },
-        };
-        const headers = formatHeaders(cred);
-        expect(headers['Cookie']).toBe('d=xoxd-abc');
-        expect(headers['x-custom']).toBe('val');
-        // localStorage should NOT appear in headers
-        expect(headers['token']).toBeUndefined();
-    });
 });
 
 describe('extractLocalStorage', () => {

@@ -83,12 +83,12 @@ Standalone function to extract localStorage values from a credential.
 
 | Credential Type | Example Return Value                                                                      |
 | --------------- | ----------------------------------------------------------------------------------------- |
-| `cookie`        | `{ "Cookie": "sid=abc123; csrf=xyz789", "x-csrf-token": "tok", "origin": "https://..." }` |
-| `bearer`        | `{ "Authorization": "Bearer eyJhbG...", "x-csrf-token": "tok" }`                          |
+| `cookie`        | `{ "Cookie": "sid=abc123; csrf=xyz789" }`                                                 |
+| `bearer`        | `{ "Authorization": "Bearer eyJhbG..." }`                                                 |
 | `api-key`       | `{ "Authorization": "Bearer ghp_test123" }` or `{ "X-API-Key": "key123" }`                |
 | `basic`         | `{ "Authorization": "Basic YWRtaW46czNjcmV0" }`                                           |
 
-For `cookie` and `bearer` types, `xHeaders` (captured during browser authentication, e.g. CSRF tokens, origin headers) are merged into the result. The primary header (`Cookie` or `Authorization`) always takes precedence over xHeaders with the same name.
+For `cookie` and `bearer` types, the primary authentication header is returned directly.
 
 ### `getCredential(providerId)` -- returns `Credential | null`
 
@@ -101,7 +101,6 @@ Returns the full credential object, discriminated by the `type` field. Returns `
   type: "cookie",
   cookies: [{ name: "sid", value: "abc123", domain: ".example.com", path: "/", expires: 1735689600, httpOnly: true, secure: true, sameSite: "Lax" }],
   obtainedAt: "2025-01-01T00:00:00Z",
-  xHeaders: { "x-csrf-token": "tok123", "origin": "https://example.com" },         // optional
   localStorage: { "token": "xoxc-123-456" }                                         // optional
 }
 ```
@@ -116,7 +115,6 @@ Returns the full credential object, discriminated by the `type` field. Returns `
   expiresAt: "2025-01-02T00:00:00Z",               // optional
   scopes: ["read", "write"],                        // optional
   tokenEndpoint: "https://auth.example.com/token",  // optional
-  xHeaders: { "x-csrf-token": "tok" },              // optional
   localStorage: { "token": "xoxc-123" }             // optional
 }
 ```
@@ -154,12 +152,12 @@ const ls = await client.getLocalStorage('my-slack');
 
 ## Credential types
 
-| Type      | Headers produced                                 |
-| --------- | ------------------------------------------------ |
-| `cookie`  | `Cookie: name=value; ...` + any `xHeaders`       |
-| `bearer`  | `Authorization: Bearer <token>` + any `xHeaders` |
-| `api-key` | `<headerName>: [prefix] <key>`                   |
-| `basic`   | `Authorization: Basic <base64>`                  |
+| Type      | Headers produced                         |
+| --------- | ---------------------------------------- |
+| `cookie`  | `Cookie: name=value; ...`                |
+| `bearer`  | `Authorization: Bearer <token>`          |
+| `api-key` | `<headerName>: [prefix] <key>`           |
+| `basic`   | `Authorization: Basic <base64>`          |
 
 ## License
 

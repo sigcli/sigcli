@@ -1099,8 +1099,7 @@ providers:
                     <P>
                         <Code>from</Code> 字段对已存储凭证中的路径进行解析：{' '}
                         <Code>credential.cookies</Code>、<Code>credential.accessToken</Code>、{' '}
-                        <Code>credential.localStorage.&lt;key&gt;</Code>、
-                        <Code>credential.xHeaders.&lt;key&gt;</Code>。 请求体注入支持{' '}
+                        <Code>credential.localStorage.&lt;key&gt;</Code>。 请求体注入支持{' '}
                         <Code>application/json</Code> 和{' '}
                         <Code>application/x-www-form-urlencoded</Code> 内容类型。
                     </P>
@@ -1186,9 +1185,7 @@ SIG_MY_JIRA_COOKIE            # 完整 cookie 字符串，例如 "SESSION=abc; .
 SIG_MY_JIRA_COOKIE_SESSION=abc123
 SIG_MY_JIRA_COOKIE_CSRF_TOKEN=xyz
 
-# 从浏览器流量捕获的自定义 x-header
-SIG_MY_JIRA_HEADER_X_AUSERNAME=alice
-SIG_MY_JIRA_HEADER_X_ATTOKEN=xyz`}</CodeBlock>
+`}</CodeBlock>
 
                     <P>Python 脚本中读取凭证的示例：</P>
                     <CodeBlock lang="bash">{`import os
@@ -1237,12 +1234,7 @@ providers:
     url: https://jira.example.com
     strategy: cookie
     requiredCookies:
-      - SESSION
-    xHeaders:
-      - name: X-User
-        header: x-user
-      - name: X-Token
-        header: x-token`}</CodeBlock>
+      - SESSION`}</CodeBlock>
 
                     <SectionHeading id="config-providers" level={2}>
                         提供者配置选项
@@ -1255,9 +1247,6 @@ providers:
       - SESSION
     cookiePaths:                 # 子路径 cookie 的额外查询路径
       - /wiki
-    xHeaders:                    # 捕获这些响应头
-      - name: X-User        # 内部名称
-        header: x-user      # 实际 HTTP 请求头名称
     forceVisible: true           # 始终打开可视浏览器（默认：false）
     waitUntil: networkidle       # 加载事件：load|domcontentloaded|networkidle
     ttl: 8h                      # 凭证 TTL（例如 1h、8h、7d）`}</CodeBlock>

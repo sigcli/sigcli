@@ -50,21 +50,7 @@ describe('CookieStrategy — localStorage on credential', () => {
         expect(headers['xoxc-token']).toBeUndefined();
     });
 
-    it('credential with both xHeaders and localStorage', () => {
-        const cred = makeCred({
-            xHeaders: { 'x-custom': 'header-val' },
-            localStorage: { 'xoxc-token': 'xoxc-abc123' },
-        });
-
-        const headers = strategy.applyToRequest(cred);
-
-        // xHeaders should be applied, localStorage should not
-        expect(headers['Cookie']).toBe('session=abc123');
-        expect(headers['x-custom']).toBe('header-val');
-        expect(headers['xoxc-token']).toBeUndefined();
-    });
-
-    it('validate works with empty localStorage', () => {
+it('validate works with empty localStorage', () => {
         const cred = makeCred({
             localStorage: {},
         });

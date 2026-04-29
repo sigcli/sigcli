@@ -40,15 +40,10 @@ class SigClient:
         Returns a dict whose keys are HTTP header names and values are header
         values.  The headers produced depend on the credential type:
 
-        - **cookie** -- ``{"Cookie": "name=value; ...", ...xHeaders}``
-        - **bearer** -- ``{"Authorization": "Bearer <token>", ...xHeaders}``
+        - **cookie** -- ``{"Cookie": "name=value; ..."}``
+        - **bearer** -- ``{"Authorization": "Bearer <token>"}``
         - **api-key** -- ``{"<headerName>": "[prefix] <key>"}``
         - **basic** -- ``{"Authorization": "Basic <base64>"}``
-
-        For ``cookie`` and ``bearer`` types, any captured ``xHeaders`` (e.g.
-        CSRF tokens, origin headers) are merged into the result.  The primary
-        header (``Cookie`` or ``Authorization``) always takes precedence over
-        xHeaders with the same name.
 
         Args:
             provider_id: The provider identifier (e.g. ``"my-jira"``, ``"github"``).
@@ -63,7 +58,7 @@ class SigClient:
         Example::
 
             headers = client.get_headers("my-jira")
-            # cookie: {"Cookie": "sid=abc; csrf=xyz", "x-csrf-token": "tok"}
+            # cookie: {"Cookie": "sid=abc; csrf=xyz"}
             # bearer: {"Authorization": "Bearer eyJhbG..."}
             response = requests.get(url, headers=headers)
         """
@@ -78,10 +73,10 @@ class SigClient:
         returned object is one of:
 
         - ``CookieCredential`` -- ``type="cookie"``, ``cookies``, ``obtainedAt``,
-          ``xHeaders``, ``localStorage``
+          ``localStorage``
         - ``BearerCredential`` -- ``type="bearer"``, ``accessToken``,
           ``refreshToken``, ``expiresAt``, ``scopes``, ``tokenEndpoint``,
-          ``xHeaders``, ``localStorage``
+          ``localStorage``
         - ``ApiKeyCredential`` -- ``type="api-key"``, ``key``, ``headerName``,
           ``headerPrefix``
         - ``BasicCredential`` -- ``type="basic"``, ``username``, ``password``
