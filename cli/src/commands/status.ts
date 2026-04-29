@@ -13,7 +13,7 @@ function buildRows(
         return {
             id: s.id,
             strategy: s.strategy,
-            status: formatStatusIndicator(s.valid, s.credentialType !== undefined),
+            status: formatStatusIndicator(s.valid, s.configured),
             expires: s.expiresInMinutes !== undefined ? formatExpiry(s.expiresInMinutes) : '-',
             watch: entry ? '\u2713' : '-',
             sync: entry?.autoSync.length ? entry.autoSync.join(', ') : '-',

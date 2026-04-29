@@ -1,4 +1,4 @@
-import type { ApplyRule } from '../types/extract.js';
+import type { ApplyRule } from '../types/types.js';
 import type { ExtractedCredentials } from '../types/interfaces/strategy.js';
 
 export interface ApplyResult {

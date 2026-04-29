@@ -25,7 +25,6 @@ export class MemoryStorage implements IStorage {
             providerId,
             strategy: stored.strategy,
             updatedAt: stored.updatedAt,
-            credentialType: stored.credential.type,
         }));
     }
 

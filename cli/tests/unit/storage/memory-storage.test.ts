@@ -6,15 +6,10 @@ describe('MemoryStorage', () => {
     let storage: MemoryStorage;
 
     const mockCredential: StoredCredential = {
-        credential: {
-            type: 'api-key',
-            key: 'test-key',
-            headerName: 'Authorization',
-            headerPrefix: 'Bearer',
-        },
         providerId: 'test-provider',
         strategy: 'api-token',
         updatedAt: new Date().toISOString(),
+        credentials: { token: 'test-key' },
     };
 
     beforeEach(() => {

@@ -38,8 +38,8 @@ export async function runRequest(
         return;
     }
 
-    const { provider, credential } = result.value;
-    const authHeaders = auth.applyToRequest(provider.id, credential);
+    const { provider, credentials } = result.value;
+    const authHeaders = auth.applyToRequest(provider.id, credentials);
 
     const requestHeaders: Record<string, string> = {
         [HttpHeader.USER_AGENT]: buildUserAgent(),
@@ -79,7 +79,7 @@ export async function runRequest(
         const ct = requestHeaders[HttpHeader.CONTENT_TYPE];
         const injected = applyInjectRules(
             injectRules,
-            credential,
+            credentials,
             requestHeaders as Record<string, string | number | string[]>,
             bodyBuffer,
             ct,

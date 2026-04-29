@@ -1,19 +1,12 @@
 import type { IStorage } from './types/interfaces/storage.js';
 import type { IProviderRegistry } from './types/interfaces/provider.js';
-import type {
-    Credential,
-    ProviderConfig,
-    StoredCredential,
-    ProviderStatus,
-    ILogger,
-} from './types/types.js';
+import type { ProviderConfig, StoredCredential, ProviderStatus, ILogger } from './types/types.js';
 import type { BrowserConfig, SigConfig } from './config/schema.js';
 import type {
     IStrategy,
     ExtractedCredentials,
     ExtractionContext,
 } from './types/interfaces/strategy.js';
-import type { ApplyRule, ProviderConfigV2 } from './types/extract.js';
 
 import { ProviderRegistry } from './providers/provider-registry.js';
 import { DirectoryStorage } from './storage/directory-storage.js';
@@ -29,12 +22,7 @@ import { checkRequired } from './strategies/required-checker.js';
 import { parseDuration } from './utils/duration.js';
 import { expandHome } from './utils/path.js';
 import { loadEncryptionKey } from './crypto/encryption.js';
-import {
-    extractedToCredential,
-    credentialToExtracted,
-    toV2Config,
-} from './utils/credential-converter.js';
-import { checkTtl, validateCredential, getExpiresAt } from './utils/credential-validator.js';
+import { checkTtl, getExpiresAt } from './utils/credential-validator.js';
 
 /**
  * Central orchestrator for authentication lifecycle.
@@ -45,7 +33,7 @@ export class AuthManager {
     readonly storage: IStorage;
     private readonly providers: IProviderRegistry;
     private readonly browserConfig: BrowserConfig;
-    private readonly logger?: ILogger;
+    private readonly logger: ILogger;
     private readonly strategies = new Map<string, IStrategy>();
 
     readonly config: SigConfig;
@@ -56,37 +44,35 @@ export class AuthManager {
         providers: IProviderRegistry,
         browserConfig: BrowserConfig,
         config: SigConfig,
-        logger?: ILogger,
     ) {
         this.storage = storage;
         this.providers = providers;
         this.browserConfig = browserConfig;
         this.config = config;
         this.browserAvailable = config.mode !== 'browserless';
-        this.logger = logger;
+        this.logger = createConsoleLogger();
     }
 
     /**
      * Create an AuthManager from a validated SigConfig.
      * This is the only way to instantiate — wires all dependencies.
      */
-    static async create(config: SigConfig, options?: { verbose?: boolean }): Promise<AuthManager> {
-        const providerConfigs = Object.entries(config.providers).map(
-            ([id, entry]) => ({
-                id,
-                name: entry.name ?? id,
-                domains: entry.domains,
-                entryUrl: entry.entryUrl,
-                strategy: entry.strategy,
-                extract: entry.extract,
-                apply: entry.apply,
-                ...(entry.proxy !== undefined ? { proxy: entry.proxy } : {}),
-                ...(entry.networkProxy !== undefined ? { networkProxy: entry.networkProxy } : {}),
-                ...(entry.required !== undefined ? { required: entry.required } : {}),
-                ...(entry.cookiePaths !== undefined ? { cookiePaths: entry.cookiePaths } : {}),
-                ...(entry.ttl !== undefined ? { ttl: entry.ttl } : {}),
-            }),
-        ) as ProviderConfig[];
+    static async create(config: SigConfig): Promise<AuthManager> {
+        const providerConfigs = Object.entries(config.providers).map(([id, entry]) => ({
+            id,
+            name: entry.name ?? id,
+            domains: entry.domains,
+            entryUrl: entry.entryUrl,
+            strategy: entry.strategy,
+            extract: entry.extract,
+            apply: entry.apply,
+            ...(entry.proxy !== undefined ? { proxy: entry.proxy } : {}),
+            ...(entry.networkProxy !== undefined ? { networkProxy: entry.networkProxy } : {}),
+            ...(entry.required !== undefined ? { required: entry.required } : {}),
+            ...(entry.cookiePaths !== undefined ? { cookiePaths: entry.cookiePaths } : {}),
+            ...(entry.ttl !== undefined ? { ttl: entry.ttl } : {}),
+            ...(entry.loginMode !== undefined ? { loginMode: entry.loginMode } : {}),
+        })) as ProviderConfig[];
 
         const providerRegistry = new ProviderRegistry(providerConfigs);
 
@@ -96,15 +82,14 @@ export class AuthManager {
             ttlMs: 5000,
         });
 
-        const logger = options?.verbose ? createConsoleLogger() : undefined;
-        const manager = new AuthManager(storage, providerRegistry, config.browser, config, logger);
+        const manager = new AuthManager(storage, providerRegistry, config.browser, config);
 
         if (manager.browserAvailable) {
             manager.registerStrategy(
                 new BrowserStrategy({
                     browserDataDir: config.browser.browserDataDir,
                     channel: config.browser.channel,
-                    execPath: config.browser.execPath,
+                    execPath: config.browser.execPath ?? '',
                 }),
             );
         }
@@ -118,42 +103,35 @@ export class AuthManager {
     }
 
     /**
-     * Get credentials for a provider using the new extract/apply system.
-     * Backward compatible: converts old ProviderConfig on the fly.
+     * Get credentials for a provider. Returns ExtractedCredentials (flat key-value map).
      */
     async getCredentials(
         providerId: string,
         options?: { networkProxy?: string },
-    ): Promise<Result<Credential, AuthError>> {
+    ): Promise<Result<ExtractedCredentials, AuthError>> {
         const provider = this.providers.get(providerId);
         if (!provider) return err(new ProviderNotFoundError(providerId));
 
-        const newProvider = toV2Config(provider);
-        if (options?.networkProxy) {
-            newProvider.networkProxy = options.networkProxy;
-        }
+        const effectiveProvider = options?.networkProxy
+            ? { ...provider, networkProxy: options.networkProxy }
+            : provider;
 
-        const result = await this.getExtracted(newProvider);
-        if (!isOk(result)) return result;
-
-        // Convert extracted credentials to old Credential format for backward compat
-        const credential = extractedToCredential(result.value, newProvider);
-        return ok(credential);
+        return this.extractAndStore(effectiveProvider);
     }
 
     /**
-     * Get credentials using the new extract/apply system directly.
+     * Run the extract/store flow for a provider.
      */
-    async getExtracted(
-        provider: ProviderConfigV2,
+    private async extractAndStore(
+        provider: ProviderConfig,
     ): Promise<Result<ExtractedCredentials, AuthError>> {
         const key = provider.id;
 
         // Step 1: Check stored credentials
         const stored = await this.storage.get(key);
         if (stored) {
-            const cached = stored.metadata?.extractedValues as ExtractedCredentials | undefined;
-            if (cached) {
+            const cached = stored.credentials as ExtractedCredentials | undefined;
+            if (cached && Object.keys(cached).length > 0) {
                 // If TTL is configured, check expiry
                 if (provider.ttl) {
                     const ttlMs = parseDuration(provider.ttl);
@@ -179,9 +157,9 @@ export class AuthManager {
         }
 
         // Step 3: Run extraction
-        this.logger?.info(`Authenticating with "${provider.id}"...`);
+        this.logger.info(`Authenticating with "${provider.id}"...`);
         const ctx: ExtractionContext = {
-            entryUrl: provider.entryUrl ?? '',
+            entryUrl: provider.entryUrl,
             domains: provider.domains,
             networkProxy: provider.networkProxy,
             cookiePaths: provider.cookiePaths,
@@ -203,14 +181,12 @@ export class AuthManager {
             }
         }
 
-        // Step 5: Store as StoredCredential (compatible with DirectoryStorage)
-        const credential = extractedToCredential(extractResult.value, provider);
+        // Step 5: Store
         const storedEntry: StoredCredential = {
-            credential,
             providerId: provider.id,
             strategy: provider.strategy,
             updatedAt: new Date().toISOString(),
-            metadata: { extractedValues: extractResult.value },
+            credentials: extractResult.value,
         };
         await this.storage.set(key, storedEntry);
 
@@ -218,23 +194,20 @@ export class AuthManager {
     }
 
     /**
-     * Apply rules to extracted credentials.
+     * Apply rules to extracted credentials — returns headers/body/query modifications.
      */
-    applyExtracted(rules: ApplyRule[], credentials: ExtractedCredentials): ApplyResult {
-        return ApplyEngine.applyRules(rules, credentials);
+    applyCredentials(provider: ProviderConfig, credentials: ExtractedCredentials): ApplyResult {
+        return ApplyEngine.applyRules(provider.apply, credentials);
     }
 
     /**
-     * Apply credentials to an outgoing request (backward compat).
+     * Apply credentials to an outgoing request. Returns headers to inject.
      */
-    applyToRequest(providerId: string, credential: Credential): Record<string, string> {
+    applyToRequest(providerId: string, credentials: ExtractedCredentials): Record<string, string> {
         const provider = this.providers.get(providerId);
         if (!provider) return {};
 
-        const newProvider = toV2Config(provider);
-        // Convert old credential to extracted format
-        const extracted = credentialToExtracted(credential);
-        const result = ApplyEngine.applyRules(newProvider.apply, extracted);
+        const result = ApplyEngine.applyRules(provider.apply, credentials);
         return result.headers;
     }
 
@@ -251,7 +224,7 @@ export class AuthManager {
             const existingIds = new Set(this.providers.list().map((p) => p.id));
             const provider = createDefaultProvider(input, existingIds);
             this.providers.register(provider);
-            this.logger?.info(`Auto-provisioned provider "${provider.id}" for ${input}`);
+            this.logger.info(`Auto-provisioned provider "${provider.id}" for ${input}`);
             return provider;
         }
 
@@ -263,11 +236,11 @@ export class AuthManager {
      */
     async getCredentialsByUrl(
         url: string,
-    ): Promise<Result<{ provider: ProviderConfig; credential: Credential }, AuthError>> {
+    ): Promise<Result<{ provider: ProviderConfig; credentials: ExtractedCredentials }, AuthError>> {
         const provider = this.resolveProvider(url);
         const result = await this.getCredentials(provider.id);
         if (!isOk(result)) return result;
-        return ok({ provider, credential: result.value });
+        return ok({ provider, credentials: result.value });
     }
 
     /**
@@ -276,7 +249,7 @@ export class AuthManager {
     async reauthenticate(
         providerId: string,
         options?: { networkProxy?: string },
-    ): Promise<Result<Credential, AuthError>> {
+    ): Promise<Result<ExtractedCredentials, AuthError>> {
         await this.storage.delete(providerId);
         return this.getCredentials(providerId, options);
     }
@@ -287,28 +260,8 @@ export class AuthManager {
     async forceReauth(
         providerId: string,
         options?: { networkProxy?: string },
-    ): Promise<Result<Credential, AuthError>> {
+    ): Promise<Result<ExtractedCredentials, AuthError>> {
         return this.reauthenticate(providerId, options);
-    }
-
-    /**
-     * Store a credential directly (user-provided token/cookie).
-     */
-    async setCredential(
-        providerId: string,
-        credential: Credential,
-    ): Promise<Result<void, AuthError>> {
-        const provider = this.providers.get(providerId);
-        if (!provider) return err(new ProviderNotFoundError(providerId));
-
-        const stored: StoredCredential = {
-            credential,
-            providerId,
-            strategy: provider.strategy,
-            updatedAt: new Date().toISOString(),
-        };
-        await this.storage.set(providerId, stored);
-        return ok(undefined);
     }
 
     /**
@@ -338,10 +291,9 @@ export class AuthManager {
         }
 
         // Check validity via TTL
-        const newProvider = toV2Config(provider);
-        const valid = checkTtl(stored, newProvider);
+        const valid = checkTtl(stored, provider);
 
-        const expiresAtDate = getExpiresAt(stored, newProvider);
+        const expiresAtDate = getExpiresAt(stored, provider);
         const expiresInMinutes = expiresAtDate
             ? Math.max(0, Math.round((expiresAtDate.getTime() - Date.now()) / 60000))
             : undefined;
@@ -351,7 +303,6 @@ export class AuthManager {
             name: provider.name,
             configured: true,
             valid,
-            credentialType: stored.credential?.type,
             strategy: provider.strategy,
             expiresAt: expiresAtDate?.toISOString(),
             expiresInMinutes,
@@ -369,16 +320,6 @@ export class AuthManager {
 
     async clearAll(): Promise<void> {
         await this.storage.clear();
-    }
-
-    /**
-     * Validate a credential by making a test request.
-     */
-    async validateCredential(
-        provider: ProviderConfig,
-        credential: Credential,
-    ): Promise<{ status: number | null; isLoginRedirect: boolean }> {
-        return validateCredential(provider, credential);
     }
 
     get providerRegistry(): IProviderRegistry {

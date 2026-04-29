@@ -3,7 +3,6 @@ import * as https from 'node:https';
 import * as net from 'node:net';
 import * as tls from 'node:tls';
 import { isOk } from '../types/result.js';
-import type { Credential } from '../types/types.js';
 import type { AuthManager } from '../auth-manager.js';
 import type { CaManager } from './ca-manager.js';
 import { applyInjectRules } from './inject.js';

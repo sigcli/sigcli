@@ -31,7 +31,6 @@ export async function runProviders(
             strategy: s.strategy,
             configured: s.configured,
             valid: s.valid,
-            credentialType: s.credentialType ?? null,
         }));
         process.stdout.write(formatOutput(output, format) + '\n');
     }

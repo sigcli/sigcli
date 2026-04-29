@@ -8,12 +8,7 @@ describe('SSH transport encryption roundtrip logic', () => {
         const data = {
             version: 1,
             providerId: 'test-provider',
-            credential: {
-                type: 'api-key',
-                key: 'secret',
-                headerName: 'Authorization',
-                headerPrefix: 'Bearer',
-            },
+            credentials: { token: 'secret' },
             strategy: 'api-token',
             updatedAt: '2026-01-01T00:00:00.000Z',
         };
@@ -27,7 +22,7 @@ describe('SSH transport encryption roundtrip logic', () => {
         const decrypted = decrypt(envelope, key);
         const parsed = JSON.parse(decrypted);
         expect(parsed.providerId).toBe('test-provider');
-        expect(parsed.credential.key).toBe('secret');
+        expect(parsed.credentials.token).toBe('secret');
     });
 
     it('different remote keys produce different envelopes', () => {
@@ -54,7 +49,7 @@ describe('SSH transport encryption roundtrip logic', () => {
         const legacyData = {
             version: 1,
             providerId: 'legacy',
-            credential: { type: 'cookie', cookies: [] },
+            credentials: { session: '' },
             strategy: 'cookie',
             updatedAt: '2026-01-01T00:00:00.000Z',
         };

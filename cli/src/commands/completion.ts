@@ -75,7 +75,6 @@ function zshScript(): string {
         '    _arguments -C \\',
         "        '1: :->command' \\",
         "        '*: :->args' \\",
-        "        '--verbose[Debug output to stderr]' \\",
         "        '--help[Show help]'",
         '',
         '    case $state in',

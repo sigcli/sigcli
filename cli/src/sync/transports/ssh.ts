@@ -149,14 +149,12 @@ export class SshTransport implements ISyncTransport {
             }
             const data = parsed as StoredCredential & {
                 version?: number;
-                metadata?: Record<string, unknown>;
             };
             return {
-                credential: data.credential,
                 providerId: data.providerId,
                 strategy: data.strategy,
                 updatedAt: data.updatedAt,
-                ...(data.metadata ? { metadata: data.metadata } : {}),
+                credentials: data.credentials,
             };
         } catch {
             return null;
@@ -174,10 +172,9 @@ export class SshTransport implements ISyncTransport {
         const data = {
             version: 1,
             providerId: stored.providerId,
-            credential: stored.credential,
+            credentials: stored.credentials,
             strategy: stored.strategy,
             updatedAt: stored.updatedAt,
-            ...(stored.metadata ? { metadata: stored.metadata } : {}),
         };
 
         const remoteKey = await this.fetchRemoteKey(remote);

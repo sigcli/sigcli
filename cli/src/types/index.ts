@@ -8,13 +8,6 @@ export type {
     ApiTokenStrategyConfig,
     BasicStrategyConfig,
     StrategyConfig,
-    CredentialType,
-    Cookie,
-    CookieCredential,
-    BearerCredential,
-    ApiKeyCredential,
-    BasicCredential,
-    Credential,
     LocalStorageConfig,
     ProxyInjectRule,
     ProxyConfig,
@@ -25,10 +18,11 @@ export type {
     ProviderStatus,
     ILogger,
     AuthDiagnostics,
-    CredentialResult,
+    ExtractRule,
+    ApplyRule,
 } from './types.js';
 
-export type { ExtractRule, ApplyRule, ProviderConfigV2, StoredCredentialV2 } from './extract.js';
+export type { ProviderConfigV2, StoredCredentialV2 } from './extract.js';
 
 export { ok, err, isOk, isErr } from './result.js';
 export type { Result } from './result.js';

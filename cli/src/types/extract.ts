@@ -31,7 +31,7 @@ export interface ProviderConfigV2 {
     id: string;
     name?: string;
     domains: string[];
-    entryUrl?: string;
+    entryUrl: string;
 
     strategy: 'browser' | 'prompt' | 'oauth2';
     ttl?: string;

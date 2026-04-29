@@ -1,4 +1,3 @@
-import type { Credential } from '../types/types.js';
 import type { AuthManager } from '../auth-manager.js';
 import type { ProviderConfig } from '../types/types.js';
 import type { ProviderEntry } from '../config/schema.js';
@@ -83,7 +82,7 @@ export async function runLogin(
                 process.stdout.write(
                     formatJson({
                         provider: provider.id,
-                        type: credResult.value.type,
+                        strategy: provider.strategy,
                         ...(status.expiresAt ? { expiresAt: status.expiresAt } : {}),
                         method: 'stored',
                     }) + '\n',
@@ -143,13 +142,13 @@ export async function runLogin(
         action: AuditAction.LOGIN,
         status: AuditStatus.SUCCESS,
         provider: provider.id,
-        metadata: { credentialType: result.value.type },
+        metadata: { strategy: provider.strategy },
     });
     process.stderr.write(`Authenticated with "${provider.name}".\n`);
     process.stdout.write(
         formatJson({
             provider: provider.id,
-            type: result.value.type,
+            strategy: provider.strategy,
             ...(status.expiresAt ? { expiresAt: status.expiresAt } : {}),
         }) + '\n',
     );

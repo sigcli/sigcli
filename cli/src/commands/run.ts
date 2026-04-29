@@ -1,4 +1,3 @@
-import type { Credential } from '../types/types.js';
 import { spawn } from 'node:child_process';
 import { writeFileSync, unlinkSync } from 'node:fs';
 import type { AuthManager } from '../auth-manager.js';
@@ -55,7 +54,6 @@ export async function runRun(
         }
     }
 
-    const expandCookies = flags['expand-cookies'] === true;
     const allEnv: Record<string, string> = {};
     const allSecrets: string[] = [];
 
@@ -76,7 +74,7 @@ export async function runRun(
             }
             continue;
         }
-        const sigEnv = credentialToEnvVars(credResult.value, providerId, { expandCookies });
+        const sigEnv = credentialToEnvVars(credResult.value, providerId, {});
         Object.assign(allEnv, sigEnv);
         allSecrets.push(...extractSensitiveValues(credResult.value));
     }

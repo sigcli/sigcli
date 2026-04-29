@@ -46,11 +46,12 @@ export type StrategyConfig =
 export type StrategyName = StrategyConfig['strategy'];
 
 // ============================================================================
-// Credential Types
+// LocalStorage Configuration (values extracted from browser localStorage)
 // ============================================================================
 
-export type CredentialType = 'cookie' | 'bearer' | 'api-key' | 'basic';
-
+/**
+ * Browser cookie (used by IBrowserPage.cookies() adapter interface).
+ */
 export interface Cookie {
     name: string;
     value: string;
@@ -61,42 +62,6 @@ export interface Cookie {
     secure: boolean;
     sameSite?: 'Strict' | 'Lax' | 'None';
 }
-
-export interface CookieCredential {
-    type: 'cookie';
-    cookies: Cookie[];
-    obtainedAt: string; // ISO timestamp
-    localStorage?: Record<string, string>; // Extracted localStorage values (e.g. xoxc token)
-}
-
-export interface BearerCredential {
-    type: 'bearer';
-    accessToken: string;
-    refreshToken?: string;
-    expiresAt?: string; // ISO timestamp
-    scopes?: string[];
-    tokenEndpoint?: string; // For refresh
-    localStorage?: Record<string, string>; // Extracted localStorage values
-}
-
-export interface ApiKeyCredential {
-    type: 'api-key';
-    key: string;
-    headerName: string; // e.g. "Authorization", "X-API-Key"
-    headerPrefix?: string; // e.g. "Bearer", "Token"
-}
-
-export interface BasicCredential {
-    type: 'basic';
-    username: string;
-    password: string;
-}
-
-export type Credential = CookieCredential | BearerCredential | ApiKeyCredential | BasicCredential;
-
-// ============================================================================
-// LocalStorage Configuration (values extracted from browser localStorage)
-// ============================================================================
 
 export interface LocalStorageConfig {
     name: string; // Name to store the extracted value under
@@ -124,13 +89,13 @@ export interface ProxyConfig {
 // ============================================================================
 
 export interface ExtractRule {
-    from: string;
+    from: 'cookies' | 'localStorage' | 'eval' | 'prompt';
     name: string;
     key: string;
 }
 
 export interface ApplyRule {
-    in: string;
+    in: 'header' | 'body' | 'query';
     name: string;
     value: string;
 }
@@ -144,7 +109,7 @@ export interface ProviderConfig {
     autoProvisioned?: boolean; // True if created by auto-provision (not from config file)
     proxy?: ProxyConfig; // MITM proxy injection rules
     networkProxy?: string; // Browser network proxy, e.g. "socks5://127.0.0.1:1080"
-    // v2 fields (extract/apply system)
+    loginMode?: string; // Login mode: auto|cdp|headless|visible
     extract: ExtractRule[];
     apply: ApplyRule[];
     required?: string[];
@@ -157,18 +122,16 @@ export interface ProviderConfig {
 // ============================================================================
 
 export interface StoredCredential {
-    credential: Credential;
     providerId: string;
     strategy: string; // Strategy name that produced this credential
     updatedAt: string; // ISO timestamp
-    metadata?: Record<string, unknown>;
+    credentials: Record<string, unknown>;
 }
 
 export interface StoredEntry {
     providerId: string;
     strategy: string;
     updatedAt: string;
-    credentialType: CredentialType;
 }
 
 // ============================================================================
@@ -190,7 +153,6 @@ export interface ProviderStatus {
     name: string;
     configured: boolean;
     valid: boolean;
-    credentialType?: CredentialType;
     strategy: string;
     expiresAt?: string;
     expiresInMinutes?: number;
@@ -222,14 +184,4 @@ export interface AuthDiagnostics {
     finalUrl?: string;
     authDuration?: number;
     [key: string]: unknown;
-}
-
-/**
- * Wrapper returned from strategy authenticate methods that carries
- * transient diagnostics alongside the credential. The diagnostics
- * are stripped before persisting to storage.
- */
-export interface CredentialResult {
-    credential: Credential;
-    diagnostics?: AuthDiagnostics;
 }

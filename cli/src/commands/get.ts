@@ -25,7 +25,7 @@ export async function runGet(
     // Unified resolution: try ID → name → URL/domain
     const resolved = auth.providerRegistry.resolveFlexible(target);
     let providerId: string;
-    let credential;
+    let credentials;
 
     if (resolved) {
         providerId = resolved.id;
@@ -49,7 +49,7 @@ export async function runGet(
                     : ExitCode.GENERAL_ERROR;
             return;
         }
-        credential = result.value;
+        credentials = result.value;
     } else {
         // Fall through to URL-based resolution (with auto-provisioning) for URL-like inputs
         const isUrl = target.includes('.') || target.startsWith('http');
@@ -78,17 +78,17 @@ export async function runGet(
             return;
         }
         providerId = result.value.provider.id;
-        credential = result.value.credential;
+        credentials = result.value.credentials;
     }
 
     // Apply credential to get headers
-    const headers = auth.applyToRequest(providerId, credential);
+    const headers = auth.applyToRequest(providerId, credentials);
     const noRedaction = flags['no-redaction'] === true;
     await logAuditEvent({
         action: AuditAction.CREDENTIAL_ACCESS,
         status: AuditStatus.SUCCESS,
         provider: providerId,
-        metadata: { credentialType: credential.type, redacted: !noRedaction },
+        metadata: { redacted: !noRedaction },
     });
     const entries = Object.entries(headers);
 
@@ -103,7 +103,7 @@ export async function runGet(
             'Warning: Outputting raw credential values — do not expose to untrusted processes.\n',
         );
     }
-    const secrets = noRedaction ? [] : extractSensitiveValues(credential);
+    const secrets = noRedaction ? [] : extractSensitiveValues(credentials);
     const redact = (text: string): string => (noRedaction ? text : redactOutput(text, secrets));
 
     const format = (flags.format as string) ?? OutputFormat.JSON;

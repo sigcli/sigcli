@@ -15,36 +15,17 @@ describe('DirectoryStorage', () => {
     let storage: DirectoryStorage;
 
     const mockCredential: StoredCredential = {
-        credential: {
-            type: 'api-key',
-            key: 'test-key',
-            headerName: 'Authorization',
-            headerPrefix: 'Bearer',
-        },
         providerId: 'test-provider',
         strategy: 'api-token',
         updatedAt: new Date().toISOString(),
+        credentials: { token: 'test-key' },
     };
 
     const cookieCredential: StoredCredential = {
-        credential: {
-            type: 'cookie',
-            cookies: [
-                {
-                    name: 'sid',
-                    value: 'abc123',
-                    domain: '.example.com',
-                    path: '/',
-                    expires: -1,
-                    httpOnly: true,
-                    secure: true,
-                },
-            ],
-            obtainedAt: new Date().toISOString(),
-        },
         providerId: 'cookie-provider',
         strategy: 'cookie',
         updatedAt: new Date().toISOString(),
+        credentials: { session: 'sid=abc123' },
     };
 
     beforeEach(async () => {
@@ -61,8 +42,6 @@ describe('DirectoryStorage', () => {
     });
 
     it('stores and retrieves a credential (round-trip)', async () => {
-        // DirectoryStorage uses the providerId from the key argument for the stored file,
-        // so the retrieved credential's providerId reflects the key, not the original object.
         const cred: StoredCredential = { ...mockCredential, providerId: 'test' };
         await storage.set('test', cred);
         const retrieved = await storage.get('test');
@@ -119,13 +98,11 @@ describe('DirectoryStorage', () => {
             providerId: 'provider-a',
             strategy: 'api-token',
             updatedAt: mockCredential.updatedAt,
-            credentialType: 'api-key',
         });
         expect(sorted[1]).toEqual({
             providerId: 'provider-b',
             strategy: 'cookie',
             updatedAt: cookieCredential.updatedAt,
-            credentialType: 'cookie',
         });
     });
 

@@ -13,36 +13,17 @@ describe('DirectoryStorage encryption', () => {
     let storage: DirectoryStorage;
 
     const mockCredential: StoredCredential = {
-        credential: {
-            type: 'api-key',
-            key: 'test-key',
-            headerName: 'Authorization',
-            headerPrefix: 'Bearer',
-        },
         providerId: 'test-provider',
         strategy: 'api-token',
         updatedAt: new Date().toISOString(),
+        credentials: { token: 'test-key' },
     };
 
     const cookieCredential: StoredCredential = {
-        credential: {
-            type: 'cookie',
-            cookies: [
-                {
-                    name: 'sid',
-                    value: 'abc123',
-                    domain: '.example.com',
-                    path: '/',
-                    expires: -1,
-                    httpOnly: true,
-                    secure: true,
-                },
-            ],
-            obtainedAt: new Date().toISOString(),
-        },
         providerId: 'cookie-provider',
         strategy: 'cookie',
         updatedAt: new Date().toISOString(),
+        credentials: { session: 'sid=abc123' },
     };
 
     beforeEach(async () => {
@@ -112,12 +93,7 @@ describe('DirectoryStorage encryption', () => {
         const legacyData = {
             version: 1,
             providerId: 'legacy',
-            credential: {
-                type: 'api-key',
-                key: 'old-key',
-                headerName: 'Authorization',
-                headerPrefix: 'Bearer',
-            },
+            credentials: { token: 'old-key' },
             strategy: 'api-token',
             updatedAt: '2026-01-01T00:00:00.000Z',
         };
@@ -128,6 +104,6 @@ describe('DirectoryStorage encryption', () => {
         const retrieved = await storage.get('legacy');
         expect(retrieved).not.toBeNull();
         expect(retrieved!.providerId).toBe('legacy');
-        expect(retrieved!.credential.type).toBe('api-key');
+        expect(retrieved!.credentials).toEqual({ token: 'old-key' });
     });
 });

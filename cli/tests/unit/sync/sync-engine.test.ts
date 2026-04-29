@@ -40,10 +40,10 @@ vi.mock('../../../src/config/loader.js', () => ({
 
 function makeCredential(providerId: string, updatedAt: string): StoredCredential {
     return {
-        credential: { type: 'bearer', accessToken: `token-${providerId}` },
         providerId,
         strategy: 'oauth2',
         updatedAt,
+        credentials: { access_token: `token-${providerId}` },
     };
 }
 

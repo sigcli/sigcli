@@ -143,7 +143,6 @@ Setup:
 Security: proxy ≥ request > run > get. Full docs at https://sigcli.ai/docs/#security
 
 Global options:
-  --verbose                    Debug output to stderr
   --help                       Show this help
 `;
 
@@ -205,8 +204,8 @@ export async function run(args: string[]): Promise<void> {
             return;
         }
         const config = configResult.value;
-        const verbose = flags.verbose === true;
-        auth = await AuthManager.create(config, { verbose });
+        
+        auth = await AuthManager.create(config);
     }
 
     switch (command) {

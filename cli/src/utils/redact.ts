@@ -1,31 +1,14 @@
-import type { Credential } from '../types/types.js';
 import { Transform } from 'node:stream';
 
 const MIN_SECRET_LENGTH = 8;
 
-export function extractSensitiveValues(credential: Credential): string[] {
+export function extractSensitiveValues(credentials: Record<string, unknown>): string[] {
     const values: string[] = [];
 
-    const add = (v: string) => {
-        if (v.length >= MIN_SECRET_LENGTH) values.push(v);
-    };
-
-    switch (credential.type) {
-        case 'bearer':
-            add(credential.accessToken);
-            if (credential.refreshToken) add(credential.refreshToken);
-            for (const v of Object.values(credential.localStorage ?? {})) add(v);
-            break;
-        case 'cookie':
-            for (const c of credential.cookies) add(c.value);
-            for (const v of Object.values(credential.localStorage ?? {})) add(v);
-            break;
-        case 'api-key':
-            add(credential.key);
-            break;
-        case 'basic':
-            add(credential.password);
-            break;
+    for (const v of Object.values(credentials)) {
+        if (typeof v === 'string' && v.length >= MIN_SECRET_LENGTH) {
+            values.push(v);
+        }
     }
 
     return [...new Set(values)];

@@ -1,59 +1,37 @@
 import { describe, it, expect } from 'vitest';
 import { resolveFrom, applyInjectRules } from '../../../src/proxy/inject.js';
-import type { CookieCredential, BearerCredential } from '../../../src/types/types.js';
+import type { ExtractedCredentials } from '../../../src/types/interfaces/strategy.js';
 
-const cookieCred: CookieCredential = {
-    type: 'cookie',
-    cookies: [
-        {
-            name: 'xoxd',
-            value: 'xoxd-abc',
-            domain: 'slack.com',
-            path: '/',
-            expires: -1,
-            httpOnly: true,
-            secure: true,
-        },
-        {
-            name: 'session',
-            value: 'sess-123',
-            domain: 'slack.com',
-            path: '/',
-            expires: -1,
-            httpOnly: true,
-            secure: true,
-        },
-    ],
-    obtainedAt: '2026-01-01T00:00:00Z',
-    localStorage: { 'xoxc-token': 'xoxc-xyz' },
+const cookieCred: ExtractedCredentials = {
+    session: 'xoxd=xoxd-abc; session=sess-123',
+    'xoxc-token': 'xoxc-xyz',
 };
 
-const bearerCred: BearerCredential = {
-    type: 'bearer',
-    accessToken: 'my-token',
-    localStorage: { 'app-token': 'app-val' },
+const bearerCred: ExtractedCredentials = {
+    access_token: 'my-token',
+    'app-token': 'app-val',
 };
 
 describe('resolveFrom', () => {
-    it('returns joined cookie string for credential.cookies', () => {
+    it('returns session for credential.cookies (legacy path)', () => {
         expect(resolveFrom(cookieCred, 'credential.cookies')).toBe(
             'xoxd=xoxd-abc; session=sess-123',
         );
     });
 
-    it('returns null for credential.cookies on non-cookie credential', () => {
+    it('returns null for credential.cookies when no session key', () => {
         expect(resolveFrom(bearerCred, 'credential.cookies')).toBeNull();
     });
 
-    it('returns accessToken for bearer credential', () => {
+    it('returns access_token for credential.accessToken (legacy path)', () => {
         expect(resolveFrom(bearerCred, 'credential.accessToken')).toBe('my-token');
     });
 
-    it('returns null for credential.accessToken on cookie credential', () => {
+    it('returns null for credential.accessToken when key missing', () => {
         expect(resolveFrom(cookieCred, 'credential.accessToken')).toBeNull();
     });
 
-    it('resolves credential.localStorage.<key>', () => {
+    it('resolves credential.localStorage.<key> to flat key', () => {
         expect(resolveFrom(cookieCred, 'credential.localStorage.xoxc-token')).toBe('xoxc-xyz');
     });
 
@@ -61,12 +39,13 @@ describe('resolveFrom', () => {
         expect(resolveFrom(cookieCred, 'credential.localStorage.missing')).toBeNull();
     });
 
-    it('returns null for path without credential. prefix', () => {
-        expect(resolveFrom(cookieCred, 'cookies')).toBeNull();
+    it('returns null for path without credential. prefix when key missing', () => {
+        expect(resolveFrom(cookieCred, 'nonexistent')).toBeNull();
     });
 
-    it('returns null for unknown path', () => {
-        expect(resolveFrom(cookieCred, 'credential.unknown')).toBeNull();
+    it('resolves direct key lookup', () => {
+        expect(resolveFrom(bearerCred, 'access_token')).toBe('my-token');
+        expect(resolveFrom(bearerCred, 'app-token')).toBe('app-val');
     });
 });
 

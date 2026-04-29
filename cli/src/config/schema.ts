@@ -7,7 +7,6 @@
  */
 
 import type {
-    CredentialType,
     LocalStorageConfig,
     StrategyName,
     ProxyConfig,
@@ -90,7 +89,6 @@ export interface ProviderEntry {
     // v1 fields
     strategy: 'browser' | 'prompt' | 'oauth2';
     config?: Record<string, unknown>;
-    acceptedCredentialTypes?: CredentialType[];
     setupInstructions?: string;
     localStorage?: LocalStorageConfig[];
     forceVisible?: boolean;

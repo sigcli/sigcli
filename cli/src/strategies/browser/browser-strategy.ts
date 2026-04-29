@@ -24,8 +24,8 @@ import { checkRequired } from '../required-checker.js';
 
 export interface BrowserStrategyOptions {
     browserDataDir: string;
-    execPath?: string;
-    channel?: string;
+    execPath: string;
+    channel: string;
 }
 
 /**
@@ -56,16 +56,10 @@ export class BrowserStrategy implements IStrategy {
         rules: ExtractRule[],
         ctx: ExtractionContext,
     ): Promise<Result<ExtractedCredentials, AuthError>> {
-        const loginMode = ctx.loginMode ?? 'auto';
+        // Cascade: headless → CDP
 
-        // Cascade: headless → CDP (unless loginMode overrides)
-        if (loginMode === 'auto' || loginMode === 'headless') {
-            const headlessResult = await this.tryHeadless(rules, ctx);
-            if (headlessResult) return ok(headlessResult);
-            if (loginMode === 'headless') {
-                return err(new BrowserError('Headless extraction failed'));
-            }
-        }
+        const headlessResult = await this.tryHeadless(rules, ctx);
+        if (headlessResult) return ok(headlessResult);
 
         // CDP mode
         return this.extractViaCdp(rules, ctx);
@@ -86,19 +80,21 @@ export class BrowserStrategy implements IStrategy {
 
             const browserCtx = await pw.chromium.launchPersistentContext(expandedDataDir, {
                 headless: true,
-                channel: this.options.channel ?? 'msedge',
+                channel: this.options.channel,
                 ...(ctx.networkProxy ? { proxy: { server: ctx.networkProxy } } : {}),
             });
 
             try {
                 const page = browserCtx.pages()[0] ?? (await browserCtx.newPage());
                 if (ctx.entryUrl) {
+                    // todo: waitUntil, timeout are from config
                     await page.goto(ctx.entryUrl, { waitUntil: 'load', timeout: 15000 });
                 }
 
                 const credentials: ExtractedCredentials = {};
                 for (const rule of rules) {
                     if (rule.from === 'cookies') {
+                        // todo: should be an extractor: HeadlessCookieExtractor
                         const cookies = await browserCtx.cookies();
                         const domainFiltered = cookies.filter(
                             (c: { domain: string; name: string; value: string }) => {
@@ -115,6 +111,7 @@ export class BrowserStrategy implements IStrategy {
                                 .join('; ');
                         }
                     } else if (rule.from === 'localStorage') {
+                        // todo: should be an extractor: HeadlessStorageExtractor
                         const storageKey = rule.key.includes('*') ? null : rule.key.split('.')[0];
                         if (storageKey) {
                             const val = await page.evaluate((k: string) => {

@@ -1,46 +1,40 @@
-import type { Credential, ProxyInjectRule } from '../types/types.js';
+import type { ProxyInjectRule } from '../types/types.js';
+import type { ExtractedCredentials } from '../types/interfaces/strategy.js';
 import type * as http from 'node:http';
 
-export function resolveFrom(credential: Credential, fromPath: string): string | null {
-    if (!fromPath.startsWith('credential.')) return null;
-    const rest = fromPath.slice('credential.'.length);
+/**
+ * Resolve a value from extracted credentials using a dot-path.
+ * Paths are relative to the credentials map: "session", "access_token", etc.
+ * Legacy "credential." prefix is stripped for backward compat.
+ */
+export function resolveFrom(credentials: ExtractedCredentials, fromPath: string): string | null {
+    // Strip legacy "credential." prefix
+    const key = fromPath.startsWith('credential.') ? fromPath.slice('credential.'.length) : fromPath;
 
-    if (rest === 'cookies') {
-        if (credential.type === 'cookie') {
-            return credential.cookies.map((c) => `${c.name}=${c.value}`).join('; ');
-        }
-        return null;
+    // Direct key lookup
+    if (key in credentials) {
+        return credentials[key] ?? null;
     }
 
-    if (rest === 'accessToken') {
-        if (credential.type === 'bearer') return credential.accessToken;
-        return null;
+    // Legacy mapping: "cookies" → "session", "accessToken" → "access_token"
+    const legacyMap: Record<string, string> = {
+        cookies: 'session',
+        accessToken: 'access_token',
+        key: 'token',
+        username: 'username',
+        password: 'password',
+    };
+
+    // Try legacy key mapping
+    const mapped = legacyMap[key];
+    if (mapped && mapped in credentials) {
+        return credentials[mapped] ?? null;
     }
 
-    if (rest === 'key') {
-        if (credential.type === 'api-key') return credential.key;
-        return null;
-    }
-
-    if (rest === 'username') {
-        if (credential.type === 'basic') return credential.username;
-        return null;
-    }
-
-    if (rest === 'password') {
-        if (credential.type === 'basic') return credential.password;
-        return null;
-    }
-
-    if (rest.startsWith('localStorage.')) {
-        const lsKey = rest.slice('localStorage.'.length);
-        if (
-            (credential.type === 'cookie' || credential.type === 'bearer') &&
-            credential.localStorage
-        ) {
-            return credential.localStorage[lsKey] ?? null;
-        }
-        return null;
+    // Handle "localStorage.<key>" — flatten to just the key
+    if (key.startsWith('localStorage.')) {
+        const lsKey = key.slice('localStorage.'.length);
+        return credentials[lsKey] ?? null;
     }
 
     return null;
@@ -48,7 +42,7 @@ export function resolveFrom(credential: Credential, fromPath: string): string | 
 
 export function applyInjectRules(
     rules: ProxyInjectRule[],
-    credential: Credential,
+    credentials: ExtractedCredentials,
     headers: http.OutgoingHttpHeaders,
     bodyBuffer: Buffer | undefined,
     contentType: string | undefined,
@@ -60,7 +54,7 @@ export function applyInjectRules(
 
     for (const rule of rules) {
         const { action } = rule;
-        const value = rule.from ? resolveFrom(credential, rule.from) : null;
+        const value = rule.from ? resolveFrom(credentials, rule.from) : null;
 
         if (rule.in === 'header') {
             if (action === 'remove') {

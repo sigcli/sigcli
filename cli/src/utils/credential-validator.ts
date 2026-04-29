@@ -1,16 +1,15 @@
-import type { Credential, ProviderConfig, StoredCredential } from '../types/types.js';
-import type { ProviderConfigV2 } from '../types/extract.js';
+import type { ProviderConfig, StoredCredential } from '../types/types.js';
+import type { ExtractedCredentials } from '../types/interfaces/strategy.js';
 import { LOGIN_URL_PATTERNS, HttpHeader } from '../types/constants.js';
 import { buildUserAgent } from './http.js';
 import { parseDuration } from './duration.js';
 import { ApplyEngine } from '../apply/apply-engine.js';
-import { credentialToExtracted, toV2Config } from './credential-converter.js';
 
 /**
  * Check TTL-based validity of a stored credential.
  * Returns true if credential is still valid, false if expired.
  */
-export function checkTtl(stored: StoredCredential, provider: ProviderConfigV2): boolean {
+export function checkTtl(stored: StoredCredential, provider: ProviderConfig): boolean {
     if (!provider.ttl) return true; // No TTL = never expires
     const ttlMs = parseDuration(provider.ttl);
     if (!ttlMs) return true;
@@ -24,13 +23,11 @@ export function checkTtl(stored: StoredCredential, provider: ProviderConfigV2): 
  */
 export async function validateCredential(
     provider: ProviderConfig,
-    credential: Credential,
+    credentials: ExtractedCredentials,
 ): Promise<{ status: number | null; isLoginRedirect: boolean }> {
     if (!provider.entryUrl) return { status: null, isLoginRedirect: false };
     try {
-        const v2 = toV2Config(provider);
-        const extracted = credentialToExtracted(credential);
-        const result = ApplyEngine.applyRules(v2.apply, extracted);
+        const result = ApplyEngine.applyRules(provider.apply, credentials);
         const headers = result.headers;
         const response = await fetch(provider.entryUrl, {
             method: 'GET',
@@ -52,15 +49,12 @@ export async function validateCredential(
  * Calculate when a stored credential expires.
  * Returns null if no expiry can be determined.
  */
-export function getExpiresAt(stored: StoredCredential, provider: ProviderConfigV2): Date | null {
+export function getExpiresAt(stored: StoredCredential, provider: ProviderConfig): Date | null {
     if (provider.ttl) {
         const ttlMs = parseDuration(provider.ttl);
         if (ttlMs) {
             return new Date(new Date(stored.updatedAt).getTime() + ttlMs);
         }
-    }
-    if (stored.credential?.type === 'bearer' && stored.credential.expiresAt) {
-        return new Date(stored.credential.expiresAt);
     }
     return null;
 }

@@ -106,10 +106,10 @@ describe('CLI help text grouping (#9)', () => {
         expect(output).toContain('--channel <name>');
     });
 
-    it('help output mentions --verbose in global options', async () => {
+    it('help output does not mention --verbose', async () => {
         await run(['help']);
         const output = stdoutChunks.join('');
-        expect(output).toContain('--verbose');
+        expect(output).not.toContain('--verbose');
     });
 
     it('--help flag on any command shows help text', async () => {

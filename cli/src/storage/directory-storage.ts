@@ -10,10 +10,9 @@ import { encrypt, decrypt, isEncryptedEnvelope } from '../crypto/encryption.js';
 interface ProviderFile {
     version: 1;
     providerId: string;
-    credential: StoredCredential['credential'];
     strategy: string;
     updatedAt: string;
-    metadata?: Record<string, unknown>;
+    credentials: Record<string, unknown>;
 }
 
 /**
@@ -50,10 +49,9 @@ export class DirectoryStorage implements IStorage {
         const data: ProviderFile = {
             version: 1,
             providerId,
-            credential: credential.credential,
             strategy: credential.strategy,
             updatedAt: credential.updatedAt,
-            ...(credential.metadata ? { metadata: credential.metadata } : {}),
+            credentials: credential.credentials,
         };
 
         await this.withLock(filePath, async () => {
@@ -95,7 +93,6 @@ export class DirectoryStorage implements IStorage {
                     providerId: data.providerId,
                     strategy: data.strategy,
                     updatedAt: data.updatedAt,
-                    credentialType: data.credential.type,
                 });
             } catch {
                 // Skip files that can't be read or parsed
@@ -147,27 +144,47 @@ export class DirectoryStorage implements IStorage {
         const content = await fs.readFile(filePath, 'utf-8');
         const parsed: unknown = JSON.parse(content);
 
-        let data: ProviderFile;
+        let raw: Record<string, unknown>;
         if (isEncryptedEnvelope(parsed)) {
             const plaintext = decrypt(parsed, this.encryptionKey);
-            data = JSON.parse(plaintext) as ProviderFile;
+            raw = JSON.parse(plaintext) as Record<string, unknown>;
         } else {
-            data = parsed as ProviderFile;
+            raw = parsed as Record<string, unknown>;
         }
 
-        if (!data.version || !data.providerId || !data.credential) {
+        if (!raw.version || !raw.providerId) {
             throw new StorageError('read', `Invalid provider file: ${filePath}`);
         }
-        return data;
+
+        // Handle legacy format: { credential: Credential, metadata?: { extractedValues } }
+        let credentials = raw.credentials as Record<string, unknown> | undefined;
+        if (!credentials) {
+            const metadata = raw.metadata as Record<string, unknown> | undefined;
+            if (metadata?.extractedValues) {
+                credentials = metadata.extractedValues as Record<string, unknown>;
+            } else if (raw.credential) {
+                // Old Credential union — convert to flat map
+                credentials = { __legacy: JSON.stringify(raw.credential) };
+            } else {
+                throw new StorageError('read', `Invalid provider file: ${filePath}`);
+            }
+        }
+
+        return {
+            version: 1,
+            providerId: raw.providerId as string,
+            strategy: (raw.strategy as string) ?? 'unknown',
+            updatedAt: (raw.updatedAt as string) ?? new Date().toISOString(),
+            credentials,
+        };
     }
 
     private toStoredCredential(data: ProviderFile): StoredCredential {
         return {
-            credential: data.credential,
             providerId: data.providerId,
             strategy: data.strategy,
             updatedAt: data.updatedAt,
-            ...(data.metadata ? { metadata: data.metadata } : {}),
+            credentials: data.credentials,
         };
     }
 

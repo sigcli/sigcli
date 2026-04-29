@@ -11,13 +11,6 @@ export type { InitOptions } from './config/generator.js';
 
 // Core types
 export type {
-    Credential,
-    CookieCredential,
-    BearerCredential,
-    ApiKeyCredential,
-    BasicCredential,
-    CredentialType,
-    Cookie,
     ProviderConfig,
     StoredCredential,
     StoredEntry,
@@ -25,6 +18,10 @@ export type {
     BrowserLaunchOptions,
     ILogger,
     LocalStorageConfig,
+    ProxyInjectRule,
+    ProxyConfig,
+    ExtractRule,
+    ApplyRule,
 } from './types/types.js';
 
 // Result type
@@ -65,8 +62,6 @@ export type {
 } from './types/interfaces/strategy.js';
 export type { IBrowserExtractor } from './types/interfaces/browser-extractor.js';
 export type {
-    ExtractRule,
-    ApplyRule,
     ProviderConfigV2,
     StoredCredentialV2,
 } from './types/extract.js';
@@ -88,11 +83,6 @@ export { StrategyRegistry } from './strategies/registry.js';
 export { AuthManager } from './auth-manager.js';
 
 // Credential helpers
-export {
-    extractedToCredential,
-    credentialToExtracted,
-    toV2Config,
-} from './utils/credential-converter.js';
 export { checkTtl, validateCredential, getExpiresAt } from './utils/credential-validator.js';
 
 // Storage implementations
