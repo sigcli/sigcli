@@ -77,8 +77,8 @@ export type { IBrowserExtractor } from './core/interfaces/browser-extractor.js';
 export type {
     ExtractRule,
     ApplyRule,
-    NewProviderConfig,
-    NewStoredCredential,
+    ProviderConfigV2,
+    StoredCredentialV2,
 } from './core/types/extract.js';
 export { applyRules, interpolate } from './apply/engine.js';
 export type { ApplyResult } from './apply/engine.js';

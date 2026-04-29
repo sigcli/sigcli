@@ -9,7 +9,7 @@ import type {
 } from './core/types.js';
 import type { BrowserConfig } from './config/schema.js';
 import type { ISourceStrategy, ExtractedCredentials, ExtractionContext } from './core/interfaces/source-strategy.js';
-import type { ApplyRule, NewProviderConfig } from './core/types/extract.js';
+import type { ApplyRule, ProviderConfigV2 } from './core/types/extract.js';
 import type { ApplyResult } from './apply/engine.js';
 import { createDefaultProvider } from './providers/auto-provision.js';
 import type { Result } from './core/result.js';
@@ -73,7 +73,7 @@ export class AuthManager {
         if (!isOk(result)) return result;
 
         // Convert extracted credentials to old Credential format for backward compat
-        const credential = this.toOldCredential(result.value, provider);
+        const credential = this.extractedToCredential(result.value, newProvider);
         return ok(credential);
     }
 
@@ -81,21 +81,19 @@ export class AuthManager {
      * Get credentials using the new extract/apply system directly.
      */
     async getExtracted(
-        provider: NewProviderConfig,
+        provider: ProviderConfigV2,
     ): Promise<Result<ExtractedCredentials, AuthError>> {
         const key = provider.id;
 
         // Step 1: Check stored + TTL
         const stored = await this.storage.get(key);
         if (stored && provider.ttl) {
-            const entry = stored as unknown as { values?: ExtractedCredentials; updatedAt?: string };
-            if (entry.values) {
-                const ttlMs = parseDuration(provider.ttl);
-                if (ttlMs) {
-                    const updatedAt = new Date(entry.updatedAt ?? stored.updatedAt).getTime();
-                    if (Date.now() - updatedAt < ttlMs) {
-                        return ok(entry.values);
-                    }
+            const ttlMs = parseDuration(provider.ttl);
+            if (ttlMs) {
+                const updatedAt = new Date(stored.updatedAt).getTime();
+                if (Date.now() - updatedAt < ttlMs) {
+                    const cached = stored.metadata?.extractedValues as ExtractedCredentials | undefined;
+                    if (cached) return ok(cached);
                 }
             }
         }
@@ -133,14 +131,16 @@ export class AuthManager {
             }
         }
 
-        // Step 5: Store
-        const storedEntry = {
-            values: extractResult.value,
+        // Step 5: Store as StoredCredential (compatible with DirectoryStorage)
+        const credential = this.extractedToCredential(extractResult.value, provider);
+        const storedEntry: StoredCredential = {
+            credential,
             providerId: provider.id,
-            source: provider.source,
+            strategy: provider.source,
             updatedAt: new Date().toISOString(),
+            metadata: { extractedValues: extractResult.value },
         };
-        await this.storage.set(key, storedEntry as unknown as StoredCredential);
+        await this.storage.set(key, storedEntry);
 
         return ok(extractResult.value);
     }
@@ -330,8 +330,8 @@ export class AuthManager {
     // Private helpers
     // ========================================================================
 
-    private toNewConfig(provider: ProviderConfig): NewProviderConfig {
-        return migrateProvider(provider.id, {
+    private toNewConfig(provider: ProviderConfig): ProviderConfigV2 {
+        const migrated = migrateProvider(provider.id, {
             name: provider.name,
             domains: provider.domains,
             entryUrl: provider.entryUrl,
@@ -340,57 +340,8 @@ export class AuthManager {
             localStorage: provider.localStorage,
             networkProxy: provider.networkProxy,
             loginMode: provider.loginMode,
-        }) as unknown as NewProviderConfig;
-    }
-
-    private toOldCredential(extracted: ExtractedCredentials, provider: ProviderConfig): Credential {
-        // If there's a 'session' key, it's cookies
-        if (extracted.session) {
-            const cookies = extracted.session.split('; ').map((pair) => {
-                const [name, ...rest] = pair.split('=');
-                return {
-                    name,
-                    value: rest.join('='),
-                    domain: provider.domains[0] ?? '',
-                    path: '/',
-                    expires: -1,
-                    httpOnly: false,
-                    secure: true,
-                };
-            });
-            return {
-                type: 'cookie' as const,
-                cookies,
-                obtainedAt: new Date().toISOString(),
-                ...(extracted['xoxc-token'] ? { localStorage: { 'xoxc-token': extracted['xoxc-token'] } } : {}),
-            };
-        }
-
-        // If there's an access_token, it's bearer
-        if (extracted.access_token) {
-            return {
-                type: 'bearer' as const,
-                accessToken: extracted.access_token,
-            };
-        }
-
-        // If there's a token, it's api-key
-        if (extracted.token) {
-            return {
-                type: 'api-key' as const,
-                key: extracted.token,
-                headerName: 'Authorization',
-                headerPrefix: 'Bearer',
-            };
-        }
-
-        // Fallback: treat first value as cookie
-        const firstValue = Object.values(extracted)[0] ?? '';
-        return {
-            type: 'cookie' as const,
-            cookies: [{ name: 'session', value: firstValue, domain: provider.domains[0] ?? '', path: '/', expires: -1, httpOnly: false, secure: true }],
-            obtainedAt: new Date().toISOString(),
-        };
+        });
+        return { id: provider.id, ...migrated } as unknown as ProviderConfigV2;
     }
 
     private credentialToExtracted(credential: Credential): ExtractedCredentials {
@@ -409,7 +360,46 @@ export class AuthManager {
         }
     }
 
-    private getExpiresAt(stored: StoredCredential, provider: NewProviderConfig): Date | null {
+    private extractedToCredential(extracted: ExtractedCredentials, provider: ProviderConfigV2): Credential {
+        if (extracted.session) {
+            const cookies = extracted.session.split('; ').map((pair) => {
+                const [name, ...rest] = pair.split('=');
+                return {
+                    name,
+                    value: rest.join('='),
+                    domain: provider.domains[0] ?? '',
+                    path: '/',
+                    expires: -1,
+                    httpOnly: false,
+                    secure: true,
+                };
+            });
+            const extra: Record<string, string> = {};
+            for (const [k, v] of Object.entries(extracted)) {
+                if (k !== 'session') extra[k] = v;
+            }
+            return {
+                type: 'cookie' as const,
+                cookies,
+                obtainedAt: new Date().toISOString(),
+                ...(Object.keys(extra).length > 0 ? { localStorage: extra } : {}),
+            };
+        }
+        if (extracted.access_token) {
+            return { type: 'bearer' as const, accessToken: extracted.access_token };
+        }
+        if (extracted.token) {
+            return { type: 'api-key' as const, key: extracted.token, headerName: 'Authorization', headerPrefix: 'Bearer' };
+        }
+        const firstValue = Object.values(extracted)[0] ?? '';
+        return {
+            type: 'cookie' as const,
+            cookies: [{ name: 'data', value: firstValue, domain: provider.domains[0] ?? '', path: '/', expires: -1, httpOnly: false, secure: true }],
+            obtainedAt: new Date().toISOString(),
+        };
+    }
+
+    private getExpiresAt(stored: StoredCredential, provider: ProviderConfigV2): Date | null {
         if (provider.ttl) {
             const ttlMs = parseDuration(provider.ttl);
             if (ttlMs) {

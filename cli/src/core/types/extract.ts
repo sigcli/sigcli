@@ -27,7 +27,7 @@ export interface ApplyRule {
 /**
  * Provider config — new format (post-refactoring).
  */
-export interface NewProviderConfig {
+export interface ProviderConfigV2 {
     id: string;
     name?: string;
     domains: string[];
@@ -49,7 +49,7 @@ export interface NewProviderConfig {
 /**
  * Stored credential — flat map keyed by extract[].name.
  */
-export interface NewStoredCredential {
+export interface StoredCredentialV2 {
     values: Record<string, string>;
     providerId: string;
     source: string;

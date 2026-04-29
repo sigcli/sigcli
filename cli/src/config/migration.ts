@@ -9,7 +9,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import YAML from 'yaml';
-import type { ExtractRule, ApplyRule, NewProviderConfig } from '../core/types/extract.js';
+import type { ExtractRule, ApplyRule, ProviderConfigV2 } from '../core/types/extract.js';
 
 export const CONFIG_VERSION = 2;
 
@@ -163,6 +163,7 @@ export function migrateProvider(id: string, entry: Record<string, unknown>): V2P
 
 /**
  * Migrate config.yaml file in-place. Creates .bak backup.
+ * Also clears old credentials (user must re-login after migration).
  */
 export async function migrateConfigFile(): Promise<{ migrated: boolean; backupPath?: string }> {
     let content: string;
@@ -183,15 +184,33 @@ export async function migrateConfigFile(): Promise<{ migrated: boolean; backupPa
         return { migrated: false };
     }
 
-    // Backup
+    // Backup config
     const backupPath = CONFIG_PATH + '.v1.bak';
     await fs.copyFile(CONFIG_PATH, backupPath);
 
-    // Migrate
+    // Migrate config
     const v2 = migrateV1ToV2(raw);
 
-    // Write
+    // Write new config
     await fs.writeFile(CONFIG_PATH, YAML.stringify(v2, { lineWidth: 120 }), 'utf-8');
+
+    // Clear old credentials (incompatible format)
+    const storage = (raw.storage as Record<string, unknown>)?.credentialsDir as string | undefined;
+    if (storage) {
+        const credDir = storage.startsWith('~')
+            ? path.join(os.homedir(), storage.slice(1))
+            : storage;
+        try {
+            const files = await fs.readdir(credDir);
+            for (const file of files) {
+                if (file.endsWith('.json')) {
+                    await fs.unlink(path.join(credDir, file));
+                }
+            }
+        } catch {
+            // Credentials dir may not exist yet
+        }
+    }
 
     return { migrated: true, backupPath };
 }

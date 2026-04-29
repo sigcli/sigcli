@@ -264,11 +264,25 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
     }
 
     if (typeof raw.entryUrl !== 'string' || raw.entryUrl.length === 0) {
-        errors.push(`Provider "${id}": missing required field "entryUrl"`);
+        if (!raw.source) {
+            errors.push(`Provider "${id}": missing required field "entryUrl"`);
+        }
     }
 
-    if (typeof raw.strategy !== 'string') {
-        errors.push(`Provider "${id}": missing required field "strategy"`);
+    // Accept either v1 (strategy) or v2 (source + extract + apply)
+    if (raw.source) {
+        const VALID_SOURCES = ['browser', 'prompt', 'env'];
+        if (!VALID_SOURCES.includes(raw.source as string)) {
+            errors.push(`Provider "${id}": invalid source "${raw.source}". Valid: ${VALID_SOURCES.join(', ')}`);
+        }
+        if (!Array.isArray(raw.extract)) {
+            errors.push(`Provider "${id}": missing required field "extract"`);
+        }
+        if (!Array.isArray(raw.apply)) {
+            errors.push(`Provider "${id}": missing required field "apply"`);
+        }
+    } else if (typeof raw.strategy !== 'string') {
+        errors.push(`Provider "${id}": missing required field "strategy" or "source"`);
     } else if (!VALID_STRATEGIES.includes(raw.strategy as StrategyNameType)) {
         errors.push(
             `Provider "${id}": invalid strategy "${raw.strategy}". ` +

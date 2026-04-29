@@ -86,14 +86,23 @@ export interface SigConfig {
 export interface ProviderEntry {
     name?: string;
     domains: string[];
-    entryUrl: string;
-    strategy: StrategyName;
+    entryUrl?: string;
+    // v1 fields
+    strategy?: StrategyName;
     config?: Record<string, unknown>;
     acceptedCredentialTypes?: CredentialType[];
     setupInstructions?: string;
     localStorage?: LocalStorageConfig[];
     forceVisible?: boolean;
     proxy?: ProxyConfig;
-    networkProxy?: string; // e.g. "socks5://127.0.0.1:1080"
-    loginMode?: string; // 'auto' | 'cdp' | 'headless' | 'visible'
+    // v2 fields
+    source?: string;
+    extract?: Array<{ from: string; name: string; key: string }>;
+    apply?: Array<{ in: string; name: string; value: string }>;
+    required?: string[];
+    cookiePaths?: string[];
+    ttl?: string;
+    // shared
+    networkProxy?: string;
+    loginMode?: string;
 }
