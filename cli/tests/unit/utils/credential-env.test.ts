@@ -110,20 +110,6 @@ describe('credentialToEnvVars', () => {
         });
     });
 
-    describe('xHeaders', () => {
-        it('maps xHeaders to SIG_X_HEADER_<NAME> with dashes replaced by underscores', () => {
-            const cred: CookieCredential = {
-                type: 'cookie',
-                cookies: [],
-                obtainedAt: new Date().toISOString(),
-                xHeaders: { 'x-csrf-token': 'abc123', 'x-api-version': 'v2' },
-            };
-            const env = credentialToEnvVars(cred, 'x', {});
-            expect(env['SIG_X_HEADER_X_CSRF_TOKEN']).toBe('abc123');
-            expect(env['SIG_X_HEADER_X_API_VERSION']).toBe('v2');
-        });
-    });
-
     describe('localStorage', () => {
         it('maps localStorage to SIG_X_LOCAL_<NAME> uppercased', () => {
             const cred: CookieCredential = {

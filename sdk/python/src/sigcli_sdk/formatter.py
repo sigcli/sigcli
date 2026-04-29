@@ -3,13 +3,9 @@ from .types import Credential
 
 def format_headers(credential: Credential) -> dict[str, str]:
     if credential.type == "cookie":
-        headers = dict(credential.xHeaders)
-        headers["Cookie"] = "; ".join(f"{c.name}={c.value}" for c in credential.cookies)
-        return headers
+        return {"Cookie": "; ".join(f"{c.name}={c.value}" for c in credential.cookies)}
     elif credential.type == "bearer":
-        headers = dict(credential.xHeaders)
-        headers["Authorization"] = f"Bearer {credential.accessToken}"
-        return headers
+        return {"Authorization": f"Bearer {credential.accessToken}"}
     elif credential.type == "api-key":
         value = f"{credential.headerPrefix} {credential.key}" if credential.headerPrefix else credential.key
         return {credential.headerName: value}

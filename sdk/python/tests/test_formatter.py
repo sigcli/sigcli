@@ -42,47 +42,6 @@ def test_format_basic_headers():
     assert headers == {"Authorization": f"Basic {expected}"}
 
 
-def test_xheaders_merged_for_cookie():
-    cred = CookieCredential(
-        type="cookie",
-        cookies=[Cookie(name="id_token", value="tok123", domain=".x.com", path="/", expires=-1, httpOnly=True, secure=True)],
-        obtainedAt="2026-04-13T10:00:00.000Z",
-        xHeaders={"x-csrf-token": "csrf-abc", "origin": "https://www.x.com"},
-    )
-    headers = format_headers(cred)
-    assert headers["Cookie"] == "id_token=tok123"
-    assert headers["x-csrf-token"] == "csrf-abc"
-    assert headers["origin"] == "https://www.x.com"
-
-
-def test_xheaders_merged_for_bearer():
-    cred = BearerCredential(type="bearer", accessToken="tok", xHeaders={"X-Custom": "val"})
-    headers = format_headers(cred)
-    assert headers["Authorization"] == "Bearer tok"
-    assert headers["X-Custom"] == "val"
-
-
-def test_cookie_header_overwrites_xheaders_cookie():
-    cred = CookieCredential(
-        type="cookie",
-        cookies=[Cookie(name="a", value="b", domain=".x.com", path="/", expires=-1, httpOnly=False, secure=False)],
-        obtainedAt="2026-04-13T10:00:00.000Z",
-        xHeaders={"Cookie": "should-be-overwritten"},
-    )
-    headers = format_headers(cred)
-    assert headers["Cookie"] == "a=b"
-
-
-def test_authorization_header_overwrites_xheaders_authorization_for_bearer():
-    cred = BearerCredential(
-        type="bearer",
-        accessToken="real-token",
-        xHeaders={"Authorization": "should-be-overwritten"},
-    )
-    headers = format_headers(cred)
-    assert headers["Authorization"] == "Bearer real-token"
-
-
 def test_format_cookie_credential_with_empty_cookies():
     cred = CookieCredential(
         type="cookie",
@@ -102,21 +61,6 @@ def test_format_single_cookie_no_trailing_semicolon():
     headers = format_headers(cred)
     assert headers["Cookie"] == "only=one"
     assert ";" not in headers["Cookie"]
-
-
-def test_cookie_credential_with_xheaders_and_localstorage():
-    cred = CookieCredential(
-        type="cookie",
-        cookies=[Cookie(name="d", value="xoxd-abc", domain=".slack.com", path="/", expires=-1, httpOnly=True, secure=True)],
-        obtainedAt="2026-04-13T10:00:00.000Z",
-        xHeaders={"x-custom": "val"},
-        localStorage={"token": "xoxc-123"},
-    )
-    headers = format_headers(cred)
-    assert headers["Cookie"] == "d=xoxd-abc"
-    assert headers["x-custom"] == "val"
-    # localStorage should NOT appear in headers
-    assert "token" not in headers
 
 
 def test_extract_local_storage_cookie():

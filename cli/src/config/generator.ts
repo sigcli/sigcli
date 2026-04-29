@@ -92,7 +92,7 @@ export function generateConfigYaml(options: InitOptions): string {
   #     config:
   #       audiences: ["https://ic3.teams.office.com"]
   #
-  # See config.example.yaml for more examples (xHeaders, localStorage, watch).`;
+  # See config.example.yaml for more examples (localStorage, watch).`;
 
     const modeLine =
         options.mode === 'browserless'

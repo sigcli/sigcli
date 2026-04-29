@@ -109,25 +109,6 @@ providers:
     #   domains: ["api.internal.corp"]
     #   strategy: basic
 
-    # Cookie auth with x-headers (anti-bot / dynamic signature headers)
-    # xiaohongshu:
-    #   name: Xiaohongshu
-    #   domains: ["www.xiaohongshu.com", "edith.xiaohongshu.com"]
-    #   entryUrl: https://www.xiaohongshu.com/
-    #   strategy: cookie
-    #   forceVisible: true                       # Skip headless, go straight to visible browser
-    #   config:
-    #     ttl: "12h"
-    #     requiredCookies: ["id_token"]
-    #   xHeaders:
-    #     - name: x-csrf-token
-    #       source: request
-    #       urlPattern: edith.xiaohongshu.com/api
-    #     - name: origin
-    #       staticValue: https://www.xiaohongshu.com
-    #     - name: referer
-    #       staticValue: https://www.xiaohongshu.com/
-
     # Cookie auth with localStorage extraction (e.g. Slack xoxc token)
     # IMPORTANT: entryUrl must point to a specific workspace (e.g. /client/<TEAM_ID>),
     # NOT the root URL. The root URL shows a workspace picker where localStorage

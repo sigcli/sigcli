@@ -112,8 +112,8 @@ export const pageContent = {
  │        │         │    │    grafana.json       │    │  └───────┬────────┘  │
  │        v         │    │                       │    │          │           │
  │  curl, fetch,    │    │  ┌─────────────────┐  │    │  cookies, tokens,    │
- │  agents, CI      │<───┼──┤ SSH transport   │  │    │  x-headers,          │
- │                  │    │  │ sig sync push   │  │    │  localStorage        │
+ │  agents, CI      │<───┼──┤ SSH transport   │  │    │  localStorage        │
+ │                  │    │  │ sig sync push   │  │    │                      │
  │  ┌────────────┐  │    │  └─────────────────┘  │    │                      │
  │  │HTTP_PROXY= ├──┼──> │  ┌─────────────────┐  │    │                      │
  │  │sig proxy   │  │    │  │ MITM proxy      │  │    │                      │

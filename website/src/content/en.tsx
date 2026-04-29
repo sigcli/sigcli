@@ -172,8 +172,8 @@ curl https://my-jira.example.com/rest/api/2/myself`}</CodeBlock>
  │        │         │    │    grafana.json       │    │  └───────┬────────┘  │
  │        v         │    │                       │    │          │           │
  │  curl, fetch,    │    │  ┌─────────────────┐  │    │  cookies, tokens,    │
- │  agents, CI      │<───┼──┤ SSH transport   │  │    │  x-headers,          │
- │                  │    │  │ sig sync push   │  │    │  localStorage        │
+ │  agents, CI      │<───┼──┤ SSH transport   │  │    │  localStorage        │
+ │                  │    │  │ sig sync push   │  │    │                      │
  │  ┌────────────┐  │    │  └─────────────────┘  │    │                      │
  │  │HTTP_PROXY= ├──┼──> │  ┌─────────────────┐  │    │                      │
  │  │sig proxy   │  │    │  │ MITM proxy      │  │    │                      │
@@ -199,7 +199,7 @@ curl https://my-jira.example.com/rest/api/2/myself`}</CodeBlock>
                     <CodeBlock lang="bash">{`$ sig login https://my-jira.example.com
 → chromium headless …
 ⚠ login page detected — opening window
-✓ captured 4 cookies · 2 x-headers
+✓ captured 4 cookies
 ✓ sealed under ~/.sig/credentials/my-jira.json`}</CodeBlock>
 
                     <P>

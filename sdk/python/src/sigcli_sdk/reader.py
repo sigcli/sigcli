@@ -25,12 +25,12 @@ def _parse_credential(raw: dict) -> Credential:  # type: ignore[type-arg]
     if cred_type == "cookie":
         cookies = [Cookie(**c) for c in raw.get("cookies", [])]
         return CookieCredential(type="cookie", cookies=cookies, obtainedAt=raw["obtainedAt"],
-                                xHeaders=raw.get("xHeaders", {}), localStorage=raw.get("localStorage", {}))
+                                localStorage=raw.get("localStorage", {}))
     elif cred_type == "bearer":
         return BearerCredential(type="bearer", accessToken=raw["accessToken"],
                                 refreshToken=raw.get("refreshToken"), expiresAt=raw.get("expiresAt"),
                                 scopes=raw.get("scopes"), tokenEndpoint=raw.get("tokenEndpoint"),
-                                xHeaders=raw.get("xHeaders", {}), localStorage=raw.get("localStorage", {}))
+                                localStorage=raw.get("localStorage", {}))
     elif cred_type == "api-key":
         return ApiKeyCredential(type="api-key", key=raw["key"],
                                 headerName=raw["headerName"], headerPrefix=raw.get("headerPrefix"))

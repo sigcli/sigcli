@@ -31,7 +31,6 @@ export type {
     ProviderStatus,
     BrowserLaunchOptions,
     ILogger,
-    XHeaderConfig,
     LocalStorageConfig,
     AuthDiagnostics,
     CredentialResult,

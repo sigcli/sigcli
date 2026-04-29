@@ -37,17 +37,6 @@ describe('extractSensitiveValues', () => {
         expect(secrets).not.toContain('abc');
     });
 
-    it('extracts xHeader values', () => {
-        const cred: CookieCredential = {
-            type: 'cookie',
-            cookies: [],
-            obtainedAt: new Date().toISOString(),
-            xHeaders: { 'x-csrf-token': 'longcsrftokenvalue' },
-        };
-        const secrets = extractSensitiveValues(cred);
-        expect(secrets).toContain('longcsrftokenvalue');
-    });
-
     it('extracts localStorage values', () => {
         const cred: CookieCredential = {
             type: 'cookie',

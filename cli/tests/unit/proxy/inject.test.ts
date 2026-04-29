@@ -25,14 +25,12 @@ const cookieCred: CookieCredential = {
         },
     ],
     obtainedAt: '2026-01-01T00:00:00Z',
-    xHeaders: { 'x-sig': 'sig-value' },
     localStorage: { 'xoxc-token': 'xoxc-xyz' },
 };
 
 const bearerCred: BearerCredential = {
     type: 'bearer',
     accessToken: 'my-token',
-    obtainedAt: '2026-01-01T00:00:00Z',
     localStorage: { 'app-token': 'app-val' },
 };
 
@@ -57,10 +55,6 @@ describe('resolveFrom', () => {
 
     it('resolves credential.localStorage.<key>', () => {
         expect(resolveFrom(cookieCred, 'credential.localStorage.xoxc-token')).toBe('xoxc-xyz');
-    });
-
-    it('resolves credential.xHeaders.<name>', () => {
-        expect(resolveFrom(cookieCred, 'credential.xHeaders.x-sig')).toBe('sig-value');
     });
 
     it('returns null for missing localStorage key', () => {

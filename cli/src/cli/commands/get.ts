@@ -113,13 +113,6 @@ export async function runGet(
         entries.find(([name]) => PRIMARY_HEADERS.includes(name.toLowerCase())) ?? entries[0];
     const [primaryHeaderName, primaryHeaderValue] = primaryEntry;
 
-    const xHeaders: Record<string, string> = {};
-    for (const [name, value] of entries) {
-        if (name !== primaryHeaderName) {
-            xHeaders[name] = value;
-        }
-    }
-
     const format = (flags.format as string) ?? OutputFormat.JSON;
     if (noRedaction) {
         process.stderr.write(
@@ -136,13 +129,6 @@ export async function runGet(
                 headerName: primaryHeaderName,
                 value: redact(primaryHeaderValue),
             };
-            if (Object.keys(xHeaders).length > 0) {
-                const redactedXHeaders: Record<string, string> = {};
-                for (const [k, v] of Object.entries(xHeaders)) {
-                    redactedXHeaders[k] = redact(v);
-                }
-                credentialObj.xHeaders = redactedXHeaders;
-            }
             const ls = getLocalStorage(credential);
             if (ls) {
                 const redactedLs: Record<string, string> = {};
@@ -168,9 +154,6 @@ export async function runGet(
         }
         case OutputFormat.VALUE: {
             process.stdout.write(redact(primaryHeaderValue) + '\n');
-            for (const [name, value] of Object.entries(xHeaders)) {
-                process.stdout.write(`${name}=${redact(value)}\n`);
-            }
             const ls = getLocalStorage(credential);
             if (ls) {
                 for (const [name, value] of Object.entries(ls)) {
