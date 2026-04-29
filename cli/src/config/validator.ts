@@ -421,9 +421,14 @@ export function validateProjectConfig(
         }
     }
 
-    if (!raw.providers || typeof raw.providers !== 'object') {
-        errors.push('Missing required section: "providers"');
-    } else {
+    // providers: null (comment-only) is valid — treated as empty
+    if (
+        raw.providers !== undefined &&
+        raw.providers !== null &&
+        typeof raw.providers !== 'object'
+    ) {
+        errors.push('"providers" must be an object (or empty)');
+    } else if (raw.providers && typeof raw.providers === 'object') {
         const providers = raw.providers as Record<string, unknown>;
         for (const [id, entry] of Object.entries(providers)) {
             if (!entry || typeof entry !== 'object') {
@@ -442,8 +447,10 @@ export function validateProjectConfig(
     }
 
     const providers: Record<string, ProviderEntry> = {};
-    for (const [id, entry] of Object.entries(raw.providers as Record<string, unknown>)) {
-        providers[id] = parseProviderEntry(entry as Record<string, unknown>);
+    if (raw.providers && typeof raw.providers === 'object') {
+        for (const [id, entry] of Object.entries(raw.providers as Record<string, unknown>)) {
+            providers[id] = parseProviderEntry(entry as Record<string, unknown>);
+        }
     }
 
     return ok({ providers });
