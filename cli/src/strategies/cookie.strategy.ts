@@ -141,6 +141,16 @@ class CookieStrategy implements IAuthStrategy {
                     return this.requiredCookies.every((name) => cookieNames.has(name));
                 }
 
+                // If the page is not on the provider's domains, we're still in an OAuth/SSO redirect
+                // Don't consider authentication complete until the browser returns to the provider
+                const currentUrl = page.url().toLowerCase();
+                const onProviderDomain = provider.domains.some((d) =>
+                    currentUrl.includes(d.toLowerCase()),
+                );
+                if (!onProviderDomain) {
+                    return false;
+                }
+
                 // Default: auth is complete when we're no longer on a login page
                 const onLoginPage = await isLoginPage(page);
                 return !onLoginPage;
