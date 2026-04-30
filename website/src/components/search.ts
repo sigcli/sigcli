@@ -9,6 +9,7 @@
  */
 
 import { create, insertMultiple, search, type AnyOrama } from '@orama/orama';
+
 import type { FlatTocItem } from './markdown.js';
 
 const tocSchema = {

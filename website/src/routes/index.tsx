@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { EditorialPage } from '../components/markdown';
+
 import { LanguageSwitcher } from '../components/language-switcher';
+import { EditorialPage } from '../components/markdown';
 import { pageContent } from '../content/en';
 
 export const Route = createFileRoute('/')({

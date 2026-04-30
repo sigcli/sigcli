@@ -4,7 +4,7 @@
  * Used by both the server component (index.tsx) and client component (markdown.tsx).
  */
 
-import type { Root, Heading, PhrasingContent } from 'mdast';
+import type { Heading, PhrasingContent, Root } from 'mdast';
 
 /* ── TOC tree types ──────────────────────────────────────────────────── */
 
