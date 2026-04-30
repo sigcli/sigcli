@@ -29,13 +29,13 @@ export interface ProviderConfig {
     strategy: string; // Strategy name: "browser" | "prompt"
     autoProvisioned?: boolean; // True if created by auto-provision (not from config file)
     networkProxy?: string; // Browser network proxy, e.g. "socks5://127.0.0.1:1080"
-    loginMode?: string; // Login mode: auto|cdp|headless|visible
+
     extract: ExtractRule[];
     apply: ApplyRule[];
     required?: string[];
     cookiePaths?: string[];
     ttl?: string;
-    loginPatterns?: string[];
+    loginUrlPatterns?: string[];
     waitUntil?: string;
 }
 
