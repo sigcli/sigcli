@@ -14,12 +14,18 @@ export class HeadlessCookieExtractor implements IHeadlessExtractor {
         domains: string[],
     ): Promise<ExtractorResult | null> {
         const cookies = await ctx.cookies();
-        const filtered = cookies.filter((c) => {
+        let filtered = cookies.filter((c) => {
             const d = c.domain.startsWith('.') ? c.domain.slice(1) : c.domain;
             return domains.some((pd) => d === pd || pd.endsWith('.' + d) || d.endsWith('.' + pd));
         });
 
         if (!filtered.length) return null;
+
+        if (rule.key !== '*') {
+            const names = new Set(rule.key.split(',').map((n) => n.trim()));
+            filtered = filtered.filter((c) => names.has(c.name));
+            if (!filtered.length) return null;
+        }
 
         const value = filtered.map((c) => `${c.name}=${c.value}`).join('; ');
         const cookieMeta = filtered

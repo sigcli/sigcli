@@ -35,8 +35,14 @@ export class CdpCookieExtractor implements IBrowserExtractor {
 
         if (!result?.cookies?.length) return null;
 
-        const filtered = this.filterByDomain(result.cookies, domains);
+        let filtered = this.filterByDomain(result.cookies, domains);
         if (!filtered.length) return null;
+
+        if (rule.key !== '*') {
+            const names = new Set(rule.key.split(',').map((n) => n.trim()));
+            filtered = filtered.filter((c) => names.has(c.name));
+            if (!filtered.length) return null;
+        }
 
         const serialized = filtered.map((c) => `${c.name}=${c.value}`).join('; ');
 

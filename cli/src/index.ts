@@ -110,7 +110,6 @@ export {
     SyncSubcommand,
     WatchSubcommand,
     WaitUntil,
-    LoginMode,
     CredentialTypeName,
     LOGIN_URL_PATTERNS,
     HttpHeader,
@@ -120,7 +119,7 @@ export {
     SIG_DIR,
     CONFIG_FILENAME,
 } from './types/index.js';
-export type { WaitUntilValue, LoginModeValue } from './types/index.js';
+export type { WaitUntilValue } from './types/index.js';
 
 // Utilities
 export { decodeJwt, isJwtExpired, getJwtExpiresAt } from './utils/jwt.js';

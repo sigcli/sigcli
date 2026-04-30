@@ -10,7 +10,7 @@ export interface IPageStateChecker {
         url: string,
         domains: string[],
         evaluate: DomEvaluateFn,
-        loginPatterns?: string[],
+        loginUrlPatterns?: string[],
     ): Promise<boolean>;
 }
 
@@ -30,10 +30,10 @@ export class PageStateChecker implements IPageStateChecker {
         url: string,
         domains: string[],
         evaluate: DomEvaluateFn,
-        loginPatterns?: string[],
+        loginUrlPatterns?: string[],
     ): Promise<boolean> {
         if (!this.isOnProviderDomain(url, domains)) return false;
-        const isLogin = await this.loginDetector.isLoginPage(url, evaluate, loginPatterns);
+        const isLogin = await this.loginDetector.isLoginPage(url, evaluate, loginUrlPatterns);
         return !isLogin;
     }
 }

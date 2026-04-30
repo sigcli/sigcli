@@ -52,13 +52,12 @@ storage:
 #   apply[]:   { in, name, value } — how to inject into HTTP requests
 #
 # Optional fields:
-#   ttl          — credential lifetime (e.g. "12h", "7d")
-#   required[]   — completion criteria in "name.field" format
-#   cookiePaths  — extra URL paths to query cookies from
-#   loginMode    — auto|cdp|headless|visible
-#   loginPatterns — URL patterns that indicate a login page
-#   networkProxy — SOCKS proxy for browser (e.g. socks5h://127.0.0.1:1080)
-#   waitUntil    — page load condition override
+#   ttl             — credential lifetime (e.g. "12h", "7d")
+#   required[]      — completion criteria in "name.field" format
+#   cookiePaths     — extra URL paths to query cookies from
+#   waitUntil       — page load condition override (load|networkidle|domcontentloaded|commit)
+#   loginUrlPatterns — URL substrings that indicate a login page (e.g. /login, /auth/sso)
+#   networkProxy    — SOCKS proxy for browser (e.g. socks5h://127.0.0.1:1080)
 
 providers:
     # ---------------------------------------------------------------------------
@@ -109,7 +108,6 @@ providers:
     #   entryUrl: https://www.reddit.com/login
     #   strategy: browser
     #   ttl: "7d"
-    #   loginMode: cdp
     #   networkProxy: socks5h://127.0.0.1:1080
     #   required:
     #     - session.reddit_session
