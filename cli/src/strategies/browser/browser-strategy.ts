@@ -1,5 +1,6 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 
+import type { BrowserConfig } from '../../config/schema.js';
 import {
     BrowserError,
     BrowserTimeoutError,
@@ -7,10 +8,10 @@ import {
     ok,
     type AuthError,
     type ExtractedCredentials,
-    type ExtractionContext,
     type ExtractRule,
     type IBrowserExtractor,
     type IStrategy,
+    type ProviderConfig,
     type Result,
     type WaitUntilValue,
 } from '../../types/index.js';
@@ -21,7 +22,7 @@ import type {
 import type { ExtractionResult } from '../../types/interfaces/strategy.js';
 import { expandHome } from '../../utils/path.js';
 import { findFreePort, removeSingletonLock, waitForBrowserReady } from './browser-lifecycle.js';
-import { connectCdpWs, type CdpWsClient } from './cdp-ws.js';
+import { attachToPageTarget, connectCdpWs, type CdpWsClient } from './cdp-ws.js';
 import { CdpCookieExtractor } from './extractors/cdp-cookie.js';
 import { CdpStorageExtractor } from './extractors/cdp-storage.js';
 import { HeadlessCookieExtractor } from './extractors/headless-cookie.js';
@@ -30,25 +31,17 @@ import type { DomEvaluateFn } from './login-detector.js';
 import { PageStateChecker, type IPageStateChecker } from './page-state-checker.js';
 import { checkRequired } from './required-checker.js';
 
-export interface BrowserStrategyOptions {
-    browserDataDir: string;
-    execPath: string;
-    channel: string;
-    waitUntil: WaitUntilValue;
-    headlessTimeout: number;
-}
-
 export class BrowserStrategy implements IStrategy {
     readonly name = 'browser';
     readonly needsBrowser = true;
 
     private readonly cdpExtractors: Map<string, IBrowserExtractor>;
     private readonly headlessExtractors: Map<string, IHeadlessExtractor>;
-    private readonly options: BrowserStrategyOptions;
+    private readonly browserConfig: BrowserConfig;
     private readonly pageState: IPageStateChecker;
 
-    constructor(options: BrowserStrategyOptions, pageStateChecker?: IPageStateChecker) {
-        this.options = options;
+    constructor(browserConfig: BrowserConfig, pageStateChecker?: IPageStateChecker) {
+        this.browserConfig = browserConfig;
         this.pageState = pageStateChecker ?? new PageStateChecker();
         this.cdpExtractors = new Map();
         this.cdpExtractors.set('cookies', new CdpCookieExtractor());
@@ -58,43 +51,38 @@ export class BrowserStrategy implements IStrategy {
         this.headlessExtractors.set('localStorage', new HeadlessStorageExtractor());
     }
 
-    async extract(
-        rules: ExtractRule[],
-        ctx: ExtractionContext,
-    ): Promise<Result<ExtractionResult, AuthError>> {
-        const headlessResult = await this.tryHeadless(rules, ctx);
+    async extract(provider: ProviderConfig): Promise<Result<ExtractionResult, AuthError>> {
+        const headlessResult = await this.tryHeadless(provider);
         if (headlessResult) return ok(headlessResult);
-        return this.extractViaCdp(rules, ctx);
+        return this.extractViaCdp(provider);
     }
 
     // =========================================================================
     // Headless — fast, silent, no interaction needed
     // =========================================================================
 
-    private async tryHeadless(
-        rules: ExtractRule[],
-        ctx: ExtractionContext,
-    ): Promise<ExtractionResult | null> {
+    private async tryHeadless(provider: ProviderConfig): Promise<ExtractionResult | null> {
         try {
             // @ts-expect-error - playwright is an optional dependency
             const pw = await import('playwright').catch(() => null);
             if (!pw) return null;
 
-            const dataDir = expandHome(this.options.browserDataDir);
+            const dataDir = expandHome(this.browserConfig.browserDataDir);
             const browserCtx = await pw.chromium.launchPersistentContext(dataDir, {
                 headless: true,
-                channel: this.options.channel,
-                ...(ctx.networkProxy ? { proxy: { server: ctx.networkProxy } } : {}),
+                channel: this.browserConfig.channel,
+                ...(provider.networkProxy ? { proxy: { server: provider.networkProxy } } : {}),
             });
 
             try {
                 const page = browserCtx.pages()[0] ?? (await browserCtx.newPage());
-                const waitUntil = ctx.waitUntil ?? this.options.waitUntil;
+                const waitUntil =
+                    (provider.waitUntil as WaitUntilValue) ?? this.browserConfig.waitUntil;
 
-                if (ctx.entryUrl) {
-                    await page.goto(ctx.entryUrl, {
+                if (provider.entryUrl) {
+                    await page.goto(provider.entryUrl, {
                         waitUntil,
-                        timeout: this.options.headlessTimeout,
+                        timeout: this.browserConfig.headlessTimeout,
                     });
                 }
 
@@ -104,13 +92,12 @@ export class BrowserStrategy implements IStrategy {
 
                 const authenticated = await this.pageState.isAuthenticated(
                     currentUrl,
-                    ctx.domains,
+                    provider.domains,
                     evaluate,
-                    ctx.loginPatterns,
+                    provider.loginPatterns,
                 );
                 if (!authenticated) return null;
 
-                // Build headless extraction context adapter
                 const headlessCtx: HeadlessExtractionCtx = {
                     cookies: () => browserCtx.cookies(),
                     evaluate: <T>(expr: string) => page.evaluate(expr) as Promise<T>,
@@ -118,12 +105,12 @@ export class BrowserStrategy implements IStrategy {
 
                 const { credentials, expiresAt } = await this.runHeadlessExtractors(
                     headlessCtx,
-                    rules,
-                    ctx.domains,
+                    provider.extract,
+                    provider.domains,
                 );
 
-                if (ctx.required?.length) {
-                    if (checkRequired(ctx.required, credentials).length > 0) return null;
+                if (provider.required?.length) {
+                    if (checkRequired(provider.required, credentials).length > 0) return null;
                 }
 
                 return { credentials, expiresAt };
@@ -169,15 +156,14 @@ export class BrowserStrategy implements IStrategy {
     // =========================================================================
 
     private async extractViaCdp(
-        rules: ExtractRule[],
-        ctx: ExtractionContext,
+        provider: ProviderConfig,
     ): Promise<Result<ExtractionResult, AuthError>> {
-        const execPath = this.options.execPath;
+        const execPath = this.browserConfig.execPath;
         if (!execPath) {
             return err(new BrowserError('No browser found. Install Chrome, Edge, or Chromium.'));
         }
 
-        const dataDir = expandHome(this.options.browserDataDir);
+        const dataDir = expandHome(this.browserConfig.browserDataDir);
         removeSingletonLock(dataDir);
 
         let cdpPort: number;
@@ -193,10 +179,10 @@ export class BrowserStrategy implements IStrategy {
             '--no-first-run',
             '--no-default-browser-check',
         ];
-        if (ctx.networkProxy) {
-            browserArgs.push(`--proxy-server=${ctx.networkProxy}`);
+        if (provider.networkProxy) {
+            browserArgs.push(`--proxy-server=${provider.networkProxy}`);
         }
-        browserArgs.push(ctx.entryUrl);
+        browserArgs.push(provider.entryUrl);
 
         let browser: ChildProcess | undefined;
         const cleanup = () => {
@@ -223,10 +209,10 @@ export class BrowserStrategy implements IStrategy {
         try {
             browser = spawn(execPath, browserArgs, { detached: false, stdio: 'ignore' });
 
-            const wsUrl = await waitForBrowserReady(cdpPort, ctx.timeout);
+            const wsUrl = await waitForBrowserReady(cdpPort, this.browserConfig.visibleTimeout);
             cdpClient = await connectCdpWs(wsUrl);
 
-            const result = await this.pollUntilComplete(cdpClient, rules, ctx);
+            const result = await this.pollUntilComplete(cdpClient, provider);
             return ok(result);
         } catch (e) {
             if (e instanceof BrowserTimeoutError) return err(e);
@@ -242,24 +228,28 @@ export class BrowserStrategy implements IStrategy {
 
     private async pollUntilComplete(
         cdp: CdpWsClient,
-        rules: ExtractRule[],
-        ctx: ExtractionContext,
+        provider: ProviderConfig,
     ): Promise<ExtractionResult> {
-        const deadline = Date.now() + ctx.timeout;
+        const deadline = Date.now() + this.browserConfig.visibleTimeout;
         const pollInterval = 2000;
         const credentials: ExtractedCredentials = {};
         let expiresAt: string | undefined;
 
         while (Date.now() < deadline) {
-            const sessionId = await this.attachToPageTarget(cdp);
+            const sessionId = await attachToPageTarget(cdp).catch(() => null);
             const currentUrl = await this.getCdpPageUrl(cdp, sessionId);
             const evaluate = this.makeCdpEvaluator(cdp, sessionId);
 
-            for (const rule of rules) {
+            for (const rule of provider.extract) {
                 const extractor = this.cdpExtractors.get(rule.from);
                 if (!extractor) continue;
                 try {
-                    const result = await extractor.extract(cdp, rule, ctx.domains, ctx.cookiePaths);
+                    const result = await extractor.extract(
+                        cdp,
+                        rule,
+                        provider.domains,
+                        provider.cookiePaths,
+                    );
                     if (result) {
                         credentials[result.name] = result.value;
                         if (result.cookies?.length) {
@@ -276,16 +266,16 @@ export class BrowserStrategy implements IStrategy {
                 }
             }
 
-            if (ctx.required?.length) {
-                if (checkRequired(ctx.required, credentials).length === 0) {
+            if (provider.required?.length) {
+                if (checkRequired(provider.required, credentials).length === 0) {
                     return { credentials, expiresAt };
                 }
             } else {
                 const authenticated = await this.pageState.isAuthenticated(
                     currentUrl,
-                    ctx.domains,
+                    provider.domains,
                     evaluate,
-                    ctx.loginPatterns,
+                    provider.loginPatterns,
                 );
                 if (authenticated && Object.keys(credentials).length > 0) {
                     return { credentials, expiresAt };
@@ -299,24 +289,6 @@ export class BrowserStrategy implements IStrategy {
         }
 
         return { credentials, expiresAt };
-    }
-
-    private async attachToPageTarget(cdp: CdpWsClient): Promise<string | null> {
-        try {
-            const targets = (await cdp.send('Target.getTargets')) as {
-                targetInfos: Array<{ targetId: string; type: string; url: string }>;
-            };
-            const page = targets?.targetInfos?.find((t) => t.type === 'page');
-            if (!page) return null;
-
-            const attach = (await cdp.send('Target.attachToTarget', {
-                targetId: page.targetId,
-                flatten: true,
-            })) as { sessionId: string };
-            return attach?.sessionId ?? null;
-        } catch {
-            return null;
-        }
     }
 
     private async getCdpPageUrl(cdp: CdpWsClient, sessionId: string | null): Promise<string> {

@@ -59,7 +59,7 @@ export {
 } from './constants.js';
 export type { WaitUntilValue, OutputFormatValue, LoginModeValue } from './constants.js';
 
-export type { IStrategy, ExtractedCredentials, ExtractionContext } from './interfaces/strategy.js';
+export type { IStrategy, ExtractedCredentials } from './interfaces/strategy.js';
 export type { IBrowserExtractor } from './interfaces/browser-extractor.js';
 export type { IStorage } from './interfaces/storage.js';
 export type { IProviderRegistry } from './interfaces/provider.js';

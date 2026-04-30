@@ -49,7 +49,7 @@ export {
 // Interfaces
 export type { IStorage } from './types/index.js';
 export type { IProviderRegistry } from './types/index.js';
-export type { IStrategy, ExtractedCredentials, ExtractionContext } from './types/index.js';
+export type { IStrategy, ExtractedCredentials } from './types/index.js';
 export type { IBrowserExtractor } from './types/index.js';
 
 // Apply engine
@@ -60,8 +60,6 @@ export { checkRequired } from './strategies/browser/required-checker.js';
 // Strategies
 export { BrowserStrategy } from './strategies/browser/index.js';
 export { BrowserStrategy as BrowserSource } from './strategies/browser/index.js';
-export type { BrowserStrategyOptions } from './strategies/browser/index.js';
-export type { BrowserStrategyOptions as BrowserSourceOptions } from './strategies/browser/index.js';
 export { PromptStrategy } from './strategies/prompt/index.js';
 export { PromptStrategy as PromptSource } from './strategies/prompt/index.js';
 export { CdpCookieExtractor } from './strategies/browser/index.js';
