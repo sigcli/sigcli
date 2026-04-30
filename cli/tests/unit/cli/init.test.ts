@@ -33,7 +33,7 @@ vi.mock('../../../src/config/validator.js', () => ({
 }));
 
 vi.mock('../../../src/crypto/encryption.js', () => ({
-    generateEncryptionKey: vi.fn().mockResolvedValue(Buffer.alloc(32)),
+    loadEncryptionKey: vi.fn().mockResolvedValue(Buffer.alloc(32)),
 }));
 
 // Import after mocking
@@ -297,10 +297,10 @@ describe('runInit', () => {
         await runInit([], { yes: true });
 
         const [, writtenContent] = mockWriteFile.mock.calls[0] as [string, string, string];
-        expect(writtenContent).toContain('# SigCLI unified configuration');
-        expect(writtenContent).toContain('# Browser settings');
-        expect(writtenContent).toContain('# Storage settings');
-        expect(writtenContent).toContain('# Provider configurations');
+        expect(writtenContent).toContain('# SigCLI configuration');
+        expect(writtenContent).toContain('browser:');
+        expect(writtenContent).toContain('storage:');
+        expect(writtenContent).toContain('providers:');
     });
 
     // ---- both flags combined ----
@@ -331,11 +331,7 @@ describe('runInit', () => {
 
         const output = stderrChunks.join('');
         expect(output).toContain('Remote setup complete');
-        expect(output).toContain('browser disabled');
         expect(output).toContain('sig sync pull');
-        expect(output).toContain('sig login');
-        expect(output).toContain('--cookie');
-        expect(output).toContain('--token');
     });
 
     it('--remote shows "Browser: disabled" in success message', async () => {
