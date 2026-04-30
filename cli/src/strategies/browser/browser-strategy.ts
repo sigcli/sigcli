@@ -2,7 +2,6 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 
-import { connectCdpWs, type CdpWsClient } from '../../browser/cdp-ws.js';
 import {
     BrowserError,
     BrowserTimeoutError,
@@ -23,6 +22,7 @@ import type {
 } from '../../types/interfaces/headless-extractor.js';
 import type { ExtractionResult } from '../../types/interfaces/strategy.js';
 import { findFreePort, removeSingletonLock, waitForBrowserReady } from './browser-lifecycle.js';
+import { connectCdpWs, type CdpWsClient } from './cdp-ws.js';
 import { CdpCookieExtractor } from './extractors/cdp-cookie.js';
 import { CdpStorageExtractor } from './extractors/cdp-storage.js';
 import { HeadlessCookieExtractor } from './extractors/headless-cookie.js';

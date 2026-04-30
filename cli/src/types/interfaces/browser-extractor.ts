@@ -1,4 +1,4 @@
-import type { CdpWsClient } from '../../browser/cdp-ws.js';
+import type { CdpWsClient } from '../../strategies/browser/cdp-ws.js';
 import type { ExtractRule } from '../types.js';
 
 /**

@@ -1,7 +1,7 @@
 import dlv from 'dlv';
 
-import type { CdpWsClient } from '../../../browser/cdp-ws.js';
 import type { ExtractRule, IBrowserExtractor } from '../../../types/index.js';
+import type { CdpWsClient } from '../cdp-ws.js';
 
 /**
  * Extracts values from browser localStorage via CDP Runtime.evaluate.

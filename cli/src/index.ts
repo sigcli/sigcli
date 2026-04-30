@@ -86,13 +86,13 @@ export { ProviderRegistry } from './providers/provider-registry.js';
 export { createDefaultProvider } from './providers/auto-provision.js';
 
 // Browser detection
-export { findChannelBrowser } from './browser/detect.js';
-export { detectNativeBrowsers, findNativeBrowser } from './browser/detect-native.js';
-export type { NativeBrowserInfo } from './browser/detect-native.js';
+export { findChannelBrowser } from './utils/detect.js';
+export { detectNativeBrowsers, findNativeBrowser } from './utils/detect-native.js';
+export type { NativeBrowserInfo } from './utils/detect-native.js';
 
 // CDP WebSocket client
-export { connectCdpWs } from './browser/cdp-ws.js';
-export type { CdpWsClient } from './browser/cdp-ws.js';
+export { connectCdpWs } from './strategies/browser/cdp-ws.js';
+export type { CdpWsClient } from './strategies/browser/cdp-ws.js';
 
 // CLI
 export { parseArgs } from './cli-router.js';

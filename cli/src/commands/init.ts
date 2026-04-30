@@ -14,8 +14,8 @@ import { WaitUntil } from '../types/index.js';
 import { generateConfigYaml } from '../config/generator.js';
 import { getConfigPath } from '../config/loader.js';
 import { loadEncryptionKey } from '../crypto/encryption.js';
-import { findNativeBrowser } from '../browser/detect-native.js';
-import { findChannelBrowser } from '../browser/detect.js';
+import { findNativeBrowser } from '../utils/detect-native.js';
+import { findChannelBrowser } from '../utils/detect.js';
 import { ExitCode } from '../utils/exit-codes.js';
 
 // ---------------------------------------------------------------------------

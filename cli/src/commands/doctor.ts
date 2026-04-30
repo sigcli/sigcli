@@ -12,7 +12,7 @@ import path from 'node:path';
 import { isOk } from '../types/index.js';
 import { getConfigPath, loadConfig } from '../config/loader.js';
 import type { SigConfig } from '../config/schema.js';
-import { findChannelBrowser } from '../browser/detect.js';
+import { findChannelBrowser } from '../utils/detect.js';
 import { ExitCode } from '../utils/exit-codes.js';
 import { expandHome } from '../utils/path.js';
 
