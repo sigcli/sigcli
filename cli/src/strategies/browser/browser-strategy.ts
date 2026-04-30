@@ -22,7 +22,7 @@ import type {
 import type { ExtractionResult } from '../../types/interfaces/strategy.js';
 import { expandHome } from '../../utils/path.js';
 import { findFreePort, removeSingletonLock, waitForBrowserReady } from './browser-lifecycle.js';
-import { connectCdpWs, type CdpWsClient } from './cdp-ws.js';
+import { attachToPageTarget, connectCdpWs, type CdpWsClient } from './cdp-ws.js';
 import { CdpCookieExtractor } from './extractors/cdp-cookie.js';
 import { CdpStorageExtractor } from './extractors/cdp-storage.js';
 import { HeadlessCookieExtractor } from './extractors/headless-cookie.js';
@@ -236,7 +236,7 @@ export class BrowserStrategy implements IStrategy {
         let expiresAt: string | undefined;
 
         while (Date.now() < deadline) {
-            const sessionId = await this.attachToPageTarget(cdp);
+            const sessionId = await attachToPageTarget(cdp).catch(() => null);
             const currentUrl = await this.getCdpPageUrl(cdp, sessionId);
             const evaluate = this.makeCdpEvaluator(cdp, sessionId);
 
@@ -289,24 +289,6 @@ export class BrowserStrategy implements IStrategy {
         }
 
         return { credentials, expiresAt };
-    }
-
-    private async attachToPageTarget(cdp: CdpWsClient): Promise<string | null> {
-        try {
-            const targets = (await cdp.send('Target.getTargets')) as {
-                targetInfos: Array<{ targetId: string; type: string; url: string }>;
-            };
-            const page = targets?.targetInfos?.find((t) => t.type === 'page');
-            if (!page) return null;
-
-            const attach = (await cdp.send('Target.attachToTarget', {
-                targetId: page.targetId,
-                flatten: true,
-            })) as { sessionId: string };
-            return attach?.sessionId ?? null;
-        } catch {
-            return null;
-        }
     }
 
     private async getCdpPageUrl(cdp: CdpWsClient, sessionId: string | null): Promise<string> {

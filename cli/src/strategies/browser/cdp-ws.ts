@@ -288,3 +288,18 @@ export function connectCdpWs(wsUrl: string): Promise<CdpWsClient> {
         });
     });
 }
+
+export async function attachToPageTarget(cdp: CdpWsClient): Promise<string | null> {
+    const targets = (await cdp.send('Target.getTargets')) as {
+        targetInfos: Array<{ targetId: string; type: string; url: string }>;
+    };
+    const page = targets?.targetInfos?.find((t) => t.type === 'page');
+    if (!page) return null;
+
+    const attach = (await cdp.send('Target.attachToTarget', {
+        targetId: page.targetId,
+        flatten: true,
+    })) as { sessionId: string };
+
+    return attach?.sessionId ?? null;
+}
