@@ -98,6 +98,7 @@ export class AuthManager {
                     channel: config.browser.channel,
                     execPath: config.browser.execPath ?? '',
                     waitUntil: config.browser.waitUntil,
+                    headlessTimeout: config.browser.headlessTimeout,
                 }),
             );
         }
