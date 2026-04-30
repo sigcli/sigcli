@@ -21,6 +21,7 @@ import type {
 } from '../../types/interfaces/headless-extractor.js';
 import type { ExtractionResult } from '../../types/interfaces/strategy.js';
 import { expandHome } from '../../utils/path.js';
+import { killProcess } from '../../utils/process-kill.js';
 import { findFreePort, removeSingletonLock, waitForBrowserReady } from './browser-lifecycle.js';
 import { attachToPageTarget, connectCdpWs, type CdpWsClient } from './cdp-ws.js';
 import { CdpCookieExtractor } from './extractors/cdp-cookie.js';
@@ -187,16 +188,7 @@ export class BrowserStrategy implements IStrategy {
         let browser: ChildProcess | undefined;
         const cleanup = () => {
             if (browser && !browser.killed) {
-                browser.kill('SIGTERM');
-                setTimeout(() => {
-                    if (browser && !browser.killed) {
-                        try {
-                            browser.kill('SIGKILL');
-                        } catch {
-                            /* ignore */
-                        }
-                    }
-                }, 3000).unref();
+                killProcess(browser);
             }
         };
 
