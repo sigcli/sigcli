@@ -66,8 +66,9 @@ export async function runInit(
     let channel = defaultChannel;
     const browserDataDir = defaultBrowserDataDir;
     const credentialsDir = defaultCredentialsDir;
+    let execPath: string | undefined;
 
-    // Interactive: only ask browser channel
+    // Interactive: ask browser channel, detect or prompt for execPath
     const isTTY = process.stdin.isTTY && process.stdout.isTTY;
     if (isTTY && !yes) {
         const rl = createInterface({ input: process.stdin, output: process.stdout });
@@ -96,14 +97,33 @@ export async function runInit(
                     channel = trimmed;
                 }
             }
+
+            // Detect execPath
+            if (!remote) {
+                const nativeBrowser = findNativeBrowser(channel);
+                if (nativeBrowser) {
+                    execPath = nativeBrowser.execPath;
+                    process.stderr.write(`  Detected: ${execPath}\n`);
+                } else {
+                    process.stderr.write(`  Could not auto-detect ${channel} binary.\n`);
+                    const userPath = await rl.question('Browser executable path: ');
+                    if (userPath.trim()) {
+                        execPath = userPath.trim();
+                    }
+                }
+            }
         } finally {
             rl.close();
         }
+    } else if (!remote) {
+        const nativeBrowser = findNativeBrowser(channel);
+        execPath = nativeBrowser?.execPath;
+        if (!execPath) {
+            process.stderr.write(
+                `Warning: Could not detect browser binary for "${channel}". Set browser.execPath in config manually.\n`,
+            );
+        }
     }
-
-    // Detect execPath for the selected channel
-    const nativeBrowser = remote ? null : findNativeBrowser(channel);
-    const execPath = nativeBrowser?.execPath;
 
     // Resolve ~ in paths for display but keep ~ in config for portability
     const displayBrowserDataDir = browserDataDir.replace(os.homedir(), '~');
@@ -142,12 +162,15 @@ export async function runInit(
         process.stderr.write(`  Browser:        disabled\n`);
     }
     if (remote) {
-        process.stderr.write('\nRemote setup complete (browser disabled).\n');
-        process.stderr.write('  sig sync pull              Pull credentials from a machine with a browser\n');
+        process.stderr.write('\nRemote setup complete. To get credentials:\n');
+        process.stderr.write('  sig sync pull              Pull from a machine with a browser\n');
+        process.stderr.write('  sig login --token <url>    Paste a token manually\n');
     } else {
-        process.stderr.write('\nNext steps:\n');
-        process.stderr.write('  sig login <url>            Authenticate with a service (auto-provisions provider)\n');
-        process.stderr.write('  sig status                 Check auth status\n');
+        process.stderr.write('\nQuick start:\n');
+        process.stderr.write('  sig login https://your-service.com   Auto-provisions provider + opens browser\n');
+        process.stderr.write('  sig get <provider>                   Get credentials as headers\n');
+        process.stderr.write('  sig run <provider> -- curl <url>     Run command with creds injected\n');
+        process.stderr.write('\nNo manual config needed — "sig login <url>" creates providers automatically.\n');
     }
     process.stderr.write('\n');
 }

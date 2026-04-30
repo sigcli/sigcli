@@ -43,21 +43,20 @@ storage:
   credentialsDir: ${options.credentialsDir}
 
 # Providers are auto-provisioned by "sig login <url>".
-# Add entries here only for custom extract/apply rules.
+# Add entries here for custom extract/apply rules or fine-tuning.
 #
 # Example:
-#   my-jira:
-#     domains: ["jira.example.com"]
-#     entryUrl: https://jira.example.com/
+#   my-service:
+#     domains: ["service.example.com"]
+#     entryUrl: https://service.example.com/
 #     strategy: browser
 #     extract:
-#       - from: cookies
-#         name: session
-#         key: "*"
+#       - { from: cookies, name: session, key: "*" }
 #     apply:
-#       - in: header
-#         name: Cookie
-#         value: "\${session}"
+#       - { in: header, name: Cookie, value: "\${session}" }
+#     # ttl: 12h                         # Optional: credential lifetime
+#     # loginMode: cdp                   # Optional: auto|cdp|headless|visible
+#     # required: [session.my_cookie]    # Optional: wait for specific cookies
 providers: {}
 `;
 }

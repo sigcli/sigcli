@@ -262,7 +262,7 @@ describe('runInit', () => {
         expect(output).toContain('Browser data:');
         expect(output).toContain('Credentials:');
         expect(output).toContain('Browser:');
-        expect(output).toContain('Next steps:');
+        expect(output).toContain('Quick start:');
     });
 
     // ---- success message includes correct channel ----
@@ -332,6 +332,7 @@ describe('runInit', () => {
         const output = stderrChunks.join('');
         expect(output).toContain('Remote setup complete');
         expect(output).toContain('sig sync pull');
+        expect(output).toContain('sig login --token');
     });
 
     it('--remote shows "Browser: disabled" in success message', async () => {
