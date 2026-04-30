@@ -150,6 +150,20 @@ export async function runInit(
     // Write config
     await fsp.writeFile(configPath, yaml, 'utf-8');
 
+    // Clear stored credentials when reinitializing
+    if (force) {
+        try {
+            const files = fs.readdirSync(credentialsDir);
+            for (const file of files) {
+                if (file.endsWith('.json')) {
+                    fs.unlinkSync(path.join(credentialsDir, file));
+                }
+            }
+        } catch {
+            /* credentials dir may not exist yet */
+        }
+    }
+
     // Ensure encryption key exists
     await loadEncryptionKey();
 
