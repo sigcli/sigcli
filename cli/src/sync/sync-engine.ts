@@ -1,11 +1,12 @@
 import fs from 'node:fs/promises';
 import YAML from 'yaml';
-import type { IStorage } from '../core/interfaces/storage.js';
-import type { SigConfig } from '../config/schema.js';
+
+import type { IStorage } from '../types/index.js';
 import { getConfigPath } from '../config/loader.js';
-import type { RemoteConfig, SyncResult } from './types.js';
-import type { ISyncTransport } from './interfaces/transport.js';
+import type { SigConfig } from '../config/schema.js';
 import { sanitizeId } from '../utils/sanitize.js';
+import type { ISyncTransport } from './interfaces/transport.js';
+import type { RemoteConfig, SyncResult } from './types.js';
 
 export class SyncEngine {
     private readonly transport: ISyncTransport;

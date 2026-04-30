@@ -1,11 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { randomBytes } from 'node:crypto';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { randomBytes } from 'node:crypto';
-import { DirectoryStorage } from '../../../src/storage/directory-storage.js';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
 import { isEncryptedEnvelope } from '../../../src/crypto/encryption.js';
-import type { StoredCredential } from '../../../src/core/types.js';
+import { DirectoryStorage } from '../../../src/storage/directory-storage.js';
+import type { StoredCredential } from '../../../src/types/types.js';
 
 describe('DirectoryStorage encryption', () => {
     let tmpDir: string;
@@ -13,36 +14,17 @@ describe('DirectoryStorage encryption', () => {
     let storage: DirectoryStorage;
 
     const mockCredential: StoredCredential = {
-        credential: {
-            type: 'api-key',
-            key: 'test-key',
-            headerName: 'Authorization',
-            headerPrefix: 'Bearer',
-        },
         providerId: 'test-provider',
         strategy: 'api-token',
         updatedAt: new Date().toISOString(),
+        values: { token: 'test-key' },
     };
 
     const cookieCredential: StoredCredential = {
-        credential: {
-            type: 'cookie',
-            cookies: [
-                {
-                    name: 'sid',
-                    value: 'abc123',
-                    domain: '.example.com',
-                    path: '/',
-                    expires: -1,
-                    httpOnly: true,
-                    secure: true,
-                },
-            ],
-            obtainedAt: new Date().toISOString(),
-        },
         providerId: 'cookie-provider',
         strategy: 'cookie',
         updatedAt: new Date().toISOString(),
+        values: { session: 'sid=abc123' },
     };
 
     beforeEach(async () => {
@@ -108,16 +90,11 @@ describe('DirectoryStorage encryption', () => {
         expect(await storage.get('beta')).toEqual(credB);
     });
 
-    it('reads unencrypted legacy file', async () => {
+    it('reads unencrypted legacy file (v1 credentials field)', async () => {
         const legacyData = {
             version: 1,
             providerId: 'legacy',
-            credential: {
-                type: 'api-key',
-                key: 'old-key',
-                headerName: 'Authorization',
-                headerPrefix: 'Bearer',
-            },
+            credentials: { token: 'old-key' },
             strategy: 'api-token',
             updatedAt: '2026-01-01T00:00:00.000Z',
         };
@@ -128,6 +105,6 @@ describe('DirectoryStorage encryption', () => {
         const retrieved = await storage.get('legacy');
         expect(retrieved).not.toBeNull();
         expect(retrieved!.providerId).toBe('legacy');
-        expect(retrieved!.credential.type).toBe('api-key');
+        expect(retrieved!.values).toEqual({ token: 'old-key' });
     });
 });

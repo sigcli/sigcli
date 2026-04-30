@@ -1,12 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import {
-    formatJson,
-    formatTable,
     formatCredentialHeaders,
     formatExpiry,
+    formatJson,
     formatStatusIndicator,
+    formatTable,
     stripAnsi,
-} from '../../../src/cli/formatters.js';
+} from '../../../src/utils/formatters.js';
 
 describe('formatJson', () => {
     it('returns pretty-printed JSON for a simple object', () => {

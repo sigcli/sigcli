@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { run } from '../../../src/cli/main.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { run } from '../../../src/cli-router.js';
 
 describe('CLI help text grouping (#9)', () => {
     let stdoutChunks: string[];
@@ -77,8 +78,8 @@ describe('CLI help text grouping (#9)', () => {
         await run(['help']);
         const output = stdoutChunks.join('');
         expect(output).toContain('--as <id>');
-        expect(output).toContain('--token <value>');
-        expect(output).toContain('--cookie');
+        expect(output).toContain('--force');
+        expect(output).toContain('--network-proxy');
         expect(output).toContain('--method <METHOD>');
         expect(output).toContain('--body <json>');
         expect(output).toContain('--keep-config');
@@ -106,10 +107,10 @@ describe('CLI help text grouping (#9)', () => {
         expect(output).toContain('--channel <name>');
     });
 
-    it('help output mentions --verbose in global options', async () => {
+    it('help output does not mention --verbose', async () => {
         await run(['help']);
         const output = stdoutChunks.join('');
-        expect(output).toContain('--verbose');
+        expect(output).not.toContain('--verbose');
     });
 
     it('--help flag on any command shows help text', async () => {

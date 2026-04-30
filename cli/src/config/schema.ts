@@ -1,30 +1,9 @@
 /**
  * Unified configuration schema for SigCLI.
  * All config lives in ~/.sig/config.yaml — no cascade, no env vars.
- *
- * Strategy config types are defined in core/types.ts (shared vocabulary)
- * and re-exported here for convenience.
  */
 
-import type {
-    CredentialType,
-    LocalStorageConfig,
-    StrategyName,
-    ProxyConfig,
-} from '../core/types.js';
-import type { WaitUntilValue } from '../core/constants.js';
-
-// Re-export strategy config types from core/types (the source of truth)
-export type {
-    CookieStrategyConfig,
-    OAuth2StrategyConfig,
-    ApiTokenStrategyConfig,
-    BasicStrategyConfig,
-    StrategyConfig,
-    StrategyName,
-    ProxyConfig,
-    ProxyInjectRule,
-} from '../core/types.js';
+import type { WaitUntilValue } from '../types/index.js';
 
 // ============================================================================
 // Top-level Config Sections
@@ -87,13 +66,14 @@ export interface ProviderEntry {
     name?: string;
     domains: string[];
     entryUrl: string;
-    strategy: StrategyName;
-    config?: Record<string, unknown>;
-    acceptedCredentialTypes?: CredentialType[];
-    setupInstructions?: string;
-    localStorage?: LocalStorageConfig[];
-    forceVisible?: boolean;
-    proxy?: ProxyConfig;
-    networkProxy?: string; // e.g. "socks5://127.0.0.1:1080"
-    loginMode?: string; // 'auto' | 'cdp' | 'headless' | 'visible'
+    strategy: 'browser' | 'prompt';
+    extract: Array<{ from: string; name: string; key: string }>;
+    apply: Array<{ in: string; name: string; value: string; action?: 'set' | 'append' | 'remove' }>;
+    required?: string[];
+    cookiePaths?: string[];
+    ttl?: string;
+    networkProxy?: string;
+    loginMode?: string;
+    loginPatterns?: string[];
+    waitUntil?: WaitUntilValue;
 }

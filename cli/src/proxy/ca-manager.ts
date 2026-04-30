@@ -1,16 +1,17 @@
 import 'reflect-metadata';
-import {
-    X509CertificateGenerator,
-    X509Certificate,
-    KeyUsagesExtension,
-    KeyUsageFlags,
-    BasicConstraintsExtension,
-    SubjectAlternativeNameExtension,
-    cryptoProvider,
-} from '@peculiar/x509';
+
 import { webcrypto } from 'node:crypto';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import {
+    BasicConstraintsExtension,
+    cryptoProvider,
+    KeyUsageFlags,
+    KeyUsagesExtension,
+    SubjectAlternativeNameExtension,
+    X509Certificate,
+    X509CertificateGenerator,
+} from '@peculiar/x509';
 
 cryptoProvider.set(webcrypto as Crypto);
 

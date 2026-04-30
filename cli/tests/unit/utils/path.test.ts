@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
 import os from 'node:os';
 import path from 'node:path';
+import { describe, expect, it } from 'vitest';
+
 import { expandHome } from '../../../src/utils/path.js';
 
 describe('expandHome', () => {

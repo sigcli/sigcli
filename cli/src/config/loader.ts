@@ -4,13 +4,12 @@
  */
 
 import fs from 'node:fs/promises';
-import path from 'node:path';
 import os from 'node:os';
+import path from 'node:path';
 import YAML from 'yaml';
-import type { Result } from '../core/result.js';
-import { err } from '../core/result.js';
-import { ConfigError, type AuthError } from '../core/errors.js';
-import type { SigConfig, ProviderEntry } from './schema.js';
+
+import { ConfigError, err, type AuthError, type Result } from '../types/index.js';
+import type { ProviderEntry, SigConfig } from './schema.js';
 import { validateConfig } from './validator.js';
 
 const CONFIG_PATH = path.join(os.homedir(), '.sig', 'config.yaml');
@@ -66,7 +65,11 @@ export async function saveConfig(config: SigConfig): Promise<void> {
         ),
     };
     await fs.mkdir(path.dirname(CONFIG_PATH), { recursive: true });
-    await fs.writeFile(CONFIG_PATH, YAML.stringify(filtered), 'utf-8');
+    await fs.writeFile(
+        CONFIG_PATH,
+        YAML.stringify(filtered, { collectionStyle: 'block' }),
+        'utf-8',
+    );
 }
 
 /**
@@ -84,7 +87,7 @@ export async function addProviderToConfig(id: string, entry: ProviderEntry): Pro
     if (!doc.getIn(['providers'])) {
         doc.setIn(['providers'], doc.createNode({}));
     }
-    doc.setIn(['providers', id], doc.createNode(entry));
+    doc.setIn(['providers', id], doc.createNode(entry, { flow: false }));
     await fs.writeFile(CONFIG_PATH, doc.toString(), 'utf-8');
 }
 

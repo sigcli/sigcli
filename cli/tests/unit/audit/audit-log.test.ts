@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { logAuditEvent, AuditAction, AuditStatus } from '../../../src/audit/audit-log.js';
+import { describe, expect, it } from 'vitest';
+
+import { AuditAction, AuditStatus, logAuditEvent } from '../../../src/audit/audit-log.js';
 
 describe('AuditAction constants', () => {
     it('defines all expected action values', () => {

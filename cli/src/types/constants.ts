@@ -1,0 +1,160 @@
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const pkg = require('../../package.json') as { version: string };
+
+/**
+ * Shared constants for SigCLI.
+ * Centralizes magic strings and patterns to avoid duplication across modules.
+ */
+
+/**
+ * CLI command names used in the main router and help text.
+ */
+export const Command = {
+    INIT: 'init',
+    DOCTOR: 'doctor',
+    GET: 'get',
+    LOGIN: 'login',
+    REQUEST: 'request',
+    STATUS: 'status',
+    LOGOUT: 'logout',
+    PROVIDERS: 'providers',
+    REMOTE: 'remote',
+    SYNC: 'sync',
+    WATCH: 'watch',
+    RENAME: 'rename',
+    REMOVE: 'remove',
+    COMPLETION: 'completion',
+    RUN: 'run',
+    PROXY: 'proxy',
+    HELP: 'help',
+} as const;
+
+/**
+ * Subcommands for the 'remote' command.
+ */
+export const RemoteSubcommand = {
+    ADD: 'add',
+    REMOVE: 'remove',
+    LIST: 'list',
+} as const;
+
+/**
+ * Subcommands for the 'sync' command.
+ */
+export const SyncSubcommand = {
+    PUSH: 'push',
+    PULL: 'pull',
+} as const;
+
+/**
+ * Subcommands for the 'watch' command.
+ */
+export const WatchSubcommand = {
+    ADD: 'add',
+    REMOVE: 'remove',
+    SET_INTERVAL: 'set-interval',
+} as const;
+
+/**
+ * Subcommands for the 'proxy' command.
+ */
+export const ProxySubcommand = {
+    START: 'start',
+    STOP: 'stop',
+    STATUS: 'status',
+    TRUST: 'trust',
+} as const;
+
+/**
+ * Page load wait conditions for browser navigation.
+ */
+export const WaitUntil = {
+    LOAD: 'load',
+    NETWORK_IDLE: 'networkidle',
+    DOM_CONTENT_LOADED: 'domcontentloaded',
+    COMMIT: 'commit',
+} as const;
+
+export type WaitUntilValue = (typeof WaitUntil)[keyof typeof WaitUntil];
+
+/**
+ * Credential type discriminators matching the Credential union.
+ */
+export const CredentialTypeName = {
+    COOKIE: 'cookie',
+    BEARER: 'bearer',
+    API_KEY: 'api-key',
+    BASIC: 'basic',
+} as const;
+
+/**
+ * URL patterns that indicate a login/auth page.
+ */
+export const LOGIN_URL_PATTERNS: readonly string[] = [
+    '/login',
+    '/signin',
+    '/sign-in',
+    '/auth',
+    '/sso',
+    '/oauth',
+    '/adfs/',
+    '/saml/',
+    'login.microsoftonline.com',
+    'accounts.google.com',
+    'accounts.sap.com',
+] as const;
+
+/**
+ * HTTP header names.
+ */
+export const HttpHeader = {
+    AUTHORIZATION: 'Authorization',
+    COOKIE: 'Cookie',
+    CONTENT_TYPE: 'Content-Type',
+    USER_AGENT: 'User-Agent',
+} as const;
+
+/**
+ * Authorization scheme prefixes.
+ */
+export const AuthScheme = {
+    BEARER: 'Bearer',
+    BASIC: 'Basic',
+} as const;
+
+/**
+ * Output format options for `sig get`.
+ */
+export const OutputFormat = {
+    JSON: 'json',
+    HEADER: 'header',
+    VALUE: 'value',
+} as const;
+
+export type OutputFormatValue = (typeof OutputFormat)[keyof typeof OutputFormat];
+
+/**
+ * Application identity.
+ */
+export const APP_NAME = 'sig';
+export const APP_VERSION = pkg.version;
+
+/**
+ * Login mode for browser authentication.
+ * Controls which browser phases are attempted.
+ */
+export const LoginMode = {
+    AUTO: 'auto',
+    CDP: 'cdp',
+    HEADLESS: 'headless',
+    VISIBLE: 'visible',
+} as const;
+export type LoginModeValue = (typeof LoginMode)[keyof typeof LoginMode];
+
+/**
+ * Default configuration directory and filename.
+ */
+export const SIG_DIR = '.sig';
+export const CONFIG_FILENAME = 'config.yaml';

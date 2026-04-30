@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import { existsSync } from 'node:fs';
-import { readdir, rm, mkdir, cp } from 'node:fs/promises';
-import { join, dirname, basename } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { cp, mkdir, readdir, rm } from 'node:fs/promises';
 import { homedir } from 'node:os';
+import { basename, dirname, join } from 'node:path';
 import { createInterface } from 'node:readline';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
