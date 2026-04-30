@@ -24,7 +24,7 @@ export function generateConfigYaml(options: InitOptions): string {
             : 'mode: browser                              # Use "browserless" on remote/headless machines';
 
     const execPathLine = options.execPath
-        ? `\n  execPath: "${options.execPath}"              # Detected browser binary`
+        ? `\n  execPath: '${options.execPath}'              # Detected browser binary`
         : '';
 
     return `# SigCLI configuration
