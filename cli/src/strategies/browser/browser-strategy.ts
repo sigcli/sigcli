@@ -74,10 +74,11 @@ export class BrowserStrategy implements IStrategy {
     private async tryHeadless(provider: ProviderConfig): Promise<ExtractionResult | null> {
         this.logger.info(`${provider.id}: trying headless`);
         try {
-            // @ts-expect-error - playwright is an optional dependency
-            const pw = await import('playwright').catch(() => null);
+            const pw = await import('playwright-core').catch(() => null);
             if (!pw) {
-                this.logger.info(`${provider.id}: playwright not available, skipping headless`);
+                this.logger.info(
+                    `${provider.id}: playwright-core not available, skipping headless`,
+                );
                 return null;
             }
 
@@ -103,9 +104,8 @@ export class BrowserStrategy implements IStrategy {
                     });
                 }
 
-                const currentUrl = (page.url() as string).toLowerCase();
-                const evaluate: DomEvaluateFn = <T>(expr: string) =>
-                    page.evaluate(expr) as Promise<T>;
+                const currentUrl = page.url().toLowerCase();
+                const evaluate: DomEvaluateFn = <_T>(expr: string) => page.evaluate(expr);
 
                 const authenticated = await this.pageState.isAuthenticated(
                     currentUrl,
@@ -123,7 +123,7 @@ export class BrowserStrategy implements IStrategy {
                 this.logger.info(`${provider.id}: headless authenticated`);
                 const headlessCtx: HeadlessExtractionCtx = {
                     cookies: () => browserCtx.cookies(),
-                    evaluate: <T>(expr: string) => page.evaluate(expr) as Promise<T>,
+                    evaluate: <_T>(expr: string) => page.evaluate(expr),
                 };
 
                 const { credentials, expiresAt } = await this.runHeadlessExtractors(
@@ -143,8 +143,9 @@ export class BrowserStrategy implements IStrategy {
             } finally {
                 await browserCtx.close();
             }
-        } catch {
-            this.logger.warn(`${provider.id}: headless failed, falling back to CDP`);
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            this.logger.warn(`${provider.id}: headless failed (${msg}), falling back to CDP`);
             return null;
         }
     }
