@@ -107,9 +107,10 @@ export class BrowserStrategy implements IStrategy {
                 const currentUrl = page.url().toLowerCase();
                 const evaluate: DomEvaluateFn = <_T>(expr: string) => page.evaluate(expr);
 
+                const authCheckDomains = this.getAuthCheckDomains(provider);
                 const authenticated = await this.pageState.isAuthenticated(
                     currentUrl,
-                    provider.domains,
+                    authCheckDomains,
                     evaluate,
                     provider.loginUrlPatterns,
                 );
@@ -147,6 +148,19 @@ export class BrowserStrategy implements IStrategy {
             const msg = e instanceof Error ? e.message : String(e);
             this.logger.warn(`${provider.id}: headless failed (${msg}), falling back to CDP`);
             return null;
+        }
+    }
+
+    private getAuthCheckDomains(provider: ProviderConfig): string[] {
+        if (!provider.entryUrl) return provider.domains;
+        try {
+            const entryHost = new URL(provider.entryUrl).hostname;
+            if (provider.domains.some((d) => entryHost.includes(d) || d.includes(entryHost))) {
+                return provider.domains;
+            }
+            return [...provider.domains, entryHost];
+        } catch {
+            return provider.domains;
         }
     }
 
