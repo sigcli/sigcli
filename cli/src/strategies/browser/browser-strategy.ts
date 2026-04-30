@@ -1,7 +1,3 @@
-import dlv from 'dlv';
-import net from 'node:net';
-import http from 'node:http';
-import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -16,56 +12,60 @@ import type { ExtractRule } from '../../types/extract.js';
 import type { CdpWsClient } from '../../browser/cdp-ws.js';
 import type { Result } from '../../types/result.js';
 import type { AuthError } from '../../types/errors.js';
+import type { WaitUntilValue } from '../../types/constants.js';
+import type { DomEvaluateFn } from './login-detector.js';
+import type { IPageStateChecker } from './page-state-checker.js';
+import type { IHeadlessExtractor, HeadlessExtractionCtx } from '../../types/interfaces/headless-extractor.js';
 import { ok, err } from '../../types/result.js';
 import { BrowserError, BrowserTimeoutError } from '../../types/errors.js';
-import { LOGIN_URL_PATTERNS } from '../../types/constants.js';
 import { connectCdpWs } from '../../browser/cdp-ws.js';
-import { CookieExtractor } from './extractors/cookie.js';
-import { StorageExtractor } from './extractors/storage.js';
-import { checkRequired } from '../required-checker.js';
+import { CdpCookieExtractor } from './extractors/cdp-cookie.js';
+import { CdpStorageExtractor } from './extractors/cdp-storage.js';
+import { HeadlessCookieExtractor } from './extractors/headless-cookie.js';
+import { HeadlessStorageExtractor } from './extractors/headless-storage.js';
+import { PageStateChecker } from './page-state-checker.js';
+import { checkRequired } from './required-checker.js';
+import { findFreePort, waitForBrowserReady, removeSingletonLock } from './browser-lifecycle.js';
 
 export interface BrowserStrategyOptions {
     browserDataDir: string;
     execPath: string;
     channel: string;
+    waitUntil: WaitUntilValue;
 }
 
-/**
- * BrowserStrategy — launches a browser via CDP and runs sub-extractors.
- *
- * Flow:
- * 1. Find native browser binary
- * 2. Launch with --remote-debugging-port
- * 3. Connect via WebSocket CDP
- * 4. Poll sub-extractors until `required` criteria met or timeout
- * 5. Return extracted credentials
- */
 export class BrowserStrategy implements IStrategy {
     readonly name = 'browser';
     readonly needsBrowser = true;
 
-    private readonly extractors: Map<string, IBrowserExtractor>;
+    private readonly cdpExtractors: Map<string, IBrowserExtractor>;
+    private readonly headlessExtractors: Map<string, IHeadlessExtractor>;
     private readonly options: BrowserStrategyOptions;
+    private readonly pageState: IPageStateChecker;
 
-    constructor(options: BrowserStrategyOptions) {
+    constructor(options: BrowserStrategyOptions, pageStateChecker?: IPageStateChecker) {
         this.options = options;
-        this.extractors = new Map();
-        this.extractors.set('cookies', new CookieExtractor());
-        this.extractors.set('localStorage', new StorageExtractor());
+        this.pageState = pageStateChecker ?? new PageStateChecker();
+        this.cdpExtractors = new Map();
+        this.cdpExtractors.set('cookies', new CdpCookieExtractor());
+        this.cdpExtractors.set('localStorage', new CdpStorageExtractor());
+        this.headlessExtractors = new Map();
+        this.headlessExtractors.set('cookies', new HeadlessCookieExtractor());
+        this.headlessExtractors.set('localStorage', new HeadlessStorageExtractor());
     }
 
     async extract(
         rules: ExtractRule[],
         ctx: ExtractionContext,
     ): Promise<Result<ExtractionResult, AuthError>> {
-        // Cascade: headless → CDP
-
         const headlessResult = await this.tryHeadless(rules, ctx);
         if (headlessResult) return ok(headlessResult);
-
-        // CDP mode
         return this.extractViaCdp(rules, ctx);
     }
+
+    // =========================================================================
+    // Headless — fast, silent, no interaction needed
+    // =========================================================================
 
     private async tryHeadless(
         rules: ExtractRule[],
@@ -76,11 +76,8 @@ export class BrowserStrategy implements IStrategy {
             const pw = await import('playwright').catch(() => null);
             if (!pw) return null;
 
-            const expandedDataDir = this.options.browserDataDir.startsWith('~')
-                ? path.join(os.homedir(), this.options.browserDataDir.slice(1))
-                : this.options.browserDataDir;
-
-            const browserCtx = await pw.chromium.launchPersistentContext(expandedDataDir, {
+            const dataDir = expandDataDir(this.options.browserDataDir);
+            const browserCtx = await pw.chromium.launchPersistentContext(dataDir, {
                 headless: true,
                 channel: this.options.channel,
                 ...(ctx.networkProxy ? { proxy: { server: ctx.networkProxy } } : {}),
@@ -88,86 +85,38 @@ export class BrowserStrategy implements IStrategy {
 
             try {
                 const page = browserCtx.pages()[0] ?? (await browserCtx.newPage());
+                const waitUntil = ctx.waitUntil ?? this.options.waitUntil;
+
                 if (ctx.entryUrl) {
-                    await page.goto(ctx.entryUrl, {
-                        waitUntil: 'load',
-                        timeout: ctx.timeout ?? 15000,
-                    });
+                    await page.goto(ctx.entryUrl, { waitUntil, timeout: ctx.timeout ?? 15000 });
                 }
 
-                // Check if we landed on a login page or were redirected away from provider domain
                 const currentUrl = (page.url() as string).toLowerCase();
-                if (isLoginPageUrl(currentUrl)) return null;
-                const onProviderDomain = ctx.domains.some((d) =>
-                    currentUrl.includes(d.toLowerCase()),
+                const evaluate: DomEvaluateFn = <T>(expr: string) =>
+                    page.evaluate(expr) as Promise<T>;
+
+                const authenticated = await this.pageState.isAuthenticated(
+                    currentUrl,
+                    ctx.domains,
+                    evaluate,
+                    ctx.loginPatterns,
                 );
-                if (!onProviderDomain) return null;
+                if (!authenticated) return null;
 
-                const credentials: ExtractedCredentials = {};
-                let expiresAt: string | undefined;
+                // Build headless extraction context adapter
+                const headlessCtx: HeadlessExtractionCtx = {
+                    cookies: () => browserCtx.cookies(),
+                    evaluate: <T>(expr: string) => page.evaluate(expr) as Promise<T>,
+                };
 
-                for (const rule of rules) {
-                    if (rule.from === 'cookies') {
-                        const cookies = await browserCtx.cookies();
-                        const domainFiltered = cookies.filter(
-                            (c: {
-                                domain: string;
-                                name: string;
-                                value: string;
-                                expires: number;
-                            }) => {
-                                const d = c.domain.startsWith('.') ? c.domain.slice(1) : c.domain;
-                                return ctx.domains.some(
-                                    (pd) =>
-                                        d === pd || pd.endsWith('.' + d) || d.endsWith('.' + pd),
-                                );
-                            },
-                        );
-                        if (domainFiltered.length > 0) {
-                            credentials[rule.name] = domainFiltered
-                                .map((c: { name: string; value: string }) => `${c.name}=${c.value}`)
-                                .join('; ');
+                const { credentials, expiresAt } = await this.runHeadlessExtractors(
+                    headlessCtx,
+                    rules,
+                    ctx.domains,
+                );
 
-                            // Compute expiresAt from cookie expiry
-                            const expiries = domainFiltered
-                                .filter((c: { expires: number }) => c.expires > 0)
-                                .map((c: { expires: number }) => c.expires * 1000);
-                            if (expiries.length > 0) {
-                                expiresAt = new Date(Math.min(...expiries)).toISOString();
-                            }
-                        }
-                    } else if (rule.from === 'localStorage') {
-                        const { storageKey, jsonPath } = this.parseStorageKey(rule.key);
-                        if (storageKey) {
-                            const val = await page.evaluate((k: string) => {
-                                try {
-                                    return localStorage.getItem(k);
-                                } catch {
-                                    return null;
-                                }
-                            }, storageKey);
-                            if (val && jsonPath) {
-                                try {
-                                    const p = JSON.parse(val);
-                                    const r = dlv(p, jsonPath);
-                                    if (r != null) credentials[rule.name] = String(r);
-                                } catch {
-                                    // Value is not valid JSON — skip jsonPath extraction
-                                }
-                            } else if (val) {
-                                credentials[rule.name] = val;
-                            }
-                        }
-                    }
-                }
-
-                // Check required
                 if (ctx.required?.length) {
-                    const unmet = checkRequired(ctx.required, credentials);
-                    if (unmet.length > 0) return null;
-                } else {
-                    const allExtracted = rules.every((r) => !!credentials[r.name]);
-                    if (!allExtracted) return null;
+                    if (checkRequired(ctx.required, credentials).length > 0) return null;
                 }
 
                 return { credentials, expiresAt };
@@ -179,6 +128,39 @@ export class BrowserStrategy implements IStrategy {
         }
     }
 
+    private async runHeadlessExtractors(
+        ctx: HeadlessExtractionCtx,
+        rules: ExtractRule[],
+        domains: string[],
+    ): Promise<{ credentials: ExtractedCredentials; expiresAt?: string }> {
+        const credentials: ExtractedCredentials = {};
+        let expiresAt: string | undefined;
+
+        for (const rule of rules) {
+            const extractor = this.headlessExtractors.get(rule.from);
+            if (!extractor) continue;
+
+            const result = await extractor.extract(ctx, rule, domains);
+            if (result) {
+                credentials[result.name] = result.value;
+                if (result.cookies?.length) {
+                    const expiries = result.cookies
+                        .filter((c) => c.expires > 0)
+                        .map((c) => c.expires * 1000);
+                    if (expiries.length > 0) {
+                        expiresAt = new Date(Math.min(...expiries)).toISOString();
+                    }
+                }
+            }
+        }
+
+        return { credentials, expiresAt };
+    }
+
+    // =========================================================================
+    // CDP — native browser, user interacts, poll until auth complete
+    // =========================================================================
+
     private async extractViaCdp(
         rules: ExtractRule[],
         ctx: ExtractionContext,
@@ -188,11 +170,8 @@ export class BrowserStrategy implements IStrategy {
             return err(new BrowserError('No browser found. Install Chrome, Edge, or Chromium.'));
         }
 
-        const expandedDataDir = this.options.browserDataDir.startsWith('~')
-            ? path.join(os.homedir(), this.options.browserDataDir.slice(1))
-            : this.options.browserDataDir;
-
-        removeSingletonLock(expandedDataDir);
+        const dataDir = expandDataDir(this.options.browserDataDir);
+        removeSingletonLock(dataDir);
 
         let cdpPort: number;
         try {
@@ -203,7 +182,7 @@ export class BrowserStrategy implements IStrategy {
 
         const browserArgs: string[] = [
             `--remote-debugging-port=${cdpPort}`,
-            `--user-data-dir=${expandedDataDir}`,
+            `--user-data-dir=${dataDir}`,
             '--no-first-run',
             '--no-default-browser-check',
         ];
@@ -235,29 +214,15 @@ export class BrowserStrategy implements IStrategy {
         let cdpClient: CdpWsClient | undefined;
 
         try {
-            browser = spawn(execPath, browserArgs, {
-                detached: false,
-                stdio: 'ignore',
-            });
+            browser = spawn(execPath, browserArgs, { detached: false, stdio: 'ignore' });
 
             const wsUrl = await waitForBrowserReady(cdpPort, 15000);
             cdpClient = await connectCdpWs(wsUrl);
 
-            const timeout = ctx.timeout;
-            const result = await this.pollExtractors(
-                cdpClient,
-                rules,
-                ctx.domains,
-                ctx.cookiePaths,
-                ctx.required,
-                timeout,
-            );
-
+            const result = await this.pollUntilComplete(cdpClient, rules, ctx);
             return ok(result);
         } catch (e) {
-            if (e instanceof BrowserTimeoutError) {
-                return err(e);
-            }
+            if (e instanceof BrowserTimeoutError) return err(e);
             return err(new BrowserError(`Browser extraction failed: ${(e as Error).message}`));
         } finally {
             cdpClient?.close();
@@ -268,141 +233,117 @@ export class BrowserStrategy implements IStrategy {
         }
     }
 
-    private async pollExtractors(
+    private async pollUntilComplete(
         cdp: CdpWsClient,
         rules: ExtractRule[],
-        domains: string[],
-        cookiePaths?: string[],
-        required?: string[],
-        timeout = 120000,
+        ctx: ExtractionContext,
     ): Promise<ExtractionResult> {
-        const deadline = Date.now() + timeout;
+        const deadline = Date.now() + ctx.timeout;
         const pollInterval = 2000;
         const credentials: ExtractedCredentials = {};
         let expiresAt: string | undefined;
 
         while (Date.now() < deadline) {
-            for (const rule of rules) {
-                const extractor = this.extractors.get(rule.from);
-                if (!extractor) continue;
+            const sessionId = await this.attachToPageTarget(cdp);
+            const currentUrl = await this.getCdpPageUrl(cdp, sessionId);
+            const evaluate = this.makeCdpEvaluator(cdp, sessionId);
 
+            for (const rule of rules) {
+                const extractor = this.cdpExtractors.get(rule.from);
+                if (!extractor) continue;
                 try {
-                    const result = await extractor.extract(cdp, rule, domains, cookiePaths);
+                    const result = await extractor.extract(cdp, rule, ctx.domains, ctx.cookiePaths);
                     if (result) {
-                        if (result.cookies?.length && required?.length) {
-                            const requiredNames = required
-                                .filter((r) => r.startsWith(rule.name + '.'))
-                                .map((r) => r.slice(rule.name.length + 1));
-                            const source = requiredNames.length
-                                ? result.cookies.filter((c) => requiredNames.includes(c.name))
-                                : result.cookies;
-                            const expiries = source
-                                .filter((c) => c.expires > 0)
-                                .map((c) => c.expires * 1000);
-                            if (expiries.length > 0)
-                                expiresAt = new Date(Math.min(...expiries)).toISOString();
-                        } else if (result.cookies?.length) {
+                        credentials[result.name] = result.value;
+                        if (result.cookies?.length) {
                             const expiries = result.cookies
                                 .filter((c) => c.expires > 0)
                                 .map((c) => c.expires * 1000);
-                            if (expiries.length > 0)
+                            if (expiries.length > 0) {
                                 expiresAt = new Date(Math.min(...expiries)).toISOString();
+                            }
                         }
-                        credentials[result.name] = result.value;
                     }
                 } catch {
-                    // Extraction may fail transiently — keep polling
+                    // Transient failure — keep polling
                 }
             }
 
-            // Check completion: required criteria or all values present
-            if (required?.length) {
-                const unmet = checkRequired(required, credentials);
-                if (unmet.length === 0) return { credentials, expiresAt };
+            if (ctx.required?.length) {
+                if (checkRequired(ctx.required, credentials).length === 0) {
+                    return { credentials, expiresAt };
+                }
             } else {
-                const allExtracted = rules.every((r) => !!credentials[r.name]);
-                if (allExtracted) return { credentials, expiresAt };
+                const authenticated = await this.pageState.isAuthenticated(
+                    currentUrl,
+                    ctx.domains,
+                    evaluate,
+                    ctx.loginPatterns,
+                );
+                if (authenticated && Object.keys(credentials).length > 0) {
+                    return { credentials, expiresAt };
+                }
             }
 
+            if (sessionId) {
+                await cdp.send('Target.detachFromTarget', { sessionId }).catch(() => {});
+            }
             await new Promise((r) => setTimeout(r, pollInterval));
         }
 
         return { credentials, expiresAt };
     }
 
-    private parseStorageKey(key: string): { storageKey: string | null; jsonPath?: string } {
-        if (key.includes('*')) return { storageKey: null };
-        const dotIndex = key.indexOf('.');
-        if (dotIndex === -1) return { storageKey: key };
-        return { storageKey: key.slice(0, dotIndex), jsonPath: key.slice(dotIndex + 1) };
-    }
-}
-
-function isLoginPageUrl(url: string): boolean {
-    return LOGIN_URL_PATTERNS.some((p) => url.includes(p));
-}
-
-function findFreePort(): Promise<number> {
-    return new Promise((resolve, reject) => {
-        const server = net.createServer();
-        server.listen(0, '127.0.0.1', () => {
-            const addr = server.address();
-            if (!addr || typeof addr === 'string') {
-                server.close();
-                reject(new Error('Could not determine free port'));
-                return;
-            }
-            const port = addr.port;
-            server.close(() => resolve(port));
-        });
-        server.on('error', reject);
-    });
-}
-
-async function waitForBrowserReady(port: number, timeoutMs: number): Promise<string> {
-    const deadline = Date.now() + timeoutMs;
-    const pollInterval = 500;
-
-    while (Date.now() < deadline) {
+    private async attachToPageTarget(cdp: CdpWsClient): Promise<string | null> {
         try {
-            const json = await fetchJson(`http://127.0.0.1:${port}/json/version`);
-            const wsUrl = json.webSocketDebuggerUrl as string | undefined;
-            if (wsUrl) return wsUrl;
+            const targets = (await cdp.send('Target.getTargets')) as {
+                targetInfos: Array<{ targetId: string; type: string; url: string }>;
+            };
+            const page = targets?.targetInfos?.find((t) => t.type === 'page');
+            if (!page) return null;
+
+            const attach = (await cdp.send('Target.attachToTarget', {
+                targetId: page.targetId,
+                flatten: true,
+            })) as { sessionId: string };
+            return attach?.sessionId ?? null;
         } catch {
-            // Browser not ready yet
+            return null;
         }
-        await new Promise((r) => setTimeout(r, pollInterval));
     }
 
-    throw new BrowserTimeoutError('waiting for browser CDP endpoint', timeoutMs);
-}
-
-function fetchJson(url: string): Promise<Record<string, unknown>> {
-    return new Promise((resolve, reject) => {
-        const req = http.get(url, (res) => {
-            let data = '';
-            res.on('data', (chunk: string) => (data += chunk));
-            res.on('end', () => {
-                try {
-                    resolve(JSON.parse(data) as Record<string, unknown>);
-                } catch {
-                    reject(new Error(`Failed to parse JSON from ${url}`));
-                }
-            });
-        });
-        req.on('error', reject);
-        req.setTimeout(3000, () => {
-            req.destroy();
-            reject(new Error(`Timeout fetching ${url}`));
-        });
-    });
-}
-
-function removeSingletonLock(dataDir: string): void {
-    const lockFile = path.join(dataDir, 'SingletonLock');
-    try {
-        fs.unlinkSync(lockFile);
-    } catch {
-        // Not critical
+    private async getCdpPageUrl(cdp: CdpWsClient, sessionId: string | null): Promise<string> {
+        if (!sessionId) return '';
+        try {
+            await cdp.send('Runtime.enable', {}, sessionId).catch(() => {});
+            const result = (await cdp.send(
+                'Runtime.evaluate',
+                { expression: 'window.location.href', returnByValue: true },
+                sessionId,
+            )) as { result?: { value?: string } };
+            return result?.result?.value ?? '';
+        } catch {
+            return '';
+        }
     }
+
+    private makeCdpEvaluator(cdp: CdpWsClient, sessionId: string | null): DomEvaluateFn {
+        return async <T>(expression: string): Promise<T> => {
+            if (!sessionId) return undefined as T;
+            const result = (await cdp.send(
+                'Runtime.evaluate',
+                { expression, returnByValue: true },
+                sessionId,
+            )) as { result?: { value?: T } };
+            return result?.result?.value as T;
+        };
+    }
+}
+
+// =========================================================================
+// Helpers
+// =========================================================================
+
+function expandDataDir(dir: string): string {
+    return dir.startsWith('~') ? path.join(os.homedir(), dir.slice(1)) : dir;
 }

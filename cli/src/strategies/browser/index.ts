@@ -1,4 +1,10 @@
 export { BrowserStrategy } from './browser-strategy.js';
 export type { BrowserStrategyOptions } from './browser-strategy.js';
-export { CookieExtractor } from './extractors/cookie.js';
-export { StorageExtractor } from './extractors/storage.js';
+export { LoginPageDetector } from './login-detector.js';
+export type { ILoginPageDetector, DomEvaluateFn } from './login-detector.js';
+export { PageStateChecker } from './page-state-checker.js';
+export type { IPageStateChecker } from './page-state-checker.js';
+export { CdpCookieExtractor } from './extractors/cdp-cookie.js';
+export { CdpStorageExtractor } from './extractors/cdp-storage.js';
+export { HeadlessCookieExtractor } from './extractors/headless-cookie.js';
+export { HeadlessStorageExtractor } from './extractors/headless-storage.js';

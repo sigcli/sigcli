@@ -7,8 +7,6 @@ export { validateConfig } from './config/validator.js';
 export { generateConfigYaml } from './config/generator.js';
 export type { InitOptions } from './config/generator.js';
 
-// Dependency wiring
-
 // Core types
 export type {
     ProviderConfig,
@@ -17,9 +15,7 @@ export type {
     ProviderStatus,
     BrowserLaunchOptions,
     ILogger,
-    LocalStorageConfig,
-    ProxyInjectRule,
-    ProxyConfig,
+    AuthDiagnostics,
     ExtractRule,
     ApplyRule,
 } from './types/types.js';
@@ -53,30 +49,29 @@ export {
 // Interfaces
 export type { IStorage } from './types/interfaces/storage.js';
 export type { IProviderRegistry } from './types/interfaces/provider.js';
-
-// New interfaces (extract/apply redesign)
 export type {
     IStrategy,
     ExtractedCredentials,
     ExtractionContext,
 } from './types/interfaces/strategy.js';
 export type { IBrowserExtractor } from './types/interfaces/browser-extractor.js';
-export type {
-    ProviderConfigV2,
-    StoredCredentialV2,
-} from './types/extract.js';
+
+// Apply engine
 export { ApplyEngine } from './apply/apply-engine.js';
 export type { ApplyResult } from './apply/apply-engine.js';
-export { checkRequired } from './strategies/required-checker.js';
+export { checkRequired } from './strategies/browser/required-checker.js';
+
+// Strategies
 export { BrowserStrategy } from './strategies/browser/index.js';
 export { BrowserStrategy as BrowserSource } from './strategies/browser/index.js';
 export type { BrowserStrategyOptions } from './strategies/browser/index.js';
 export type { BrowserStrategyOptions as BrowserSourceOptions } from './strategies/browser/index.js';
 export { PromptStrategy } from './strategies/prompt/index.js';
 export { PromptStrategy as PromptSource } from './strategies/prompt/index.js';
-export { CookieExtractor } from './strategies/browser/index.js';
-export { StorageExtractor } from './strategies/browser/index.js';
-export { OAuth2Strategy } from './strategies/oauth2/index.js';
+export { CdpCookieExtractor } from './strategies/browser/index.js';
+export { CdpStorageExtractor } from './strategies/browser/index.js';
+export { HeadlessCookieExtractor } from './strategies/browser/index.js';
+export { HeadlessStorageExtractor } from './strategies/browser/index.js';
 export { StrategyRegistry } from './strategies/registry.js';
 
 // AuthManager

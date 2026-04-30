@@ -19,7 +19,7 @@ import type { Result } from './types/result.js';
 import { ok, err, isOk } from './types/result.js';
 import { ProviderNotFoundError, CredentialNotFoundError, type AuthError } from './types/errors.js';
 import { ApplyEngine, type ApplyResult } from './apply/apply-engine.js';
-import { checkRequired } from './strategies/required-checker.js';
+import { checkRequired } from './strategies/browser/required-checker.js';
 import { parseDuration } from './utils/duration.js';
 import { expandHome } from './utils/path.js';
 import { loadEncryptionKey } from './crypto/encryption.js';
@@ -65,12 +65,13 @@ export class AuthManager {
                     strategy: entry.strategy,
                     extract: entry.extract,
                     apply: entry.apply,
-                    proxy: entry.proxy,
                     networkProxy: entry.networkProxy,
                     required: entry.required,
                     cookiePaths: entry.cookiePaths,
                     ttl: entry.ttl,
                     loginMode: entry.loginMode,
+                    loginPatterns: entry.loginPatterns,
+                    waitUntil: entry.waitUntil,
                 }) as ProviderConfig,
         );
 
@@ -90,6 +91,7 @@ export class AuthManager {
                     browserDataDir: config.browser.browserDataDir,
                     channel: config.browser.channel,
                     execPath: config.browser.execPath ?? '',
+                    waitUntil: config.browser.waitUntil,
                 }),
             );
         }
@@ -222,7 +224,7 @@ export class AuthManager {
         const stored = await this.storage.get(provider.id);
         if (!stored) return null;
 
-        const creds = stored.credentials as ExtractedCredentials | undefined;
+        const creds = stored.values;
         if (!creds || Object.keys(creds).length === 0) return null;
 
         const expiresAt = this.computeExpiresAt(stored, provider);
@@ -266,6 +268,8 @@ export class AuthManager {
             cookiePaths: provider.cookiePaths,
             required: provider.required,
             timeout: this.browserConfig.visibleTimeout,
+            waitUntil: (provider.waitUntil as ExtractionContext['waitUntil']) ?? this.browserConfig.waitUntil,
+            loginPatterns: provider.loginPatterns,
         };
 
         const extractResult = await strategy.extract(provider.extract, ctx);
@@ -284,7 +288,7 @@ export class AuthManager {
             providerId: provider.id,
             strategy: provider.strategy,
             updatedAt: new Date().toISOString(),
-            credentials: extractResult.value.credentials,
+            values: extractResult.value.credentials,
             ...(extractResult.value.expiresAt ? { expiresAt: extractResult.value.expiresAt } : {}),
         };
         await this.storage.set(provider.id, storedEntry);

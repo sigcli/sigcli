@@ -11,7 +11,7 @@ import type { ExtractRule } from '../../../types/extract.js';
  *
  * Output value: the resolved string value.
  */
-export class StorageExtractor implements IBrowserExtractor {
+export class CdpStorageExtractor implements IBrowserExtractor {
     readonly type = 'localStorage' as const;
 
     async extract(

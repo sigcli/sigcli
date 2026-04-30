@@ -21,7 +21,7 @@ export interface CdpCookie {
  *
  * Output value: serialized "name1=val1; name2=val2" string.
  */
-export class CookieExtractor implements IBrowserExtractor {
+export class CdpCookieExtractor implements IBrowserExtractor {
     readonly type = 'cookies' as const;
 
     async extract(
