@@ -4,6 +4,7 @@ import { unlinkSync, writeFileSync } from 'node:fs';
 import { isOk } from '../types/index.js';
 import { credentialToEnvVars } from '../utils/credential-env.js';
 import { ExitCode } from '../utils/exit-codes.js';
+import { killProcess } from '../utils/process-kill.js';
 import { extractSensitiveValues, redactOutput } from '../utils/redact.js';
 import { AuditAction, AuditStatus, logAuditEvent } from '../audit/audit-log.js';
 import type { AuthManager } from '../auth-manager.js';
@@ -124,7 +125,11 @@ export async function runRun(
 
     const forwardSignal = (signal: NodeJS.Signals) => {
         cleanup();
-        child.kill(signal);
+        if (process.platform === 'win32') {
+            killProcess(child);
+        } else {
+            child.kill(signal);
+        }
     };
 
     process.on('SIGINT', () => forwardSignal('SIGINT'));

@@ -8,6 +8,7 @@ import { ProxySubcommand } from '../types/index.js';
 import { clearState, isRunning, readState } from '../proxy/proxy-state.js';
 import { ExitCode } from '../utils/exit-codes.js';
 import { expandHome } from '../utils/path.js';
+import { killPid } from '../utils/process-kill.js';
 import { AuditAction, AuditStatus, logAuditEvent } from '../audit/audit-log.js';
 import type { AuthManager } from '../auth-manager.js';
 
@@ -146,7 +147,7 @@ async function handleStop(): Promise<void> {
     }
 
     try {
-        process.kill(state.pid, 'SIGTERM');
+        killPid(state.pid);
         await logAuditEvent({
             action: AuditAction.PROXY_STOP,
             status: AuditStatus.SUCCESS,

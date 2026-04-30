@@ -15,8 +15,12 @@ import { validateConfig } from '../../../src/config/validator.js';
 vi.mock('node:fs', () => ({
     default: {
         existsSync: vi.fn(),
+        readdirSync: vi.fn().mockReturnValue([]),
+        unlinkSync: vi.fn(),
     },
     existsSync: vi.fn(),
+    readdirSync: vi.fn().mockReturnValue([]),
+    unlinkSync: vi.fn(),
 }));
 
 vi.mock('node:fs/promises', () => ({
