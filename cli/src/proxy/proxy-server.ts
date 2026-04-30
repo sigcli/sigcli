@@ -43,11 +43,11 @@ async function applyInjection(
     const provider = resolveProvider(url, auth);
     if (!provider) return { headers: baseHeaders, body: bodyBuffer, url };
 
-    const credResult = await auth.getCredentials(provider.id);
+    const credResult = await auth.getExtractedCreds(provider.id);
     if (!isOk(credResult)) return { headers: baseHeaders, body: bodyBuffer, url };
 
     // Always apply strategy-level credential headers (Cookie, Authorization, etc.)
-    const authHeaders = auth.applyToRequest(provider.id, credResult.value);
+    const { headers: authHeaders } = auth.applyExtractedCreds(provider.apply, credResult.value);
     const mergedHeaders: http.OutgoingHttpHeaders = { ...baseHeaders };
     for (const [key, value] of Object.entries(authHeaders)) {
         mergedHeaders[key.toLowerCase()] = value;

@@ -1,5 +1,5 @@
 import type { AuthManager } from '../auth-manager.js';
-import { isOk } from '../types/result.js';
+import { isOk, isErr } from '../types/result.js';
 import { buildUserAgent } from '../utils/http.js';
 import { formatJson } from '../utils/formatters.js';
 import { HttpHeader } from '../types/constants.js';
@@ -21,10 +21,23 @@ export async function runRequest(
         return;
     }
 
-    const result = await auth.getCredentialsByUrl(url);
-    if (!isOk(result)) {
-        process.stderr.write(`Auth error: ${result.error.message}\n`);
-        if (result.error.code === 'BROWSER_UNAVAILABLE') {
+    const resolveResult = auth.resolveProvider(url);
+    if (isErr(resolveResult)) {
+        process.stderr.write(`Auth error: ${resolveResult.error.message}\n`);
+        await logAuditEvent({
+            action: AuditAction.REQUEST,
+            status: AuditStatus.FAILURE,
+            metadata: { url, error: resolveResult.error.message },
+        });
+        process.exitCode = ExitCode.GENERAL_ERROR;
+        return;
+    }
+    const provider = resolveResult.value;
+
+    const credResult = await auth.getExtractedCreds(provider.id);
+    if (!isOk(credResult)) {
+        process.stderr.write(`Auth error: ${credResult.error.message}\n`);
+        if (credResult.error.code === 'BROWSER_UNAVAILABLE') {
             process.stderr.write(
                 `Hint: Run "sig login ${url} --token <token>" or "sig sync pull" to get credentials.\n`,
             );
@@ -32,14 +45,14 @@ export async function runRequest(
         await logAuditEvent({
             action: AuditAction.REQUEST,
             status: AuditStatus.FAILURE,
-            metadata: { url, error: result.error.message },
+            metadata: { url, error: credResult.error.message },
         });
         process.exitCode = ExitCode.GENERAL_ERROR;
         return;
     }
 
-    const { provider, credentials } = result.value;
-    const authHeaders = auth.applyToRequest(provider.id, credentials);
+    const credentials = credResult.value;
+    const { headers: authHeaders } = auth.applyExtractedCreds(provider.apply, credentials);
 
     const requestHeaders: Record<string, string> = {
         [HttpHeader.USER_AGENT]: buildUserAgent(),

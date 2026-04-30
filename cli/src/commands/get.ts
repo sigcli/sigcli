@@ -1,5 +1,5 @@
 import type { AuthManager } from '../auth-manager.js';
-import { isOk } from '../types/result.js';
+import { isOk, isErr } from '../types/result.js';
 import { formatJson, formatCredentialHeaders } from '../utils/formatters.js';
 import { ExitCode } from '../utils/exit-codes.js';
 import { OutputFormat } from '../types/constants.js';
@@ -29,7 +29,7 @@ export async function runGet(
 
     if (resolved) {
         providerId = resolved.id;
-        const result = await auth.getCredentials(providerId);
+        const result = await auth.getExtractedCreds(providerId);
         if (!isOk(result)) {
             await logAuditEvent({
                 action: AuditAction.CREDENTIAL_ACCESS,
@@ -58,31 +58,44 @@ export async function runGet(
             process.exitCode = ExitCode.PROVIDER_NOT_FOUND;
             return;
         }
-        const result = await auth.getCredentialsByUrl(target);
-        if (!isOk(result)) {
+        const resolveResult = auth.resolveProvider(target);
+        if (isErr(resolveResult)) {
             await logAuditEvent({
                 action: AuditAction.CREDENTIAL_ACCESS,
                 status: AuditStatus.FAILURE,
-                metadata: { target, error: result.error.message },
+                metadata: { target, error: resolveResult.error.message },
             });
-            process.stderr.write(`Error: ${result.error.message}\n`);
-            if (result.error.code === 'BROWSER_UNAVAILABLE') {
+            process.stderr.write(`Error: ${resolveResult.error.message}\n`);
+            process.exitCode = ExitCode.PROVIDER_NOT_FOUND;
+            return;
+        }
+        const provider = resolveResult.value;
+        const credResult = await auth.getExtractedCreds(provider.id);
+        if (!isOk(credResult)) {
+            await logAuditEvent({
+                action: AuditAction.CREDENTIAL_ACCESS,
+                status: AuditStatus.FAILURE,
+                metadata: { target, error: credResult.error.message },
+            });
+            process.stderr.write(`Error: ${credResult.error.message}\n`);
+            if (credResult.error.code === 'BROWSER_UNAVAILABLE') {
                 process.stderr.write(
                     `Hint: Run "sig login ${target}" or "sig sync pull" to get credentials.\n`,
                 );
             }
             process.exitCode =
-                result.error.code === 'PROVIDER_NOT_FOUND'
+                credResult.error.code === 'PROVIDER_NOT_FOUND'
                     ? ExitCode.PROVIDER_NOT_FOUND
                     : ExitCode.CREDENTIAL_NOT_FOUND;
             return;
         }
-        providerId = result.value.provider.id;
-        credentials = result.value.credentials;
+        providerId = provider.id;
+        credentials = credResult.value;
     }
 
-    // Apply credential to get headers
-    const headers = auth.applyToRequest(providerId, credentials);
+    // Apply credential rules to get headers
+    const provider = resolved ?? auth.providerRegistry.get(providerId)!;
+    const { headers } = auth.applyExtractedCreds(provider.apply, credentials);
     const noRedaction = flags['no-redaction'] === true;
     await logAuditEvent({
         action: AuditAction.CREDENTIAL_ACCESS,

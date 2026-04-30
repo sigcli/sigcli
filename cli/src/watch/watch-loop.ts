@@ -65,7 +65,7 @@ export async function runCycle(
         // (session cookies have no expiry, server can invalidate at any time).
         // Browser re-auth via cached SSO sessions is cheap.
         deps.logger.info(`${providerId}: refreshing...`);
-        const credResult = await deps.authManager.getCredentials(providerId);
+        const credResult = await deps.authManager.getExtractedCreds(providerId);
 
         if (isOk(credResult)) {
             result.refreshed.push(providerId);

@@ -2,9 +2,8 @@ import type { AuthManager } from '../auth-manager.js';
 import type { ProviderConfig } from '../types/types.js';
 import type { ProviderEntry } from '../config/schema.js';
 import { addProviderToConfig } from '../config/loader.js';
-import { isOk } from '../types/result.js';
+import { isOk, isErr } from '../types/result.js';
 import { formatJson } from '../utils/formatters.js';
-import { ProviderNotFoundError } from '../types/errors.js';
 import { ExitCode } from '../utils/exit-codes.js';
 import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
 
@@ -38,19 +37,15 @@ export async function runLogin(
     }
 
     // Step 1: Resolve provider (auto-provision if URL)
-    let provider;
-    try {
-        provider = auth.resolveProvider(url);
-    } catch (e) {
-        if (e instanceof ProviderNotFoundError) {
-            process.stderr.write(
-                `Error: No provider found matching "${url}". Run "sig providers" to see configured providers.\n`,
-            );
-            process.exitCode = ExitCode.GENERAL_ERROR;
-            return;
-        }
-        throw e;
+    const resolved = auth.resolveProvider(url);
+    if (isErr(resolved)) {
+        process.stderr.write(
+            `Error: No provider found matching "${url}". Run "sig providers" to see configured providers.\n`,
+        );
+        process.exitCode = ExitCode.GENERAL_ERROR;
+        return;
     }
+    let provider = resolved.value;
 
     const networkProxy =
         typeof flags['network-proxy'] === 'string' ? flags['network-proxy'] : undefined;
@@ -77,7 +72,7 @@ export async function runLogin(
 
         if (status.valid) {
             process.stderr.write(` valid (skipping login)\n`);
-            const credResult = await auth.getCredentials(provider.id);
+            const credResult = await auth.getExtractedCreds(provider.id);
             if (isOk(credResult)) {
                 process.stdout.write(
                     formatJson({
@@ -114,12 +109,12 @@ export async function runLogin(
         return;
     }
 
-    // Step 5: Authenticate via forceReauth (clears stored and re-extracts)
+    // Step 5: Authenticate (clears stored and re-extracts)
     process.stderr.write(`  [2/2] Authenticating with "${provider.name}"...\n`);
-    const result = await auth.forceReauth(
-        provider.id,
-        networkProxy !== undefined ? { networkProxy } : undefined,
-    );
+    const result = await auth.getExtractedCreds(provider.id, {
+        force: true,
+        ...(networkProxy !== undefined ? { networkProxy } : {}),
+    });
     if (!isOk(result)) {
         await logAuditEvent({
             action: AuditAction.LOGIN,

@@ -40,7 +40,7 @@ export async function runRun(
     if (!explicitMode) {
         const allProviders = auth.providerRegistry.list();
         for (const p of allProviders) {
-            const credResult = await auth.getCredentials(p.id);
+            const credResult = await auth.getExtractedCreds(p.id);
             if (isOk(credResult)) {
                 providers.push(p.id);
             }
@@ -58,7 +58,7 @@ export async function runRun(
     const allSecrets: string[] = [];
 
     for (const providerId of providers) {
-        const credResult = await auth.getCredentials(providerId);
+        const credResult = await auth.getExtractedCreds(providerId);
         if (!isOk(credResult)) {
             if (explicitMode) {
                 process.stderr.write(`Error: ${credResult.error.message}\n`);
