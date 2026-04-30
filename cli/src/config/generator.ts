@@ -63,7 +63,7 @@ storage:
 #         value: "\${session}"
 #     # ttl: 12h                         # Optional: credential lifetime
 #     # waitUntil: networkidle           # Optional: load|networkidle|domcontentloaded|commit
-#     # loginPatterns:                   # Optional: custom URL patterns to detect login pages
+#     # loginUrlPatterns:                   # Optional: custom URL patterns to detect login pages
 #     #   - /login
 #     #   - /auth/sso
 #     # required:                        # Optional: wait for specific cookies

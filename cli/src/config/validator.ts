@@ -333,8 +333,8 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
         ...(Array.isArray(raw.cookiePaths) ? { cookiePaths: raw.cookiePaths } : {}),
         ...(typeof raw.ttl === 'string' ? { ttl: raw.ttl } : {}),
         ...(typeof raw.networkProxy === 'string' ? { networkProxy: raw.networkProxy } : {}),
-        ...(Array.isArray(raw.loginPatterns)
-            ? { loginPatterns: raw.loginPatterns as string[] }
+        ...(Array.isArray(raw.loginUrlPatterns)
+            ? { loginUrlPatterns: raw.loginUrlPatterns as string[] }
             : {}),
         ...(typeof raw.waitUntil === 'string'
             ? { waitUntil: raw.waitUntil as ProviderEntry['waitUntil'] }

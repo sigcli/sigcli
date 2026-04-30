@@ -95,7 +95,7 @@ export class BrowserStrategy implements IStrategy {
                     currentUrl,
                     provider.domains,
                     evaluate,
-                    provider.loginPatterns,
+                    provider.loginUrlPatterns,
                 );
                 if (!authenticated) return null;
 
@@ -267,7 +267,7 @@ export class BrowserStrategy implements IStrategy {
                     currentUrl,
                     provider.domains,
                     evaluate,
-                    provider.loginPatterns,
+                    provider.loginUrlPatterns,
                 );
                 if (authenticated && Object.keys(credentials).length > 0) {
                     return { credentials, expiresAt };

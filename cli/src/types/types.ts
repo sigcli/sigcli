@@ -35,7 +35,7 @@ export interface ProviderConfig {
     required?: string[];
     cookiePaths?: string[];
     ttl?: string;
-    loginPatterns?: string[];
+    loginUrlPatterns?: string[];
     waitUntil?: string;
 }
 

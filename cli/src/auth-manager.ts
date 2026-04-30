@@ -75,7 +75,7 @@ export class AuthManager {
                     cookiePaths: entry.cookiePaths,
                     ttl: entry.ttl,
 
-                    loginPatterns: entry.loginPatterns,
+                    loginUrlPatterns: entry.loginUrlPatterns,
                     waitUntil: entry.waitUntil,
                 }) as ProviderConfig,
         );

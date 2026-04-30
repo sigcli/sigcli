@@ -74,6 +74,6 @@ export interface ProviderEntry {
     ttl?: string;
     networkProxy?: string;
 
-    loginPatterns?: string[];
+    loginUrlPatterns?: string[];
     waitUntil?: WaitUntilValue;
 }
