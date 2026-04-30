@@ -4,12 +4,23 @@ Operate sigcli to authenticate with any web service from the CLI. This guide is 
 
 ## Overview
 
-sigcli (`sig`) is a CLI tool that stores and manages authentication credentials for web services. It supports browser-based SSO, OAuth2, API tokens, cookies, and HTTP Basic auth. Credentials are encrypted at rest (AES-256-GCM) and stored locally (`~/.sig/`), then applied automatically to HTTP requests.
+sigcli (`sig`) is a CLI tool that stores and manages authentication credentials for web services. It opens a real browser for SSO login, extracts credentials (cookies, localStorage tokens) based on declarative rules, encrypts them at rest (AES-256-GCM), and injects them into HTTP requests automatically.
 
 **Binary:** `sig`  
 **Config:** `~/.sig/config.yaml`  
 **Credentials:** `~/.sig/credentials/<provider-id>.json` (encrypted, AES-256-GCM)  
 **Encryption key:** `~/.sig/encryption.key`
+
+---
+
+## How sig login Works
+
+1. Opens a browser to the provider's `entryUrl`
+2. You log in normally (SSO, MFA, SAML — any login flow)
+3. Once logged in, sigcli extracts credentials based on the `extract[]` rules in your config (cookies, localStorage values, etc.)
+4. The `required[]` field (if set) determines when extraction is "complete" — sigcli polls until all required values are present
+5. Extracted credentials are encrypted and stored locally
+6. Later, `apply[]` rules control how those credentials are injected into HTTP requests
 
 ---
 
@@ -42,23 +53,18 @@ sigcli (`sig`) is a CLI tool that stores and manages authentication credentials 
 
 ---
 
-## Strategy Selection Guide
-
-Use this decision tree to choose the right `sig login` approach:
+## Login Decision Tree
 
 ```
 Do you have credentials already?
 |
-+- YES: Has API key or Personal Access Token (GitHub, GitLab, etc.)
++- YES: Has API key or Personal Access Token
 |       +- sig login <url> --token <value>         # < 1s, no browser
 |
-+- YES: Has cookies copied from browser DevTools (Network tab -> Copy as curl)
++- YES: Has cookies copied from browser DevTools
 |       +- sig login <url> --cookie "k=v; k2=v2"  # < 1s, no browser
 |
-+- YES: Has username + password (HTTP Basic auth)
-|       +- sig login <url> --username <u> --password <p>  # < 1s, no browser
-|
-+- NO: Must complete SSO/OAuth in a browser
++- NO: Must complete login in a browser
         |
         +- Machine HAS a display (developer laptop)
         |   +- sig login <url>                     # 30-120s, opens browser
@@ -66,17 +72,6 @@ Do you have credentials already?
         +- Machine is HEADLESS / CI / remote
             +- sig sync pull                       # Pull creds from a machine that has them
                (requires: sig remote add first, credentials exist on source machine)
-```
-
-### Strategy flag override
-
-If auto-detection picks the wrong strategy, force one:
-
-```bash
-sig login <url> --strategy cookie      # Browser SSO -> CookieCredential
-sig login <url> --strategy oauth2      # Browser OAuth2 -> BearerCredential
-sig login <url> --strategy api-token   # Static API key -> ApiKeyCredential
-sig login <url> --strategy basic       # Username/password -> BasicCredential
 ```
 
 ---
@@ -266,9 +261,8 @@ sig proxy stop
 | Error Code                 | Cause                                                    | Fix                                                                    |
 | -------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------- |
 | `CREDENTIAL_EXPIRED`       | Token/cookie expired, refresh failed                     | `sig logout <provider> && sig login <url>`                             |
-| `CREDENTIAL_TYPE_MISMATCH` | Wrong credential type for provider                       | Re-login with correct strategy: `--strategy <name>`                    |
 | `REFRESH_FAILED`           | OAuth2 refresh token rejected                            | Re-login: `sig logout <provider> && sig login <url>`                   |
-| `BROWSER_LAUNCH_ERROR`     | playwright-core not installed or no browser channel      | `sig doctor` to diagnose; install playwright-core or chrome            |
+| `BROWSER_LAUNCH_ERROR`     | No browser found or playwright-core not installed        | `sig doctor` to diagnose; install playwright-core or chrome            |
 | `BROWSER_TIMEOUT`          | Browser auth took too long (30s headless / 120s visible) | Try again; if CAPTCHA/MFA: ensure visible browser mode                 |
 | `BROWSER_UNAVAILABLE`      | Machine is in browserless mode                           | Use `--token`/`--cookie` or `sig sync pull`                            |
 | `BROWSER_NAVIGATION_ERROR` | Failed to load URL in browser                            | Check URL is reachable; check network                                  |
@@ -339,28 +333,60 @@ sig login <url>             # 30-120s; uses playwright-core
 
 Each skill needs a provider in `~/.sig/config.yaml`. See [`references/config-template.yaml`](references/config-template.yaml) for a ready-to-use template with all skills pre-configured (Jira, Outlook, MS Teams, Slack). Replace placeholder values (`<...>`) with your organization's URLs and IDs.
 
-### Cookie Strategy Config Options
+### Provider Config Format
 
-When using `strategy: cookie`, the following config fields are available:
-
-| Field             | Type       | Description                                                                                |
-| ----------------- | ---------- | ------------------------------------------------------------------------------------------ |
-| `ttl`             | `string`   | Credential lifetime (e.g. `"12h"`, `"7d"`). Default: `"24h"`                               |
-| `waitUntil`       | `string`   | Page load condition: `load`, `networkidle`, `domcontentloaded`, `commit`                   |
-| `requiredCookies` | `string[]` | Cookie names that must exist before auth is considered complete                            |
-| `cookiePaths`     | `string[]` | Additional URL paths to query when checking cookies (for path-scoped cookies like `/wiki`) |
-
-**When to use `cookiePaths`:** Some sites set auth cookies on a sub-path (e.g. Confluence uses `path=/wiki`). Without `cookiePaths`, sigcli only queries domain roots (`/`) and cannot detect those cookies. Add the relevant path to `cookiePaths` to fix detection:
+Every provider declares **what to extract** and **how to apply** credentials:
 
 ```yaml
-my-wiki:
-    domains: ['wiki.example.com']
-    entryUrl: https://wiki.example.com/wiki/display/Home
-    strategy: cookie
-    config:
-        requiredCookies: ['seraph.confluence']
-        cookiePaths: ['/wiki']
+my-provider:
+    domains: [service.example.com]
+    entryUrl: https://service.example.com/
+    strategy: browser
+    ttl: '12h' # optional: credential lifetime
+    required: [session.my_cookie] # optional: wait for specific values
+    extract:
+        - from: cookies # cookies | localStorage | eval
+          name: session # stored under this name
+          key: '*' # which cookies (* = all)
+    apply:
+        - in: header # header | body | query
+          name: Cookie # HTTP header/field name
+          value: '${session}' # template with extracted values
 ```
+
+### Provider-level fields
+
+| Field          | Type       | Description                                                      |
+| -------------- | ---------- | ---------------------------------------------------------------- |
+| `domains`      | `string[]` | Domains this provider matches (for `sig request` URL matching)   |
+| `entryUrl`     | `string`   | URL opened in browser during `sig login`                         |
+| `strategy`     | `string`   | `browser` (opens browser) or `prompt` (asks user for value)      |
+| `ttl`          | `string`   | Credential lifetime (e.g. `"12h"`, `"7d"`). Default: `"24h"`     |
+| `required`     | `string[]` | Completion check: `name.field` format (e.g. `session.my_cookie`) |
+| `cookiePaths`  | `string[]` | Extra URL paths for path-scoped cookies (e.g. `["/wiki"]`)       |
+| `networkProxy` | `string`   | SOCKS proxy for browser (e.g. `socks5://127.0.0.1:3333`)         |
+| `extract`      | `array`    | What to extract (see below)                                      |
+| `apply`        | `array`    | How to inject into requests (see below)                          |
+
+### extract[] fields
+
+Each entry has exactly 3 fields:
+
+| Field  | Description                         | Values                                       |
+| ------ | ----------------------------------- | -------------------------------------------- |
+| `from` | Where to extract                    | `cookies` \| `localStorage` \| `eval`        |
+| `name` | Store as this name (credential key) | Any string (referenced in `apply` templates) |
+| `key`  | What to extract                     | `*` (all) \| specific name \| glob pattern   |
+
+### apply[] fields
+
+Each entry has exactly 3 fields:
+
+| Field   | Description       | Values                                      |
+| ------- | ----------------- | ------------------------------------------- |
+| `in`    | Where to inject   | `header` \| `body` \| `query`               |
+| `name`  | Field/header name | `Cookie`, `Authorization`, etc.             |
+| `value` | Value template    | `"${name}"` \| `"Bearer ${name}"` \| static |
 
 ### Quick Start
 

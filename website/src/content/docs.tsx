@@ -29,7 +29,7 @@ export const pageContent = {
     meta: {
         title: 'Sigcli Docs — Complete Reference',
         description:
-            'Complete documentation for Sigcli: getting started, commands reference, environment variables, configuration, strategies, browser adapters, SDK, AI agents, and remote sync.',
+            'Complete documentation for Sigcli: getting started, commands reference, environment variables, configuration, browser adapters, SDK, AI agents, and remote sync.',
     },
 
     toc: [
@@ -112,11 +112,16 @@ export const pageContent = {
             parent: '#configuration',
             prefix: '└ ',
         }),
-        tocItem('#strategies', 'Auth Strategies'),
-        tocItem('#strat-cookie', 'cookie', { level: 1, parent: '#strategies', prefix: '├ ' }),
-        tocItem('#strat-oauth2', 'oauth2', { level: 1, parent: '#strategies', prefix: '├ ' }),
-        tocItem('#strat-api-token', 'api-token', { level: 1, parent: '#strategies', prefix: '├ ' }),
-        tocItem('#strat-basic', 'basic', { level: 1, parent: '#strategies', prefix: '└ ' }),
+        tocItem('#config-extract', 'extract[] rules', {
+            level: 1,
+            parent: '#configuration',
+            prefix: '├ ',
+        }),
+        tocItem('#config-apply', 'apply[] rules', {
+            level: 1,
+            parent: '#configuration',
+            prefix: '└ ',
+        }),
         tocItem('#browser-adapters', 'Browser Adapters'),
         tocItem('#sdk', 'SDK'),
         tocItem('#sdk-ts', 'TypeScript SDK', { level: 1, parent: '#sdk', prefix: '├ ' }),
@@ -720,12 +725,6 @@ sig login https://jira.example.com --cookie "SESSION=abc123; csrf_token=xyz"
 # HTTP Basic auth
 sig login https://jira.example.com --username alice --password hunter2
 
-# Force a specific strategy
-sig login https://jira.example.com --strategy cookie
-sig login https://jira.example.com --strategy oauth2
-sig login https://jira.example.com --strategy api-token
-sig login https://jira.example.com --strategy basic
-
 # Skip stored credential check, go straight to browser
 sig login https://jira.example.com --force`}</CodeBlock>
 
@@ -870,28 +869,25 @@ curl https://jira.example.com/api/me   # credentials injected automatically`}</C
                         vars.
                     </P>
                     <P>
-                        <strong>Inject rules:</strong> For APIs that need credentials in
-                        non-standard locations (body fields, query parameters, custom headers), add{' '}
-                        <Code>proxy.inject</Code> rules to the provider config. The proxy and{' '}
-                        <Code>sig request</Code> apply these rules after standard credential
-                        headers.
+                        <strong>Credential injection:</strong> The proxy uses the provider's{' '}
+                        <Code>apply[]</Code> rules to inject credentials into requests. These
+                        same rules are used by <Code>sig request</Code>, <Code>sig get</Code>,
+                        and <Code>sig run</Code> — one config for all access methods.
                     </P>
-                    <CodeBlock lang="yaml">{`# Example: inject xoxc token from localStorage as form body parameter
+                    <CodeBlock lang="yaml">{`# Example: inject both cookie and bearer token
 providers:
   app-slack:
-    # ... domains, strategy, etc.
-    proxy:
-      inject:
-        - in: body           # header | body | query
-          action: set         # set | append | remove
-          name: token
-          from: credential.localStorage.xoxc-token`}</CodeBlock>
+    strategy: browser
+    extract:
+      - { from: cookies, name: session, key: "*" }
+      - { from: localStorage, name: xoxc-token, key: "localConfig_v2.teams.*.token" }
+    apply:
+      - { in: header, name: Cookie, value: "\${session}" }
+      - { in: header, name: Authorization, value: "Bearer \${xoxc-token}" }`}</CodeBlock>
                     <P>
-                        The <Code>from</Code> field resolves paths against the stored credential:{' '}
-                        <Code>credential.cookies</Code>, <Code>credential.accessToken</Code>,{' '}
-                        <Code>credential.localStorage.&lt;key&gt;</Code>. Body injection supports{' '}
-                        <Code>application/json</Code> and{' '}
-                        <Code>application/x-www-form-urlencoded</Code> content types.
+                        The <Code>apply[]</Code> rules support injection into headers, body
+                        fields, and query parameters. Template variables (<Code>{'${name}'}</Code>)
+                        reference extracted credential names.
                     </P>
                     <P>
                         <strong>Auto-refresh:</strong> The proxy daemon runs the watch/refresh loop
@@ -1015,35 +1011,136 @@ elif auth_type == "bearer":
                     </SectionHeading>
                     <P>
                         Sigcli reads <Code>~/.sig/config.yaml</Code>. Run <Code>sig init</Code> to
-                        generate a starter file. The top-level keys are <Code>mode</Code> and{' '}
-                        <Code>providers</Code>.
+                        generate a starter file. Providers are auto-created by{' '}
+                        <Code>sig login &lt;url&gt;</Code>, or you can add them manually for
+                        fine-grained control over extraction and injection rules.
                     </P>
-                    <CodeBlock lang="bash">{`# ~/.sig/config.yaml
+                    <CodeBlock lang="yaml">{`# ~/.sig/config.yaml
 
-mode: browser          # browser | browserless
-browserChannel: chrome # chrome | msedge | chromium (default: chromium)
+mode: browser                    # browser | browserless
+
+browser:
+  channel: msedge                # msedge | chrome | chromium
+  browserDataDir: ~/.sig/browser-data
+  headlessTimeout: 30000
+  visibleTimeout: 120000
+  waitUntil: load
+
+storage:
+  credentialsDir: ~/.sig/credentials
 
 providers:
   my-jira:
-    url: https://jira.example.com
-    strategy: cookie
-    requiredCookies:
-      - SESSION`}</CodeBlock>
+    domains: [jira.example.com]
+    entryUrl: https://jira.example.com/
+    strategy: browser
+    ttl: "10d"
+    extract:
+      - { from: cookies, name: session, key: "*" }
+    apply:
+      - { in: header, name: Cookie, value: "\${session}" }`}</CodeBlock>
 
                     <SectionHeading id="config-providers" level={2}>
-                        Provider config options
+                        Provider config
                     </SectionHeading>
-                    <CodeBlock lang="bash">{`providers:
+                    <P>
+                        Every provider declares <strong>what to extract</strong> (cookies,
+                        localStorage values, etc.) and <strong>how to apply</strong> them to HTTP
+                        requests. This is the same config used by all access methods — {' '}
+                        <Code>sig get</Code>, <Code>sig request</Code>, <Code>sig run</Code>, and{' '}
+                        <Code>sig proxy</Code>.
+                    </P>
+                    <CodeBlock lang="yaml">{`providers:
   <provider-id>:
-    url: <base-url>              # required: URL to match
-    strategy: cookie|oauth2|api-token|basic
-    requiredCookies:             # wait until these cookies appear
-      - SESSION
-    cookiePaths:                 # extra paths for path-scoped cookies
-      - /wiki
-    forceVisible: true           # always open visible browser (default: false)
-    waitUntil: networkidle       # load event: load|domcontentloaded|networkidle
-    ttl: 8h                      # credential TTL (e.g. 1h, 8h, 7d)`}</CodeBlock>
+    domains: [example.com]       # domains this provider matches
+    entryUrl: https://...        # URL opened during sig login
+    strategy: browser            # browser | prompt
+    ttl: "12h"                   # credential lifetime (e.g. 12h, 7d)
+    required: [session.MY_COOKIE]  # completion check (optional)
+    cookiePaths: ["/wiki"]       # extra paths for path-scoped cookies (optional)
+    extract:
+      - from: cookies            # cookies | localStorage | eval
+        name: session            # stored under this name
+        key: "*"                 # which values (* = all, or glob pattern)
+    apply:
+      - in: header               # header | body | query
+        name: Cookie             # HTTP header/field name
+        value: "\${session}"      # template referencing extracted names`}</CodeBlock>
+
+                    <SectionHeading id="config-extract" level={2}>
+                        extract[] rules
+                    </SectionHeading>
+                    <P>
+                        Each entry tells sigcli what to pull from the browser after login.
+                        Three fields: <Code>from</Code> (where), <Code>name</Code> (store as),
+                        and <Code>key</Code> (what to grab).
+                    </P>
+                    <CodeBlock lang="yaml">{`extract:
+  # All cookies from the domain
+  - { from: cookies, name: session, key: "*" }
+
+  # A specific localStorage value (dot-path into JSON)
+  - { from: localStorage, name: xoxc-token, key: "localConfig_v2.teams.E7RBBBXHB.token" }
+
+  # MSAL OAuth2 token from localStorage (glob pattern)
+  - { from: localStorage, name: access_token, key: "*|accesstoken|*graph.microsoft.com*" }`}</CodeBlock>
+
+                    <SectionHeading id="config-apply" level={2}>
+                        apply[] rules
+                    </SectionHeading>
+                    <P>
+                        Each entry tells sigcli how to inject extracted values into HTTP requests.
+                        Template variables (<Code>{'${name}'}</Code>) reference the <Code>name</Code>{' '}
+                        field from your extract rules.
+                    </P>
+                    <CodeBlock lang="yaml">{`apply:
+  # Inject all cookies as a Cookie header
+  - { in: header, name: Cookie, value: "\${session}" }
+
+  # Inject a bearer token
+  - { in: header, name: Authorization, value: "Bearer \${access_token}" }
+
+  # Inject into query string
+  - { in: query, name: api_key, value: "\${api_key}" }`}</CodeBlock>
+
+                    <P>
+                        <strong>Real-world examples:</strong>
+                    </P>
+                    <CodeBlock lang="yaml">{`# Simple cookie site (Jira, Wiki, etc.)
+my-jira:
+  domains: [jira.example.com]
+  entryUrl: https://jira.example.com/
+  strategy: browser
+  ttl: "10d"
+  extract:
+    - { from: cookies, name: session, key: "*" }
+  apply:
+    - { in: header, name: Cookie, value: "\${session}" }
+
+# OAuth2 via localStorage (MS Teams, Graph API)
+ms-teams:
+  domains: [teams.cloud.microsoft]
+  entryUrl: https://teams.cloud.microsoft/v2/
+  strategy: browser
+  required: [access_token]
+  extract:
+    - { from: localStorage, name: access_token, key: "*|accesstoken|*ic3.teams.office.com*" }
+  apply:
+    - { in: header, name: Authorization, value: "Bearer \${access_token}" }
+
+# Multi-extraction (Slack: cookies + localStorage token)
+app-slack:
+  domains: [mycompany.slack.com]
+  entryUrl: https://app.slack.com/client/E7RBBBXHB
+  strategy: browser
+  ttl: "7d"
+  required: [session.d, xoxc-token]
+  extract:
+    - { from: cookies, name: session, key: "*" }
+    - { from: localStorage, name: xoxc-token, key: "localConfig_v2.teams.E7RBBBXHB.token" }
+  apply:
+    - { in: header, name: Cookie, value: "\${session}" }
+    - { in: header, name: Authorization, value: "Bearer \${xoxc-token}" }`}</CodeBlock>
                 </>
             ),
             aside: (
@@ -1051,71 +1148,6 @@ providers:
                     Provider IDs (e.g. <Code>my-jira</Code>) are how you reference a provider in all
                     commands. <Code>sig login</Code> auto-creates a provider entry when you pass a
                     URL; use <Code>--as</Code> to set a custom ID.
-                </P>
-            ),
-        },
-
-        /* ── Auth Strategies ── */
-        {
-            content: (
-                <>
-                    <SectionHeading id="strategies" level={1}>
-                        Auth Strategies
-                    </SectionHeading>
-                    <P>
-                        A strategy implements <Code>IAuthStrategy</Code>: <Code>validate</Code>,{' '}
-                        <Code>authenticate</Code>, <Code>refresh</Code>, and{' '}
-                        <Code>applyToRequest</Code>. Sigcli ships four built-in strategies.
-                        Auto-detection picks the right one; use <Code>--strategy</Code> to override.
-                    </P>
-
-                    <SectionHeading id="strat-cookie" level={3}>
-                        cookie
-                    </SectionHeading>
-                    <P>
-                        Captures the cookie jar from a real browser session. Best for SSO sites like
-                        Any site with multi-step login (QR codes, SAML, MFA). Supports{' '}
-                        <Code>forceVisible</Code>, <Code>waitUntil</Code>,{' '}
-                        <Code>requiredCookies</Code>, and <Code>cookiePaths</Code> (for sites that
-                        set auth cookies on a sub-path like <Code>/wiki</Code>).
-                    </P>
-                    <CodeBlock lang="bash">{`sig login https://jira.example.com --strategy cookie`}</CodeBlock>
-
-                    <SectionHeading id="strat-oauth2" level={3}>
-                        oauth2
-                    </SectionHeading>
-                    <P>
-                        Watches for <Code>Authorization: Bearer ...</Code> on outgoing requests, or
-                        decodes a JWT from an OAuth redirect. Auto-refreshes when a refresh token is
-                        present.
-                    </P>
-                    <CodeBlock lang="bash">{`sig login https://jira.example.com --strategy oauth2`}</CodeBlock>
-
-                    <SectionHeading id="strat-api-token" level={3}>
-                        api-token
-                    </SectionHeading>
-                    <P>
-                        For static API keys or Personal Access Tokens you already have. No browser
-                        needed — ideal for CI/CD.
-                    </P>
-                    <CodeBlock lang="bash">{`sig login https://jira.example.com --token <your-pat>`}</CodeBlock>
-
-                    <SectionHeading id="strat-basic" level={3}>
-                        basic
-                    </SectionHeading>
-                    <P>
-                        Username and password, encoded to a Basic auth header at request time. The
-                        plaintext password is stored only in the sealed credential file under{' '}
-                        <Code>~/.sig/credentials/</Code>.
-                    </P>
-                    <CodeBlock lang="bash">{`sig login https://jira.example.com --username alice --password hunter2`}</CodeBlock>
-                </>
-            ),
-            aside: (
-                <P>
-                    Strategies return <Code>{'Result<T, AuthError>'}</Code> — never throw for
-                    expected failures. Callers check <Code>isOk()</Code> / <Code>isErr()</Code>.
-                    Build custom strategies by implementing <Code>IAuthStrategyFactory</Code>.
                 </P>
             ),
         },
@@ -1128,41 +1160,37 @@ providers:
                         Browser Adapters
                     </SectionHeading>
                     <P>
-                        Sigcli abstracts the browser behind <Code>IBrowserAdapter</Code> — three
-                        small classes: <strong>Adapter → Session → Page</strong>. Two adapters ship
-                        in the box.
+                        Sigcli uses a real browser for SSO login. Two adapters are available:
                     </P>
 
                     <List>
                         <Li>
                             <strong>playwright</strong> — Default. Uses <Code>playwright-core</Code>{' '}
                             with Chromium, Chrome, or Edge. Supports headless and visible modes.
-                            Required for browser SSO.
                         </Li>
                         <Li>
-                            <strong>chrome-cdp</strong> — Connects to an existing Chrome instance
-                            via the Chrome DevTools Protocol. Useful when you want to attach to your
-                            already-open browser without launching a new one.
+                            <strong>chrome-cdp</strong> — Connects to an existing Chrome/Edge instance
+                            via CDP. Useful when you want to reuse your already-open browser session.
                         </Li>
                     </List>
 
                     <P>
                         <Code>sig init --remote</Code> puts Sigcli into <Code>browserless</Code>{' '}
-                        mode, where the <Code>NullBrowserAdapter</Code> is used — token/cookie/basic
-                        login still works, but SSO flows are disabled.
+                        mode — token/cookie login still works, but browser-based SSO flows are
+                        disabled. Use <Code>sig sync pull</Code> to get credentials from a machine
+                        that has a browser.
                     </P>
-                    <CodeBlock lang="bash">{`# Which adapter to use?
-# → Developer laptop with display: playwright (default)
+                    <CodeBlock lang="bash">{`# Which mode to use?
+# → Developer laptop with display: browser (default)
 # → Attach to open Chrome: chrome-cdp
 # → Headless CI / remote server: browserless mode + sig sync pull`}</CodeBlock>
                 </>
             ),
             aside: (
                 <P>
-                    Write a custom adapter by implementing <Code>IBrowserAdapter</Code>,{' '}
-                    <Code>IBrowserSession</Code>, and <Code>IBrowserPage</Code>. Lazy-import the
-                    browser library and throw <Code>BrowserLaunchError</Code> on import failure so{' '}
-                    <Code>sig doctor</Code> can diagnose what's missing.
+                    Set <Code>browser.channel</Code> in config to <Code>msedge</Code>,{' '}
+                    <Code>chrome</Code>, or <Code>chromium</Code>. Run <Code>sig doctor</Code>{' '}
+                    to verify your browser is detected correctly.
                 </P>
             ),
         },
@@ -1305,12 +1333,12 @@ sig status my-jira --format json
                     </SectionHeading>
                     <List>
                         <Li>
-                            <Code>sigcli-auth</Code> — Authentication guide. Strategy selection,
+                            <Code>sigcli-auth</Code> — Authentication guide. Config reference,
                             command reference, error recovery. Bundled with every install.
                         </Li>
                         <Li>
                             <Code>outlook</Code> — Read, send, search, reply, forward emails via
-                            Microsoft Graph. Uses <Code>ms-graph</Code> provider (OAuth2).
+                            Microsoft Graph. Uses <Code>ms-graph</Code> provider.
                         </Li>
                         <Li>
                             <Code>msteams</Code> — Messages, conversations, people search, calendar
@@ -1319,7 +1347,7 @@ sig status my-jira --format json
                         </Li>
                         <Li>
                             <Code>slack</Code> — Channels, messages, search, reactions via Slack Web
-                            API. Uses <Code>app-slack</Code> provider (cookie + localStorage).
+                            API. Uses <Code>app-slack</Code> provider.
                         </Li>
                     </List>
                     <P>
@@ -1554,9 +1582,6 @@ sig watch start --interval 1h`}</CodeBlock>
                     </P>
                     <CodeBlock lang="bash">{`CREDENTIAL_EXPIRED        # token/cookie expired, refresh failed
                           # fix: sig logout <p> && sig login <url>
-
-CREDENTIAL_TYPE_MISMATCH  # wrong credential type for provider
-                          # fix: re-login with --strategy <name>
 
 REFRESH_FAILED            # OAuth2 refresh token rejected
                           # fix: sig logout <p> && sig login <url>
