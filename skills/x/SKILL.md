@@ -36,12 +36,19 @@ sig login https://x.com/
 
 ```yaml
 x:
-    domains: ['x.com', 'twitter.com']
+    domains: [x.com, twitter.com]
     entryUrl: https://x.com/i/flow/login
-    strategy: cookie
-    config:
-        ttl: '7d'
-        requiredCookies: ['ct0', 'auth_token']
+    strategy: browser
+    ttl: '7d'
+    required: [session.ct0, session.auth_token]
+    extract:
+        - from: cookies
+          name: session
+          key: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: '${session}'
 ```
 
 ## Scripts Reference

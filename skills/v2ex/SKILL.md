@@ -33,9 +33,17 @@ Then retry the `sig run` command.
 
 ```yaml
 v2ex:
-    domains: ['www.v2ex.com', 'v2ex.com']
+    domains: [www.v2ex.com, v2ex.com]
     entryUrl: https://www.v2ex.com/signin
-    strategy: cookie
+    strategy: browser
+    extract:
+        - from: cookies
+          name: session
+          key: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: '${session}'
 ```
 
 ## Scripts Reference

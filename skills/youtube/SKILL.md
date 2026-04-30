@@ -39,12 +39,19 @@ sig login https://www.youtube.com/
 
 ```yaml
 youtube:
-    domains: ['www.youtube.com', 'youtube.com']
+    domains: [www.youtube.com, youtube.com]
     entryUrl: https://www.youtube.com/
-    strategy: cookie
-    config:
-        ttl: '30d'
-        requiredCookies: ['__Secure-3PAPISID', 'LOGIN_INFO']
+    strategy: browser
+    ttl: '30d'
+    required: [session.__Secure-3PAPISID, session.LOGIN_INFO]
+    extract:
+        - from: cookies
+          name: session
+          key: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: '${session}'
 ```
 
 ## Scripts Reference

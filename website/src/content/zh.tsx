@@ -173,21 +173,19 @@ sig proxy start`}</CodeBlock>
                     <CodeBlock lang="bash">{`# 步骤一：在 ~/.sig/config.yaml 中配置提供者
 providers:
   my-jira:
-    url: https://jira.example.com
-    strategy: cookie
-    requiredCookies: [SESSION]
-  grafana:
-    url: https://grafana.example.com
-    strategy: bearer
-  my-api:
-    url: https://api.example.com
-    strategy: api-token
+    domains: [jira.example.com]
+    entryUrl: https://jira.example.com/
+    strategy: browser
+    extract:
+      - { from: cookies, name: session, key: "*" }
+    apply:
+      - { in: header, name: Cookie, value: "\${session}" }
 
 # 步骤二：认证一次（浏览器 SSO，无头→可视自动切换）
 $ sig login https://jira.example.com
 → chromium 无头模式启动 …
 ⚠ 检测到登录页面 — 切换为可视模式
-✓ 捕获 4 个 cookie · 2 个 x-header
+✓ 捕获 4 个 cookie
 ✓ 加密存储至 ~/.sig/credentials/my-jira.json
 
 # 步骤三：AI 代理替你工作
@@ -231,10 +229,9 @@ $ sig run my-api -- node sync_data.js`}</CodeBlock>
                             AI 代理既能完成任务又无法窃取秘密。
                         </Li>
                         <Li>
-                            <strong>4 种认证策略</strong> — <Code>cookie</Code>（浏览器 SSO）、
-                            <Code>oauth2</Code>（Bearer/JWT）、<Code>api-token</Code>（静态密钥）、
-                            <Code>basic</Code>（用户名/密码）。自动检测或通过{' '}
-                            <Code>--strategy</Code> 手动指定。
+                            <strong>声明式配置</strong> — 每个提供者定义 <Code>extract[]</Code>{' '}
+                            规则（cookie、localStorage、令牌）和 <Code>apply[]</Code>{' '}
+                            规则（header、body、query）。一份配置适用所有访问方式。
                         </Li>
                         <Li>
                             <strong>加密存储</strong> — 所有凭证使用 AES-256-GCM

@@ -187,9 +187,13 @@ curl https://my-jira.example.com/rest/api/2/myself`}</CodeBlock>
                     </P>
                     <CodeBlock lang="yaml">{`providers:
   my-jira:
-    url: https://my-jira.example.com
-    strategy: cookie
-    requiredCookies: [SESSION]`}</CodeBlock>
+    domains: [my-jira.example.com]
+    entryUrl: https://my-jira.example.com/
+    strategy: browser
+    extract:
+      - { from: cookies, name: session, key: "*" }
+    apply:
+      - { in: header, name: Cookie, value: "\${session}" }`}</CodeBlock>
 
                     <P>
                         <strong>
@@ -252,10 +256,9 @@ $ sig request https://my-jira.example.com/rest/api/2/myself`}</CodeBlock>
                             way to give an agent access to a single service.
                         </Li>
                         <Li>
-                            <strong>4 auth strategies</strong> — <Code>cookie</Code> (browser SSO),{' '}
-                            <Code>oauth2</Code> (Bearer/JWT), <Code>api-token</Code> (static keys),{' '}
-                            <Code>basic</Code> (username/password). Auto-detected or forced with{' '}
-                            <Code>--strategy</Code>.
+                            <strong>Declarative config</strong> — define <Code>extract[]</Code>{' '}
+                            rules (cookies, localStorage, tokens) and <Code>apply[]</Code> rules
+                            (headers, body, query) per provider. One config for all access methods.
                         </Li>
                         <Li>
                             <strong>Encrypted at rest</strong> — AES-256-GCM. Every credential

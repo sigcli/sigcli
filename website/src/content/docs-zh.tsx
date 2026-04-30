@@ -30,7 +30,7 @@ export const pageContent = {
     meta: {
         title: 'Sigcli 文档 — 完整参考',
         description:
-            'Sigcli 完整文档：快速上手、命令参考、环境变量、配置、认证策略、浏览器适配器、SDK、AI 代理集成与远程同步。',
+            'Sigcli 完整文档：快速上手、命令参考、环境变量、配置、浏览器适配器、SDK、AI 代理集成与远程同步。',
     },
 
     toc: [
@@ -121,11 +121,16 @@ export const pageContent = {
             parent: '#configuration',
             prefix: '└ ',
         }),
-        tocItem('#strategies', '认证策略'),
-        tocItem('#strat-cookie', 'cookie', { level: 1, parent: '#strategies', prefix: '├ ' }),
-        tocItem('#strat-oauth2', 'oauth2', { level: 1, parent: '#strategies', prefix: '├ ' }),
-        tocItem('#strat-api-token', 'api-token', { level: 1, parent: '#strategies', prefix: '├ ' }),
-        tocItem('#strat-basic', 'basic', { level: 1, parent: '#strategies', prefix: '└ ' }),
+        tocItem('#config-extract', 'extract[] 规则', {
+            level: 1,
+            parent: '#configuration',
+            prefix: '├ ',
+        }),
+        tocItem('#config-apply', 'apply[] 规则', {
+            level: 1,
+            parent: '#configuration',
+            prefix: '└ ',
+        }),
         tocItem('#browser-adapters', '浏览器适配器'),
         tocItem('#sdk', 'SDK'),
         tocItem('#sdk-ts', 'TypeScript SDK', { level: 1, parent: '#sdk', prefix: '├ ' }),
@@ -939,12 +944,6 @@ sig login https://jira.example.com --cookie "SESSION=abc123; csrf_token=xyz"
 # HTTP 基本认证
 sig login https://jira.example.com --username alice --password hunter2
 
-# 强制指定策略
-sig login https://jira.example.com --strategy cookie
-sig login https://jira.example.com --strategy oauth2
-sig login https://jira.example.com --strategy api-token
-sig login https://jira.example.com --strategy basic
-
 # 跳过存储的凭证检查，直接进入浏览器
 sig login https://jira.example.com --force`}</CodeBlock>
 
@@ -1081,27 +1080,24 @@ curl https://jira.example.com/api/me   # 凭证自动注入`}</CodeBlock>
                         处理长期守护进程、会派生进程树的工具， 或只读取代理环境变量的工具。
                     </P>
                     <P>
-                        <strong>注入规则：</strong>
-                        对于需要在非标准位置（请求体字段、查询参数、自定义标头） 注入凭证的
-                        API，可在 Provider 配置中添加 <Code>proxy.inject</Code> 规则。 代理和{' '}
-                        <Code>sig request</Code> 会在标准凭证标头之后应用这些规则。
+                        <strong>凭证注入：</strong>代理使用提供者的 <Code>apply[]</Code>{' '}
+                        规则将凭证注入请求。这些规则同样被 <Code>sig request</Code>、
+                        <Code>sig get</Code> 和 <Code>sig run</Code>{' '}
+                        使用——一份配置适用所有访问方式。
                     </P>
-                    <CodeBlock lang="yaml">{`# Example: inject xoxc token from localStorage as form body parameter
+                    <CodeBlock lang="yaml">{`# 示例：同时注入 cookie 和 bearer 令牌
 providers:
   app-slack:
-    # ... domains, strategy, etc.
-    proxy:
-      inject:
-        - in: body           # header | body | query
-          action: set         # set | append | remove
-          name: token
-          from: credential.localStorage.xoxc-token`}</CodeBlock>
+    strategy: browser
+    extract:
+      - { from: cookies, name: session, key: "*" }
+      - { from: localStorage, name: xoxc-token, key: "localConfig_v2.teams.*.token" }
+    apply:
+      - { in: header, name: Cookie, value: "\${session}" }
+      - { in: header, name: Authorization, value: "Bearer \${xoxc-token}" }`}</CodeBlock>
                     <P>
-                        <Code>from</Code> 字段对已存储凭证中的路径进行解析：{' '}
-                        <Code>credential.cookies</Code>、<Code>credential.accessToken</Code>、{' '}
-                        <Code>credential.localStorage.&lt;key&gt;</Code>。 请求体注入支持{' '}
-                        <Code>application/json</Code> 和{' '}
-                        <Code>application/x-www-form-urlencoded</Code> 内容类型。
+                        <Code>apply[]</Code> 规则支持注入到 header、body 和 query 参数。 模板变量（
+                        <Code>{'${name}'}</Code>）引用已提取的凭证名称。
                     </P>
                     <P>
                         <strong>自动刷新：</strong>代理守护进程会自动运行监视/刷新循环。 在{' '}
@@ -1222,100 +1218,140 @@ elif auth_type == "bearer":
                     </SectionHeading>
                     <P>
                         Sigcli 读取 <Code>~/.sig/config.yaml</Code>。运行 <Code>sig init</Code>{' '}
-                        生成初始文件。顶级键为 <Code>mode</Code> 和 <Code>providers</Code>。
+                        生成初始文件。提供者由 <Code>sig login &lt;url&gt;</Code> 自动创建，
+                        也可手动添加以精确控制提取和注入规则。
                     </P>
-                    <CodeBlock lang="bash">{`# ~/.sig/config.yaml
+                    <CodeBlock lang="yaml">{`# ~/.sig/config.yaml
 
-mode: browser          # browser | browserless
-browserChannel: chrome # chrome | msedge | chromium（默认：chromium）
+mode: browser                    # browser | browserless
+
+browser:
+  channel: msedge                # msedge | chrome | chromium
+  browserDataDir: ~/.sig/browser-data
+  headlessTimeout: 30000
+  visibleTimeout: 120000
+  waitUntil: load
+
+storage:
+  credentialsDir: ~/.sig/credentials
 
 providers:
   my-jira:
-    url: https://jira.example.com
-    strategy: cookie
-    requiredCookies:
-      - SESSION`}</CodeBlock>
+    domains: [jira.example.com]
+    entryUrl: https://jira.example.com/
+    strategy: browser
+    ttl: "10d"
+    extract:
+      - { from: cookies, name: session, key: "*" }
+    apply:
+      - { in: header, name: Cookie, value: "\${session}" }`}</CodeBlock>
 
                     <SectionHeading id="config-providers" level={2}>
-                        提供者配置选项
+                        提供者配置
                     </SectionHeading>
-                    <CodeBlock lang="bash">{`providers:
+                    <P>
+                        每个提供者声明<strong>提取什么</strong>（cookie、localStorage 值等） 以及
+                        <strong>如何应用</strong>到 HTTP 请求中。所有访问方式——
+                        <Code>sig get</Code>、<Code>sig request</Code>、<Code>sig run</Code>、
+                        <Code>sig proxy</Code>——使用相同的配置。
+                    </P>
+                    <CodeBlock lang="yaml">{`providers:
   <provider-id>:
-    url: <base-url>              # 必填：要匹配的 URL
-    strategy: cookie|oauth2|api-token|basic
-    requiredCookies:             # 等待这些 cookie 出现
-      - SESSION
-    cookiePaths:                 # 子路径 cookie 的额外查询路径
-      - /wiki
-    forceVisible: true           # 始终打开可视浏览器（默认：false）
-    waitUntil: networkidle       # 加载事件：load|domcontentloaded|networkidle
-    ttl: 8h                      # 凭证 TTL（例如 1h、8h、7d）`}</CodeBlock>
+    domains: [example.com]       # 此提供者匹配的域名
+    entryUrl: https://...        # sig login 时打开的 URL
+    strategy: browser            # browser | prompt
+    ttl: "12h"                   # 凭证有效期（如 12h、7d）
+    required: [session.MY_COOKIE]  # 完成性检查（可选）
+    cookiePaths: ["/wiki"]       # 子路径 cookie 的额外路径（可选）
+    extract:
+      - from: cookies            # cookies | localStorage | eval
+        name: session            # 存储为此名称
+        key: "*"                 # 提取哪些值（* = 全部，或 glob 模式）
+    apply:
+      - in: header               # header | body | query
+        name: Cookie             # HTTP 头/字段名
+        value: "\${session}"      # 引用已提取名称的模板`}</CodeBlock>
+
+                    <SectionHeading id="config-extract" level={2}>
+                        extract[] 规则
+                    </SectionHeading>
+                    <P>
+                        每条规则告诉 sigcli 登录后从浏览器中提取什么。三个字段：
+                        <Code>from</Code>（从哪里）、<Code>name</Code>（存储为）、
+                        <Code>key</Code>（提取什么）。
+                    </P>
+                    <CodeBlock lang="yaml">{`extract:
+  # 域名下的所有 cookie
+  - { from: cookies, name: session, key: "*" }
+
+  # 特定的 localStorage 值（点路径访问 JSON）
+  - { from: localStorage, name: xoxc-token, key: "localConfig_v2.teams.E7RBBBXHB.token" }
+
+  # MSAL OAuth2 令牌（glob 模式）
+  - { from: localStorage, name: access_token, key: "*|accesstoken|*graph.microsoft.com*" }`}</CodeBlock>
+
+                    <SectionHeading id="config-apply" level={2}>
+                        apply[] 规则
+                    </SectionHeading>
+                    <P>
+                        每条规则告诉 sigcli 如何将提取的值注入 HTTP 请求。模板变量 （
+                        <Code>{'${name}'}</Code>）引用 extract 规则中的 <Code>name</Code> 字段。
+                    </P>
+                    <CodeBlock lang="yaml">{`apply:
+  # 注入所有 cookie 为 Cookie 头
+  - { in: header, name: Cookie, value: "\${session}" }
+
+  # 注入 Bearer 令牌
+  - { in: header, name: Authorization, value: "Bearer \${access_token}" }
+
+  # 注入到查询字符串
+  - { in: query, name: api_key, value: "\${api_key}" }`}</CodeBlock>
+
+                    <P>
+                        <strong>实际示例：</strong>
+                    </P>
+                    <CodeBlock lang="yaml">{`# 简单 cookie 站点（Jira、Wiki 等）
+my-jira:
+  domains: [jira.example.com]
+  entryUrl: https://jira.example.com/
+  strategy: browser
+  ttl: "10d"
+  extract:
+    - { from: cookies, name: session, key: "*" }
+  apply:
+    - { in: header, name: Cookie, value: "\${session}" }
+
+# OAuth2 通过 localStorage（MS Teams、Graph API）
+ms-teams:
+  domains: [teams.cloud.microsoft]
+  entryUrl: https://teams.cloud.microsoft/v2/
+  strategy: browser
+  required: [access_token]
+  extract:
+    - { from: localStorage, name: access_token, key: "*|accesstoken|*ic3.teams.office.com*" }
+  apply:
+    - { in: header, name: Authorization, value: "Bearer \${access_token}" }
+
+# 多重提取（Slack：cookie + localStorage 令牌）
+app-slack:
+  domains: [mycompany.slack.com]
+  entryUrl: https://app.slack.com/client/E7RBBBXHB
+  strategy: browser
+  ttl: "7d"
+  required: [session.d, xoxc-token]
+  extract:
+    - { from: cookies, name: session, key: "*" }
+    - { from: localStorage, name: xoxc-token, key: "localConfig_v2.teams.E7RBBBXHB.token" }
+  apply:
+    - { in: header, name: Cookie, value: "\${session}" }
+    - { in: header, name: Authorization, value: "Bearer \${xoxc-token}" }`}</CodeBlock>
                 </>
             ),
             aside: (
                 <P>
-                    提供者 ID（例如 <Code>my-jira</Code>）是在所有命令中引用提供者的方式。 当你向{' '}
+                    提供者 ID（例如 <Code>my-jira</Code>）是在所有命令中引用提供者的方式。当你向{' '}
                     <Code>sig login</Code> 传入 URL 时，它会自动创建提供者条目；使用{' '}
                     <Code>--as</Code> 设置自定义 ID。
-                </P>
-            ),
-        },
-
-        /* ── 认证策略 ── */
-        {
-            content: (
-                <>
-                    <SectionHeading id="strategies" level={1}>
-                        认证策略
-                    </SectionHeading>
-                    <P>
-                        策略实现 <Code>IAuthStrategy</Code> 接口：<Code>validate</Code>、
-                        <Code>authenticate</Code>、<Code>refresh</Code> 和{' '}
-                        <Code>applyToRequest</Code>。Sigcli 内置四种策略，自动检测会选择正确的策略；
-                        使用 <Code>--strategy</Code> 覆盖。
-                    </P>
-
-                    <SectionHeading id="strat-cookie" level={3}>
-                        cookie
-                    </SectionHeading>
-                    <P>
-                        从真实浏览器会话中捕获 cookie。适合任何 等 SSO
-                        网站或多步骤登录（二维码、SAML、MFA）。 支持 <Code>forceVisible</Code>、
-                        <Code>waitUntil</Code>、<Code>requiredCookies</Code> 和{' '}
-                        <Code>cookiePaths</Code>（用于在子路径如 <Code>/wiki</Code> 上设置认证
-                        cookie 的站点）。
-                    </P>
-                    <CodeBlock lang="bash">{`sig login https://jira.example.com --strategy cookie`}</CodeBlock>
-
-                    <SectionHeading id="strat-oauth2" level={3}>
-                        oauth2
-                    </SectionHeading>
-                    <P>
-                        监视出站请求中的 <Code>Authorization: Bearer ...</Code>，或从 OAuth
-                        重定向中解码 JWT。存在刷新令牌时自动刷新。
-                    </P>
-                    <CodeBlock lang="bash">{`sig login https://jira.example.com --strategy oauth2`}</CodeBlock>
-
-                    <SectionHeading id="strat-api-token" level={3}>
-                        api-token
-                    </SectionHeading>
-                    <P>适用于你已有的静态 API 密钥或个人访问令牌。无需浏览器——非常适合 CI/CD。</P>
-                    <CodeBlock lang="bash">{`sig login https://jira.example.com --token <your-pat>`}</CodeBlock>
-
-                    <SectionHeading id="strat-basic" level={3}>
-                        basic
-                    </SectionHeading>
-                    <P>
-                        用户名和密码，在请求时编码为 Basic 认证头。明文密码仅存储在{' '}
-                        <Code>~/.sig/credentials/</Code> 下的密封凭证文件中。
-                    </P>
-                    <CodeBlock lang="bash">{`sig login https://jira.example.com --username alice --password hunter2`}</CodeBlock>
-                </>
-            ),
-            aside: (
-                <P>
-                    策略返回 <Code>{'Result<T, AuthError>'}</Code>——对于预期失败从不抛出异常。
-                    通过实现 <Code>IAuthStrategyFactory</Code> 构建自定义策略。
                 </P>
             ),
         },
@@ -1327,38 +1363,35 @@ providers:
                     <SectionHeading id="browser-adapters" level={1}>
                         浏览器适配器
                     </SectionHeading>
-                    <P>
-                        Sigcli 通过 <Code>IBrowserAdapter</Code> 抽象浏览器——三个小类：
-                        <strong>Adapter → Session → Page</strong>。内置两个适配器。
-                    </P>
+                    <P>Sigcli 使用真实浏览器进行 SSO 登录。内置两个适配器：</P>
 
                     <List>
                         <Li>
                             <strong>playwright</strong>——默认。使用 <Code>playwright-core</Code>{' '}
-                            配合 Chromium、Chrome 或 Edge。支持无头和可视模式。浏览器 SSO 必需。
+                            配合 Chromium、Chrome 或 Edge。支持无头和可视模式。
                         </Li>
                         <Li>
-                            <strong>chrome-cdp</strong>——通过 Chrome DevTools Protocol 连接到现有
-                            Chrome 实例。适用于附加到已打开的浏览器而无需启动新实例的场景。
+                            <strong>chrome-cdp</strong>——通过 CDP 连接到现有 Chrome/Edge 实例。
+                            适用于复用已打开的浏览器会话。
                         </Li>
                     </List>
 
                     <P>
                         <Code>sig init --remote</Code> 将 Sigcli 置于 <Code>browserless</Code>{' '}
-                        模式，使用 <Code>NullBrowserAdapter</Code>——令牌/cookie/basic 登录仍然有效，
-                        但 SSO 流程被禁用。
+                        模式——令牌/cookie 登录仍然有效，但浏览器 SSO 流程被禁用。使用{' '}
+                        <Code>sig sync pull</Code> 从有浏览器的机器获取凭证。
                     </P>
-                    <CodeBlock lang="bash">{`# 选择哪个适配器？
-# → 带显示器的开发笔记本：playwright（默认）
+                    <CodeBlock lang="bash">{`# 选择哪种模式？
+# → 带显示器的开发笔记本：browser（默认）
 # → 附加到已打开的 Chrome：chrome-cdp
 # → 无头 CI / 远程服务器：browserless 模式 + sig sync pull`}</CodeBlock>
                 </>
             ),
             aside: (
                 <P>
-                    通过实现 <Code>IBrowserAdapter</Code>、<Code>IBrowserSession</Code> 和{' '}
-                    <Code>IBrowserPage</Code> 编写自定义适配器。延迟导入浏览器库，并在导入失败时抛出{' '}
-                    <Code>BrowserLaunchError</Code>，以便 <Code>sig doctor</Code> 诊断缺失的依赖。
+                    在配置中设置 <Code>browser.channel</Code> 为 <Code>msedge</Code>、
+                    <Code>chrome</Code> 或 <Code>chromium</Code>。运行 <Code>sig doctor</Code>{' '}
+                    验证浏览器是否被正确检测。
                 </P>
             ),
         },
@@ -1494,7 +1527,7 @@ sig status my-jira --format json
                     </SectionHeading>
                     <List>
                         <Li>
-                            <Code>sigcli-auth</Code> — 认证指南：策略选择、命令参考、错误恢复。
+                            <Code>sigcli-auth</Code> — 认证指南：配置参考、命令参考、错误恢复。
                         </Li>
                         <Li>
                             <Code>outlook</Code> — 通过 Microsoft Graph
@@ -1507,7 +1540,7 @@ sig status my-jira --format json
                         </Li>
                         <Li>
                             <Code>slack</Code> — 频道、消息、搜索、表情。使用 <Code>app-slack</Code>{' '}
-                            提供者（cookie + localStorage）。
+                            提供者。
                         </Li>
                     </List>
 
@@ -1684,9 +1717,6 @@ sig watch start --interval 1h`}</CodeBlock>
                     </P>
                     <CodeBlock lang="bash">{`CREDENTIAL_EXPIRED        # 令牌/cookie 已过期，刷新失败
                           # 修复：sig logout <p> && sig login <url>
-
-CREDENTIAL_TYPE_MISMATCH  # 提供者的凭证类型错误
-                          # 修复：使用 --strategy <name> 重新登录
 
 REFRESH_FAILED            # OAuth2 刷新令牌被拒绝
                           # 修复：sig logout <p> && sig login <url>

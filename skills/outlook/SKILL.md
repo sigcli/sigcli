@@ -39,14 +39,22 @@ Then retry the `sig run` command.
 
 ```yaml
 ms-graph:
-    domains: ['graph.microsoft.com']
+    name: Microsoft Graph
+    domains: [graph.microsoft.com]
     entryUrl: https://teams.cloud.microsoft/v2/
-    strategy: oauth2
-    config:
-        audiences: ['https://graph.microsoft.com']
+    strategy: browser
+    required: [access_token]
+    extract:
+        - from: localStorage
+          name: access_token
+          key: '*|accesstoken|*graph.microsoft.com*'
+    apply:
+        - in: header
+          name: Authorization
+          value: 'Bearer ${access_token}'
 ```
 
-No separate Outlook-specific provider is needed — the Graph API audience covers all mail endpoints. The token is obtained via the Teams portal entry URL, which grants `Mail.Read` and `Mail.ReadWrite` scopes.
+No separate Outlook-specific provider is needed — the Graph API token covers all mail endpoints. The token is extracted from Teams portal localStorage after you log in at the entry URL.
 
 ## Scripts Reference
 

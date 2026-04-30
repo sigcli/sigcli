@@ -31,12 +31,19 @@ Then retry the `sig run` command.
 
 ```yaml
 zhihu:
-    domains: ['www.zhihu.com', 'zhihu.com']
+    domains: [www.zhihu.com, zhihu.com]
     entryUrl: https://www.zhihu.com/signin
-    strategy: cookie
-    config:
-        ttl: '7d'
-        requiredCookies: ['z_c0']
+    strategy: browser
+    ttl: '7d'
+    required: [session.z_c0]
+    extract:
+        - from: cookies
+          name: session
+          key: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: '${session}'
 ```
 
 ## Scripts Reference
