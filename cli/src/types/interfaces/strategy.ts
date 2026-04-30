@@ -20,7 +20,6 @@ export interface ExtractionResult {
 export interface ExtractionContext {
     entryUrl: string;
     domains: string[];
-    timeout: number;
     waitUntil: WaitUntilValue;
     networkProxy?: string;
     cookiePaths?: string[];

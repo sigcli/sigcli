@@ -99,6 +99,7 @@ export class AuthManager {
                     execPath: config.browser.execPath ?? '',
                     waitUntil: config.browser.waitUntil,
                     headlessTimeout: config.browser.headlessTimeout,
+                    visibleTimeout: config.browser.visibleTimeout,
                 }),
             );
         }
@@ -274,7 +275,6 @@ export class AuthManager {
             networkProxy: provider.networkProxy,
             cookiePaths: provider.cookiePaths,
             required: provider.required,
-            timeout: this.browserConfig.visibleTimeout,
             waitUntil:
                 (provider.waitUntil as ExtractionContext['waitUntil']) ??
                 this.browserConfig.waitUntil,

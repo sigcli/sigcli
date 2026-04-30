@@ -36,6 +36,7 @@ export interface BrowserStrategyOptions {
     channel: string;
     waitUntil: WaitUntilValue;
     headlessTimeout: number;
+    visibleTimeout: number;
 }
 
 export class BrowserStrategy implements IStrategy {
@@ -223,7 +224,7 @@ export class BrowserStrategy implements IStrategy {
         try {
             browser = spawn(execPath, browserArgs, { detached: false, stdio: 'ignore' });
 
-            const wsUrl = await waitForBrowserReady(cdpPort, ctx.timeout);
+            const wsUrl = await waitForBrowserReady(cdpPort, this.options.visibleTimeout);
             cdpClient = await connectCdpWs(wsUrl);
 
             const result = await this.pollUntilComplete(cdpClient, rules, ctx);
@@ -245,7 +246,7 @@ export class BrowserStrategy implements IStrategy {
         rules: ExtractRule[],
         ctx: ExtractionContext,
     ): Promise<ExtractionResult> {
-        const deadline = Date.now() + ctx.timeout;
+        const deadline = Date.now() + this.options.visibleTimeout;
         const pollInterval = 2000;
         const credentials: ExtractedCredentials = {};
         let expiresAt: string | undefined;
