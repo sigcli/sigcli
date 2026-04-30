@@ -1,9 +1,10 @@
 import { EventEmitter } from 'node:events';
-import path from 'node:path';
 import os from 'node:os';
+import path from 'node:path';
+
+import { extractLocalStorage, formatHeaders } from './formatter.js';
+import { listProviderFiles, readProviderFile } from './reader.js';
 import type { Credential, ProviderInfo } from './types.js';
-import { readProviderFile, listProviderFiles } from './reader.js';
-import { formatHeaders, extractLocalStorage } from './formatter.js';
 import { CredentialWatcher } from './watcher.js';
 
 export interface SigClientOptions {
