@@ -47,7 +47,8 @@ providers:
     # Cookie-based authentication — only needed for custom TTL or options
     # (otherwise, auto-provisioning handles it)
     # my-jira:
-    #   domains: ["jira.example.com"]
+    #   domains:
+    #     - jira.example.com
     #   strategy: cookie
     #   config:
     #     ttl: "12h"
@@ -56,29 +57,38 @@ providers:
     # Cookie auth with path-scoped cookies (e.g. Confluence sets cookies on /wiki)
     # my-wiki:
     #   name: My Wiki
-    #   domains: ["wiki.example.com"]
+    #   domains:
+    #     - wiki.example.com
     #   entryUrl: https://wiki.example.com/wiki/display/Home
     #   strategy: cookie
     #   config:
     #     ttl: "12h"
-    #     requiredCookies: ["seraph.confluence"]
-    #     cookiePaths: ["/wiki"]             # query cookies at /wiki path too
+    #     requiredCookies:
+    #       - seraph.confluence
+    #     cookiePaths:
+    #       - /wiki                          # query cookies at /wiki path too
 
     # OAuth2 with refresh tokens
     # azure-graph:
     #   name: Microsoft Graph
-    #   domains: ["graph.microsoft.com"]
+    #   domains:
+    #     - graph.microsoft.com
     #   entryUrl: https://login.microsoftonline.com/
     #   strategy: oauth2
     #   config:
     #     tokenEndpoint: https://login.microsoftonline.com/common/oauth2/v2.0/token
     #     clientId: your-app-id
-    #     scopes: ["openid", "profile", "User.Read"]
+    #     scopes:
+    #       - openid
+    #       - profile
+    #       - User.Read
 
     # Static API token (no browser needed)
     # github:
     #   name: GitHub
-    #   domains: ["github.com", "api.github.com"]
+    #   domains:
+    #     - github.com
+    #     - api.github.com
     #   strategy: api-token
     #   config:
     #     headerName: Authorization
@@ -90,18 +100,22 @@ providers:
     # Microsoft Teams — requires TWO providers (one per API audience).
     # ms-teams:
     #   name: Microsoft Teams
-    #   domains: ["teams.cloud.microsoft"]
+    #   domains:
+    #     - teams.cloud.microsoft
     #   entryUrl: https://teams.cloud.microsoft/v2/
     #   strategy: oauth2
     #   config:
-    #     audiences: ["https://ic3.teams.office.com"]
+    #     audiences:
+    #       - https://ic3.teams.office.com
     #
     # ms-graph:
-    #   domains: ["graph.microsoft.com"]
+    #   domains:
+    #     - graph.microsoft.com
     #   entryUrl: https://teams.cloud.microsoft/v2/
     #   strategy: oauth2
     #   config:
-    #     audiences: ["https://graph.microsoft.com"]
+    #     audiences:
+    #       - https://graph.microsoft.com
 
     # Basic authentication (username + password)
     # legacy-api:
@@ -115,12 +129,15 @@ providers:
     # is not yet populated.
     # slack:
     #   name: Slack
-    #   domains: ["app.slack.com", "edgeapi.slack.com"]
+    #   domains:
+    #     - app.slack.com
+    #     - edgeapi.slack.com
     #   entryUrl: https://app.slack.com/client/<TEAM_ID>
     #   strategy: cookie
     #   config:
     #     ttl: "7d"
-    #     requiredCookies: ["d"]             # xoxd cookie
+    #     requiredCookies:
+    #       - d                              # xoxd cookie
     #   localStorage:
     #     - name: token                      # output key in `sig get` JSON
     #       key: localConfig_v2              # localStorage key to read
@@ -129,10 +146,14 @@ providers:
     # Native CDP login mode — for sites that block Playwright automation (X, Reddit)
     # Uses the real browser with no automation markers. Cascade: headless → CDP → visible.
     # twitter:
-    #   domains: ["x.com", "twitter.com"]
+    #   domains:
+    #     - x.com
+    #     - twitter.com
     #   entryUrl: https://x.com/i/flow/login
     #   strategy: cookie
     #   loginMode: cdp                           # Skip headless, use native browser CDP directly
     #   networkProxy: socks5://127.0.0.1:1080    # Passed as --proxy-server to browser
     #   config:
-    #     requiredCookies: ["ct0", "auth_token"]
+    #     requiredCookies:
+    #       - ct0
+    #       - auth_token

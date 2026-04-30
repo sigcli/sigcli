@@ -47,16 +47,22 @@ storage:
 #
 # Example:
 #   my-service:
-#     domains: ["service.example.com"]
+#     domains:
+#       - service.example.com
 #     entryUrl: https://service.example.com/
 #     strategy: browser
 #     extract:
-#       - { from: cookies, name: session, key: "*" }
+#       - from: cookies
+#         name: session
+#         key: "*"
 #     apply:
-#       - { in: header, name: Cookie, value: "\${session}" }
+#       - in: header
+#         name: Cookie
+#         value: "\${session}"
 #     # ttl: 12h                         # Optional: credential lifetime
 #     # loginMode: cdp                   # Optional: auto|cdp|headless|visible
-#     # required: [session.my_cookie]    # Optional: wait for specific cookies
+#     # required:                        # Optional: wait for specific cookies
+#     #   - session.my_cookie
 providers: {}
 `;
 }

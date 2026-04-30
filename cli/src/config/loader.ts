@@ -65,7 +65,11 @@ export async function saveConfig(config: SigConfig): Promise<void> {
         ),
     };
     await fs.mkdir(path.dirname(CONFIG_PATH), { recursive: true });
-    await fs.writeFile(CONFIG_PATH, YAML.stringify(filtered), 'utf-8');
+    await fs.writeFile(
+        CONFIG_PATH,
+        YAML.stringify(filtered, { collectionStyle: 'block' }),
+        'utf-8',
+    );
 }
 
 /**
@@ -83,7 +87,7 @@ export async function addProviderToConfig(id: string, entry: ProviderEntry): Pro
     if (!doc.getIn(['providers'])) {
         doc.setIn(['providers'], doc.createNode({}));
     }
-    doc.setIn(['providers', id], doc.createNode(entry));
+    doc.setIn(['providers', id], doc.createNode(entry, { flow: false }));
     await fs.writeFile(CONFIG_PATH, doc.toString(), 'utf-8');
 }
 
