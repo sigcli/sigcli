@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { sanitizeId } from '../../../src/utils/sanitize.js';
 
 describe('sanitizeId', () => {

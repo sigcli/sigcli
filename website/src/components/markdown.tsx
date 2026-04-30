@@ -1,4 +1,5 @@
 'use client';
+
 /*
  * Editorial markdown components.
  *
@@ -6,7 +7,6 @@
  * Conflicting names with shadcn: --brand-primary, --brand-secondary,
  * --link-accent, --page-border.
  */
-
 import {
     useCallback,
     useEffect,
@@ -16,8 +16,9 @@ import {
     useSyncExternalStore,
     useTransition,
 } from 'react';
+
 import { createTocDb, searchToc, type SearchState } from './search.js';
-import type { TocNodeType, VisualLevel, TocTreeNode, FlatTocItem } from './toc-tree.js';
+import type { FlatTocItem, TocNodeType, TocTreeNode, VisualLevel } from './toc-tree.js';
 
 export type { TocNodeType, VisualLevel, TocTreeNode, FlatTocItem };
 if (typeof self === 'undefined') (globalThis as any).self = globalThis;

@@ -11,10 +11,10 @@ mode: browser
 browser:
     browserDataDir: ~/.sig/browser-data # Persistent browser profile directory
     channel: chrome # Browser channel (chrome, msedge, chromium)
-    # execPath: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome  # Native browser path for CDP mode (auto-detected if not set)
-    headlessTimeout: 10000 # Timeout for headless auth attempt (ms)
+    # execPath: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+    headlessTimeout: 30000 # Timeout for headless auth attempt (ms)
     visibleTimeout: 120000 # Timeout for visible/user-assisted auth (ms)
-    waitUntil: load # Default page load condition (load, networkidle, domcontentloaded, commit)
+    waitUntil: load # Page load condition (load, networkidle, domcontentloaded, commit)
 
 # Storage settings (required)
 storage:
@@ -34,105 +34,178 @@ storage:
 # watch:
 #   interval: "5m"
 #   providers:
-#     jira:
+#     my-jira:
 #       autoSync:
 #         - dev-server
-#     wiki:                                  # watch + refresh only, no auto-sync
+#     my-wiki:                           # watch + refresh only, no auto-sync
 
-# Provider configurations
-# Cookie-based providers (most SSO systems) don't need config at all —
-# just call `sig login https://jira.example.com` and it auto-provisions.
-# Only create entries here for OAuth2, API tokens, or advanced settings.
+# ============================================================================
+# Providers
+# ============================================================================
+#
+# Most providers are auto-provisioned by "sig login <url>" — no config needed.
+# Add entries here for custom extract/apply rules or fine-tuning.
+#
+# Every provider has:
+#   strategy: browser | prompt
+#   extract[]: { from, name, key } — what to capture from the browser
+#   apply[]:   { in, name, value } — how to inject into HTTP requests
+#
+# Optional fields:
+#   ttl          — credential lifetime (e.g. "12h", "7d")
+#   required[]   — completion criteria in "name.field" format
+#   cookiePaths  — extra URL paths to query cookies from
+#   loginMode    — auto|cdp|headless|visible
+#   loginPatterns — URL patterns that indicate a login page
+#   networkProxy — SOCKS proxy for browser (e.g. socks5h://127.0.0.1:1080)
+#   waitUntil    — page load condition override
+
 providers:
-    # Cookie-based authentication — only needed for custom TTL or options
-    # (otherwise, auto-provisioning handles it)
+    # ---------------------------------------------------------------------------
+    # Simplest case: cookie-based SSO (auto-provisioned default)
+    # ---------------------------------------------------------------------------
     # my-jira:
-    #   domains: ["jira.example.com"]
-    #   strategy: cookie
-    #   config:
-    #     ttl: "12h"
-    #   networkProxy: socks5://127.0.0.1:1080  # route browser through a SOCKS5 proxy
+    #   domains:
+    #     - jira.example.com
+    #   entryUrl: https://jira.example.com/
+    #   strategy: browser
+    #   ttl: "10d"
+    #   extract:
+    #     - from: cookies
+    #       name: session
+    #       key: "*"
+    #   apply:
+    #     - in: header
+    #       name: Cookie
+    #       value: "${session}"
 
-    # Cookie auth with path-scoped cookies (e.g. Confluence sets cookies on /wiki)
+    # ---------------------------------------------------------------------------
+    # Cookie path scoping (e.g. Confluence sets cookies on /wiki)
+    # ---------------------------------------------------------------------------
     # my-wiki:
-    #   name: My Wiki
-    #   domains: ["wiki.example.com"]
-    #   entryUrl: https://wiki.example.com/wiki/display/Home
-    #   strategy: cookie
-    #   config:
-    #     ttl: "12h"
-    #     requiredCookies: ["seraph.confluence"]
-    #     cookiePaths: ["/wiki"]             # query cookies at /wiki path too
+    #   domains:
+    #     - wiki.example.com
+    #   entryUrl: https://wiki.example.com/
+    #   strategy: browser
+    #   ttl: "12h"
+    #   cookiePaths:
+    #     - /wiki
+    #   extract:
+    #     - from: cookies
+    #       name: session
+    #       key: "*"
+    #   apply:
+    #     - in: header
+    #       name: Cookie
+    #       value: "${session}"
 
-    # OAuth2 with refresh tokens
-    # azure-graph:
-    #   name: Microsoft Graph
-    #   domains: ["graph.microsoft.com"]
-    #   entryUrl: https://login.microsoftonline.com/
-    #   strategy: oauth2
-    #   config:
-    #     tokenEndpoint: https://login.microsoftonline.com/common/oauth2/v2.0/token
-    #     clientId: your-app-id
-    #     scopes: ["openid", "profile", "User.Read"]
+    # ---------------------------------------------------------------------------
+    # Required cookies — wait for specific cookies before auth is complete
+    # ---------------------------------------------------------------------------
+    # reddit:
+    #   domains:
+    #     - www.reddit.com
+    #     - reddit.com
+    #   entryUrl: https://www.reddit.com/login
+    #   strategy: browser
+    #   ttl: "7d"
+    #   loginMode: cdp
+    #   networkProxy: socks5h://127.0.0.1:1080
+    #   required:
+    #     - session.reddit_session
+    #     - session.token_v2
+    #   extract:
+    #     - from: cookies
+    #       name: session
+    #       key: "*"
+    #   apply:
+    #     - in: header
+    #       name: Cookie
+    #       value: "${session}"
 
-    # Static API token (no browser needed)
-    # github:
-    #   name: GitHub
-    #   domains: ["github.com", "api.github.com"]
-    #   strategy: api-token
-    #   config:
-    #     headerName: Authorization
-    #     headerPrefix: Bearer
-    #     setupInstructions: |
-    #       Create a Personal Access Token at:
-    #       https://github.com/settings/tokens
+    # ---------------------------------------------------------------------------
+    # Cookies + localStorage (e.g. Slack xoxc token)
+    # ---------------------------------------------------------------------------
+    # app-slack:
+    #   domains:
+    #     - app.slack.com
+    #     - edgeapi.slack.com
+    #   entryUrl: https://app.slack.com/client/<TEAM_ID>
+    #   strategy: browser
+    #   ttl: "7d"
+    #   required:
+    #     - session.d
+    #     - xoxc-token
+    #   extract:
+    #     - from: cookies
+    #       name: session
+    #       key: "*"
+    #     - from: localStorage
+    #       name: xoxc-token
+    #       key: "localConfig_v2.teams.<TEAM_ID>.token"
+    #   apply:
+    #     - in: header
+    #       name: Cookie
+    #       value: "${session}"
+    #     - in: header
+    #       name: Authorization
+    #       value: "Bearer ${xoxc-token}"
 
-    # Microsoft Teams — requires TWO providers (one per API audience).
+    # ---------------------------------------------------------------------------
+    # OAuth2 via localStorage (e.g. Microsoft Teams)
+    # ---------------------------------------------------------------------------
     # ms-teams:
     #   name: Microsoft Teams
-    #   domains: ["teams.cloud.microsoft"]
+    #   domains:
+    #     - teams.cloud.microsoft
     #   entryUrl: https://teams.cloud.microsoft/v2/
-    #   strategy: oauth2
-    #   config:
-    #     audiences: ["https://ic3.teams.office.com"]
-    #
+    #   strategy: browser
+    #   required:
+    #     - access_token
+    #   extract:
+    #     - from: localStorage
+    #       name: access_token
+    #       key: "*|accesstoken|*ic3.teams.office.com*"
+    #   apply:
+    #     - in: header
+    #       name: Authorization
+    #       value: "Bearer ${access_token}"
+
+    # ---------------------------------------------------------------------------
+    # Multiple apply rules (e.g. Graph API with same login page)
+    # ---------------------------------------------------------------------------
     # ms-graph:
-    #   domains: ["graph.microsoft.com"]
+    #   name: Microsoft Graph
+    #   domains:
+    #     - graph.microsoft.com
     #   entryUrl: https://teams.cloud.microsoft/v2/
-    #   strategy: oauth2
-    #   config:
-    #     audiences: ["https://graph.microsoft.com"]
+    #   strategy: browser
+    #   required:
+    #     - access_token
+    #   extract:
+    #     - from: localStorage
+    #       name: access_token
+    #       key: "*|accesstoken|*graph.microsoft.com*"
+    #   apply:
+    #     - in: header
+    #       name: Authorization
+    #       value: "Bearer ${access_token}"
 
-    # Basic authentication (username + password)
-    # legacy-api:
-    #   name: Legacy Internal API
-    #   domains: ["api.internal.corp"]
-    #   strategy: basic
-
-    # Cookie auth with localStorage extraction (e.g. Slack xoxc token)
-    # IMPORTANT: entryUrl must point to a specific workspace (e.g. /client/<TEAM_ID>),
-    # NOT the root URL. The root URL shows a workspace picker where localStorage
-    # is not yet populated.
-    # slack:
-    #   name: Slack
-    #   domains: ["app.slack.com", "edgeapi.slack.com"]
-    #   entryUrl: https://app.slack.com/client/<TEAM_ID>
-    #   strategy: cookie
-    #   config:
-    #     ttl: "7d"
-    #     requiredCookies: ["d"]             # xoxd cookie
-    #   localStorage:
-    #     - name: token                      # output key in `sig get` JSON
-    #       key: localConfig_v2              # localStorage key to read
-    #       jsonPath: teams.<TEAM_ID>.token    # dot-path into parsed JSON value
-
-    # Native CDP login mode — for sites that block Playwright automation (X, Reddit)
-    # Uses the real browser with no automation markers. Cascade: headless → CDP → visible.
-    # twitter:
-    #   domains: ["x.com", "twitter.com"]
-    #   entryUrl: https://x.com/i/flow/login
-    #   strategy: cookie
-    #   loginMode: cdp                           # Skip headless, use native browser CDP directly
-    #   networkProxy: socks5://127.0.0.1:1080    # Passed as --proxy-server to browser
-    #   config:
-    #     requiredCookies: ["ct0", "auth_token"]
+    # ---------------------------------------------------------------------------
+    # Prompt strategy (no browser — manual token input)
+    # ---------------------------------------------------------------------------
+    # github:
+    #   name: GitHub
+    #   domains:
+    #     - github.com
+    #     - api.github.com
+    #   entryUrl: https://github.com/settings/tokens
+    #   strategy: prompt
+    #   extract:
+    #     - from: cookies
+    #       name: token
+    #       key: "*"
+    #   apply:
+    #     - in: header
+    #       name: Authorization
+    #       value: "Bearer ${token}"

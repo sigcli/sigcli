@@ -1,5 +1,6 @@
-import { readFile, writeFile, unlink, mkdir } from 'node:fs/promises';
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+
 import { expandHome } from '../utils/path.js';
 
 const PROXY_DIR = expandHome('~/.sig/proxy');

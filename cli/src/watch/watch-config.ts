@@ -3,6 +3,7 @@
  */
 
 import YAML from 'yaml';
+
 import { loadDocument, saveDocument } from '../config/document.js';
 
 export interface WatchProviderOpts {

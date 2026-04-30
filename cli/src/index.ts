@@ -3,42 +3,26 @@
 // Config types and loader
 export type { SigConfig, BrowserConfig, StorageConfig, ProviderEntry } from './config/schema.js';
 export { loadConfig, saveConfig, getConfigPath } from './config/loader.js';
-export { validateConfig, buildStrategyConfig } from './config/validator.js';
+export { validateConfig } from './config/validator.js';
 export { generateConfigYaml } from './config/generator.js';
 export type { InitOptions } from './config/generator.js';
 
-// Dependency wiring
-export { createAuthDeps } from './deps.js';
-export type { AuthDeps } from './deps.js';
-
 // Core types
 export type {
-    Credential,
-    CookieCredential,
-    BearerCredential,
-    ApiKeyCredential,
-    BasicCredential,
-    CredentialType,
-    Cookie,
     ProviderConfig,
-    StrategyConfig,
-    CookieStrategyConfig,
-    OAuth2StrategyConfig,
-    ApiTokenStrategyConfig,
-    BasicStrategyConfig,
     StoredCredential,
     StoredEntry,
     ProviderStatus,
     BrowserLaunchOptions,
     ILogger,
-    LocalStorageConfig,
     AuthDiagnostics,
-    CredentialResult,
-} from './core/types.js';
+    ExtractRule,
+    ApplyRule,
+} from './types/index.js';
 
 // Result type
-export { ok, err, isOk, isErr } from './core/result.js';
-export type { Result } from './core/result.js';
+export { ok, err, isOk, isErr } from './types/index.js';
+export type { Result } from './types/index.js';
 
 // Errors
 export {
@@ -60,34 +44,37 @@ export {
     BrowserUnavailableError,
     SyncConflictError,
     EncryptionError,
-} from './core/errors.js';
+} from './types/index.js';
 
-// Interfaces (for implementing custom adapters/strategies)
-export type {
-    IAuthStrategy,
-    IAuthStrategyFactory,
-    AuthContext,
-} from './core/interfaces/auth-strategy.js';
-export type {
-    IBrowserAdapter,
-    IBrowserSession,
-    IBrowserPage,
-    NavigateOptions,
-    PageRequest,
-    PageResponse,
-} from './core/interfaces/browser-adapter.js';
-export type { IStorage } from './core/interfaces/storage.js';
-export type { IProviderRegistry } from './core/interfaces/provider.js';
+// Interfaces
+export type { IStorage } from './types/index.js';
+export type { IProviderRegistry } from './types/index.js';
+export type { IStrategy, ExtractedCredentials, ExtractionContext } from './types/index.js';
+export type { IBrowserExtractor } from './types/index.js';
+
+// Apply engine
+export { ApplyEngine } from './apply/apply-engine.js';
+export type { ApplyResult } from './apply/apply-engine.js';
+export { checkRequired } from './strategies/browser/required-checker.js';
+
+// Strategies
+export { BrowserStrategy } from './strategies/browser/index.js';
+export { BrowserStrategy as BrowserSource } from './strategies/browser/index.js';
+export type { BrowserStrategyOptions } from './strategies/browser/index.js';
+export type { BrowserStrategyOptions as BrowserSourceOptions } from './strategies/browser/index.js';
+export { PromptStrategy } from './strategies/prompt/index.js';
+export { PromptStrategy as PromptSource } from './strategies/prompt/index.js';
+export { CdpCookieExtractor } from './strategies/browser/index.js';
+export { CdpStorageExtractor } from './strategies/browser/index.js';
+export { HeadlessCookieExtractor } from './strategies/browser/index.js';
+export { HeadlessStorageExtractor } from './strategies/browser/index.js';
+export { StrategyRegistry } from './strategies/registry.js';
 
 // AuthManager
 export { AuthManager } from './auth-manager.js';
 
-// Strategy factories (for custom registration)
-export { CookieStrategyFactory } from './strategies/cookie.strategy.js';
-export { OAuth2StrategyFactory } from './strategies/oauth2.strategy.js';
-export { ApiTokenStrategyFactory } from './strategies/api-token.strategy.js';
-export { BasicAuthStrategyFactory } from './strategies/basic-auth.strategy.js';
-export { StrategyRegistry } from './strategies/registry.js';
+// Credential helpers
+export { checkTtl, validateCredential, getExpiresAt } from './utils/credential-validator.js';
 
 // Storage implementations
 export { DirectoryStorage } from './storage/directory-storage.js';
@@ -98,22 +85,18 @@ export { MemoryStorage } from './storage/memory-storage.js';
 export { ProviderRegistry } from './providers/provider-registry.js';
 export { createDefaultProvider } from './providers/auto-provision.js';
 
-// Browser adapters
-export { PlaywrightAdapter } from './browser/adapters/playwright.adapter.js';
-export { NullBrowserAdapter } from './browser/adapters/null.adapter.js';
-
 // Browser detection
-export { findChannelBrowser } from './browser/detect.js';
-export { detectNativeBrowsers, findNativeBrowser } from './browser/detect-native.js';
-export type { NativeBrowserInfo } from './browser/detect-native.js';
+export { findChannelBrowser } from './utils/detect.js';
+export { detectNativeBrowsers, findNativeBrowser } from './utils/detect-native.js';
+export type { NativeBrowserInfo } from './utils/detect-native.js';
 
 // CDP WebSocket client
-export { connectCdpWs } from './browser/cdp-ws.js';
-export type { CdpWsClient } from './browser/cdp-ws.js';
+export { connectCdpWs } from './strategies/browser/cdp-ws.js';
+export type { CdpWsClient } from './strategies/browser/cdp-ws.js';
 
 // CLI
-export { parseArgs } from './cli/main.js';
-export { ExitCode } from './cli/exit-codes.js';
+export { parseArgs } from './cli-router.js';
+export { ExitCode } from './utils/exit-codes.js';
 
 // Sync
 export { SyncEngine } from './sync/sync-engine.js';
@@ -130,18 +113,16 @@ export {
     WatchSubcommand,
     WaitUntil,
     LoginMode,
-    StrategyName,
     CredentialTypeName,
     LOGIN_URL_PATTERNS,
-    BROWSER_REQUIRED_STRATEGIES,
     HttpHeader,
     AuthScheme,
     APP_NAME,
     APP_VERSION,
     SIG_DIR,
     CONFIG_FILENAME,
-} from './core/constants.js';
-export type { WaitUntilValue, LoginModeValue } from './core/constants.js';
+} from './types/index.js';
+export type { WaitUntilValue, LoginModeValue } from './types/index.js';
 
 // Utilities
 export { decodeJwt, isJwtExpired, getJwtExpiresAt } from './utils/jwt.js';

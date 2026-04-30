@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { createDefaultProvider, deriveShortId } from '../../../src/providers/auto-provision.js';
 
 describe('deriveShortId', () => {
@@ -59,12 +60,11 @@ describe('createDefaultProvider', () => {
         expect(provider.name).toBe(
             'dashboard-analytics-prod-us.analytics.cloudservices.example.com',
         );
-        expect(provider.strategy).toBe('cookie');
+        expect(provider.strategy).toBe('browser');
         expect(provider.domains).toEqual([
             'dashboard-analytics-prod-us.analytics.cloudservices.example.com',
         ]);
         expect(provider.autoProvisioned).toBe(true);
-        expect(provider.strategyConfig).toEqual({ strategy: 'cookie' });
     });
 
     it('creates provider with joined segments for short hostname', () => {
@@ -83,7 +83,7 @@ describe('createDefaultProvider', () => {
         expect(provider.name).toBe('jira.example.com');
         expect(provider.domains).toEqual(['jira.example.com']);
         expect(provider.entryUrl).toBe('https://jira.example.com/');
-        expect(provider.strategy).toBe('cookie');
+        expect(provider.strategy).toBe('browser');
         expect(provider.autoProvisioned).toBe(true);
     });
 
@@ -106,7 +106,7 @@ describe('createDefaultProvider', () => {
         expect(provider.name).toBe('insecure.local');
         expect(provider.domains).toEqual(['insecure.local']);
         expect(provider.entryUrl).toBe('http://insecure.local/');
-        expect(provider.strategy).toBe('cookie');
+        expect(provider.strategy).toBe('browser');
         expect(provider.autoProvisioned).toBe(true);
     });
 

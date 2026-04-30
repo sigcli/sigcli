@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs/promises';
-import path from 'node:path';
 import os from 'node:os';
-import { readProviderFile, listProviderFiles } from '../src/reader.js';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
 import { CredentialNotFoundError, CredentialParseError } from '../src/errors.js';
+import { listProviderFiles, readProviderFile } from '../src/reader.js';
 
 const FIXTURES_DIR = path.join(import.meta.dirname, 'fixtures');
 

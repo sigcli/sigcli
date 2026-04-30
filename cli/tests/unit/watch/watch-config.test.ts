@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
+    addWatchProvider,
     getWatchConfig,
     getWatchProviders,
-    addWatchProvider,
     removeWatchProvider,
     setWatchInterval,
 } from '../../../src/watch/watch-config.js';

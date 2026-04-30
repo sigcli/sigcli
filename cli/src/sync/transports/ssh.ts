@@ -1,11 +1,12 @@
 import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import path from 'node:path';
 import os from 'node:os';
-import type { RemoteConfig } from '../types.js';
-import type { StoredCredential } from '../../core/types.js';
+import path from 'node:path';
+import { promisify } from 'node:util';
+
+import { decrypt, encrypt, isEncryptedEnvelope } from '../../crypto/encryption.js';
+import type { StoredCredential } from '../../types/index.js';
 import type { ISyncTransport, RemoteEntry } from '../interfaces/transport.js';
-import { encrypt, decrypt, isEncryptedEnvelope } from '../../crypto/encryption.js';
+import type { RemoteConfig } from '../types.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -149,14 +150,15 @@ export class SshTransport implements ISyncTransport {
             }
             const data = parsed as StoredCredential & {
                 version?: number;
-                metadata?: Record<string, unknown>;
             };
             return {
-                credential: data.credential,
                 providerId: data.providerId,
                 strategy: data.strategy,
                 updatedAt: data.updatedAt,
-                ...(data.metadata ? { metadata: data.metadata } : {}),
+                values:
+                    data.values ??
+                    (data as unknown as Record<string, Record<string, string>>)['credentials'] ??
+                    {},
             };
         } catch {
             return null;
@@ -172,12 +174,12 @@ export class SshTransport implements ISyncTransport {
         const rpath = this.remoteCredentialsPath(remote);
 
         const data = {
-            version: 1,
+            version: 2,
             providerId: stored.providerId,
-            credential: stored.credential,
+            values: stored.values,
             strategy: stored.strategy,
             updatedAt: stored.updatedAt,
-            ...(stored.metadata ? { metadata: stored.metadata } : {}),
+            ...(stored.expiresAt ? { expiresAt: stored.expiresAt } : {}),
         };
 
         const remoteKey = await this.fetchRemoteKey(remote);

@@ -1,6 +1,6 @@
 import { appendFile, mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
 import os from 'node:os';
+import { join } from 'node:path';
 
 const AUDIT_DIR = join(os.homedir(), '.sig');
 const AUDIT_FILE = join(AUDIT_DIR, 'audit.log');

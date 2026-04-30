@@ -1,19 +1,23 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import lockfile from 'proper-lockfile';
-import type { IStorage } from '../core/interfaces/storage.js';
-import type { StoredCredential, StoredEntry } from '../core/types.js';
-import { StorageError } from '../core/errors.js';
+
+import {
+    StorageError,
+    type IStorage,
+    type StoredCredential,
+    type StoredEntry,
+} from '../types/index.js';
+import { decrypt, encrypt, isEncryptedEnvelope } from '../crypto/encryption.js';
 import { sanitizeId } from '../utils/sanitize.js';
-import { encrypt, decrypt, isEncryptedEnvelope } from '../crypto/encryption.js';
 
 interface ProviderFile {
-    version: 1;
+    version: 2;
     providerId: string;
-    credential: StoredCredential['credential'];
     strategy: string;
     updatedAt: string;
-    metadata?: Record<string, unknown>;
+    expiresAt?: string;
+    values: Record<string, string>;
 }
 
 /**
@@ -48,12 +52,12 @@ export class DirectoryStorage implements IStorage {
         await this.ensureDir();
 
         const data: ProviderFile = {
-            version: 1,
+            version: 2,
             providerId,
-            credential: credential.credential,
             strategy: credential.strategy,
             updatedAt: credential.updatedAt,
-            ...(credential.metadata ? { metadata: credential.metadata } : {}),
+            ...(credential.expiresAt ? { expiresAt: credential.expiresAt } : {}),
+            values: credential.values,
         };
 
         await this.withLock(filePath, async () => {
@@ -95,7 +99,6 @@ export class DirectoryStorage implements IStorage {
                     providerId: data.providerId,
                     strategy: data.strategy,
                     updatedAt: data.updatedAt,
-                    credentialType: data.credential.type,
                 });
             } catch {
                 // Skip files that can't be read or parsed
@@ -147,27 +150,44 @@ export class DirectoryStorage implements IStorage {
         const content = await fs.readFile(filePath, 'utf-8');
         const parsed: unknown = JSON.parse(content);
 
-        let data: ProviderFile;
+        let raw: Record<string, unknown>;
         if (isEncryptedEnvelope(parsed)) {
             const plaintext = decrypt(parsed, this.encryptionKey);
-            data = JSON.parse(plaintext) as ProviderFile;
+            raw = JSON.parse(plaintext) as Record<string, unknown>;
         } else {
-            data = parsed as ProviderFile;
+            raw = parsed as Record<string, unknown>;
         }
 
-        if (!data.version || !data.providerId || !data.credential) {
+        if (!raw.version || !raw.providerId) {
             throw new StorageError('read', `Invalid provider file: ${filePath}`);
         }
-        return data;
+
+        // Normalize: support both v2 (values) and v1 (credentials) field names
+        const values =
+            (raw.values as Record<string, string> | undefined) ??
+            (raw.credentials as Record<string, string> | undefined);
+
+        if (!values) {
+            throw new StorageError('read', `Invalid provider file: ${filePath}`);
+        }
+
+        return {
+            version: 2,
+            providerId: raw.providerId as string,
+            strategy: (raw.strategy as string) ?? 'unknown',
+            updatedAt: (raw.updatedAt as string) ?? new Date().toISOString(),
+            ...(raw.expiresAt ? { expiresAt: raw.expiresAt as string } : {}),
+            values,
+        };
     }
 
     private toStoredCredential(data: ProviderFile): StoredCredential {
         return {
-            credential: data.credential,
             providerId: data.providerId,
             strategy: data.strategy,
             updatedAt: data.updatedAt,
-            ...(data.metadata ? { metadata: data.metadata } : {}),
+            ...(data.expiresAt ? { expiresAt: data.expiresAt } : {}),
+            values: data.values,
         };
     }
 

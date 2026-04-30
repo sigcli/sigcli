@@ -1,51 +1,37 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import {
+    createRedactTransform,
     extractSensitiveValues,
     redactOutput,
-    createRedactTransform,
 } from '../../../src/utils/redact.js';
-import type { CookieCredential, BearerCredential } from '../../../src/core/types.js';
-import type { Cookie } from '../../../src/core/types.js';
-
-function makeCookie(name: string, value: string): Cookie {
-    return {
-        name,
-        value,
-        domain: 'example.com',
-        path: '/',
-        expires: -1,
-        httpOnly: false,
-        secure: false,
-    };
-}
 
 describe('extractSensitiveValues', () => {
-    it('extracts bearer accessToken', () => {
-        const cred: BearerCredential = { type: 'bearer', accessToken: 'eyJhbGciOiJSUzI1NiJ9' };
+    it('extracts string values >= 8 chars', () => {
+        const cred = { access_token: 'eyJhbGciOiJSUzI1NiJ9' };
         const secrets = extractSensitiveValues(cred);
         expect(secrets).toContain('eyJhbGciOiJSUzI1NiJ9');
     });
 
-    it('extracts cookie values (long enough)', () => {
-        const cred: CookieCredential = {
-            type: 'cookie',
-            cookies: [makeCookie('session', 'abcdef123456'), makeCookie('short', 'abc')],
-            obtainedAt: new Date().toISOString(),
-        };
+    it('extracts session cookie values (long enough)', () => {
+        const cred = { session: 'abcdef123456', short: 'abc' };
         const secrets = extractSensitiveValues(cred);
         expect(secrets).toContain('abcdef123456');
         expect(secrets).not.toContain('abc');
     });
 
-    it('extracts localStorage values', () => {
-        const cred: CookieCredential = {
-            type: 'cookie',
-            cookies: [],
-            obtainedAt: new Date().toISOString(),
-            localStorage: { token: 'xoxc-longtoken12345' },
-        };
+    it('extracts all string values >= 8 chars', () => {
+        const cred = { token: 'xoxc-longtoken12345', other: 'short' };
         const secrets = extractSensitiveValues(cred);
         expect(secrets).toContain('xoxc-longtoken12345');
+        expect(secrets).not.toContain('short');
+    });
+
+    it('ignores non-string values', () => {
+        const cred = { count: 12345678, flag: true, session: 'validlongvalue' };
+        const secrets = extractSensitiveValues(cred);
+        expect(secrets).toContain('validlongvalue');
+        expect(secrets).toHaveLength(1);
     });
 });
 

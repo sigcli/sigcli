@@ -1,6 +1,12 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import path from 'node:path';
+// Import after mocking
+import fs from 'node:fs';
+import fsp from 'node:fs/promises';
 import os from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { runInit } from '../../../src/commands/init.js';
+import { validateConfig } from '../../../src/config/validator.js';
 
 // --------------------------------------------------------------------------
 // Mocks — must be set up before importing the module under test
@@ -33,14 +39,8 @@ vi.mock('../../../src/config/validator.js', () => ({
 }));
 
 vi.mock('../../../src/crypto/encryption.js', () => ({
-    generateEncryptionKey: vi.fn().mockResolvedValue(Buffer.alloc(32)),
+    loadEncryptionKey: vi.fn().mockResolvedValue(Buffer.alloc(32)),
 }));
-
-// Import after mocking
-import fs from 'node:fs';
-import fsp from 'node:fs/promises';
-import { runInit } from '../../../src/cli/commands/init.js';
-import { validateConfig } from '../../../src/config/validator.js';
 
 const mockValidateConfig = vi.mocked(validateConfig);
 
@@ -262,7 +262,7 @@ describe('runInit', () => {
         expect(output).toContain('Browser data:');
         expect(output).toContain('Credentials:');
         expect(output).toContain('Browser:');
-        expect(output).toContain('Next steps:');
+        expect(output).toContain('Quick start:');
     });
 
     // ---- success message includes correct channel ----
@@ -297,10 +297,10 @@ describe('runInit', () => {
         await runInit([], { yes: true });
 
         const [, writtenContent] = mockWriteFile.mock.calls[0] as [string, string, string];
-        expect(writtenContent).toContain('# SigCLI unified configuration');
-        expect(writtenContent).toContain('# Browser settings');
-        expect(writtenContent).toContain('# Storage settings');
-        expect(writtenContent).toContain('# Provider configurations');
+        expect(writtenContent).toContain('# SigCLI configuration');
+        expect(writtenContent).toContain('browser:');
+        expect(writtenContent).toContain('storage:');
+        expect(writtenContent).toContain('providers:');
     });
 
     // ---- both flags combined ----
@@ -331,11 +331,8 @@ describe('runInit', () => {
 
         const output = stderrChunks.join('');
         expect(output).toContain('Remote setup complete');
-        expect(output).toContain('browser disabled');
         expect(output).toContain('sig sync pull');
-        expect(output).toContain('sig login');
-        expect(output).toContain('--cookie');
-        expect(output).toContain('--token');
+        expect(output).toContain('sig login --token');
     });
 
     it('--remote shows "Browser: disabled" in success message', async () => {

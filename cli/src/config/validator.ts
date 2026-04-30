@@ -1,30 +1,23 @@
 /**
  * Runtime validation for the unified SigCLI config.
  * Returns Result<SigConfig, AuthError>.
+ *
+ * v2-only format: strategy must be 'browser' | 'prompt',
+ * extract and apply must be arrays of rule objects.
  */
 
-import type { Result } from '../core/result.js';
-import { ok, err } from '../core/result.js';
-import { ConfigError, type AuthError } from '../core/errors.js';
+import { ConfigError, err, ok, WaitUntil, type AuthError, type Result } from '../types/index.js';
 import type {
-    SigConfig,
     BrowserConfig,
-    StorageConfig,
     ProviderEntry,
     RemoteEntry,
+    SigConfig,
+    StorageConfig,
     WatchEntry,
     WatchProviderEntry,
-    StrategyName as StrategyNameType,
-    StrategyConfig,
 } from './schema.js';
-import { StrategyName, WaitUntil, type WaitUntilValue } from '../core/constants.js';
 
-const VALID_STRATEGIES: readonly StrategyNameType[] = [
-    StrategyName.COOKIE,
-    StrategyName.OAUTH2,
-    StrategyName.API_TOKEN,
-    StrategyName.BASIC,
-];
+const VALID_STRATEGIES: readonly string[] = ['browser', 'prompt'];
 const VALID_WAIT_UNTIL: readonly string[] = [
     WaitUntil.LOAD,
     WaitUntil.NETWORK_IDLE,
@@ -212,12 +205,6 @@ export function validateConfig(raw: Record<string, unknown>): Result<SigConfig, 
     let watch: WatchEntry | undefined;
     if (raw.watch && typeof raw.watch === 'object') {
         const w = raw.watch as Record<string, unknown>;
-        if (typeof w.interval !== 'string') {
-            errors.push('watch: missing required field "interval"');
-        }
-        if (!w.providers || typeof w.providers !== 'object') {
-            errors.push('watch: missing required field "providers"');
-        }
         const watchProviders: Record<string, WatchProviderEntry | null> = {};
         if (w.providers && typeof w.providers === 'object') {
             for (const [id, opts] of Object.entries(w.providers as Record<string, unknown>)) {
@@ -267,21 +254,71 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
         errors.push(`Provider "${id}": missing required field "entryUrl"`);
     }
 
-    if (typeof raw.strategy !== 'string') {
+    // Validate strategy
+    if (!raw.strategy || typeof raw.strategy !== 'string') {
         errors.push(`Provider "${id}": missing required field "strategy"`);
-    } else if (!VALID_STRATEGIES.includes(raw.strategy as StrategyNameType)) {
+    } else if (!VALID_STRATEGIES.includes(raw.strategy)) {
         errors.push(
-            `Provider "${id}": invalid strategy "${raw.strategy}". ` +
-                `Valid strategies: ${VALID_STRATEGIES.join(', ')}`,
+            `Provider "${id}": invalid strategy "${raw.strategy}". Valid: ${VALID_STRATEGIES.join(', ')}`,
         );
     }
 
-    // Validate forceVisible at provider level
-    if (raw.forceVisible !== undefined && typeof raw.forceVisible !== 'boolean') {
-        errors.push(`Provider "${id}": forceVisible must be a boolean`);
+    // Validate extract array
+    if (!Array.isArray(raw.extract)) {
+        errors.push(`Provider "${id}": missing required field "extract" (array)`);
+    } else {
+        for (let i = 0; i < raw.extract.length; i++) {
+            const rule = raw.extract[i] as Record<string, unknown>;
+            if (!rule || typeof rule !== 'object') {
+                errors.push(`Provider "${id}": extract[${i}] must be an object`);
+                continue;
+            }
+            if (typeof rule.from !== 'string') {
+                errors.push(`Provider "${id}": extract[${i}].from is required (string)`);
+            }
+            if (typeof rule.name !== 'string' || rule.name.trim() === '') {
+                errors.push(`Provider "${id}": extract[${i}].name is required (string)`);
+            }
+            if (typeof rule.key !== 'string' || rule.key.trim() === '') {
+                errors.push(`Provider "${id}": extract[${i}].key is required (string)`);
+            }
+        }
     }
 
-    // Validate loginMode at provider level
+    // Validate apply array
+    if (!Array.isArray(raw.apply)) {
+        errors.push(`Provider "${id}": missing required field "apply" (array)`);
+    } else {
+        const VALID_IN = ['header', 'body', 'query'];
+        const VALID_ACTIONS = ['set', 'append', 'remove'];
+        for (let i = 0; i < raw.apply.length; i++) {
+            const rule = raw.apply[i] as Record<string, unknown>;
+            if (!rule || typeof rule !== 'object') {
+                errors.push(`Provider "${id}": apply[${i}] must be an object`);
+                continue;
+            }
+            if (typeof rule.in !== 'string' || !VALID_IN.includes(rule.in)) {
+                errors.push(
+                    `Provider "${id}": apply[${i}].in must be one of: ${VALID_IN.join(', ')}`,
+                );
+            }
+            if (typeof rule.name !== 'string' || rule.name.trim() === '') {
+                errors.push(`Provider "${id}": apply[${i}].name is required (string)`);
+            }
+            if (typeof rule.value !== 'string') {
+                errors.push(`Provider "${id}": apply[${i}].value is required (string)`);
+            }
+            if (rule.action !== undefined) {
+                if (!VALID_ACTIONS.includes(rule.action as string)) {
+                    errors.push(
+                        `Provider "${id}": apply[${i}].action must be one of: ${VALID_ACTIONS.join(', ')}`,
+                    );
+                }
+            }
+        }
+    }
+
+    // Validate loginMode
     const VALID_LOGIN_MODES = ['auto', 'cdp', 'headless', 'visible'];
     if (raw.loginMode !== undefined) {
         if (typeof raw.loginMode !== 'string' || !VALID_LOGIN_MODES.includes(raw.loginMode)) {
@@ -291,147 +328,7 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
         }
     }
 
-    // Validate localStorage entries
-    if (raw.localStorage !== undefined) {
-        if (!Array.isArray(raw.localStorage)) {
-            errors.push(`Provider "${id}": localStorage must be an array`);
-        } else {
-            for (let i = 0; i < raw.localStorage.length; i++) {
-                const entry = raw.localStorage[i] as Record<string, unknown>;
-                if (!entry || typeof entry !== 'object') {
-                    errors.push(`Provider "${id}": localStorage[${i}] must be an object`);
-                    continue;
-                }
-                if (typeof entry.name !== 'string' || entry.name.trim() === '') {
-                    errors.push(`Provider "${id}": localStorage[${i}].name is required (string)`);
-                }
-                if (typeof entry.key !== 'string' || entry.key.trim() === '') {
-                    errors.push(`Provider "${id}": localStorage[${i}].key is required (string)`);
-                }
-                if (entry.jsonPath !== undefined && typeof entry.jsonPath !== 'string') {
-                    errors.push(`Provider "${id}": localStorage[${i}].jsonPath must be a string`);
-                }
-            }
-        }
-    }
-
-    // Validate strategy-specific config shape
-    if (typeof raw.strategy === 'string' && raw.config && typeof raw.config === 'object') {
-        const strategyErrors = validateStrategyConfig(
-            id,
-            raw.strategy as StrategyNameType,
-            raw.config as Record<string, unknown>,
-        );
-        errors.push(...strategyErrors);
-    }
-
     return errors;
-}
-
-function validateStrategyConfig(
-    id: string,
-    strategy: StrategyNameType,
-    config: Record<string, unknown>,
-): string[] {
-    const errors: string[] = [];
-
-    // Cross-strategy field checks: warn about fields that don't belong
-    if (strategy === StrategyName.COOKIE) {
-        const oauthFields = ['audiences', 'tokenEndpoint', 'clientId', 'scopes'];
-        for (const field of oauthFields) {
-            if (config[field] !== undefined) {
-                errors.push(
-                    `Provider "${id}": config.${field} is not valid for strategy "${StrategyName.COOKIE}"`,
-                );
-            }
-        }
-
-        if (config.cookiePaths !== undefined) {
-            if (!Array.isArray(config.cookiePaths)) {
-                errors.push(`Provider "${id}": config.cookiePaths must be an array`);
-            } else {
-                for (let i = 0; i < config.cookiePaths.length; i++) {
-                    const p = config.cookiePaths[i];
-                    if (typeof p !== 'string' || !p.startsWith('/')) {
-                        errors.push(
-                            `Provider "${id}": config.cookiePaths[${i}] must be a path starting with "/"`,
-                        );
-                    }
-                }
-            }
-        }
-    }
-
-    if (strategy === StrategyName.OAUTH2) {
-        const cookieFields = ['ttl', 'requiredCookies'];
-        for (const field of cookieFields) {
-            if (config[field] !== undefined) {
-                errors.push(
-                    `Provider "${id}": config.${field} is not valid for strategy "${StrategyName.OAUTH2}"`,
-                );
-            }
-        }
-    }
-
-    return errors;
-}
-
-/**
- * Merge a provider entry's strategy + config into a typed StrategyConfig.
- */
-export function buildStrategyConfig(
-    strategy: StrategyNameType,
-    config?: Record<string, unknown>,
-): StrategyConfig {
-    const c = config ?? {};
-
-    switch (strategy) {
-        case StrategyName.COOKIE:
-            return {
-                strategy: StrategyName.COOKIE,
-                ...(typeof c.ttl === 'string' ? { ttl: c.ttl } : {}),
-                ...(typeof c.waitUntil === 'string' && VALID_WAIT_UNTIL.includes(c.waitUntil)
-                    ? { waitUntil: c.waitUntil as WaitUntilValue }
-                    : {}),
-                ...(Array.isArray(c.requiredCookies)
-                    ? { requiredCookies: c.requiredCookies as string[] }
-                    : {}),
-                ...(Array.isArray(c.cookiePaths)
-                    ? {
-                          cookiePaths: (c.cookiePaths as string[]).map(
-                              (p) => p.replace(/[?#].*$/, '').replace(/\/+$/, '') || '/',
-                          ),
-                      }
-                    : {}),
-            };
-
-        case StrategyName.OAUTH2:
-            return {
-                strategy: StrategyName.OAUTH2,
-                ...(Array.isArray(c.audiences) ? { audiences: c.audiences as string[] } : {}),
-                ...(typeof c.tokenEndpoint === 'string' ? { tokenEndpoint: c.tokenEndpoint } : {}),
-                ...(typeof c.clientId === 'string' ? { clientId: c.clientId } : {}),
-                ...(Array.isArray(c.scopes) ? { scopes: c.scopes as string[] } : {}),
-            };
-
-        case StrategyName.API_TOKEN:
-            return {
-                strategy: StrategyName.API_TOKEN,
-                ...(typeof c.headerName === 'string' ? { headerName: c.headerName } : {}),
-                ...(typeof c.headerPrefix === 'string' ? { headerPrefix: c.headerPrefix } : {}),
-                ...(typeof c.setupInstructions === 'string'
-                    ? { setupInstructions: c.setupInstructions }
-                    : {}),
-            };
-
-        case StrategyName.BASIC:
-            return {
-                strategy: StrategyName.BASIC,
-                ...(typeof c.setupInstructions === 'string'
-                    ? { setupInstructions: c.setupInstructions }
-                    : {}),
-            };
-    }
 }
 
 function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
@@ -439,36 +336,12 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
         ...(typeof raw.name === 'string' ? { name: raw.name } : {}),
         domains: raw.domains as string[],
         entryUrl: raw.entryUrl as string,
-        strategy: raw.strategy as StrategyNameType,
-        ...(raw.config && typeof raw.config === 'object'
-            ? { config: raw.config as Record<string, unknown> }
-            : {}),
-        ...(Array.isArray(raw.acceptedCredentialTypes)
-            ? { acceptedCredentialTypes: raw.acceptedCredentialTypes }
-            : {}),
-        ...(typeof raw.setupInstructions === 'string'
-            ? { setupInstructions: raw.setupInstructions }
-            : {}),
-        ...(Array.isArray(raw.localStorage) ? { localStorage: raw.localStorage } : {}),
-        ...(typeof raw.forceVisible === 'boolean' ? { forceVisible: raw.forceVisible } : {}),
-        ...(raw.proxy && typeof raw.proxy === 'object'
-            ? {
-                  proxy: {
-                      inject: Array.isArray((raw.proxy as Record<string, unknown>).inject)
-                          ? (
-                                (raw.proxy as Record<string, unknown>).inject as Array<
-                                    Record<string, unknown>
-                                >
-                            ).map((r) => ({
-                                in: r.in as 'header' | 'body' | 'query',
-                                action: r.action as 'set' | 'append' | 'remove',
-                                name: r.name as string,
-                                ...(r.from !== undefined ? { from: r.from as string } : {}),
-                            }))
-                          : undefined,
-                  },
-              }
-            : {}),
+        strategy: raw.strategy as ProviderEntry['strategy'],
+        extract: raw.extract as ProviderEntry['extract'],
+        apply: raw.apply as ProviderEntry['apply'],
+        ...(Array.isArray(raw.required) ? { required: raw.required } : {}),
+        ...(Array.isArray(raw.cookiePaths) ? { cookiePaths: raw.cookiePaths } : {}),
+        ...(typeof raw.ttl === 'string' ? { ttl: raw.ttl } : {}),
         ...(typeof raw.networkProxy === 'string' ? { networkProxy: raw.networkProxy } : {}),
         ...(typeof raw.loginMode === 'string' ? { loginMode: raw.loginMode } : {}),
     };

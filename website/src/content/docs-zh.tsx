@@ -1,11 +1,11 @@
 import {
-    SectionHeading,
-    P,
+    A,
     Code,
     CodeBlock,
-    List,
     Li,
-    A,
+    List,
+    P,
+    SectionHeading,
     type EditorialSection,
 } from '../components/markdown';
 import type { FlatTocItem, TocNodeType } from '../components/toc-tree';
