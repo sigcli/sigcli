@@ -6,9 +6,8 @@ import {
     ok,
     type AuthError,
     type ExtractedCredentials,
-    type ExtractionContext,
-    type ExtractRule,
     type IStrategy,
+    type ProviderConfig,
     type Result,
 } from '../../types/index.js';
 import type { ExtractionResult } from '../../types/interfaces/strategy.js';
@@ -22,10 +21,7 @@ export class PromptStrategy implements IStrategy {
     readonly name = 'prompt';
     readonly needsBrowser = false;
 
-    async extract(
-        rules: ExtractRule[],
-        _ctx: ExtractionContext,
-    ): Promise<Result<ExtractionResult, AuthError>> {
+    async extract(provider: ProviderConfig): Promise<Result<ExtractionResult, AuthError>> {
         const credentials: ExtractedCredentials = {};
 
         const rl = readline.createInterface({
@@ -34,7 +30,7 @@ export class PromptStrategy implements IStrategy {
         });
 
         try {
-            for (const rule of rules) {
+            for (const rule of provider.extract) {
                 const answer = await this.ask(rl, rule.key);
                 if (!answer) {
                     return err(new ManualSetupRequired(rule.name, rule.key));

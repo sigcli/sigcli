@@ -1,7 +1,7 @@
 import dlv from 'dlv';
 
 import type { ExtractRule, IBrowserExtractor } from '../../../types/index.js';
-import type { CdpWsClient } from '../cdp-ws.js';
+import { attachToPageTarget, type CdpWsClient } from '../cdp-ws.js';
 
 /**
  * Extracts values from browser localStorage via CDP Runtime.evaluate.
@@ -19,7 +19,7 @@ export class CdpStorageExtractor implements IBrowserExtractor {
         rule: ExtractRule,
         _domains: string[],
     ): Promise<{ name: string; value: string } | null> {
-        const sessionId = await this.attachToPage(cdp);
+        const sessionId = await attachToPageTarget(cdp);
         if (!sessionId) return null;
 
         try {
@@ -67,21 +67,6 @@ export class CdpStorageExtractor implements IBrowserExtractor {
         const firstSegment = key.slice(0, dotIndex);
         const rest = key.slice(dotIndex + 1);
         return { storageKey: firstSegment, jsonPath: rest };
-    }
-
-    private async attachToPage(cdp: CdpWsClient): Promise<string | null> {
-        const targets = (await cdp.send('Target.getTargets')) as {
-            targetInfos: Array<{ targetId: string; type: string; url: string }>;
-        };
-        const page = targets?.targetInfos?.find((t) => t.type === 'page');
-        if (!page) return null;
-
-        const attach = (await cdp.send('Target.attachToTarget', {
-            targetId: page.targetId,
-            flatten: true,
-        })) as { sessionId: string };
-
-        return attach?.sessionId ?? null;
     }
 
     private async extractByKey(

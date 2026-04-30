@@ -1,5 +1,4 @@
 export { BrowserStrategy } from './browser-strategy.js';
-export type { BrowserStrategyOptions } from './browser-strategy.js';
 export { LoginPageDetector } from './login-detector.js';
 export type { ILoginPageDetector, DomEvaluateFn } from './login-detector.js';
 export { PageStateChecker } from './page-state-checker.js';
