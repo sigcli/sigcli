@@ -24,3 +24,33 @@ export function createConsoleLogger(): ILogger {
         },
     };
 }
+
+export function createOperationalLogger(): ILogger {
+    return {
+        debug() {},
+        info(message: string, ...args: unknown[]) {
+            process.stderr.write(
+                `[sig] ${message}${args.length ? ' ' + args.map(String).join(' ') : ''}\n`,
+            );
+        },
+        warn(message: string, ...args: unknown[]) {
+            process.stderr.write(
+                `[sig] WARN: ${message}${args.length ? ' ' + args.map(String).join(' ') : ''}\n`,
+            );
+        },
+        error(message: string, ...args: unknown[]) {
+            process.stderr.write(
+                `[sig] ERROR: ${message}${args.length ? ' ' + args.map(String).join(' ') : ''}\n`,
+            );
+        },
+    };
+}
+
+export function createNoopLogger(): ILogger {
+    return {
+        debug() {},
+        info() {},
+        warn() {},
+        error() {},
+    };
+}

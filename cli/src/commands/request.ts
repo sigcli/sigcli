@@ -118,6 +118,8 @@ export async function runRequest(
         }
     }
 
+    auth.logger.info(`request: ${httpMethod} ${url} via ${provider.id}`);
+
     const fetchOptions: RequestInit = { method: httpMethod, headers: requestHeaders };
     if (finalBody && ['POST', 'PUT', 'PATCH'].includes(httpMethod)) {
         fetchOptions.body = finalBody;
@@ -125,6 +127,7 @@ export async function runRequest(
 
     try {
         const response = await fetch(finalUrl, fetchOptions);
+        auth.logger.info(`request: ${response.status} ${response.statusText}`);
         const responseBody = await response.text();
 
         let formattedBody: string;

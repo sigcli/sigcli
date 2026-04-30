@@ -1,4 +1,5 @@
 import { parseDuration } from '../utils/duration.js';
+import { createOperationalLogger } from '../utils/logger.js';
 import { expandHome } from '../utils/path.js';
 import type { AuthManager } from '../auth-manager.js';
 import { getWatchConfig, getWatchProviders } from '../watch/watch-config.js';
@@ -15,21 +16,13 @@ export interface DaemonOptions {
 }
 
 export async function startDaemon(opts: DaemonOptions, signal: AbortSignal): Promise<void> {
+    const logger = createOperationalLogger();
     const proxyDir = expandHome('~/.sig/proxy');
-    const caManager = new CaManager(proxyDir);
-    const server = new ProxyServer({ port: opts.port, auth: opts.auth, caManager });
+    const caManager = new CaManager(proxyDir, logger);
+    const server = new ProxyServer({ port: opts.port, auth: opts.auth, caManager, logger });
 
     const { port } = await server.start();
     await writeState({ pid: process.pid, port });
-
-    const logger = {
-        debug: (msg: string) => process.stderr.write(`[proxy] ${msg}\n`),
-        info: (msg: string) => process.stderr.write(`[proxy] ${msg}\n`),
-        warn: (msg: string) => process.stderr.write(`[proxy] WARN: ${msg}\n`),
-        error: (msg: string) => process.stderr.write(`[proxy] ERROR: ${msg}\n`),
-    };
-
-    process.stderr.write(`[proxy] Listening on 127.0.0.1:${port}\n`);
 
     // Graceful shutdown
     const cleanup = async () => {

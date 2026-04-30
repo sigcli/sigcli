@@ -1,23 +1,27 @@
 import fs from 'node:fs/promises';
 import YAML from 'yaml';
 
-import type { IStorage } from '../types/index.js';
+import type { ILogger, IStorage } from '../types/index.js';
 import { getConfigPath } from '../config/loader.js';
 import type { SigConfig } from '../config/schema.js';
+import { createNoopLogger } from '../utils/logger.js';
 import { sanitizeId } from '../utils/sanitize.js';
 import type { ISyncTransport } from './interfaces/transport.js';
 import type { RemoteConfig, SyncResult } from './types.js';
 
 export class SyncEngine {
     private readonly transport: ISyncTransport;
+    private readonly logger: ILogger;
 
     constructor(
         private readonly storage: IStorage,
         private readonly remote: RemoteConfig,
         private readonly config: SigConfig,
         transport: ISyncTransport,
+        logger?: ILogger,
     ) {
         this.transport = transport;
+        this.logger = logger ?? createNoopLogger();
     }
 
     async push(providerIds?: string[], force = false): Promise<SyncResult> {
@@ -34,6 +38,8 @@ export class SyncEngine {
         const toPush = providerIds
             ? localEntries.filter((e) => providerIds.includes(e.providerId))
             : localEntries;
+
+        this.logger.info(`sync push: ${toPush.length} provider(s) to ${this.remote.name}`);
 
         if (toPush.length === 0) {
             // Still sync config even if no credentials to push
@@ -55,6 +61,7 @@ export class SyncEngine {
                     const localTime = new Date(entry.updatedAt).getTime();
                     const remoteTime = new Date(remoteEntry.updatedAt).getTime();
                     if (remoteTime > localTime) {
+                        this.logger.info(`sync push: ${entry.providerId} skipped (remote newer)`);
                         result.skipped.push(entry.providerId);
                         continue;
                     }
@@ -64,6 +71,7 @@ export class SyncEngine {
                 if (!stored) continue;
 
                 await this.transport.writeRemote(this.remote, filename, stored);
+                this.logger.info(`sync push: ${entry.providerId} pushed`);
                 result.pushed.push(entry.providerId);
             } catch (e: unknown) {
                 result.errors.push({
@@ -94,6 +102,8 @@ export class SyncEngine {
             ? remoteEntries.filter((e) => providerIds.includes(e.providerId))
             : remoteEntries;
 
+        this.logger.info(`sync pull: ${toPull.length} provider(s) from ${this.remote.name}`);
+
         if (toPull.length === 0) {
             // Still sync config even if no credentials to pull
             result.configSynced = await this.syncConfigPull(providerIds);
@@ -109,6 +119,9 @@ export class SyncEngine {
                         const localTime = new Date(local.updatedAt).getTime();
                         const remoteTime = new Date(entry.updatedAt).getTime();
                         if (localTime > remoteTime) {
+                            this.logger.info(
+                                `sync pull: ${entry.providerId} skipped (local newer)`,
+                            );
                             result.skipped.push(entry.providerId);
                             continue;
                         }
@@ -125,6 +138,7 @@ export class SyncEngine {
                 }
 
                 await this.storage.set(entry.providerId, stored);
+                this.logger.info(`sync pull: ${entry.providerId} pulled`);
                 result.pulled.push(entry.providerId);
             } catch (e: unknown) {
                 result.errors.push({
@@ -215,6 +229,9 @@ export class SyncEngine {
             }
 
             await this.transport.writeRemoteConfig(this.remote, doc.toString());
+            this.logger.info(
+                `sync: config pushed (${Object.keys(localProviders).length} providers)`,
+            );
             return { providers: Object.keys(localProviders) };
         } catch (e: unknown) {
             return { providers: [], error: (e as Error).message };
@@ -267,6 +284,9 @@ export class SyncEngine {
             doc.setIn(['providers'], doc.createNode(merged));
 
             await fs.writeFile(configPath, doc.toString(), 'utf-8');
+            this.logger.info(
+                `sync: config pulled (${Object.keys(remoteProviders).length} providers)`,
+            );
             return { providers: Object.keys(remoteProviders) };
         } catch (e: unknown) {
             return { providers: [], error: (e as Error).message };
