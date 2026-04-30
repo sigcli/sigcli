@@ -44,6 +44,7 @@ export async function runLogin(
         return;
     }
     const provider = resolved.value;
+    auth.logger.info(`login: provider="${provider.id}" strategy=${provider.strategy}`);
 
     const networkProxy =
         typeof flags['network-proxy'] === 'string' ? flags['network-proxy'] : undefined;
@@ -140,6 +141,7 @@ export async function runLogin(
         provider: provider.id,
         metadata: { strategy: provider.strategy },
     });
+    auth.logger.info(`login: success`);
     process.stderr.write(`Authenticated with "${provider.name}".\n`);
     process.stdout.write(
         formatJson({

@@ -27,7 +27,7 @@ import { checkRequired } from './strategies/browser/required-checker.js';
 import { PromptStrategy } from './strategies/prompt/index.js';
 import { ApplyEngine, type ApplyResult } from './apply/apply-engine.js';
 import { parseDuration } from './utils/duration.js';
-import { createConsoleLogger } from './utils/logger.js';
+import { createNoopLogger, createOperationalLogger } from './utils/logger.js';
 import { expandHome } from './utils/path.js';
 
 /**
@@ -39,10 +39,10 @@ export class AuthManager {
     readonly storage: IStorage;
     readonly config: SigConfig;
     readonly browserAvailable: boolean;
+    readonly logger: ILogger;
 
     private readonly providers: IProviderRegistry;
     private readonly browserConfig: BrowserConfig;
-    private readonly logger: ILogger;
     private readonly strategies = new Map<string, IStrategy>();
 
     private constructor(
@@ -50,16 +50,19 @@ export class AuthManager {
         providers: IProviderRegistry,
         browserConfig: BrowserConfig,
         config: SigConfig,
+        logger: ILogger,
     ) {
         this.storage = storage;
         this.providers = providers;
         this.browserConfig = browserConfig;
         this.config = config;
         this.browserAvailable = config.mode !== 'browserless';
-        this.logger = createConsoleLogger();
+        this.logger = logger;
     }
 
-    static async create(config: SigConfig): Promise<AuthManager> {
+    static async create(config: SigConfig, logger?: ILogger): Promise<AuthManager> {
+        const log = logger ?? createOperationalLogger();
+
         const providerConfigs = Object.entries(config.providers).map(
             ([id, entry]) =>
                 ({
@@ -84,18 +87,22 @@ export class AuthManager {
 
         const credDir = expandHome(config.storage.credentialsDir);
         const encryptionKey = await loadEncryptionKey();
-        const storage = new CachedStorage(new DirectoryStorage(credDir, encryptionKey), {
+        const storage = new CachedStorage(new DirectoryStorage(credDir, encryptionKey, log), {
             ttlMs: 5000,
         });
 
-        const manager = new AuthManager(storage, providerRegistry, config.browser, config);
+        const manager = new AuthManager(storage, providerRegistry, config.browser, config, log);
 
         if (manager.browserAvailable) {
-            manager.registerStrategy(new BrowserStrategy(config.browser));
+            manager.registerStrategy(new BrowserStrategy(config.browser, undefined, log));
         }
         manager.registerStrategy(new PromptStrategy());
 
         return manager;
+    }
+
+    static async createWithNoopLogger(config: SigConfig): Promise<AuthManager> {
+        return AuthManager.create(config, createNoopLogger());
     }
 
     registerStrategy(strategy: IStrategy): void {
@@ -157,7 +164,7 @@ export class AuthManager {
             const existingIds = new Set(this.providers.list().map((p) => p.id));
             const provider = createDefaultProvider(input, existingIds);
             this.providers.register(provider);
-            this.logger.info(`Auto-provisioned provider "${provider.id}" for ${input}`);
+            this.logger.info(`auto-provisioned "${provider.id}" for ${input}`);
             return ok(provider);
         }
 
@@ -220,14 +227,24 @@ export class AuthManager {
 
     private async getCached(provider: ProviderConfig): Promise<ExtractedCredentials | null> {
         const stored = await this.storage.get(provider.id);
-        if (!stored) return null;
+        if (!stored) {
+            this.logger.info(`${provider.id}: cache miss`);
+            return null;
+        }
 
         const creds = stored.values;
-        if (!creds || Object.keys(creds).length === 0) return null;
+        if (!creds || Object.keys(creds).length === 0) {
+            this.logger.info(`${provider.id}: cache miss (empty)`);
+            return null;
+        }
 
         const expiresAt = this.computeExpiresAt(stored, provider);
-        if (expiresAt && Date.now() >= expiresAt.getTime()) return null;
+        if (expiresAt && Date.now() >= expiresAt.getTime()) {
+            this.logger.info(`${provider.id}: cache expired`);
+            return null;
+        }
 
+        this.logger.info(`${provider.id}: cache hit`);
         return creds;
     }
 
@@ -258,14 +275,19 @@ export class AuthManager {
             );
         }
 
-        this.logger.info(`Authenticating with "${provider.id}"...`);
+        this.logger.info(`${provider.id}: authenticating via ${provider.strategy}`);
+        const startTime = Date.now();
 
         const extractResult = await strategy.extract(provider);
-        if (!isOk(extractResult)) return extractResult;
+        if (!isOk(extractResult)) {
+            this.logger.error(`${provider.id}: auth failed — ${extractResult.error.message}`);
+            return extractResult;
+        }
 
         if (provider.required?.length) {
             const unmet = checkRequired(provider.required, extractResult.value.credentials);
             if (unmet.length > 0) {
+                this.logger.error(`${provider.id}: required fields not met — ${unmet.join(', ')}`);
                 return err(
                     new CredentialNotFoundError(`Required fields not met: ${unmet.join(', ')}`),
                 );
@@ -281,6 +303,8 @@ export class AuthManager {
         };
         await this.storage.set(provider.id, storedEntry);
 
+        const elapsed = Date.now() - startTime;
+        this.logger.info(`${provider.id}: authenticated (${elapsed}ms)`);
         return ok(extractResult.value.credentials);
     }
 }
