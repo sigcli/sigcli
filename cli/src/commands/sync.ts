@@ -53,7 +53,13 @@ export async function runSync(
         remote = remotes[0];
     }
 
-    const engine = new SyncEngine(auth.storage, remote, auth.config, new SshTransport());
+    const engine = new SyncEngine(
+        auth.storage,
+        remote,
+        auth.config,
+        new SshTransport(),
+        auth.logger,
+    );
     const force = flags.force === true;
     const provider = typeof flags.provider === 'string' ? [flags.provider] : undefined;
 

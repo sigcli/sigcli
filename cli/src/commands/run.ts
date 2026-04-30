@@ -81,6 +81,10 @@ export async function runRun(
         allSecrets.push(...extractSensitiveValues(credResult.value));
     }
 
+    auth.logger.info(
+        `run: injecting ${providers.length} provider(s), ${Object.keys(allEnv).length} env var(s)`,
+    );
+
     const secrets = [...new Set(allSecrets)];
     const mount = typeof flags['mount'] === 'string' ? flags['mount'] : undefined;
     const mountFormat = typeof flags['mount-format'] === 'string' ? flags['mount-format'] : 'env';
@@ -106,6 +110,7 @@ export async function runRun(
     });
 
     const [cmd, ...args] = cmdArgs;
+    auth.logger.info(`run: exec ${cmd}`);
     let redactionNoticeShown = false;
 
     const child = spawn(cmd, args, {

@@ -4,11 +4,13 @@ import lockfile from 'proper-lockfile';
 
 import {
     StorageError,
+    type ILogger,
     type IStorage,
     type StoredCredential,
     type StoredEntry,
 } from '../types/index.js';
 import { decrypt, encrypt, isEncryptedEnvelope } from '../crypto/encryption.js';
+import { createNoopLogger } from '../utils/logger.js';
 import { sanitizeId } from '../utils/sanitize.js';
 
 interface ProviderFile {
@@ -29,15 +31,21 @@ interface ProviderFile {
  * (write to tmp + rename) for safe concurrent access.
  */
 export class DirectoryStorage implements IStorage {
+    private readonly logger: ILogger;
+
     constructor(
         private readonly dirPath: string,
         private readonly encryptionKey: Buffer,
-    ) {}
+        logger?: ILogger,
+    ) {
+        this.logger = logger ?? createNoopLogger();
+    }
 
     async get(providerId: string): Promise<StoredCredential | null> {
         const filePath = this.filePathFor(providerId);
         try {
             const data = await this.readFile(filePath);
+            this.logger.info(`storage: read ${providerId}`);
             return this.toStoredCredential(data);
         } catch (e: unknown) {
             if ((e as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -63,15 +71,17 @@ export class DirectoryStorage implements IStorage {
         await this.withLock(filePath, async () => {
             await this.atomicWrite(filePath, data);
         });
+        this.logger.info(`storage: write ${providerId}`);
     }
 
     async delete(providerId: string): Promise<void> {
         const filePath = this.filePathFor(providerId);
         try {
             await fs.unlink(filePath);
+            this.logger.info(`storage: delete ${providerId}`);
         } catch (e: unknown) {
             if ((e as NodeJS.ErrnoException).code === 'ENOENT') {
-                return; // No-op if not found
+                return;
             }
             throw new StorageError('delete', (e as Error).message);
         }
@@ -156,6 +166,9 @@ export class DirectoryStorage implements IStorage {
             raw = JSON.parse(plaintext) as Record<string, unknown>;
         } else {
             raw = parsed as Record<string, unknown>;
+            if (raw.providerId) {
+                this.logger.warn(`storage: ${raw.providerId as string} is unencrypted (legacy)`);
+            }
         }
 
         if (!raw.version || !raw.providerId) {

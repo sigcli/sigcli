@@ -3,8 +3,9 @@ import * as https from 'node:https';
 import * as net from 'node:net';
 import * as tls from 'node:tls';
 
-import { isOk } from '../types/index.js';
+import { isOk, type ILogger } from '../types/index.js';
 import { ApplyEngine } from '../apply/apply-engine.js';
+import { createNoopLogger } from '../utils/logger.js';
 import type { AuthManager } from '../auth-manager.js';
 import type { CaManager } from './ca-manager.js';
 
@@ -40,9 +41,12 @@ async function applyInjection(
     bodyBuffer: Buffer | undefined,
     contentType: string | undefined,
     auth: AuthManager,
+    logger: ILogger,
 ): Promise<{ headers: http.OutgoingHttpHeaders; body: Buffer | undefined; url: string }> {
     const provider = resolveProvider(url, auth);
     if (!provider) return { headers: baseHeaders, body: bodyBuffer, url };
+
+    logger.info(`proxy: injecting credentials for ${provider.id}`);
 
     const credResult = await auth.getExtractedCreds(provider.id);
     if (!isOk(credResult)) return { headers: baseHeaders, body: bodyBuffer, url };
@@ -96,6 +100,7 @@ async function handlePlainHttp(
     req: http.IncomingMessage,
     res: http.ServerResponse,
     auth: AuthManager,
+    logger: ILogger,
 ): Promise<void> {
     const rawUrl = req.url ?? '/';
     const targetUrl = rawUrl.startsWith('http') ? rawUrl : `http://${req.headers.host}${rawUrl}`;
@@ -111,6 +116,9 @@ async function handlePlainHttp(
     const contentType = req.headers['content-type'];
 
     const provider = resolveProvider(targetUrl, auth);
+    if (provider) {
+        logger.info(`proxy: ${req.method} ${targetUrl} → ${provider.id}`);
+    }
     const hasBodyRule = provider?.apply?.some((r) => r.in === 'body') ?? false;
 
     if (hasBodyRule) {
@@ -123,7 +131,7 @@ async function handlePlainHttp(
             headers,
             body,
             url: injectedUrl,
-        } = await applyInjection(targetUrl, baseHeaders, bodyBuffer, contentType, auth);
+        } = await applyInjection(targetUrl, baseHeaders, bodyBuffer, contentType, auth, logger);
 
         const injParsed = new URL(injectedUrl);
         const outHeaders =
@@ -157,6 +165,7 @@ async function handlePlainHttp(
             undefined,
             contentType,
             auth,
+            logger,
         );
 
         const injParsed = new URL(injectedUrl);
@@ -190,7 +199,9 @@ async function handleConnectMitm(
     port: number,
     auth: AuthManager,
     caManager: CaManager,
+    logger: ILogger,
 ): Promise<void> {
+    logger.info(`proxy: MITM ${hostname}:${port}`);
     let leafCert: { cert: string; key: string };
     try {
         leafCert = await caManager.leafCertFor(hostname);
@@ -233,6 +244,7 @@ async function handleConnectMitm(
                 bodyBuf ?? Buffer.alloc(0),
                 contentType,
                 auth,
+                logger,
             );
             const outHeaders = {
                 ...result.headers,
@@ -269,6 +281,7 @@ async function handleConnectMitm(
             undefined,
             contentType,
             auth,
+            logger,
         );
         const injPath = new URL(injectedUrl).pathname + new URL(injectedUrl).search;
 
@@ -358,6 +371,7 @@ export interface ProxyServerOptions {
     port: number;
     auth: AuthManager;
     caManager: CaManager;
+    logger?: ILogger;
 }
 
 export class ProxyServer {
@@ -365,14 +379,16 @@ export class ProxyServer {
     private _port: number;
     private readonly auth: AuthManager;
     private readonly caManager: CaManager;
+    private readonly logger: ILogger;
 
     constructor(opts: ProxyServerOptions) {
         this._port = opts.port;
         this.auth = opts.auth;
         this.caManager = opts.caManager;
+        this.logger = opts.logger ?? createNoopLogger();
         this.server = http.createServer();
         this.server.on('request', (req, res) => {
-            handlePlainHttp(req, res, this.auth).catch(() => {
+            handlePlainHttp(req, res, this.auth, this.logger).catch(() => {
                 if (!res.headersSent) res.writeHead(500);
                 res.end();
             });
@@ -394,6 +410,7 @@ export class ProxyServer {
                     port,
                     this.auth,
                     this.caManager,
+                    this.logger,
                 ).catch(() => {
                     clientSocket.destroy();
                 });
@@ -409,6 +426,7 @@ export class ProxyServer {
             this.server.listen(this._port, '127.0.0.1', () => {
                 const addr = this.server.address();
                 this._port = typeof addr === 'object' && addr ? addr.port : this._port;
+                this.logger.info(`proxy: listening on 127.0.0.1:${this._port}`);
                 resolve({ port: this._port });
             });
             this.server.once('error', reject);

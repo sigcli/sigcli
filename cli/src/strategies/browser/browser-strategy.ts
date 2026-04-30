@@ -10,6 +10,7 @@ import {
     type ExtractedCredentials,
     type ExtractRule,
     type IBrowserExtractor,
+    type ILogger,
     type IStrategy,
     type ProviderConfig,
     type Result,
@@ -20,6 +21,7 @@ import type {
     IHeadlessExtractor,
 } from '../../types/interfaces/headless-extractor.js';
 import type { ExtractionResult } from '../../types/interfaces/strategy.js';
+import { createNoopLogger } from '../../utils/logger.js';
 import { expandHome } from '../../utils/path.js';
 import { killProcess } from '../../utils/process-kill.js';
 import { findFreePort, removeSingletonLock, waitForBrowserReady } from './browser-lifecycle.js';
@@ -40,10 +42,16 @@ export class BrowserStrategy implements IStrategy {
     private readonly headlessExtractors: Map<string, IHeadlessExtractor>;
     private readonly browserConfig: BrowserConfig;
     private readonly pageState: IPageStateChecker;
+    private readonly logger: ILogger;
 
-    constructor(browserConfig: BrowserConfig, pageStateChecker?: IPageStateChecker) {
+    constructor(
+        browserConfig: BrowserConfig,
+        pageStateChecker?: IPageStateChecker,
+        logger?: ILogger,
+    ) {
         this.browserConfig = browserConfig;
         this.pageState = pageStateChecker ?? new PageStateChecker();
+        this.logger = logger ?? createNoopLogger();
         this.cdpExtractors = new Map();
         this.cdpExtractors.set('cookies', new CdpCookieExtractor());
         this.cdpExtractors.set('localStorage', new CdpStorageExtractor());
@@ -53,6 +61,7 @@ export class BrowserStrategy implements IStrategy {
     }
 
     async extract(provider: ProviderConfig): Promise<Result<ExtractionResult, AuthError>> {
+        this.logger.info(`${provider.id}: starting browser extraction`);
         const headlessResult = await this.tryHeadless(provider);
         if (headlessResult) return ok(headlessResult);
         return this.extractViaCdp(provider);
@@ -63,12 +72,19 @@ export class BrowserStrategy implements IStrategy {
     // =========================================================================
 
     private async tryHeadless(provider: ProviderConfig): Promise<ExtractionResult | null> {
+        this.logger.info(`${provider.id}: trying headless`);
         try {
             // @ts-expect-error - playwright is an optional dependency
             const pw = await import('playwright').catch(() => null);
-            if (!pw) return null;
+            if (!pw) {
+                this.logger.info(`${provider.id}: playwright not available, skipping headless`);
+                return null;
+            }
 
             const dataDir = expandHome(this.browserConfig.browserDataDir);
+            this.logger.info(
+                `${provider.id}: headless launch (channel=${this.browserConfig.channel})`,
+            );
             const browserCtx = await pw.chromium.launchPersistentContext(dataDir, {
                 headless: true,
                 channel: this.browserConfig.channel,
@@ -97,8 +113,14 @@ export class BrowserStrategy implements IStrategy {
                     evaluate,
                     provider.loginUrlPatterns,
                 );
-                if (!authenticated) return null;
+                if (!authenticated) {
+                    this.logger.info(
+                        `${provider.id}: headless not authenticated, falling back to CDP`,
+                    );
+                    return null;
+                }
 
+                this.logger.info(`${provider.id}: headless authenticated`);
                 const headlessCtx: HeadlessExtractionCtx = {
                     cookies: () => browserCtx.cookies(),
                     evaluate: <T>(expr: string) => page.evaluate(expr) as Promise<T>,
@@ -114,11 +136,15 @@ export class BrowserStrategy implements IStrategy {
                     if (checkRequired(provider.required, credentials).length > 0) return null;
                 }
 
+                this.logger.info(
+                    `${provider.id}: headless extracted ${Object.keys(credentials).length} credential(s)`,
+                );
                 return { credentials, expiresAt };
             } finally {
                 await browserCtx.close();
             }
         } catch {
+            this.logger.warn(`${provider.id}: headless failed, falling back to CDP`);
             return null;
         }
     }
@@ -174,6 +200,8 @@ export class BrowserStrategy implements IStrategy {
             return err(new BrowserError(`Failed to find free port: ${(e as Error).message}`));
         }
 
+        this.logger.info(`${provider.id}: CDP port ${cdpPort}`);
+
         const browserArgs: string[] = [
             `--remote-debugging-port=${cdpPort}`,
             `--user-data-dir=${dataDir}`,
@@ -199,12 +227,17 @@ export class BrowserStrategy implements IStrategy {
         let cdpClient: CdpWsClient | undefined;
 
         try {
+            this.logger.info(`${provider.id}: launching browser for CDP`);
             browser = spawn(execPath, browserArgs, { detached: false, stdio: 'ignore' });
 
             const wsUrl = await waitForBrowserReady(cdpPort, this.browserConfig.visibleTimeout);
             cdpClient = await connectCdpWs(wsUrl);
+            this.logger.info(`${provider.id}: CDP connected`);
 
             const result = await this.pollUntilComplete(cdpClient, provider);
+            this.logger.info(
+                `${provider.id}: extraction complete (${Object.keys(result.credentials).length} credentials)`,
+            );
             return ok(result);
         } catch (e) {
             if (e instanceof BrowserTimeoutError) return err(e);

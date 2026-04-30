@@ -121,6 +121,9 @@ export {
 } from './types/index.js';
 export type { WaitUntilValue } from './types/index.js';
 
+// Logger
+export { createConsoleLogger, createOperationalLogger, createNoopLogger } from './utils/logger.js';
+
 // Utilities
 export { decodeJwt, isJwtExpired, getJwtExpiresAt } from './utils/jwt.js';
 export { parseDuration, formatDuration } from './utils/duration.js';
