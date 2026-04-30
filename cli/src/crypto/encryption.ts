@@ -1,8 +1,13 @@
+import { execFile } from 'node:child_process';
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 import fs from 'node:fs/promises';
+import { platform } from 'node:os';
 import path from 'node:path';
+import { promisify } from 'node:util';
 
 import { expandHome } from '../utils/path.js';
+
+const execFileAsync = promisify(execFile);
 
 export interface EncryptedEnvelope {
     version: 1;
@@ -65,6 +70,22 @@ export async function generateEncryptionKey(sigDir?: string): Promise<Buffer> {
     const key = randomBytes(32);
     const keyPath = path.join(dir, KEY_FILE);
     await fs.writeFile(keyPath, key.toString('base64') + '\n', { mode: 0o400 });
+
+    if (platform() === 'win32') {
+        const user = process.env.USERNAME ?? process.env.USER ?? '';
+        if (user) {
+            try {
+                await execFileAsync('icacls', [
+                    keyPath,
+                    '/inheritance:r',
+                    '/grant:r',
+                    `${user}:(R)`,
+                ]);
+            } catch {
+                // Best-effort on Windows
+            }
+        }
+    }
 
     return key;
 }

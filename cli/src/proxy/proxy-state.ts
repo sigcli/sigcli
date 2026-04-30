@@ -4,8 +4,7 @@ import { join } from 'node:path';
 import { expandHome } from '../utils/path.js';
 
 const PROXY_DIR = expandHome('~/.sig/proxy');
-const PID_FILE = join(PROXY_DIR, 'proxy.pid');
-const PORT_FILE = join(PROXY_DIR, 'proxy.port');
+const STATE_FILE = join(PROXY_DIR, 'state.json');
 
 export interface ProxyState {
     pid: number;
@@ -14,23 +13,25 @@ export interface ProxyState {
 
 export async function writeState(state: ProxyState): Promise<void> {
     await mkdir(PROXY_DIR, { recursive: true });
-    await writeFile(PID_FILE, String(state.pid));
-    await writeFile(PORT_FILE, String(state.port));
+    await writeFile(STATE_FILE, JSON.stringify(state));
 }
 
 export async function readState(): Promise<ProxyState | null> {
     try {
-        const pid = parseInt(await readFile(PID_FILE, 'utf8'), 10);
-        const port = parseInt(await readFile(PORT_FILE, 'utf8'), 10);
-        if (isNaN(pid) || isNaN(port)) return null;
-        return { pid, port };
+        const raw = await readFile(STATE_FILE, 'utf8');
+        const state = JSON.parse(raw) as ProxyState;
+        if (!state.pid || !state.port) return null;
+        return state;
     } catch {
         return null;
     }
 }
 
 export async function clearState(): Promise<void> {
-    await Promise.allSettled([unlink(PID_FILE), unlink(PORT_FILE)]);
+    await unlink(STATE_FILE).catch(() => {});
+    // Clean up legacy files
+    await unlink(join(PROXY_DIR, 'proxy.pid')).catch(() => {});
+    await unlink(join(PROXY_DIR, 'proxy.port')).catch(() => {});
 }
 
 export async function isRunning(): Promise<boolean> {
@@ -40,6 +41,7 @@ export async function isRunning(): Promise<boolean> {
         process.kill(state.pid, 0);
         return true;
     } catch {
+        await clearState();
         return false;
     }
 }

@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import lockfile from 'proper-lockfile';
@@ -192,14 +193,15 @@ export class DirectoryStorage implements IStorage {
     }
 
     private async atomicWrite(filePath: string, data: ProviderFile): Promise<void> {
+        const tmpPath = `${filePath}.tmp.${randomBytes(8).toString('hex')}`;
         try {
             const plaintext = JSON.stringify(data, null, 2);
             const envelope = encrypt(plaintext, this.encryptionKey);
             const content = JSON.stringify(envelope, null, 2);
-            const tmpPath = `${filePath}.tmp.${process.pid}`;
             await fs.writeFile(tmpPath, content, { encoding: 'utf-8', mode: 0o600 });
             await fs.rename(tmpPath, filePath);
         } catch (e: unknown) {
+            await fs.unlink(tmpPath).catch(() => {});
             throw new StorageError('write', (e as Error).message);
         }
     }

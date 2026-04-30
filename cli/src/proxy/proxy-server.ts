@@ -299,11 +299,19 @@ async function handleConnectMitm(
         proxyReq.end();
     };
 
+    const MAX_HEADER_SIZE = 64 * 1024;
+    const parseTimeout = setTimeout(() => tlsServer.destroy(), 30_000);
+
     tlsServer.on('data', (chunk: Buffer) => {
         chunks.push(chunk);
         const accumulated = Buffer.concat(chunks);
 
         if (!headersParsed) {
+            if (accumulated.length > MAX_HEADER_SIZE) {
+                clearTimeout(parseTimeout);
+                tlsServer.destroy();
+                return;
+            }
             const headerEnd = accumulated.indexOf('\r\n\r\n');
             if (headerEnd === -1) return;
 
@@ -334,6 +342,7 @@ async function handleConnectMitm(
 
         const bodyReceived = accumulated.length - headerEndOffset;
         if (bodyReceived >= expectedBodyLen) {
+            clearTimeout(parseTimeout);
             tlsServer.removeAllListeners('data');
             const bodyBuf =
                 expectedBodyLen > 0
