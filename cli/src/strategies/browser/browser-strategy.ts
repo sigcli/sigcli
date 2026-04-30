@@ -35,6 +35,7 @@ export interface BrowserStrategyOptions {
     execPath: string;
     channel: string;
     waitUntil: WaitUntilValue;
+    headlessTimeout: number;
 }
 
 export class BrowserStrategy implements IStrategy {
@@ -91,7 +92,10 @@ export class BrowserStrategy implements IStrategy {
                 const waitUntil = ctx.waitUntil ?? this.options.waitUntil;
 
                 if (ctx.entryUrl) {
-                    await page.goto(ctx.entryUrl, { waitUntil, timeout: ctx.timeout ?? 15000 });
+                    await page.goto(ctx.entryUrl, {
+                        waitUntil,
+                        timeout: this.options.headlessTimeout,
+                    });
                 }
 
                 const currentUrl = (page.url() as string).toLowerCase();
@@ -219,7 +223,7 @@ export class BrowserStrategy implements IStrategy {
         try {
             browser = spawn(execPath, browserArgs, { detached: false, stdio: 'ignore' });
 
-            const wsUrl = await waitForBrowserReady(cdpPort, 15000);
+            const wsUrl = await waitForBrowserReady(cdpPort, ctx.timeout);
             cdpClient = await connectCdpWs(wsUrl);
 
             const result = await this.pollUntilComplete(cdpClient, rules, ctx);
