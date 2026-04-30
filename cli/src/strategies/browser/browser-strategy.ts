@@ -18,8 +18,8 @@ import type { Result } from '../../types/result.js';
 import type { AuthError } from '../../types/errors.js';
 import { ok, err } from '../../types/result.js';
 import { BrowserError, BrowserTimeoutError } from '../../types/errors.js';
+import { LOGIN_URL_PATTERNS } from '../../types/constants.js';
 import { connectCdpWs } from '../../browser/cdp-ws.js';
-import { findNativeBrowser } from '../../browser/detect-native.js';
 import { CookieExtractor } from './extractors/cookie.js';
 import { StorageExtractor } from './extractors/storage.js';
 import { checkRequired } from '../required-checker.js';
@@ -44,7 +44,6 @@ export class BrowserStrategy implements IStrategy {
     readonly name = 'browser';
     readonly needsBrowser = true;
 
-    private lastExpiresAt?: string;
     private readonly extractors: Map<string, IBrowserExtractor>;
     private readonly options: BrowserStrategyOptions;
 
@@ -62,7 +61,7 @@ export class BrowserStrategy implements IStrategy {
         // Cascade: headless → CDP
 
         const headlessResult = await this.tryHeadless(rules, ctx);
-        if (headlessResult) return ok({ credentials: headlessResult });
+        if (headlessResult) return ok(headlessResult);
 
         // CDP mode
         return this.extractViaCdp(rules, ctx);
@@ -71,9 +70,9 @@ export class BrowserStrategy implements IStrategy {
     private async tryHeadless(
         rules: ExtractRule[],
         ctx: ExtractionContext,
-    ): Promise<ExtractedCredentials | null> {
+    ): Promise<ExtractionResult | null> {
         try {
-            // @ts-ignore - playwright is an optional dependency
+            // @ts-expect-error - playwright is an optional dependency
             const pw = await import('playwright').catch(() => null);
             if (!pw) return null;
 
@@ -96,12 +95,27 @@ export class BrowserStrategy implements IStrategy {
                     });
                 }
 
+                // Check if we landed on a login page or were redirected away from provider domain
+                const currentUrl = (page.url() as string).toLowerCase();
+                if (isLoginPageUrl(currentUrl)) return null;
+                const onProviderDomain = ctx.domains.some((d) =>
+                    currentUrl.includes(d.toLowerCase()),
+                );
+                if (!onProviderDomain) return null;
+
                 const credentials: ExtractedCredentials = {};
+                let expiresAt: string | undefined;
+
                 for (const rule of rules) {
                     if (rule.from === 'cookies') {
                         const cookies = await browserCtx.cookies();
                         const domainFiltered = cookies.filter(
-                            (c: { domain: string; name: string; value: string }) => {
+                            (c: {
+                                domain: string;
+                                name: string;
+                                value: string;
+                                expires: number;
+                            }) => {
                                 const d = c.domain.startsWith('.') ? c.domain.slice(1) : c.domain;
                                 return ctx.domains.some(
                                     (pd) =>
@@ -113,6 +127,14 @@ export class BrowserStrategy implements IStrategy {
                             credentials[rule.name] = domainFiltered
                                 .map((c: { name: string; value: string }) => `${c.name}=${c.value}`)
                                 .join('; ');
+
+                            // Compute expiresAt from cookie expiry
+                            const expiries = domainFiltered
+                                .filter((c: { expires: number }) => c.expires > 0)
+                                .map((c: { expires: number }) => c.expires * 1000);
+                            if (expiries.length > 0) {
+                                expiresAt = new Date(Math.min(...expiries)).toISOString();
+                            }
                         }
                     } else if (rule.from === 'localStorage') {
                         const { storageKey, jsonPath } = this.parseStorageKey(rule.key);
@@ -129,7 +151,9 @@ export class BrowserStrategy implements IStrategy {
                                     const p = JSON.parse(val);
                                     const r = dlv(p, jsonPath);
                                     if (r != null) credentials[rule.name] = String(r);
-                                } catch {}
+                                } catch {
+                                    // Value is not valid JSON — skip jsonPath extraction
+                                }
                             } else if (val) {
                                 credentials[rule.name] = val;
                             }
@@ -146,7 +170,7 @@ export class BrowserStrategy implements IStrategy {
                     if (!allExtracted) return null;
                 }
 
-                return credentials;
+                return { credentials, expiresAt };
             } finally {
                 await browserCtx.close();
             }
@@ -220,7 +244,7 @@ export class BrowserStrategy implements IStrategy {
             cdpClient = await connectCdpWs(wsUrl);
 
             const timeout = ctx.timeout;
-            const credentials = await this.pollExtractors(
+            const result = await this.pollExtractors(
                 cdpClient,
                 rules,
                 ctx.domains,
@@ -229,7 +253,7 @@ export class BrowserStrategy implements IStrategy {
                 timeout,
             );
 
-            return ok({ credentials, expiresAt: this.lastExpiresAt });
+            return ok(result);
         } catch (e) {
             if (e instanceof BrowserTimeoutError) {
                 return err(e);
@@ -251,10 +275,11 @@ export class BrowserStrategy implements IStrategy {
         cookiePaths?: string[],
         required?: string[],
         timeout = 120000,
-    ): Promise<ExtractedCredentials> {
+    ): Promise<ExtractionResult> {
         const deadline = Date.now() + timeout;
         const pollInterval = 2000;
-        let credentials: ExtractedCredentials = {};
+        const credentials: ExtractedCredentials = {};
+        let expiresAt: string | undefined;
 
         while (Date.now() < deadline) {
             for (const rule of rules) {
@@ -264,7 +289,6 @@ export class BrowserStrategy implements IStrategy {
                 try {
                     const result = await extractor.extract(cdp, rule, domains, cookiePaths);
                     if (result) {
-                        // Compute expiresAt from cookies if available
                         if (result.cookies?.length && required?.length) {
                             const requiredNames = required
                                 .filter((r) => r.startsWith(rule.name + '.'))
@@ -276,13 +300,13 @@ export class BrowserStrategy implements IStrategy {
                                 .filter((c) => c.expires > 0)
                                 .map((c) => c.expires * 1000);
                             if (expiries.length > 0)
-                                this.lastExpiresAt = new Date(Math.min(...expiries)).toISOString();
+                                expiresAt = new Date(Math.min(...expiries)).toISOString();
                         } else if (result.cookies?.length) {
                             const expiries = result.cookies
                                 .filter((c) => c.expires > 0)
                                 .map((c) => c.expires * 1000);
                             if (expiries.length > 0)
-                                this.lastExpiresAt = new Date(Math.min(...expiries)).toISOString();
+                                expiresAt = new Date(Math.min(...expiries)).toISOString();
                         }
                         credentials[result.name] = result.value;
                     }
@@ -294,18 +318,16 @@ export class BrowserStrategy implements IStrategy {
             // Check completion: required criteria or all values present
             if (required?.length) {
                 const unmet = checkRequired(required, credentials);
-                if (unmet.length === 0) return credentials;
+                if (unmet.length === 0) return { credentials, expiresAt };
             } else {
-                // Without required, we just wait for all extract rules to return non-empty.
-
                 const allExtracted = rules.every((r) => !!credentials[r.name]);
-                if (allExtracted) return credentials;
+                if (allExtracted) return { credentials, expiresAt };
             }
 
             await new Promise((r) => setTimeout(r, pollInterval));
         }
 
-        return credentials;
+        return { credentials, expiresAt };
     }
 
     private parseStorageKey(key: string): { storageKey: string | null; jsonPath?: string } {
@@ -314,6 +336,10 @@ export class BrowserStrategy implements IStrategy {
         if (dotIndex === -1) return { storageKey: key };
         return { storageKey: key.slice(0, dotIndex), jsonPath: key.slice(dotIndex + 1) };
     }
+}
+
+function isLoginPageUrl(url: string): boolean {
+    return LOGIN_URL_PATTERNS.some((p) => url.includes(p));
 }
 
 function findFreePort(): Promise<number> {

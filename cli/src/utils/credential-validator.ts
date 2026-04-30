@@ -6,11 +6,15 @@ import { parseDuration } from './duration.js';
 import { ApplyEngine } from '../apply/apply-engine.js';
 
 /**
- * Check TTL-based validity of a stored credential.
+ * Check validity of a stored credential.
+ * Checks stored.expiresAt (real cookie/token expiry) first, then falls back to TTL.
  * Returns true if credential is still valid, false if expired.
  */
 export function checkTtl(stored: StoredCredential, provider: ProviderConfig): boolean {
-    if (!provider.ttl) return true; // No TTL = never expires
+    if (stored.expiresAt) {
+        return Date.now() < new Date(stored.expiresAt).getTime();
+    }
+    if (!provider.ttl) return true;
     const ttlMs = parseDuration(provider.ttl);
     if (!ttlMs) return true;
     const updatedAt = new Date(stored.updatedAt).getTime();
@@ -47,9 +51,13 @@ export async function validateCredential(
 
 /**
  * Calculate when a stored credential expires.
+ * Prefers stored.expiresAt (real cookie/token expiry from extraction) over TTL-based estimate.
  * Returns null if no expiry can be determined.
  */
 export function getExpiresAt(stored: StoredCredential, provider: ProviderConfig): Date | null {
+    if (stored.expiresAt) {
+        return new Date(stored.expiresAt);
+    }
     if (provider.ttl) {
         const ttlMs = parseDuration(provider.ttl);
         if (ttlMs) {
