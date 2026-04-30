@@ -1,11 +1,12 @@
 import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import path from 'node:path';
 import os from 'node:os';
-import type { RemoteConfig } from '../types.js';
-import type { StoredCredential } from '../../types/types.js';
+import path from 'node:path';
+import { promisify } from 'node:util';
+
+import { decrypt, encrypt, isEncryptedEnvelope } from '../../crypto/encryption.js';
+import type { StoredCredential } from '../../types/index.js';
 import type { ISyncTransport, RemoteEntry } from '../interfaces/transport.js';
-import { encrypt, decrypt, isEncryptedEnvelope } from '../../crypto/encryption.js';
+import type { RemoteConfig } from '../types.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -154,7 +155,10 @@ export class SshTransport implements ISyncTransport {
                 providerId: data.providerId,
                 strategy: data.strategy,
                 updatedAt: data.updatedAt,
-                credentials: data.credentials,
+                values:
+                    data.values ??
+                    (data as unknown as Record<string, Record<string, string>>)['credentials'] ??
+                    {},
             };
         } catch {
             return null;
@@ -170,11 +174,12 @@ export class SshTransport implements ISyncTransport {
         const rpath = this.remoteCredentialsPath(remote);
 
         const data = {
-            version: 1,
+            version: 2,
             providerId: stored.providerId,
-            credentials: stored.credentials,
+            values: stored.values,
             strategy: stored.strategy,
             updatedAt: stored.updatedAt,
+            ...(stored.expiresAt ? { expiresAt: stored.expiresAt } : {}),
         };
 
         const remoteKey = await this.fetchRemoteKey(remote);

@@ -1,5 +1,5 @@
+import type { StoredCredential } from '../../types/index.js';
 import type { RemoteConfig } from '../types.js';
-import type { StoredCredential } from '../../types/types.js';
 
 export interface RemoteEntry {
     providerId: string;

@@ -1,31 +1,35 @@
+import { spawn, type ChildProcess } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
-import { spawn, type ChildProcess } from 'node:child_process';
+
+import { connectCdpWs, type CdpWsClient } from '../../browser/cdp-ws.js';
+import {
+    BrowserError,
+    BrowserTimeoutError,
+    err,
+    ok,
+    type AuthError,
+    type ExtractedCredentials,
+    type ExtractionContext,
+    type ExtractRule,
+    type IBrowserExtractor,
+    type IStrategy,
+    type Result,
+    type WaitUntilValue,
+} from '../../types/index.js';
 import type {
-    IStrategy,
-    ExtractedCredentials,
-    ExtractionContext,
-    ExtractionResult,
-} from '../../types/interfaces/strategy.js';
-import type { IBrowserExtractor } from '../../types/interfaces/browser-extractor.js';
-import type { ExtractRule } from '../../types/extract.js';
-import type { CdpWsClient } from '../../browser/cdp-ws.js';
-import type { Result } from '../../types/result.js';
-import type { AuthError } from '../../types/errors.js';
-import type { WaitUntilValue } from '../../types/constants.js';
-import type { DomEvaluateFn } from './login-detector.js';
-import type { IPageStateChecker } from './page-state-checker.js';
-import type { IHeadlessExtractor, HeadlessExtractionCtx } from '../../types/interfaces/headless-extractor.js';
-import { ok, err } from '../../types/result.js';
-import { BrowserError, BrowserTimeoutError } from '../../types/errors.js';
-import { connectCdpWs } from '../../browser/cdp-ws.js';
+    HeadlessExtractionCtx,
+    IHeadlessExtractor,
+} from '../../types/interfaces/headless-extractor.js';
+import type { ExtractionResult } from '../../types/interfaces/strategy.js';
+import { findFreePort, removeSingletonLock, waitForBrowserReady } from './browser-lifecycle.js';
 import { CdpCookieExtractor } from './extractors/cdp-cookie.js';
 import { CdpStorageExtractor } from './extractors/cdp-storage.js';
 import { HeadlessCookieExtractor } from './extractors/headless-cookie.js';
 import { HeadlessStorageExtractor } from './extractors/headless-storage.js';
-import { PageStateChecker } from './page-state-checker.js';
+import type { DomEvaluateFn } from './login-detector.js';
+import { PageStateChecker, type IPageStateChecker } from './page-state-checker.js';
 import { checkRequired } from './required-checker.js';
-import { findFreePort, waitForBrowserReady, removeSingletonLock } from './browser-lifecycle.js';
 
 export interface BrowserStrategyOptions {
     browserDataDir: string;

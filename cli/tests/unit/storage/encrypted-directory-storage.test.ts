@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { randomBytes } from 'node:crypto';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { randomBytes } from 'node:crypto';
-import { DirectoryStorage } from '../../../src/storage/directory-storage.js';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
 import { isEncryptedEnvelope } from '../../../src/crypto/encryption.js';
+import { DirectoryStorage } from '../../../src/storage/directory-storage.js';
 import type { StoredCredential } from '../../../src/types/types.js';
 
 describe('DirectoryStorage encryption', () => {
@@ -16,14 +17,14 @@ describe('DirectoryStorage encryption', () => {
         providerId: 'test-provider',
         strategy: 'api-token',
         updatedAt: new Date().toISOString(),
-        credentials: { token: 'test-key' },
+        values: { token: 'test-key' },
     };
 
     const cookieCredential: StoredCredential = {
         providerId: 'cookie-provider',
         strategy: 'cookie',
         updatedAt: new Date().toISOString(),
-        credentials: { session: 'sid=abc123' },
+        values: { session: 'sid=abc123' },
     };
 
     beforeEach(async () => {
@@ -89,7 +90,7 @@ describe('DirectoryStorage encryption', () => {
         expect(await storage.get('beta')).toEqual(credB);
     });
 
-    it('reads unencrypted legacy file', async () => {
+    it('reads unencrypted legacy file (v1 credentials field)', async () => {
         const legacyData = {
             version: 1,
             providerId: 'legacy',
@@ -104,6 +105,6 @@ describe('DirectoryStorage encryption', () => {
         const retrieved = await storage.get('legacy');
         expect(retrieved).not.toBeNull();
         expect(retrieved!.providerId).toBe('legacy');
-        expect(retrieved!.credentials).toEqual({ token: 'old-key' });
+        expect(retrieved!.values).toEqual({ token: 'old-key' });
     });
 });

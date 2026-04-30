@@ -6,36 +6,35 @@
  * Reads ~/.sig/config.yaml, finds the provider, and runs extraction
  * using the new BrowserSource/CookieExtractor/StorageExtractor.
  */
+import { ApplyEngine } from '../../src/apply/apply-engine.js';
 import { loadConfig } from '../../src/config/loader.js';
 import { BrowserStrategy } from '../../src/strategies/browser/index.js';
-import { ApplyEngine } from '../../src/apply/apply-engine.js';
-import { checkRequired } from '../../src/strategies/required-checker.js';
+import { checkRequired } from '../../src/strategies/browser/required-checker.js';
+import type { ApplyRule, ExtractRule } from '../../src/types/extract.js';
 import { isOk } from '../../src/types/result.js';
-import type { ExtractRule, ApplyRule } from '../../src/types/extract.js';
 
 // New-format provider definitions for testing
-const TEST_PROVIDERS: Record<string, {
-    domains: string[];
-    entryUrl: string;
-    source: 'browser';
-    ttl?: string;
-    required?: string[];
-    cookiePaths?: string[];
-    networkProxy?: string;
-    extract: ExtractRule[];
-    apply: ApplyRule[];
-}> = {
+const TEST_PROVIDERS: Record<
+    string,
+    {
+        domains: string[];
+        entryUrl: string;
+        source: 'browser';
+        ttl?: string;
+        required?: string[];
+        cookiePaths?: string[];
+        networkProxy?: string;
+        extract: ExtractRule[];
+        apply: ApplyRule[];
+    }
+> = {
     'sap-jira': {
         domains: ['jira.tools.sap'],
         entryUrl: 'https://jira.tools.sap/',
         source: 'browser',
         ttl: '10d',
-        extract: [
-            { from: 'cookies', name: 'session', key: '*' },
-        ],
-        apply: [
-            { in: 'header', name: 'Cookie', value: '${session}' },
-        ],
+        extract: [{ from: 'cookies', name: 'session', key: '*' }],
+        apply: [{ in: 'header', name: 'Cookie', value: '${session}' }],
     },
     'sap-wiki': {
         domains: ['wiki.one.int.sap'],
@@ -43,12 +42,8 @@ const TEST_PROVIDERS: Record<string, {
         source: 'browser',
         ttl: '12h',
         cookiePaths: ['/wiki'],
-        extract: [
-            { from: 'cookies', name: 'session', key: '*' },
-        ],
-        apply: [
-            { in: 'header', name: 'Cookie', value: '${session}' },
-        ],
+        extract: [{ from: 'cookies', name: 'session', key: '*' }],
+        apply: [{ in: 'header', name: 'Cookie', value: '${session}' }],
     },
     'app-slack': {
         domains: ['sap.enterprise.slack.com'],
@@ -58,7 +53,11 @@ const TEST_PROVIDERS: Record<string, {
         required: ['session.d', 'xoxc-token'],
         extract: [
             { from: 'cookies', name: 'session', key: '*' },
-            { from: 'localStorage', name: 'xoxc-token', key: 'localConfig_v2.teams.E7RBBBXHB.token' },
+            {
+                from: 'localStorage',
+                name: 'xoxc-token',
+                key: 'localConfig_v2.teams.E7RBBBXHB.token',
+            },
         ],
         apply: [
             { in: 'header', name: 'Cookie', value: '${session}' },
@@ -71,63 +70,49 @@ const TEST_PROVIDERS: Record<string, {
         source: 'browser',
         required: ['access_token'],
         extract: [
-            { from: 'localStorage', name: 'access_token', key: '*accesstoken*ic3.teams.office.com*' },
+            {
+                from: 'localStorage',
+                name: 'access_token',
+                key: '*accesstoken*ic3.teams.office.com*',
+            },
         ],
-        apply: [
-            { in: 'header', name: 'Authorization', value: 'Bearer ${access_token}' },
-        ],
+        apply: [{ in: 'header', name: 'Authorization', value: 'Bearer ${access_token}' }],
     },
-    'reddit': {
+    reddit: {
         domains: ['www.reddit.com', 'reddit.com'],
         entryUrl: 'https://www.reddit.com/login',
         source: 'browser',
         ttl: '7d',
         networkProxy: 'socks5://127.0.0.1:3333',
         required: ['session.reddit_session', 'session.token_v2'],
-        extract: [
-            { from: 'cookies', name: 'session', key: '*' },
-        ],
-        apply: [
-            { in: 'header', name: 'Cookie', value: '${session}' },
-        ],
+        extract: [{ from: 'cookies', name: 'session', key: '*' }],
+        apply: [{ in: 'header', name: 'Cookie', value: '${session}' }],
     },
     'sap-cats': {
         domains: ['sapit-finance-prod-eagle.launchpad.cfapps.eu10.hana.ondemand.com'],
         entryUrl: 'https://sapit-finance-prod-eagle.launchpad.cfapps.eu10.hana.ondemand.com/',
         source: 'browser',
         ttl: '12h',
-        extract: [
-            { from: 'cookies', name: 'session', key: '*' },
-        ],
-        apply: [
-            { in: 'header', name: 'Cookie', value: '${session}' },
-        ],
+        extract: [{ from: 'cookies', name: 'session', key: '*' }],
+        apply: [{ in: 'header', name: 'Cookie', value: '${session}' }],
     },
-    'zhihu': {
+    zhihu: {
         domains: ['www.zhihu.com', 'zhihu.com'],
         entryUrl: 'https://www.zhihu.com/signin',
         source: 'browser',
         ttl: '7d',
         required: ['session.z_c0'],
-        extract: [
-            { from: 'cookies', name: 'session', key: '*' },
-        ],
-        apply: [
-            { in: 'header', name: 'Cookie', value: '${session}' },
-        ],
+        extract: [{ from: 'cookies', name: 'session', key: '*' }],
+        apply: [{ in: 'header', name: 'Cookie', value: '${session}' }],
     },
-    'bilibili': {
+    bilibili: {
         domains: ['www.bilibili.com', 'bilibili.com', 'api.bilibili.com'],
         entryUrl: 'https://www.bilibili.com/',
         source: 'browser',
         ttl: '7d',
         required: ['session.SESSDATA', 'session.bili_jct'],
-        extract: [
-            { from: 'cookies', name: 'session', key: '*' },
-        ],
-        apply: [
-            { in: 'header', name: 'Cookie', value: '${session}' },
-        ],
+        extract: [{ from: 'cookies', name: 'session', key: '*' }],
+        apply: [{ in: 'header', name: 'Cookie', value: '${session}' }],
     },
 };
 

@@ -1,11 +1,11 @@
-import type { AuthManager } from '../auth-manager.js';
+import { SyncSubcommand } from '../types/index.js';
 import { getRemote, getRemotes } from '../sync/remote-config.js';
 import { SyncEngine } from '../sync/sync-engine.js';
 import { SshTransport } from '../sync/transports/ssh.js';
-import { formatJson } from '../utils/formatters.js';
 import { ExitCode } from '../utils/exit-codes.js';
-import { SyncSubcommand } from '../types/constants.js';
-import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
+import { formatJson } from '../utils/formatters.js';
+import { AuditAction, AuditStatus, logAuditEvent } from '../audit/audit-log.js';
+import type { AuthManager } from '../auth-manager.js';
 
 export async function runSync(
     positionals: string[],

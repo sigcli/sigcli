@@ -18,11 +18,11 @@ export type {
     AuthDiagnostics,
     ExtractRule,
     ApplyRule,
-} from './types/types.js';
+} from './types/index.js';
 
 // Result type
-export { ok, err, isOk, isErr } from './types/result.js';
-export type { Result } from './types/result.js';
+export { ok, err, isOk, isErr } from './types/index.js';
+export type { Result } from './types/index.js';
 
 // Errors
 export {
@@ -44,17 +44,13 @@ export {
     BrowserUnavailableError,
     SyncConflictError,
     EncryptionError,
-} from './types/errors.js';
+} from './types/index.js';
 
 // Interfaces
-export type { IStorage } from './types/interfaces/storage.js';
-export type { IProviderRegistry } from './types/interfaces/provider.js';
-export type {
-    IStrategy,
-    ExtractedCredentials,
-    ExtractionContext,
-} from './types/interfaces/strategy.js';
-export type { IBrowserExtractor } from './types/interfaces/browser-extractor.js';
+export type { IStorage } from './types/index.js';
+export type { IProviderRegistry } from './types/index.js';
+export type { IStrategy, ExtractedCredentials, ExtractionContext } from './types/index.js';
+export type { IBrowserExtractor } from './types/index.js';
 
 // Apply engine
 export { ApplyEngine } from './apply/apply-engine.js';
@@ -125,8 +121,8 @@ export {
     APP_VERSION,
     SIG_DIR,
     CONFIG_FILENAME,
-} from './types/constants.js';
-export type { WaitUntilValue, LoginModeValue } from './types/constants.js';
+} from './types/index.js';
+export type { WaitUntilValue, LoginModeValue } from './types/index.js';
 
 // Utilities
 export { decodeJwt, isJwtExpired, getJwtExpiresAt } from './utils/jwt.js';

@@ -1,8 +1,9 @@
-import net from 'node:net';
-import http from 'node:http';
 import fs from 'node:fs';
+import http from 'node:http';
+import net from 'node:net';
 import path from 'node:path';
-import { BrowserTimeoutError } from '../../types/errors.js';
+
+import { BrowserTimeoutError } from '../../types/index.js';
 
 export function findFreePort(): Promise<number> {
     return new Promise((resolve, reject) => {

@@ -3,8 +3,8 @@
  * Shared by CLI commands (doctor, init).
  */
 
-import fs from 'node:fs';
 import { execSync } from 'node:child_process';
+import fs from 'node:fs';
 
 /**
  * Check whether a browser binary for the given channel exists on this machine.

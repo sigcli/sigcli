@@ -1,6 +1,6 @@
-import type { AuthManager } from '../auth-manager.js';
-import { formatTable } from '../utils/formatters.js';
 import { detectFormat, formatOutput } from '../utils/formatter.js';
+import { formatTable } from '../utils/formatters.js';
+import type { AuthManager } from '../auth-manager.js';
 
 export async function runProviders(
     positionals: string[],

@@ -1,23 +1,22 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import {
-    Command,
-    RemoteSubcommand,
-    SyncSubcommand,
-    WatchSubcommand,
-    ProxySubcommand,
-    WaitUntil,
-    StrategyName,
-    CredentialTypeName,
-    BROWSER_REQUIRED_STRATEGIES,
-    LOGIN_URL_PATTERNS,
-    HttpHeader,
-    AuthScheme,
     APP_NAME,
     APP_VERSION,
-    SIG_DIR,
+    AuthScheme,
+    Command,
     CONFIG_FILENAME,
+    CredentialTypeName,
+    HttpHeader,
+    LOGIN_URL_PATTERNS,
+    ProxySubcommand,
+    RemoteSubcommand,
+    SIG_DIR,
+    SyncSubcommand,
+    WaitUntil,
+    WatchSubcommand,
+    type WaitUntilValue,
 } from '../../../src/types/constants.js';
-import type { WaitUntilValue } from '../../../src/types/constants.js';
 
 describe('constants', () => {
     describe('Command', () => {
@@ -122,19 +121,6 @@ describe('constants', () => {
         });
     });
 
-    describe('StrategyName', () => {
-        it('has all strategy types', () => {
-            expect(StrategyName.COOKIE).toBe('cookie');
-            expect(StrategyName.OAUTH2).toBe('oauth2');
-            expect(StrategyName.API_TOKEN).toBe('api-token');
-            expect(StrategyName.BASIC).toBe('basic');
-        });
-
-        it('has exactly 4 strategies', () => {
-            expect(Object.keys(StrategyName)).toHaveLength(4);
-        });
-    });
-
     describe('CredentialTypeName', () => {
         it('has all credential types', () => {
             expect(CredentialTypeName.COOKIE).toBe('cookie');
@@ -145,28 +131,6 @@ describe('constants', () => {
 
         it('has exactly 4 types', () => {
             expect(Object.keys(CredentialTypeName)).toHaveLength(4);
-        });
-    });
-
-    describe('BROWSER_REQUIRED_STRATEGIES', () => {
-        it('is a Set containing cookie and oauth2', () => {
-            expect(BROWSER_REQUIRED_STRATEGIES).toBeInstanceOf(Set);
-            expect(BROWSER_REQUIRED_STRATEGIES.has('cookie')).toBe(true);
-            expect(BROWSER_REQUIRED_STRATEGIES.has('oauth2')).toBe(true);
-        });
-
-        it('does not contain non-browser strategies', () => {
-            expect(BROWSER_REQUIRED_STRATEGIES.has('api-token')).toBe(false);
-            expect(BROWSER_REQUIRED_STRATEGIES.has('basic')).toBe(false);
-        });
-
-        it('has exactly 2 entries', () => {
-            expect(BROWSER_REQUIRED_STRATEGIES.size).toBe(2);
-        });
-
-        it('uses StrategyName constants as values', () => {
-            expect(BROWSER_REQUIRED_STRATEGIES.has(StrategyName.COOKIE)).toBe(true);
-            expect(BROWSER_REQUIRED_STRATEGIES.has(StrategyName.OAUTH2)).toBe(true);
         });
     });
 

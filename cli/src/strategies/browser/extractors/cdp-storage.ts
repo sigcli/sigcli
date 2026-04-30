@@ -1,7 +1,7 @@
 import dlv from 'dlv';
-import type { IBrowserExtractor } from '../../../types/interfaces/browser-extractor.js';
+
 import type { CdpWsClient } from '../../../browser/cdp-ws.js';
-import type { ExtractRule } from '../../../types/extract.js';
+import type { ExtractRule, IBrowserExtractor } from '../../../types/index.js';
 
 /**
  * Extracts values from browser localStorage via CDP Runtime.evaluate.
@@ -137,7 +137,7 @@ export class CdpStorageExtractor implements IBrowserExtractor {
             if (!matches?.length) return null;
 
             // Extract value from JSON entries using common patterns (secret field, or raw JWT)
-            
+
             for (const entry of matches) {
                 if (!entry) continue;
                 const jwt = this.extractJwtFromEntry(entry);

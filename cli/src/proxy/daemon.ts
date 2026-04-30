@@ -1,11 +1,11 @@
-import { startWatchLoop } from '../watch/watch-loop.js';
-import { getWatchConfig, getWatchProviders } from '../watch/watch-config.js';
 import { parseDuration } from '../utils/duration.js';
-import { ProxyServer } from './proxy-server.js';
-import { CaManager } from './ca-manager.js';
-import { writeState, clearState } from './proxy-state.js';
 import { expandHome } from '../utils/path.js';
 import type { AuthManager } from '../auth-manager.js';
+import { getWatchConfig, getWatchProviders } from '../watch/watch-config.js';
+import { startWatchLoop } from '../watch/watch-loop.js';
+import { CaManager } from './ca-manager.js';
+import { ProxyServer } from './proxy-server.js';
+import { clearState, writeState } from './proxy-state.js';
 
 const DEFAULT_INTERVAL_MS = 5 * 60 * 1000;
 

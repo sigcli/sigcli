@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import { MemoryStorage } from '../../../src/storage/memory-storage.js';
 import type { StoredCredential } from '../../../src/types/types.js';
 
@@ -9,7 +10,7 @@ describe('MemoryStorage', () => {
         providerId: 'test-provider',
         strategy: 'api-token',
         updatedAt: new Date().toISOString(),
-        credentials: { token: 'test-key' },
+        values: { token: 'test-key' },
     };
 
     beforeEach(() => {

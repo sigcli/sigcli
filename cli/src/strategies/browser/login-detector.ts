@@ -1,4 +1,4 @@
-import { LOGIN_URL_PATTERNS } from '../../types/constants.js';
+import { LOGIN_URL_PATTERNS } from '../../types/index.js';
 
 /**
  * Function type for evaluating JS in a page context.

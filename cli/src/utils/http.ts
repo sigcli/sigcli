@@ -1,5 +1,6 @@
 import os from 'node:os';
-import { APP_NAME, APP_VERSION } from '../types/constants.js';
+
+import { APP_NAME, APP_VERSION } from '../types/index.js';
 
 /**
  * Build a User-Agent string identifying SigCLI.

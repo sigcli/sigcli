@@ -1,10 +1,9 @@
-import type { AuthManager } from '../auth-manager.js';
-import { isOk, isErr } from '../types/result.js';
-import { formatJson, formatCredentialHeaders } from '../utils/formatters.js';
+import { isErr, isOk, OutputFormat } from '../types/index.js';
 import { ExitCode } from '../utils/exit-codes.js';
-import { OutputFormat } from '../types/constants.js';
-import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
+import { formatCredentialHeaders, formatJson } from '../utils/formatters.js';
 import { extractSensitiveValues, redactOutput } from '../utils/redact.js';
+import { AuditAction, AuditStatus, logAuditEvent } from '../audit/audit-log.js';
+import type { AuthManager } from '../auth-manager.js';
 
 export async function runGet(
     positionals: string[],

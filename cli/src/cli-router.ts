@@ -1,27 +1,25 @@
 import { existsSync } from 'node:fs';
-import { loadConfig, getConfigPath } from './config/loader.js';
+
+import { Command, isOk } from './types/index.js';
+import { getConfigPath, loadConfig } from './config/loader.js';
+import { ExitCode } from './utils/exit-codes.js';
 import { AuthManager } from './auth-manager.js';
-import { isOk } from './types/result.js';
-
-import { Command } from './types/constants.js';
-
+import { runCompletion } from './commands/completion.js';
+import { runDoctor } from './commands/doctor.js';
 import { runGet } from './commands/get.js';
+import { runInit } from './commands/init.js';
 import { runLogin } from './commands/login.js';
-import { runStatus } from './commands/status.js';
 import { runLogout } from './commands/logout.js';
 import { runProviders } from './commands/providers.js';
-import { runRequest } from './commands/request.js';
+import { runProxy } from './commands/proxy.js';
 import { runRemote } from './commands/remote.js';
+import { runRemove } from './commands/remove.js';
+import { runRename } from './commands/rename.js';
+import { runRequest } from './commands/request.js';
+import { runRun } from './commands/run.js';
+import { runStatus } from './commands/status.js';
 import { runSync } from './commands/sync.js';
 import { runWatch } from './commands/watch.js';
-import { runInit } from './commands/init.js';
-import { runDoctor } from './commands/doctor.js';
-import { runRename } from './commands/rename.js';
-import { runRemove } from './commands/remove.js';
-import { runCompletion } from './commands/completion.js';
-import { runRun } from './commands/run.js';
-import { runProxy } from './commands/proxy.js';
-import { ExitCode } from './utils/exit-codes.js';
 
 interface ParsedArgs {
     command: string;
@@ -204,7 +202,7 @@ export async function run(args: string[]): Promise<void> {
             return;
         }
         const config = configResult.value;
-        
+
         auth = await AuthManager.create(config);
     }
 

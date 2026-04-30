@@ -1,4 +1,4 @@
-import type { ProviderConfig } from '../types/types.js';
+import type { ProviderConfig } from '../types/index.js';
 
 /**
  * Derive a short, human-friendly provider ID from a hostname.

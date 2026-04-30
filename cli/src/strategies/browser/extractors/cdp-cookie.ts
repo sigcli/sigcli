@@ -1,6 +1,5 @@
-import type { IBrowserExtractor } from '../../../types/interfaces/browser-extractor.js';
 import type { CdpWsClient } from '../../../browser/cdp-ws.js';
-import type { ExtractRule } from '../../../types/extract.js';
+import type { ExtractRule, IBrowserExtractor } from '../../../types/index.js';
 
 export interface CdpCookie {
     name: string;

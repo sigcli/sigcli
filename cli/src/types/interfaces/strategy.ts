@@ -1,7 +1,7 @@
-import type { Result } from '../result.js';
-import type { AuthError } from '../errors.js';
-import type { ExtractRule } from '../types.js';
 import type { WaitUntilValue } from '../constants.js';
+import type { AuthError } from '../errors.js';
+import type { Result } from '../result.js';
+import type { ExtractRule } from '../types.js';
 
 /**
  * Extracted credential values — flat key-value map.

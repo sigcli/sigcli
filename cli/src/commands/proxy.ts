@@ -1,14 +1,15 @@
 import { fork } from 'node:child_process';
-import { openSync, closeSync } from 'node:fs';
+import { closeSync, openSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { join, dirname } from 'node:path';
-import { readState, isRunning, clearState } from '../proxy/proxy-state.js';
-import { expandHome } from '../utils/path.js';
+
+import { ProxySubcommand } from '../types/index.js';
+import { clearState, isRunning, readState } from '../proxy/proxy-state.js';
 import { ExitCode } from '../utils/exit-codes.js';
+import { expandHome } from '../utils/path.js';
+import { AuditAction, AuditStatus, logAuditEvent } from '../audit/audit-log.js';
 import type { AuthManager } from '../auth-manager.js';
-import { ProxySubcommand } from '../types/constants.js';
-import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
 
 const USAGE = `Usage: sig proxy <subcommand>
 

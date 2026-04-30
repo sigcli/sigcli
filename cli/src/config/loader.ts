@@ -4,13 +4,12 @@
  */
 
 import fs from 'node:fs/promises';
-import path from 'node:path';
 import os from 'node:os';
+import path from 'node:path';
 import YAML from 'yaml';
-import type { Result } from '../types/result.js';
-import { err } from '../types/result.js';
-import { ConfigError, type AuthError } from '../types/errors.js';
-import type { SigConfig, ProviderEntry } from './schema.js';
+
+import { ConfigError, err, type AuthError, type Result } from '../types/index.js';
+import type { ProviderEntry, SigConfig } from './schema.js';
 import { validateConfig } from './validator.js';
 
 const CONFIG_PATH = path.join(os.homedir(), '.sig', 'config.yaml');

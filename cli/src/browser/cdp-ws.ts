@@ -9,8 +9,8 @@
  * - No fragmented frames
  */
 
-import net from 'node:net';
 import crypto from 'node:crypto';
+import net from 'node:net';
 import { URL } from 'node:url';
 
 export interface CdpWsClient {

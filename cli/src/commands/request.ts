@@ -1,11 +1,9 @@
-import type { AuthManager } from '../auth-manager.js';
-import { isOk, isErr } from '../types/result.js';
-import { buildUserAgent } from '../utils/http.js';
-import { formatJson } from '../utils/formatters.js';
-import { HttpHeader } from '../types/constants.js';
+import { HttpHeader, isErr, isOk } from '../types/index.js';
 import { ExitCode } from '../utils/exit-codes.js';
-import { applyInjectRules } from '../proxy/inject.js';
-import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
+import { formatJson } from '../utils/formatters.js';
+import { buildUserAgent } from '../utils/http.js';
+import { AuditAction, AuditStatus, logAuditEvent } from '../audit/audit-log.js';
+import type { AuthManager } from '../auth-manager.js';
 
 export async function runRequest(
     positionals: string[],
@@ -52,11 +50,11 @@ export async function runRequest(
     }
 
     const credentials = credResult.value;
-    const { headers: authHeaders } = auth.applyExtractedCreds(provider.apply, credentials);
+    const applyResult = auth.applyExtractedCreds(provider.apply, credentials);
 
     const requestHeaders: Record<string, string> = {
         [HttpHeader.USER_AGENT]: buildUserAgent(),
-        ...authHeaders,
+        ...applyResult.headers,
     };
 
     // Parse --header flags (may appear multiple times)
@@ -83,31 +81,41 @@ export async function runRequest(
         }
     }
 
-    // Apply provider inject rules (header/body/query injection from proxy config)
+    // Apply query param modifications
     let finalUrl = url;
-    let finalBody: string | undefined = body;
-    const injectRules = provider.proxy?.inject;
-    if (injectRules?.length) {
-        const bodyBuffer = body ? Buffer.from(body) : undefined;
-        const ct = requestHeaders[HttpHeader.CONTENT_TYPE];
-        const injected = applyInjectRules(
-            injectRules,
-            credentials,
-            requestHeaders as Record<string, string | number | string[]>,
-            bodyBuffer,
-            ct,
-            url,
-        );
-        // Merge injected headers back
-        for (const [key, value] of Object.entries(injected.headers)) {
-            if (value != null) {
-                requestHeaders[key] = String(value);
-            } else {
-                delete requestHeaders[key];
-            }
+    if (applyResult.query && Object.keys(applyResult.query).length > 0) {
+        const parsed = new URL(url);
+        for (const [k, v] of Object.entries(applyResult.query)) {
+            parsed.searchParams.set(k, v);
         }
-        finalUrl = injected.url;
-        finalBody = injected.body ? injected.body.toString() : finalBody;
+        finalUrl = parsed.toString();
+    }
+
+    // Apply body modifications
+    let finalBody: string | undefined = body;
+    if (applyResult.body && Object.keys(applyResult.body).length > 0) {
+        const ct = (requestHeaders[HttpHeader.CONTENT_TYPE] ?? '')
+            .toLowerCase()
+            .split(';')[0]
+            .trim();
+        if (ct === 'application/x-www-form-urlencoded') {
+            const params = new URLSearchParams(finalBody ?? '');
+            for (const [k, v] of Object.entries(applyResult.body)) {
+                params.set(k, v);
+            }
+            finalBody = params.toString();
+        } else {
+            let json: Record<string, unknown> = {};
+            try {
+                json = JSON.parse(finalBody ?? '{}') as Record<string, unknown>;
+            } catch {
+                // keep empty
+            }
+            for (const [k, v] of Object.entries(applyResult.body)) {
+                json[k] = v;
+            }
+            finalBody = JSON.stringify(json);
+        }
     }
 
     const fetchOptions: RequestInit = { method: httpMethod, headers: requestHeaders };
@@ -165,7 +173,6 @@ export async function runRequest(
                 url: finalUrl,
                 method: httpMethod,
                 statusCode: response.status,
-                injectedRules: injectRules?.length ?? 0,
             },
         });
 

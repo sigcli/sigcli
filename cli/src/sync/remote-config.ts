@@ -3,8 +3,9 @@
  */
 
 import YAML from 'yaml';
-import type { RemoteConfig } from './types.js';
+
 import { loadDocument, saveDocument } from '../config/document.js';
+import type { RemoteConfig } from './types.js';
 
 export async function getRemotes(): Promise<RemoteConfig[]> {
     const doc = await loadDocument();

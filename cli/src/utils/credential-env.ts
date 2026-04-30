@@ -1,4 +1,4 @@
-import type { ExtractedCredentials } from '../types/interfaces/strategy.js';
+import type { ExtractedCredentials } from '../types/index.js';
 
 export interface CredentialEnvOptions {
     expandCookies?: boolean;

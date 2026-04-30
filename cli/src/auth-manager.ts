@@ -1,29 +1,35 @@
-import type { IStorage } from './types/interfaces/storage.js';
-import type { IProviderRegistry } from './types/interfaces/provider.js';
-import type { ProviderConfig, StoredCredential, ProviderStatus, ILogger } from './types/types.js';
-import type { ApplyRule } from './types/types.js';
+import {
+    CredentialNotFoundError,
+    err,
+    isOk,
+    ok,
+    ProviderNotFoundError,
+    type ApplyRule,
+    type AuthError,
+    type ExtractedCredentials,
+    type ExtractionContext,
+    type ILogger,
+    type IProviderRegistry,
+    type IStorage,
+    type IStrategy,
+    type ProviderConfig,
+    type ProviderStatus,
+    type Result,
+    type StoredCredential,
+} from './types/index.js';
 import type { BrowserConfig, SigConfig } from './config/schema.js';
-import type {
-    IStrategy,
-    ExtractedCredentials,
-    ExtractionContext,
-} from './types/interfaces/strategy.js';
-
-import { ProviderRegistry } from './providers/provider-registry.js';
-import { DirectoryStorage } from './storage/directory-storage.js';
-import { CachedStorage } from './storage/cached-storage.js';
-import { BrowserStrategy } from './strategies/browser/index.js';
-import { PromptStrategy } from './strategies/prompt/index.js';
 import { createDefaultProvider } from './providers/auto-provision.js';
-import type { Result } from './types/result.js';
-import { ok, err, isOk } from './types/result.js';
-import { ProviderNotFoundError, CredentialNotFoundError, type AuthError } from './types/errors.js';
-import { ApplyEngine, type ApplyResult } from './apply/apply-engine.js';
-import { checkRequired } from './strategies/browser/required-checker.js';
-import { parseDuration } from './utils/duration.js';
-import { expandHome } from './utils/path.js';
+import { ProviderRegistry } from './providers/provider-registry.js';
+import { CachedStorage } from './storage/cached-storage.js';
+import { DirectoryStorage } from './storage/directory-storage.js';
 import { loadEncryptionKey } from './crypto/encryption.js';
+import { BrowserStrategy } from './strategies/browser/index.js';
+import { checkRequired } from './strategies/browser/required-checker.js';
+import { PromptStrategy } from './strategies/prompt/index.js';
+import { ApplyEngine, type ApplyResult } from './apply/apply-engine.js';
+import { parseDuration } from './utils/duration.js';
 import { createConsoleLogger } from './utils/logger.js';
+import { expandHome } from './utils/path.js';
 
 /**
  * Central orchestrator for authentication lifecycle.
@@ -268,7 +274,9 @@ export class AuthManager {
             cookiePaths: provider.cookiePaths,
             required: provider.required,
             timeout: this.browserConfig.visibleTimeout,
-            waitUntil: (provider.waitUntil as ExtractionContext['waitUntil']) ?? this.browserConfig.waitUntil,
+            waitUntil:
+                (provider.waitUntil as ExtractionContext['waitUntil']) ??
+                this.browserConfig.waitUntil,
             loginPatterns: provider.loginPatterns,
         };
 

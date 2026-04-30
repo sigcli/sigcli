@@ -1,6 +1,7 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
 import { expandHome } from '../utils/path.js';
 
 export interface EncryptedEnvelope {

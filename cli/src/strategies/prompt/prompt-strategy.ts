@@ -1,15 +1,17 @@
 import * as readline from 'node:readline';
-import type {
-    IStrategy,
-    ExtractedCredentials,
-    ExtractionContext,
-    ExtractionResult,
-} from '../../types/interfaces/strategy.js';
-import type { ExtractRule } from '../../types/extract.js';
-import type { Result } from '../../types/result.js';
-import type { AuthError } from '../../types/errors.js';
-import { ok, err } from '../../types/result.js';
-import { ManualSetupRequired } from '../../types/errors.js';
+
+import {
+    err,
+    ManualSetupRequired,
+    ok,
+    type AuthError,
+    type ExtractedCredentials,
+    type ExtractionContext,
+    type ExtractRule,
+    type IStrategy,
+    type Result,
+} from '../../types/index.js';
+import type { ExtractionResult } from '../../types/interfaces/strategy.js';
 
 /**
  * PromptStrategy — asks the user for input interactively.

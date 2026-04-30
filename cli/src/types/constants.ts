@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+
 const require = createRequire(import.meta.url);
 const pkg = require('../../package.json') as { version: string };
 
@@ -79,16 +80,6 @@ export const WaitUntil = {
 export type WaitUntilValue = (typeof WaitUntil)[keyof typeof WaitUntil];
 
 /**
- * Strategy names matching StrategyConfig discriminator values.
- */
-export const StrategyName = {
-    COOKIE: 'cookie',
-    OAUTH2: 'oauth2',
-    API_TOKEN: 'api-token',
-    BASIC: 'basic',
-} as const;
-
-/**
  * Credential type discriminators matching the Credential union.
  */
 export const CredentialTypeName = {
@@ -97,14 +88,6 @@ export const CredentialTypeName = {
     API_KEY: 'api-key',
     BASIC: 'basic',
 } as const;
-
-/**
- * Strategies that require a browser for authentication.
- */
-export const BROWSER_REQUIRED_STRATEGIES: ReadonlySet<string> = new Set([
-    StrategyName.COOKIE,
-    StrategyName.OAUTH2,
-]);
 
 /**
  * URL patterns that indicate a login/auth page.
@@ -120,6 +103,7 @@ export const LOGIN_URL_PATTERNS: readonly string[] = [
     '/saml/',
     'login.microsoftonline.com',
     'accounts.google.com',
+    'accounts.sap.com',
 ] as const;
 
 /**

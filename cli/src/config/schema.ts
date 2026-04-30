@@ -3,7 +3,7 @@
  * All config lives in ~/.sig/config.yaml — no cascade, no env vars.
  */
 
-import type { WaitUntilValue } from '../types/constants.js';
+import type { WaitUntilValue } from '../types/index.js';
 
 // ============================================================================
 // Top-level Config Sections

@@ -1,6 +1,12 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import path from 'node:path';
+// Import after mocking
+import fs from 'node:fs';
+import fsp from 'node:fs/promises';
 import os from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { runInit } from '../../../src/commands/init.js';
+import { validateConfig } from '../../../src/config/validator.js';
 
 // --------------------------------------------------------------------------
 // Mocks — must be set up before importing the module under test
@@ -35,12 +41,6 @@ vi.mock('../../../src/config/validator.js', () => ({
 vi.mock('../../../src/crypto/encryption.js', () => ({
     loadEncryptionKey: vi.fn().mockResolvedValue(Buffer.alloc(32)),
 }));
-
-// Import after mocking
-import fs from 'node:fs';
-import fsp from 'node:fs/promises';
-import { runInit } from '../../../src/commands/init.js';
-import { validateConfig } from '../../../src/config/validator.js';
 
 const mockValidateConfig = vi.mocked(validateConfig);
 

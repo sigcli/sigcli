@@ -2,10 +2,11 @@ import * as http from 'node:http';
 import * as https from 'node:https';
 import * as net from 'node:net';
 import * as tls from 'node:tls';
-import { isOk } from '../types/result.js';
+
+import { isOk } from '../types/index.js';
+import { ApplyEngine } from '../apply/apply-engine.js';
 import type { AuthManager } from '../auth-manager.js';
 import type { CaManager } from './ca-manager.js';
-import { applyInjectRules } from './inject.js';
 
 const HOP_BY_HOP = new Set([
     'connection',
@@ -46,26 +47,49 @@ async function applyInjection(
     const credResult = await auth.getExtractedCreds(provider.id);
     if (!isOk(credResult)) return { headers: baseHeaders, body: bodyBuffer, url };
 
-    // Always apply strategy-level credential headers (Cookie, Authorization, etc.)
-    const { headers: authHeaders } = auth.applyExtractedCreds(provider.apply, credResult.value);
+    const applyResult = ApplyEngine.applyRules(provider.apply, credResult.value);
+
+    // Merge headers
     const mergedHeaders: http.OutgoingHttpHeaders = { ...baseHeaders };
-    for (const [key, value] of Object.entries(authHeaders)) {
+    for (const [key, value] of Object.entries(applyResult.headers)) {
         mergedHeaders[key.toLowerCase()] = value;
     }
 
-    // Then layer inject rules on top if configured
-    if (provider.proxy?.inject?.length) {
-        return applyInjectRules(
-            provider.proxy.inject,
-            credResult.value,
-            mergedHeaders,
-            bodyBuffer,
-            contentType,
-            url,
-        );
+    // Apply query param modifications to URL
+    let outUrl = url;
+    if (applyResult.query && Object.keys(applyResult.query).length > 0) {
+        const parsed = new URL(url);
+        for (const [k, v] of Object.entries(applyResult.query)) {
+            parsed.searchParams.set(k, v);
+        }
+        outUrl = parsed.toString();
     }
 
-    return { headers: mergedHeaders, body: bodyBuffer, url };
+    // Apply body modifications
+    let outBody = bodyBuffer;
+    if (applyResult.body && Object.keys(applyResult.body).length > 0) {
+        const ct = (contentType ?? '').toLowerCase().split(';')[0].trim();
+        if (ct === 'application/x-www-form-urlencoded') {
+            const params = new URLSearchParams(outBody ? outBody.toString() : '');
+            for (const [k, v] of Object.entries(applyResult.body)) {
+                params.set(k, v);
+            }
+            outBody = Buffer.from(params.toString());
+        } else if (ct === 'application/json') {
+            let json: Record<string, unknown> = {};
+            try {
+                json = JSON.parse(outBody ? outBody.toString() : '{}') as Record<string, unknown>;
+            } catch {
+                // keep empty object
+            }
+            for (const [k, v] of Object.entries(applyResult.body)) {
+                json[k] = v;
+            }
+            outBody = Buffer.from(JSON.stringify(json));
+        }
+    }
+
+    return { headers: mergedHeaders, body: outBody, url: outUrl };
 }
 
 async function handlePlainHttp(
@@ -87,7 +111,7 @@ async function handlePlainHttp(
     const contentType = req.headers['content-type'];
 
     const provider = resolveProvider(targetUrl, auth);
-    const hasBodyRule = provider?.proxy?.inject?.some((r) => r.in === 'body') ?? false;
+    const hasBodyRule = provider?.apply?.some((r) => r.in === 'body') ?? false;
 
     if (hasBodyRule) {
         const chunks: Buffer[] = [];
@@ -200,7 +224,7 @@ async function handleConnectMitm(
         const contentType = parsedHeaders['content-type'];
 
         const provider = resolveProvider(targetUrl, auth);
-        const hasBodyRule = provider?.proxy?.inject?.some((r) => r.in === 'body') ?? false;
+        const hasBodyRule = provider?.apply?.some((r) => r.in === 'body') ?? false;
 
         if (hasBodyRule) {
             const result = await applyInjection(

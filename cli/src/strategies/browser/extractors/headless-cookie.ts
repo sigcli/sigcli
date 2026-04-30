@@ -1,5 +1,9 @@
-import type { ExtractRule } from '../../../types/extract.js';
-import type { IHeadlessExtractor, HeadlessExtractionCtx, ExtractorResult } from '../../../types/interfaces/headless-extractor.js';
+import type { ExtractRule } from '../../../types/index.js';
+import type {
+    ExtractorResult,
+    HeadlessExtractionCtx,
+    IHeadlessExtractor,
+} from '../../../types/interfaces/headless-extractor.js';
 
 export class HeadlessCookieExtractor implements IHeadlessExtractor {
     readonly type = 'cookies' as const;
@@ -12,9 +16,7 @@ export class HeadlessCookieExtractor implements IHeadlessExtractor {
         const cookies = await ctx.cookies();
         const filtered = cookies.filter((c) => {
             const d = c.domain.startsWith('.') ? c.domain.slice(1) : c.domain;
-            return domains.some(
-                (pd) => d === pd || pd.endsWith('.' + d) || d.endsWith('.' + pd),
-            );
+            return domains.some((pd) => d === pd || pd.endsWith('.' + d) || d.endsWith('.' + pd));
         });
 
         if (!filtered.length) return null;

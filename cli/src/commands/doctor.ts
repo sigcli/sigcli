@@ -8,13 +8,13 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+
+import { isOk } from '../types/index.js';
 import { getConfigPath, loadConfig } from '../config/loader.js';
-import { isOk } from '../types/result.js';
-import { findChannelBrowser } from '../browser/detect.js';
 import type { SigConfig } from '../config/schema.js';
-import { BROWSER_REQUIRED_STRATEGIES } from '../types/constants.js';
-import { expandHome } from '../utils/path.js';
+import { findChannelBrowser } from '../browser/detect.js';
 import { ExitCode } from '../utils/exit-codes.js';
+import { expandHome } from '../utils/path.js';
 
 interface CheckResult {
     label: string;
@@ -246,11 +246,7 @@ function checkBrowserRequired(
     }
 
     const browserProviders = Object.entries(config.providers)
-        .filter(
-            ([, entry]) =>
-                entry.strategy === 'browser' ||
-                (entry.strategy && BROWSER_REQUIRED_STRATEGIES.has(entry.strategy)),
-        )
+        .filter(([, entry]) => entry.strategy === 'browser')
         .map(([id]) => id);
 
     if (browserProviders.length === 0) {

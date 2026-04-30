@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { ProviderRegistry } from '../../../src/providers/provider-registry.js';
 import type { ProviderConfig } from '../../../src/types/types.js';
 

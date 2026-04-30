@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { credentialToEnvVars } from '../../../src/utils/credential-env.js';
+import { describe, expect, it } from 'vitest';
+
 import type { ExtractedCredentials } from '../../../src/types/interfaces/strategy.js';
+import { credentialToEnvVars } from '../../../src/utils/credential-env.js';
 
 describe('credentialToEnvVars', () => {
     describe('bearer-like credentials (access_token)', () => {

@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import {
+    createRedactTransform,
     extractSensitiveValues,
     redactOutput,
-    createRedactTransform,
 } from '../../../src/utils/redact.js';
 
 describe('extractSensitiveValues', () => {

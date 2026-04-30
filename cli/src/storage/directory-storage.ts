@@ -1,18 +1,23 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import lockfile from 'proper-lockfile';
-import type { IStorage } from '../types/interfaces/storage.js';
-import type { StoredCredential, StoredEntry } from '../types/types.js';
-import { StorageError } from '../types/errors.js';
+
+import {
+    StorageError,
+    type IStorage,
+    type StoredCredential,
+    type StoredEntry,
+} from '../types/index.js';
+import { decrypt, encrypt, isEncryptedEnvelope } from '../crypto/encryption.js';
 import { sanitizeId } from '../utils/sanitize.js';
-import { encrypt, decrypt, isEncryptedEnvelope } from '../crypto/encryption.js';
 
 interface ProviderFile {
-    version: 1;
+    version: 2;
     providerId: string;
     strategy: string;
     updatedAt: string;
-    credentials: Record<string, unknown>;
+    expiresAt?: string;
+    values: Record<string, string>;
 }
 
 /**
@@ -47,11 +52,12 @@ export class DirectoryStorage implements IStorage {
         await this.ensureDir();
 
         const data: ProviderFile = {
-            version: 1,
+            version: 2,
             providerId,
             strategy: credential.strategy,
             updatedAt: credential.updatedAt,
-            credentials: credential.credentials,
+            ...(credential.expiresAt ? { expiresAt: credential.expiresAt } : {}),
+            values: credential.values,
         };
 
         await this.withLock(filePath, async () => {
@@ -156,26 +162,22 @@ export class DirectoryStorage implements IStorage {
             throw new StorageError('read', `Invalid provider file: ${filePath}`);
         }
 
-        // Handle legacy format: { credential: Credential, metadata?: { extractedValues } }
-        let credentials = raw.credentials as Record<string, unknown> | undefined;
-        if (!credentials) {
-            const metadata = raw.metadata as Record<string, unknown> | undefined;
-            if (metadata?.extractedValues) {
-                credentials = metadata.extractedValues as Record<string, unknown>;
-            } else if (raw.credential) {
-                // Old Credential union — convert to flat map
-                credentials = { __legacy: JSON.stringify(raw.credential) };
-            } else {
-                throw new StorageError('read', `Invalid provider file: ${filePath}`);
-            }
+        // Normalize: support both v2 (values) and v1 (credentials) field names
+        const values =
+            (raw.values as Record<string, string> | undefined) ??
+            (raw.credentials as Record<string, string> | undefined);
+
+        if (!values) {
+            throw new StorageError('read', `Invalid provider file: ${filePath}`);
         }
 
         return {
-            version: 1,
+            version: 2,
             providerId: raw.providerId as string,
             strategy: (raw.strategy as string) ?? 'unknown',
             updatedAt: (raw.updatedAt as string) ?? new Date().toISOString(),
-            credentials,
+            ...(raw.expiresAt ? { expiresAt: raw.expiresAt as string } : {}),
+            values,
         };
     }
 
@@ -184,7 +186,8 @@ export class DirectoryStorage implements IStorage {
             providerId: data.providerId,
             strategy: data.strategy,
             updatedAt: data.updatedAt,
-            credentials: data.credentials,
+            ...(data.expiresAt ? { expiresAt: data.expiresAt } : {}),
+            values: data.values,
         };
     }
 

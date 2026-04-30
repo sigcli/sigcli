@@ -4,14 +4,13 @@
  */
 
 import { Cron } from 'croner';
-import type { AuthManager } from '../auth-manager.js';
-import type { IStorage } from '../types/interfaces/storage.js';
-import type { ILogger } from '../types/types.js';
+
+import { isOk, type ILogger, type IStorage } from '../types/index.js';
 import type { SigConfig } from '../config/schema.js';
-import { isOk } from '../types/result.js';
+import { getRemote } from '../sync/remote-config.js';
 import { SyncEngine } from '../sync/sync-engine.js';
 import { SshTransport } from '../sync/transports/ssh.js';
-import { getRemote } from '../sync/remote-config.js';
+import type { AuthManager } from '../auth-manager.js';
 import type { WatchProviderEntry } from './watch-config.js';
 
 // ============================================================================

@@ -1,4 +1,4 @@
-import type { ILogger } from '../types/types.js';
+import type { ILogger } from '../types/index.js';
 
 export function createConsoleLogger(): ILogger {
     return {

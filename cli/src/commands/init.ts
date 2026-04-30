@@ -6,16 +6,17 @@
 
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
-import path from 'node:path';
 import os from 'node:os';
+import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
-import { getConfigPath } from '../config/loader.js';
+
+import { WaitUntil } from '../types/index.js';
 import { generateConfigYaml } from '../config/generator.js';
-import { findChannelBrowser } from '../browser/detect.js';
-import { findNativeBrowser } from '../browser/detect-native.js';
+import { getConfigPath } from '../config/loader.js';
 import { loadEncryptionKey } from '../crypto/encryption.js';
+import { findNativeBrowser } from '../browser/detect-native.js';
+import { findChannelBrowser } from '../browser/detect.js';
 import { ExitCode } from '../utils/exit-codes.js';
-import { WaitUntil } from '../types/constants.js';
 
 // ---------------------------------------------------------------------------
 // Browser detection
@@ -167,10 +168,16 @@ export async function runInit(
         process.stderr.write('  sig login --token <url>    Paste a token manually\n');
     } else {
         process.stderr.write('\nQuick start:\n');
-        process.stderr.write('  sig login https://your-service.com   Auto-provisions provider + opens browser\n');
+        process.stderr.write(
+            '  sig login https://your-service.com   Auto-provisions provider + opens browser\n',
+        );
         process.stderr.write('  sig get <provider>                   Get credentials as headers\n');
-        process.stderr.write('  sig run <provider> -- curl <url>     Run command with creds injected\n');
-        process.stderr.write('\nNo manual config needed — "sig login <url>" creates providers automatically.\n');
+        process.stderr.write(
+            '  sig run <provider> -- curl <url>     Run command with creds injected\n',
+        );
+        process.stderr.write(
+            '\nNo manual config needed — "sig login <url>" creates providers automatically.\n',
+        );
     }
     process.stderr.write('\n');
 }

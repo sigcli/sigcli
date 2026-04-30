@@ -1,9 +1,13 @@
-import type { ProviderConfig, StoredCredential } from '../types/types.js';
-import type { ExtractedCredentials } from '../types/interfaces/strategy.js';
-import { LOGIN_URL_PATTERNS, HttpHeader } from '../types/constants.js';
-import { buildUserAgent } from './http.js';
-import { parseDuration } from './duration.js';
+import {
+    HttpHeader,
+    LOGIN_URL_PATTERNS,
+    type ExtractedCredentials,
+    type ProviderConfig,
+    type StoredCredential,
+} from '../types/index.js';
 import { ApplyEngine } from '../apply/apply-engine.js';
+import { parseDuration } from './duration.js';
+import { buildUserAgent } from './http.js';
 
 /**
  * Check validity of a stored credential.

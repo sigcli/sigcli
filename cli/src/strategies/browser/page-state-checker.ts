@@ -1,5 +1,8 @@
-import type { DomEvaluateFn, ILoginPageDetector } from './login-detector.js';
-import { LoginPageDetector } from './login-detector.js';
+import {
+    LoginPageDetector,
+    type DomEvaluateFn,
+    type ILoginPageDetector,
+} from './login-detector.js';
 
 export interface IPageStateChecker {
     isOnProviderDomain(url: string, domains: string[]): boolean;

@@ -1,9 +1,10 @@
 import { createInterface } from 'node:readline';
-import type { AuthManager } from '../auth-manager.js';
-import type { ProviderConfig } from '../types/types.js';
+
+import type { ProviderConfig } from '../types/index.js';
 import { removeProviderFromConfig } from '../config/loader.js';
 import { ExitCode } from '../utils/exit-codes.js';
-import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
+import { AuditAction, AuditStatus, logAuditEvent } from '../audit/audit-log.js';
+import type { AuthManager } from '../auth-manager.js';
 
 export async function runRemove(
     positionals: string[],

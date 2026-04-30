@@ -3,14 +3,6 @@
 // to avoid naming collisions. This barrel is for external package consumers only.
 
 export type {
-    CookieStrategyConfig,
-    OAuth2StrategyConfig,
-    ApiTokenStrategyConfig,
-    BasicStrategyConfig,
-    StrategyConfig,
-    LocalStorageConfig,
-    ProxyInjectRule,
-    ProxyConfig,
     ProviderConfig,
     StoredCredential,
     StoredEntry,
@@ -21,8 +13,6 @@ export type {
     ExtractRule,
     ApplyRule,
 } from './types.js';
-
-export type { ProviderConfigV2, StoredCredentialV2 } from './extract.js';
 
 export { ok, err, isOk, isErr } from './result.js';
 export type { Result } from './result.js';
@@ -56,9 +46,7 @@ export {
     WatchSubcommand,
     ProxySubcommand,
     WaitUntil,
-    StrategyName,
     CredentialTypeName,
-    BROWSER_REQUIRED_STRATEGIES,
     LOGIN_URL_PATTERNS,
     HttpHeader,
     AuthScheme,
@@ -71,11 +59,7 @@ export {
 } from './constants.js';
 export type { WaitUntilValue, OutputFormatValue, LoginModeValue } from './constants.js';
 
-export type {
-    IStrategy,
-    ExtractedCredentials,
-    ExtractionContext,
-} from './interfaces/strategy.js';
+export type { IStrategy, ExtractedCredentials, ExtractionContext } from './interfaces/strategy.js';
 export type { IBrowserExtractor } from './interfaces/browser-extractor.js';
 export type { IStorage } from './interfaces/storage.js';
 export type { IProviderRegistry } from './interfaces/provider.js';

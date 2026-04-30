@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SyncEngine } from '../../../src/sync/sync-engine.js';
-import { MemoryStorage } from '../../../src/storage/memory-storage.js';
-import type { StoredCredential } from '../../../src/types/types.js';
-import type { RemoteConfig } from '../../../src/sync/types.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { SigConfig } from '../../../src/config/schema.js';
+import { MemoryStorage } from '../../../src/storage/memory-storage.js';
 import type { ISyncTransport } from '../../../src/sync/interfaces/transport.js';
+import { SyncEngine } from '../../../src/sync/sync-engine.js';
+import type { RemoteConfig } from '../../../src/sync/types.js';
+import type { StoredCredential } from '../../../src/types/types.js';
 
 // Mock transport
 const mockListRemote = vi.fn();
@@ -41,9 +42,9 @@ vi.mock('../../../src/config/loader.js', () => ({
 function makeCredential(providerId: string, updatedAt: string): StoredCredential {
     return {
         providerId,
-        strategy: 'oauth2',
+        strategy: 'browser',
         updatedAt,
-        credentials: { access_token: `token-${providerId}` },
+        values: { access_token: `token-${providerId}` },
     };
 }
 

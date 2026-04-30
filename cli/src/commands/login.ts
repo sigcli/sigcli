@@ -1,11 +1,10 @@
-import type { AuthManager } from '../auth-manager.js';
-import type { ProviderConfig } from '../types/types.js';
-import type { ProviderEntry } from '../config/schema.js';
+import { isErr, isOk, type ProviderConfig } from '../types/index.js';
 import { addProviderToConfig } from '../config/loader.js';
-import { isOk, isErr } from '../types/result.js';
-import { formatJson } from '../utils/formatters.js';
+import type { ProviderEntry } from '../config/schema.js';
 import { ExitCode } from '../utils/exit-codes.js';
-import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
+import { formatJson } from '../utils/formatters.js';
+import { AuditAction, AuditStatus, logAuditEvent } from '../audit/audit-log.js';
+import type { AuthManager } from '../auth-manager.js';
 
 /** Convert runtime ProviderConfig to the YAML ProviderEntry format. */
 function toProviderEntry(pc: ProviderConfig): ProviderEntry {
@@ -19,7 +18,6 @@ function toProviderEntry(pc: ProviderConfig): ProviderEntry {
         ...(pc.required?.length ? { required: pc.required } : {}),
         ...(pc.cookiePaths?.length ? { cookiePaths: pc.cookiePaths } : {}),
         ...(pc.ttl ? { ttl: pc.ttl } : {}),
-        ...(pc.proxy ? { proxy: pc.proxy } : {}),
         ...(pc.networkProxy ? { networkProxy: pc.networkProxy } : {}),
     };
 }
@@ -45,7 +43,7 @@ export async function runLogin(
         process.exitCode = ExitCode.GENERAL_ERROR;
         return;
     }
-    let provider = resolved.value;
+    const provider = resolved.value;
 
     const networkProxy =
         typeof flags['network-proxy'] === 'string' ? flags['network-proxy'] : undefined;

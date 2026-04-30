@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
 import { randomBytes } from 'node:crypto';
-import { encrypt, decrypt, isEncryptedEnvelope } from '../../../src/crypto/encryption.js';
+import { describe, expect, it } from 'vitest';
+
+import { decrypt, encrypt, isEncryptedEnvelope } from '../../../src/crypto/encryption.js';
 
 describe('SSH transport encryption roundtrip logic', () => {
     it('encrypts and decrypts a credential payload', () => {

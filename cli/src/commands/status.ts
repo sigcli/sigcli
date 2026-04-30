@@ -1,8 +1,8 @@
-import type { AuthManager } from '../auth-manager.js';
-import { formatExpiry, formatStatusIndicator, formatTable } from '../utils/formatters.js';
-import type { ProviderStatus } from '../types/types.js';
-import { getWatchProviders, type WatchProviderEntry } from '../watch/watch-config.js';
+import type { ProviderStatus } from '../types/index.js';
 import { detectFormat, formatOutput } from '../utils/formatter.js';
+import { formatExpiry, formatStatusIndicator, formatTable } from '../utils/formatters.js';
+import type { AuthManager } from '../auth-manager.js';
+import { getWatchProviders, type WatchProviderEntry } from '../watch/watch-config.js';
 
 function buildRows(
     statuses: ProviderStatus[],

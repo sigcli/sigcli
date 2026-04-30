@@ -1,7 +1,7 @@
-import type { AuthManager } from '../auth-manager.js';
 import { renameProviderInConfig } from '../config/loader.js';
 import { ExitCode } from '../utils/exit-codes.js';
-import { logAuditEvent, AuditAction, AuditStatus } from '../audit/audit-log.js';
+import { AuditAction, AuditStatus, logAuditEvent } from '../audit/audit-log.js';
+import type { AuthManager } from '../auth-manager.js';
 
 export async function runRename(
     positionals: string[],

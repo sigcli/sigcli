@@ -1,5 +1,6 @@
 import dlv from 'dlv';
-import type { ExtractedCredentials } from '../../types/interfaces/strategy.js';
+
+import type { ExtractedCredentials } from '../../types/index.js';
 
 /**
  * Check completion criteria.

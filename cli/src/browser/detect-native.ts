@@ -3,9 +3,9 @@
  * Supports macOS, Windows, and Linux.
  */
 
+import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import os from 'node:os';
-import { execSync } from 'node:child_process';
 
 export interface NativeBrowserInfo {
     name: string; // "chrome" | "msedge" | "chromium"

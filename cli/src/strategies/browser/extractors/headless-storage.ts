@@ -1,6 +1,11 @@
 import dlv from 'dlv';
-import type { ExtractRule } from '../../../types/extract.js';
-import type { IHeadlessExtractor, HeadlessExtractionCtx, ExtractorResult } from '../../../types/interfaces/headless-extractor.js';
+
+import type { ExtractRule } from '../../../types/index.js';
+import type {
+    ExtractorResult,
+    HeadlessExtractionCtx,
+    IHeadlessExtractor,
+} from '../../../types/interfaces/headless-extractor.js';
 
 export class HeadlessStorageExtractor implements IHeadlessExtractor {
     readonly type = 'localStorage' as const;

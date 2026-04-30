@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { randomBytes } from 'node:crypto';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { randomBytes } from 'node:crypto';
-import { DirectoryStorage } from '../../../src/storage/directory-storage.js';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
 import { isEncryptedEnvelope } from '../../../src/crypto/encryption.js';
+import { DirectoryStorage } from '../../../src/storage/directory-storage.js';
 import type { StoredCredential } from '../../../src/types/types.js';
 
 const isWindows = process.platform === 'win32';
@@ -18,14 +19,14 @@ describe('DirectoryStorage', () => {
         providerId: 'test-provider',
         strategy: 'api-token',
         updatedAt: new Date().toISOString(),
-        credentials: { token: 'test-key' },
+        values: { token: 'test-key' },
     };
 
     const cookieCredential: StoredCredential = {
         providerId: 'cookie-provider',
         strategy: 'cookie',
         updatedAt: new Date().toISOString(),
-        credentials: { session: 'sid=abc123' },
+        values: { session: 'sid=abc123' },
     };
 
     beforeEach(async () => {
