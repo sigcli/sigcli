@@ -38,6 +38,27 @@ export function findChannelBrowser(channel: string): string | null {
         }
     }
 
-    // Windows or unknown — cannot detect, assume null
+    if (platform === 'win32') {
+        const paths: Record<string, string[]> = {
+            chrome: [
+                `${process.env.PROGRAMFILES ?? ''}\\Google\\Chrome\\Application\\chrome.exe`,
+                `${process.env['PROGRAMFILES(X86)'] ?? ''}\\Google\\Chrome\\Application\\chrome.exe`,
+                `${process.env.LOCALAPPDATA ?? ''}\\Google\\Chrome\\Application\\chrome.exe`,
+            ],
+            msedge: [
+                `${process.env.PROGRAMFILES ?? ''}\\Microsoft\\Edge\\Application\\msedge.exe`,
+                `${process.env['PROGRAMFILES(X86)'] ?? ''}\\Microsoft\\Edge\\Application\\msedge.exe`,
+                `${process.env.LOCALAPPDATA ?? ''}\\Microsoft\\Edge\\Application\\msedge.exe`,
+            ],
+            chromium: [`${process.env.LOCALAPPDATA ?? ''}\\Chromium\\Application\\chrome.exe`],
+        };
+        const candidates = paths[channel];
+        if (candidates) {
+            for (const p of candidates) {
+                if (p && fs.existsSync(p)) return p;
+            }
+        }
+    }
+
     return null;
 }

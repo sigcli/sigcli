@@ -33,8 +33,12 @@ const MACOS_CANDIDATES: NativeBrowserInfo[] = [
 
 const WINDOWS_CANDIDATES: NativeBrowserInfo[] = [
     {
-        name: 'chrome',
-        execPath: `${process.env.LOCALAPPDATA ?? ''}\\Google\\Chrome\\Application\\chrome.exe`,
+        name: 'msedge',
+        execPath: `${process.env.PROGRAMFILES ?? ''}\\Microsoft\\Edge\\Application\\msedge.exe`,
+    },
+    {
+        name: 'msedge',
+        execPath: `${process.env['PROGRAMFILES(X86)'] ?? ''}\\Microsoft\\Edge\\Application\\msedge.exe`,
     },
     {
         name: 'msedge',
@@ -47,6 +51,10 @@ const WINDOWS_CANDIDATES: NativeBrowserInfo[] = [
     {
         name: 'chrome',
         execPath: `${process.env['PROGRAMFILES(X86)'] ?? ''}\\Google\\Chrome\\Application\\chrome.exe`,
+    },
+    {
+        name: 'chrome',
+        execPath: `${process.env.LOCALAPPDATA ?? ''}\\Google\\Chrome\\Application\\chrome.exe`,
     },
     {
         name: 'chromium',

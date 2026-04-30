@@ -1,6 +1,4 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import os from 'node:os';
-import path from 'node:path';
 
 import {
     BrowserError,
@@ -21,6 +19,7 @@ import type {
     IHeadlessExtractor,
 } from '../../types/interfaces/headless-extractor.js';
 import type { ExtractionResult } from '../../types/interfaces/strategy.js';
+import { expandHome } from '../../utils/path.js';
 import { findFreePort, removeSingletonLock, waitForBrowserReady } from './browser-lifecycle.js';
 import { connectCdpWs, type CdpWsClient } from './cdp-ws.js';
 import { CdpCookieExtractor } from './extractors/cdp-cookie.js';
@@ -80,7 +79,7 @@ export class BrowserStrategy implements IStrategy {
             const pw = await import('playwright').catch(() => null);
             if (!pw) return null;
 
-            const dataDir = expandDataDir(this.options.browserDataDir);
+            const dataDir = expandHome(this.options.browserDataDir);
             const browserCtx = await pw.chromium.launchPersistentContext(dataDir, {
                 headless: true,
                 channel: this.options.channel,
@@ -174,7 +173,7 @@ export class BrowserStrategy implements IStrategy {
             return err(new BrowserError('No browser found. Install Chrome, Edge, or Chromium.'));
         }
 
-        const dataDir = expandDataDir(this.options.browserDataDir);
+        const dataDir = expandHome(this.options.browserDataDir);
         removeSingletonLock(dataDir);
 
         let cdpPort: number;
@@ -347,7 +346,3 @@ export class BrowserStrategy implements IStrategy {
 // =========================================================================
 // Helpers
 // =========================================================================
-
-function expandDataDir(dir: string): string {
-    return dir.startsWith('~') ? path.join(os.homedir(), dir.slice(1)) : dir;
-}
