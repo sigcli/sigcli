@@ -29,6 +29,7 @@ sig request https://jira.example.com/rest/api/2/search --method POST --body '{"j
 
 - **Browser SSO** — signs in through a real browser. Works with any website, any login flow.
 - **Encrypted at rest** — AES-256-GCM encryption. Every access is audit-logged.
+- **Declarative config** — define what to extract (cookies, localStorage, tokens) and how to apply them to requests.
 - **Multi-provider** — inject credentials from multiple systems in a single command.
 - **MITM proxy** — agents set `HTTP_PROXY` and credentials are injected transparently. Zero-trust.
 - **AI-native** — stable CLI with predictable exit codes and JSON output. Built for agents.
@@ -36,9 +37,25 @@ sig request https://jira.example.com/rest/api/2/search --method POST --body '{"j
 ## How It Works
 
 ```
-You log in once               sig stores & encrypts             AI agent operates
+You log in once               sig extracts & encrypts           AI agent operates
 in your browser         -->   credentials locally          -->  on your behalf
-(browser SSO)                 (~/.sig/credentials/)             (sig request / sig proxy)
+(any SSO/login flow)          (~/.sig/credentials/)             (sig request / sig proxy)
+```
+
+**sig login** opens a real browser to the provider's entry URL. You log in normally — SSO, MFA, SAML, anything. Once authenticated, sig extracts credentials (cookies, localStorage tokens) based on your config's `extract[]` rules, encrypts them with AES-256-GCM, and stores them locally. When your agent needs to make a request, `apply[]` rules control how credentials are injected into HTTP headers, body, or query params.
+
+### Config Example
+
+```yaml
+providers:
+    my-jira:
+        domains: [jira.example.com]
+        entryUrl: https://jira.example.com/
+        strategy: browser
+        extract:
+            - { from: cookies, name: session, key: '*' }
+        apply:
+            - { in: header, name: Cookie, value: '${session}' }
 ```
 
 ## AI Agent Skills
@@ -55,7 +72,7 @@ See the [full skills catalog](skills/README.md) for details.
 
 ## Documentation
 
-Full docs, configuration, strategies, SDK, and AI agent integration guide at **[sigcli.ai](https://sigcli.ai)**.
+Full docs, configuration, SDK, and AI agent integration guide at **[sigcli.ai](https://sigcli.ai)**.
 
 ## License
 

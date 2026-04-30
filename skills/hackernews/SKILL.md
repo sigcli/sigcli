@@ -36,11 +36,18 @@ sig login https://news.ycombinator.com/login
 
 ```yaml
 hackernews:
-    domains: ['news.ycombinator.com']
+    domains: [news.ycombinator.com]
     entryUrl: https://news.ycombinator.com/login
-    strategy: cookie
-    config:
-        requiredCookies: ['user']
+    strategy: browser
+    required: [session.user]
+    extract:
+        - from: cookies
+          name: session
+          key: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: '${session}'
 ```
 
 ## Scripts Reference

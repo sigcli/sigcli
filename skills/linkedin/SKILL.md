@@ -39,12 +39,19 @@ sig login https://www.linkedin.com/login
 
 ```yaml
 linkedin:
-    domains: ['www.linkedin.com', 'linkedin.com']
+    domains: [www.linkedin.com, linkedin.com]
     entryUrl: https://www.linkedin.com/login
-    strategy: cookie
-    config:
-        ttl: '30d'
-        requiredCookies: ['JSESSIONID', 'li_at']
+    strategy: browser
+    ttl: '30d'
+    required: [session.JSESSIONID, session.li_at]
+    extract:
+        - from: cookies
+          name: session
+          key: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: '${session}'
 ```
 
 ## Scripts Reference

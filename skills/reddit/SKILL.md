@@ -36,12 +36,19 @@ sig login https://www.reddit.com/
 
 ```yaml
 reddit:
-    domains: ['www.reddit.com', 'reddit.com']
+    domains: [www.reddit.com, reddit.com]
     entryUrl: https://www.reddit.com/login
-    strategy: cookie
-    config:
-        ttl: '7d'
-        requiredCookies: ['token_v2']
+    strategy: browser
+    ttl: '7d'
+    required: [session.token_v2]
+    extract:
+        - from: cookies
+          name: session
+          key: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: '${session}'
 ```
 
 ## Scripts Reference
