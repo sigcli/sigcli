@@ -53,11 +53,10 @@ export {
     OutputFormat,
     APP_NAME,
     APP_VERSION,
-    LoginMode,
     SIG_DIR,
     CONFIG_FILENAME,
 } from './constants.js';
-export type { WaitUntilValue, OutputFormatValue, LoginModeValue } from './constants.js';
+export type { WaitUntilValue, OutputFormatValue } from './constants.js';
 
 export type { IStrategy, ExtractedCredentials } from './interfaces/strategy.js';
 export type { IBrowserExtractor } from './interfaces/browser-extractor.js';

@@ -73,7 +73,7 @@ export interface ProviderEntry {
     cookiePaths?: string[];
     ttl?: string;
     networkProxy?: string;
-    loginMode?: string;
+
     loginPatterns?: string[];
     waitUntil?: WaitUntilValue;
 }

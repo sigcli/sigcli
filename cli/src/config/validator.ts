@@ -318,16 +318,6 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
         }
     }
 
-    // Validate loginMode
-    const VALID_LOGIN_MODES = ['auto', 'cdp', 'headless', 'visible'];
-    if (raw.loginMode !== undefined) {
-        if (typeof raw.loginMode !== 'string' || !VALID_LOGIN_MODES.includes(raw.loginMode)) {
-            errors.push(
-                `Provider "${id}": loginMode must be one of: ${VALID_LOGIN_MODES.join(', ')}`,
-            );
-        }
-    }
-
     return errors;
 }
 
@@ -343,6 +333,11 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
         ...(Array.isArray(raw.cookiePaths) ? { cookiePaths: raw.cookiePaths } : {}),
         ...(typeof raw.ttl === 'string' ? { ttl: raw.ttl } : {}),
         ...(typeof raw.networkProxy === 'string' ? { networkProxy: raw.networkProxy } : {}),
-        ...(typeof raw.loginMode === 'string' ? { loginMode: raw.loginMode } : {}),
+        ...(Array.isArray(raw.loginPatterns)
+            ? { loginPatterns: raw.loginPatterns as string[] }
+            : {}),
+        ...(typeof raw.waitUntil === 'string'
+            ? { waitUntil: raw.waitUntil as ProviderEntry['waitUntil'] }
+            : {}),
     };
 }

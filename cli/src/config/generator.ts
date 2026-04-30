@@ -62,7 +62,10 @@ storage:
 #         name: Cookie
 #         value: "\${session}"
 #     # ttl: 12h                         # Optional: credential lifetime
-#     # loginMode: cdp                   # Optional: auto|cdp|headless|visible
+#     # waitUntil: networkidle           # Optional: load|networkidle|domcontentloaded|commit
+#     # loginPatterns:                   # Optional: custom URL patterns to detect login pages
+#     #   - /login
+#     #   - /auth/sso
 #     # required:                        # Optional: wait for specific cookies
 #     #   - session.my_cookie
 providers: {}

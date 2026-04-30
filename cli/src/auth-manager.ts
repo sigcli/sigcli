@@ -74,7 +74,7 @@ export class AuthManager {
                     required: entry.required,
                     cookiePaths: entry.cookiePaths,
                     ttl: entry.ttl,
-                    loginMode: entry.loginMode,
+
                     loginPatterns: entry.loginPatterns,
                     waitUntil: entry.waitUntil,
                 }) as ProviderConfig,
