@@ -229,9 +229,9 @@ $ sig run my-api -- node sync_data.js`}</CodeBlock>
                             AI 代理既能完成任务又无法窃取秘密。
                         </Li>
                         <Li>
-                            <strong>声明式配置</strong> — 每个提供者定义{' '}
-                            <Code>extract[]</Code> 规则（cookie、localStorage、令牌）和{' '}
-                            <Code>apply[]</Code> 规则（header、body、query）。一份配置适用所有访问方式。
+                            <strong>声明式配置</strong> — 每个提供者定义 <Code>extract[]</Code>{' '}
+                            规则（cookie、localStorage、令牌）和 <Code>apply[]</Code>{' '}
+                            规则（header、body、query）。一份配置适用所有访问方式。
                         </Li>
                         <Li>
                             <strong>加密存储</strong> — 所有凭证使用 AES-256-GCM

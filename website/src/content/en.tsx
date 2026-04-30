@@ -256,10 +256,9 @@ $ sig request https://my-jira.example.com/rest/api/2/myself`}</CodeBlock>
                             way to give an agent access to a single service.
                         </Li>
                         <Li>
-                            <strong>Declarative config</strong> — define{' '}
-                            <Code>extract[]</Code> rules (cookies, localStorage, tokens) and{' '}
-                            <Code>apply[]</Code> rules (headers, body, query) per provider. One config
-                            for all access methods.
+                            <strong>Declarative config</strong> — define <Code>extract[]</Code>{' '}
+                            rules (cookies, localStorage, tokens) and <Code>apply[]</Code> rules
+                            (headers, body, query) per provider. One config for all access methods.
                         </Li>
                         <Li>
                             <strong>Encrypted at rest</strong> — AES-256-GCM. Every credential

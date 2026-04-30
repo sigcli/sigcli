@@ -870,9 +870,9 @@ curl https://jira.example.com/api/me   # credentials injected automatically`}</C
                     </P>
                     <P>
                         <strong>Credential injection:</strong> The proxy uses the provider's{' '}
-                        <Code>apply[]</Code> rules to inject credentials into requests. These
-                        same rules are used by <Code>sig request</Code>, <Code>sig get</Code>,
-                        and <Code>sig run</Code> — one config for all access methods.
+                        <Code>apply[]</Code> rules to inject credentials into requests. These same
+                        rules are used by <Code>sig request</Code>, <Code>sig get</Code>, and{' '}
+                        <Code>sig run</Code> — one config for all access methods.
                     </P>
                     <CodeBlock lang="yaml">{`# Example: inject both cookie and bearer token
 providers:
@@ -885,8 +885,8 @@ providers:
       - { in: header, name: Cookie, value: "\${session}" }
       - { in: header, name: Authorization, value: "Bearer \${xoxc-token}" }`}</CodeBlock>
                     <P>
-                        The <Code>apply[]</Code> rules support injection into headers, body
-                        fields, and query parameters. Template variables (<Code>{'${name}'}</Code>)
+                        The <Code>apply[]</Code> rules support injection into headers, body fields,
+                        and query parameters. Template variables (<Code>{'${name}'}</Code>)
                         reference extracted credential names.
                     </P>
                     <P>
@@ -1046,7 +1046,7 @@ providers:
                     <P>
                         Every provider declares <strong>what to extract</strong> (cookies,
                         localStorage values, etc.) and <strong>how to apply</strong> them to HTTP
-                        requests. This is the same config used by all access methods — {' '}
+                        requests. This is the same config used by all access methods —{' '}
                         <Code>sig get</Code>, <Code>sig request</Code>, <Code>sig run</Code>, and{' '}
                         <Code>sig proxy</Code>.
                     </P>
@@ -1071,9 +1071,9 @@ providers:
                         extract[] rules
                     </SectionHeading>
                     <P>
-                        Each entry tells sigcli what to pull from the browser after login.
-                        Three fields: <Code>from</Code> (where), <Code>name</Code> (store as),
-                        and <Code>key</Code> (what to grab).
+                        Each entry tells sigcli what to pull from the browser after login. Three
+                        fields: <Code>from</Code> (where), <Code>name</Code> (store as), and{' '}
+                        <Code>key</Code> (what to grab).
                     </P>
                     <CodeBlock lang="yaml">{`extract:
   # All cookies from the domain
@@ -1090,8 +1090,8 @@ providers:
                     </SectionHeading>
                     <P>
                         Each entry tells sigcli how to inject extracted values into HTTP requests.
-                        Template variables (<Code>{'${name}'}</Code>) reference the <Code>name</Code>{' '}
-                        field from your extract rules.
+                        Template variables (<Code>{'${name}'}</Code>) reference the{' '}
+                        <Code>name</Code> field from your extract rules.
                     </P>
                     <CodeBlock lang="yaml">{`apply:
   # Inject all cookies as a Cookie header
@@ -1159,9 +1159,7 @@ app-slack:
                     <SectionHeading id="browser-adapters" level={1}>
                         Browser Adapters
                     </SectionHeading>
-                    <P>
-                        Sigcli uses a real browser for SSO login. Two adapters are available:
-                    </P>
+                    <P>Sigcli uses a real browser for SSO login. Two adapters are available:</P>
 
                     <List>
                         <Li>
@@ -1169,8 +1167,9 @@ app-slack:
                             with Chromium, Chrome, or Edge. Supports headless and visible modes.
                         </Li>
                         <Li>
-                            <strong>chrome-cdp</strong> — Connects to an existing Chrome/Edge instance
-                            via CDP. Useful when you want to reuse your already-open browser session.
+                            <strong>chrome-cdp</strong> — Connects to an existing Chrome/Edge
+                            instance via CDP. Useful when you want to reuse your already-open
+                            browser session.
                         </Li>
                     </List>
 
@@ -1189,8 +1188,8 @@ app-slack:
             aside: (
                 <P>
                     Set <Code>browser.channel</Code> in config to <Code>msedge</Code>,{' '}
-                    <Code>chrome</Code>, or <Code>chromium</Code>. Run <Code>sig doctor</Code>{' '}
-                    to verify your browser is detected correctly.
+                    <Code>chrome</Code>, or <Code>chromium</Code>. Run <Code>sig doctor</Code> to
+                    verify your browser is detected correctly.
                 </P>
             ),
         },

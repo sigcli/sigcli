@@ -1080,10 +1080,10 @@ curl https://jira.example.com/api/me   # 凭证自动注入`}</CodeBlock>
                         处理长期守护进程、会派生进程树的工具， 或只读取代理环境变量的工具。
                     </P>
                     <P>
-                        <strong>凭证注入：</strong>代理使用提供者的{' '}
-                        <Code>apply[]</Code> 规则将凭证注入请求。这些规则同样被{' '}
-                        <Code>sig request</Code>、<Code>sig get</Code> 和{' '}
-                        <Code>sig run</Code> 使用——一份配置适用所有访问方式。
+                        <strong>凭证注入：</strong>代理使用提供者的 <Code>apply[]</Code>{' '}
+                        规则将凭证注入请求。这些规则同样被 <Code>sig request</Code>、
+                        <Code>sig get</Code> 和 <Code>sig run</Code>{' '}
+                        使用——一份配置适用所有访问方式。
                     </P>
                     <CodeBlock lang="yaml">{`# 示例：同时注入 cookie 和 bearer 令牌
 providers:
@@ -1096,8 +1096,8 @@ providers:
       - { in: header, name: Cookie, value: "\${session}" }
       - { in: header, name: Authorization, value: "Bearer \${xoxc-token}" }`}</CodeBlock>
                     <P>
-                        <Code>apply[]</Code> 规则支持注入到 header、body 和 query 参数。
-                        模板变量（<Code>{'${name}'}</Code>）引用已提取的凭证名称。
+                        <Code>apply[]</Code> 规则支持注入到 header、body 和 query 参数。 模板变量（
+                        <Code>{'${name}'}</Code>）引用已提取的凭证名称。
                     </P>
                     <P>
                         <strong>自动刷新：</strong>代理守护进程会自动运行监视/刷新循环。 在{' '}
@@ -1250,8 +1250,8 @@ providers:
                         提供者配置
                     </SectionHeading>
                     <P>
-                        每个提供者声明<strong>提取什么</strong>（cookie、localStorage 值等）
-                        以及<strong>如何应用</strong>到 HTTP 请求中。所有访问方式——
+                        每个提供者声明<strong>提取什么</strong>（cookie、localStorage 值等） 以及
+                        <strong>如何应用</strong>到 HTTP 请求中。所有访问方式——
                         <Code>sig get</Code>、<Code>sig request</Code>、<Code>sig run</Code>、
                         <Code>sig proxy</Code>——使用相同的配置。
                     </P>
@@ -1294,8 +1294,8 @@ providers:
                         apply[] 规则
                     </SectionHeading>
                     <P>
-                        每条规则告诉 sigcli 如何将提取的值注入 HTTP 请求。模板变量
-                        （<Code>{'${name}'}</Code>）引用 extract 规则中的 <Code>name</Code> 字段。
+                        每条规则告诉 sigcli 如何将提取的值注入 HTTP 请求。模板变量 （
+                        <Code>{'${name}'}</Code>）引用 extract 规则中的 <Code>name</Code> 字段。
                     </P>
                     <CodeBlock lang="yaml">{`apply:
   # 注入所有 cookie 为 Cookie 头
@@ -1363,9 +1363,7 @@ app-slack:
                     <SectionHeading id="browser-adapters" level={1}>
                         浏览器适配器
                     </SectionHeading>
-                    <P>
-                        Sigcli 使用真实浏览器进行 SSO 登录。内置两个适配器：
-                    </P>
+                    <P>Sigcli 使用真实浏览器进行 SSO 登录。内置两个适配器：</P>
 
                     <List>
                         <Li>
