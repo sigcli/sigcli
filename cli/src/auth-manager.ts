@@ -7,7 +7,6 @@ import {
     type ApplyRule,
     type AuthError,
     type ExtractedCredentials,
-    type ExtractionContext,
     type ILogger,
     type IProviderRegistry,
     type IStorage,
@@ -92,16 +91,7 @@ export class AuthManager {
         const manager = new AuthManager(storage, providerRegistry, config.browser, config);
 
         if (manager.browserAvailable) {
-            manager.registerStrategy(
-                new BrowserStrategy({
-                    browserDataDir: config.browser.browserDataDir,
-                    channel: config.browser.channel,
-                    execPath: config.browser.execPath ?? '',
-                    waitUntil: config.browser.waitUntil,
-                    headlessTimeout: config.browser.headlessTimeout,
-                    visibleTimeout: config.browser.visibleTimeout,
-                }),
-            );
+            manager.registerStrategy(new BrowserStrategy(config.browser));
         }
         manager.registerStrategy(new PromptStrategy());
 
@@ -269,19 +259,8 @@ export class AuthManager {
         }
 
         this.logger.info(`Authenticating with "${provider.id}"...`);
-        const ctx: ExtractionContext = {
-            entryUrl: provider.entryUrl,
-            domains: provider.domains,
-            networkProxy: provider.networkProxy,
-            cookiePaths: provider.cookiePaths,
-            required: provider.required,
-            waitUntil:
-                (provider.waitUntil as ExtractionContext['waitUntil']) ??
-                this.browserConfig.waitUntil,
-            loginPatterns: provider.loginPatterns,
-        };
 
-        const extractResult = await strategy.extract(provider.extract, ctx);
+        const extractResult = await strategy.extract(provider);
         if (!isOk(extractResult)) return extractResult;
 
         if (provider.required?.length) {
