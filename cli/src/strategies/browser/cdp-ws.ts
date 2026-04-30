@@ -150,7 +150,17 @@ export function connectCdpWs(wsUrl: string): Promise<CdpWsClient> {
         ].join('\r\n');
 
         const socket = net.createConnection({ host, port });
-        socket.on('error', reject);
+
+        const UPGRADE_TIMEOUT = 10_000;
+        const upgradeTimer = setTimeout(() => {
+            socket.destroy();
+            reject(new Error('CDP WebSocket upgrade timed out'));
+        }, UPGRADE_TIMEOUT);
+
+        socket.on('error', (e) => {
+            clearTimeout(upgradeTimer);
+            reject(e);
+        });
 
         // State machine
         let upgradeComplete = false;
@@ -222,6 +232,7 @@ export function connectCdpWs(wsUrl: string): Promise<CdpWsClient> {
                 upgradeComplete = true;
                 // Everything after the headers is WS frame data
                 rawBuf = rawBuf.subarray(headerEnd + 4);
+                clearTimeout(upgradeTimer);
                 resolve(client);
                 // Fall through to process any WS frames already in buffer
             }

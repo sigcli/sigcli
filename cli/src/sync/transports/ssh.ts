@@ -77,7 +77,19 @@ export class SshTransport implements ISyncTransport {
     }
 
     private remotePath(remote: RemoteConfig): string {
-        return remote.path ?? DEFAULT_REMOTE_PATH;
+        const p = remote.path ?? DEFAULT_REMOTE_PATH;
+        if (!/^[a-zA-Z0-9._~/-]+$/.test(p)) {
+            throw new Error(
+                `Invalid remote path: "${p}" — only alphanumeric, ., _, ~, -, / allowed`,
+            );
+        }
+        return p;
+    }
+
+    private validateFilename(filename: string): void {
+        if (!/^[a-zA-Z0-9_.-]+\.json$/.test(filename)) {
+            throw new Error(`Invalid credential filename: "${filename}"`);
+        }
     }
 
     private remoteCredentialsPath(remote: RemoteConfig): string {
@@ -101,6 +113,7 @@ export class SshTransport implements ISyncTransport {
 
             for (const file of files) {
                 const filename = path.basename(file);
+                if (!/^[a-zA-Z0-9_.-]+\.json$/.test(filename)) continue;
                 try {
                     const { stdout: content } = await execFileAsync('ssh', [
                         ...this.sshArgs(remote),
@@ -134,6 +147,7 @@ export class SshTransport implements ISyncTransport {
 
     /** Read a single credential from remote */
     async readRemote(remote: RemoteConfig, filename: string): Promise<StoredCredential | null> {
+        this.validateFilename(filename);
         const target = this.remoteTarget(remote);
         const rpath = this.remoteCredentialsPath(remote);
 
@@ -171,6 +185,7 @@ export class SshTransport implements ISyncTransport {
         filename: string,
         stored: StoredCredential,
     ): Promise<void> {
+        this.validateFilename(filename);
         const rpath = this.remoteCredentialsPath(remote);
 
         const data = {

@@ -70,6 +70,9 @@ export async function runLogin(
 
         if (status.valid) {
             process.stderr.write(` valid (skipping login)\n`);
+            if (provider.autoProvisioned) {
+                await addProviderToConfig(provider.id, toProviderEntry(provider));
+            }
             const credResult = await auth.getExtractedCreds(provider.id);
             if (isOk(credResult)) {
                 process.stdout.write(

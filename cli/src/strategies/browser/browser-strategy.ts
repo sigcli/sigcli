@@ -191,10 +191,14 @@ export class BrowserStrategy implements IStrategy {
                 killProcess(browser);
             }
         };
+        const sigHandler = () => {
+            cleanup();
+            process.exit(130);
+        };
 
         process.on('exit', cleanup);
-        process.on('SIGINT', cleanup);
-        process.on('SIGTERM', cleanup);
+        process.on('SIGINT', sigHandler);
+        process.on('SIGTERM', sigHandler);
 
         let cdpClient: CdpWsClient | undefined;
 
@@ -213,8 +217,8 @@ export class BrowserStrategy implements IStrategy {
             cdpClient?.close();
             cleanup();
             process.removeListener('exit', cleanup);
-            process.removeListener('SIGINT', cleanup);
-            process.removeListener('SIGTERM', cleanup);
+            process.removeListener('SIGINT', sigHandler);
+            process.removeListener('SIGTERM', sigHandler);
         }
     }
 
@@ -280,6 +284,18 @@ export class BrowserStrategy implements IStrategy {
             await new Promise((r) => setTimeout(r, pollInterval));
         }
 
+        if (provider.required?.length) {
+            const missing = checkRequired(provider.required, credentials);
+            if (missing.length > 0) {
+                throw new BrowserTimeoutError(
+                    `extract (missing: ${missing.join(', ')})`,
+                    this.browserConfig.visibleTimeout,
+                );
+            }
+        }
+        if (Object.keys(credentials).length === 0) {
+            throw new BrowserTimeoutError('extract', this.browserConfig.visibleTimeout);
+        }
         return { credentials, expiresAt };
     }
 
