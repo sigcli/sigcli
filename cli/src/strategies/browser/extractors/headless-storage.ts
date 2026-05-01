@@ -15,13 +15,12 @@ export class HeadlessStorageExtractor implements IHeadlessExtractor {
         rule: ExtractRule,
         _domains: string[],
     ): Promise<ExtractorResult | null> {
-        if (rule.match.includes('*')) {
-            return this.extractByPattern(ctx, rule.as, rule.match, rule.jsonPath);
-        }
+        const val = rule.match.includes('*')
+            ? await this.extractByPattern(ctx, rule.match)
+            : await ctx.evaluate<string | null>(
+                  `(() => { try { return localStorage.getItem(${JSON.stringify(rule.match)}); } catch { return null; } })()`,
+              );
 
-        const val = await ctx.evaluate<string | null>(
-            `(() => { try { return localStorage.getItem(${JSON.stringify(rule.match)}); } catch { return null; } })()`,
-        );
         if (!val) return null;
 
         if (rule.jsonPath) {
@@ -40,10 +39,8 @@ export class HeadlessStorageExtractor implements IHeadlessExtractor {
 
     private async extractByPattern(
         ctx: HeadlessExtractionCtx,
-        name: string,
         pattern: string,
-        jsonPath?: string,
-    ): Promise<ExtractorResult | null> {
+    ): Promise<string | null> {
         const regex = this.globToRegex(pattern);
 
         const raw = await ctx.evaluate<string | null>(
@@ -66,24 +63,9 @@ export class HeadlessStorageExtractor implements IHeadlessExtractor {
         try {
             const matches = JSON.parse(raw) as (string | null)[];
             if (!matches?.length) return null;
-
-            const first = matches.find((m) => m != null);
-            if (!first) return null;
-
-            if (jsonPath) {
-                try {
-                    const parsed = JSON.parse(first);
-                    const resolved = dlv(parsed, jsonPath);
-                    if (resolved == null) return null;
-                    return { name, value: String(resolved) };
-                } catch {
-                    return null;
-                }
-            }
-
-            return { name, value: first };
+            return matches.find((m) => m != null) ?? null;
         } catch {
-            return { name, value: raw };
+            return raw;
         }
     }
 
