@@ -104,7 +104,6 @@ describe('CLI help text grouping (#9)', () => {
         expect(output).toContain('init');
         expect(output).toContain('doctor');
         expect(output).toContain('--remote');
-        expect(output).toContain('--channel <name>');
     });
 
     it('help output does not mention --verbose', async () => {

@@ -8,7 +8,7 @@ import { existsSync } from 'node:fs';
 import os from 'node:os';
 
 export interface NativeBrowserInfo {
-    name: string; // "chrome" | "msedge" | "chromium"
+    name: string; // "chrome" | "msedge"
     execPath: string; // Full path to executable
 }
 
@@ -24,10 +24,6 @@ const MACOS_CANDIDATES: NativeBrowserInfo[] = [
     {
         name: 'msedge',
         execPath: '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
-    },
-    {
-        name: 'chromium',
-        execPath: '/Applications/Chromium.app/Contents/MacOS/Chromium',
     },
 ];
 
@@ -56,10 +52,6 @@ const WINDOWS_CANDIDATES: NativeBrowserInfo[] = [
         name: 'chrome',
         execPath: `${process.env.LOCALAPPDATA ?? ''}\\Google\\Chrome\\Application\\chrome.exe`,
     },
-    {
-        name: 'chromium',
-        execPath: `${process.env.LOCALAPPDATA ?? ''}\\Chromium\\Application\\chrome.exe`,
-    },
 ];
 
 const LINUX_WHICH_CANDIDATES: Array<{ name: string; bin: string }> = [
@@ -67,8 +59,6 @@ const LINUX_WHICH_CANDIDATES: Array<{ name: string; bin: string }> = [
     { name: 'chrome', bin: 'google-chrome-stable' },
     { name: 'msedge', bin: 'microsoft-edge' },
     { name: 'msedge', bin: 'microsoft-edge-stable' },
-    { name: 'chromium', bin: 'chromium' },
-    { name: 'chromium', bin: 'chromium-browser' },
 ];
 
 // ============================================================================
@@ -101,7 +91,7 @@ function detectLinux(): NativeBrowserInfo[] {
 
 /**
  * Detect all native Chromium-based browsers on the current machine.
- * Returns browsers in preference order (Chrome → Edge → Chromium).
+ * Returns browsers in preference order (Chrome → Edge).
  */
 export function detectNativeBrowsers(): NativeBrowserInfo[] {
     const platform = os.platform();
@@ -121,7 +111,7 @@ export function detectNativeBrowsers(): NativeBrowserInfo[] {
 /**
  * Find a single native browser to use for CDP mode.
  *
- * @param preferred - Optional browser name hint ("chrome" | "msedge" | "chromium").
+ * @param preferred - Optional browser name hint ("chrome" | "msedge").
  *                    If not found, falls back to any available browser.
  * @returns The first matching browser, or null if none found.
  */

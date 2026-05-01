@@ -11,11 +11,10 @@ import type { WaitUntilValue } from '../types/index.js';
 
 export interface BrowserConfig {
     browserDataDir: string;
-    channel: string;
+    execPath: string;
     headlessTimeout: number;
     visibleTimeout: number;
     waitUntil: WaitUntilValue;
-    execPath?: string; // Native browser binary path for CDP mode
 }
 
 export interface StorageConfig {

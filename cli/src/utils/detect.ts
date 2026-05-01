@@ -17,7 +17,6 @@ export function findChannelBrowser(channel: string): string | null {
         const apps: Record<string, string> = {
             chrome: '/Applications/Google Chrome.app',
             msedge: '/Applications/Microsoft Edge.app',
-            chromium: '/Applications/Chromium.app',
         };
         if (apps[channel] && fs.existsSync(apps[channel])) return apps[channel];
     }
@@ -26,7 +25,6 @@ export function findChannelBrowser(channel: string): string | null {
         const bins: Record<string, string> = {
             chrome: 'google-chrome',
             msedge: 'microsoft-edge',
-            chromium: 'chromium',
         };
         if (bins[channel]) {
             try {
@@ -50,7 +48,6 @@ export function findChannelBrowser(channel: string): string | null {
                 `${process.env['PROGRAMFILES(X86)'] ?? ''}\\Microsoft\\Edge\\Application\\msedge.exe`,
                 `${process.env.LOCALAPPDATA ?? ''}\\Microsoft\\Edge\\Application\\msedge.exe`,
             ],
-            chromium: [`${process.env.LOCALAPPDATA ?? ''}\\Chromium\\Application\\chrome.exe`],
         };
         const candidates = paths[channel];
         if (candidates) {

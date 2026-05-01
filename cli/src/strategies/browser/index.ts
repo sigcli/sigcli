@@ -5,5 +5,3 @@ export { PageStateChecker } from './page-state-checker.js';
 export type { IPageStateChecker } from './page-state-checker.js';
 export { CdpCookieExtractor } from './extractors/cdp-cookie.js';
 export { CdpStorageExtractor } from './extractors/cdp-storage.js';
-export { HeadlessCookieExtractor } from './extractors/headless-cookie.js';
-export { HeadlessStorageExtractor } from './extractors/headless-storage.js';
