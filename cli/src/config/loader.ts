@@ -57,6 +57,7 @@ export async function loadConfig(): Promise<Result<SigConfig, AuthError>> {
  */
 export async function saveConfig(config: SigConfig): Promise<void> {
     const filtered = {
+        version: 2,
         ...config,
         providers: Object.fromEntries(
             Object.entries(config.providers).filter(
