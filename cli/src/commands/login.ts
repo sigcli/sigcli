@@ -66,11 +66,11 @@ export async function runLogin(
 
     // Step 3: If not --force, check stored creds
     if (flags.force !== true) {
-        process.stderr.write(`  [1/2] Checking stored credentials...`);
+        process.stderr.write(`[sig] [1/2] Checking stored credentials...\n`);
         const status = await auth.getStatus(provider.id);
 
         if (status.valid) {
-            process.stderr.write(` valid (skipping login)\n`);
+            process.stderr.write(`[sig] [1/2] Stored credentials valid (skipping login)\n`);
             if (provider.autoProvisioned) {
                 await addProviderToConfig(provider.id, toProviderEntry(provider));
             }
@@ -89,9 +89,9 @@ export async function runLogin(
         }
 
         if (status.configured && !status.valid) {
-            process.stderr.write(` expired\n`);
+            process.stderr.write(`[sig] [1/2] Stored credentials expired\n`);
         } else if (!status.configured) {
-            process.stderr.write(` not found\n`);
+            process.stderr.write(`[sig] [1/2] No stored credentials found\n`);
         }
     }
 
@@ -112,7 +112,7 @@ export async function runLogin(
     }
 
     // Step 5: Authenticate (clears stored and re-extracts)
-    process.stderr.write(`  [2/2] Authenticating with "${provider.name}"...\n`);
+    process.stderr.write(`[sig] [2/2] Authenticating with "${provider.name}"...\n`);
     const result = await auth.getExtractedCreds(provider.id, {
         force: true,
         ...(networkProxy !== undefined ? { networkProxy } : {}),
