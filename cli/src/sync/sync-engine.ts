@@ -180,7 +180,7 @@ export class SyncEngine {
                     mode: 'browserless',
                     browser: {
                         browserDataDir: '~/.sig/browser-data',
-                        channel: 'chrome',
+                        execPath: '',
                         headlessTimeout: 30000,
                         visibleTimeout: 120000,
                         waitUntil: 'load',
@@ -211,7 +211,7 @@ export class SyncEngine {
                         ['browser'],
                         doc.createNode({
                             browserDataDir: '~/.sig/browser-data',
-                            channel: 'chrome',
+                            execPath: '',
                             headlessTimeout: 30000,
                             visibleTimeout: 120000,
                             waitUntil: 'load',

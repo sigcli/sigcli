@@ -8,18 +8,12 @@ import {
     ok,
     type AuthError,
     type ExtractedCredentials,
-    type ExtractRule,
     type IBrowserExtractor,
     type ILogger,
     type IStrategy,
     type ProviderConfig,
     type Result,
-    type WaitUntilValue,
 } from '../../types/index.js';
-import type {
-    HeadlessExtractionCtx,
-    IHeadlessExtractor,
-} from '../../types/interfaces/headless-extractor.js';
 import type { ExtractionResult } from '../../types/interfaces/strategy.js';
 import { createNoopLogger } from '../../utils/logger.js';
 import { expandHome } from '../../utils/path.js';
@@ -28,8 +22,6 @@ import { findFreePort, removeSingletonLock, waitForBrowserReady } from './browse
 import { attachToPageTarget, connectCdpWs, type CdpWsClient } from './cdp-ws.js';
 import { CdpCookieExtractor } from './extractors/cdp-cookie.js';
 import { CdpStorageExtractor } from './extractors/cdp-storage.js';
-import { HeadlessCookieExtractor } from './extractors/headless-cookie.js';
-import { HeadlessStorageExtractor } from './extractors/headless-storage.js';
 import type { DomEvaluateFn } from './login-detector.js';
 import { PageStateChecker, type IPageStateChecker } from './page-state-checker.js';
 import { checkRequired } from './required-checker.js';
@@ -39,7 +31,6 @@ export class BrowserStrategy implements IStrategy {
     readonly needsBrowser = true;
 
     private readonly cdpExtractors: Map<string, IBrowserExtractor>;
-    private readonly headlessExtractors: Map<string, IHeadlessExtractor>;
     private readonly browserConfig: BrowserConfig;
     private readonly pageState: IPageStateChecker;
     private readonly logger: ILogger;
@@ -55,9 +46,6 @@ export class BrowserStrategy implements IStrategy {
         this.cdpExtractors = new Map();
         this.cdpExtractors.set('cookies', new CdpCookieExtractor());
         this.cdpExtractors.set('localStorage', new CdpStorageExtractor());
-        this.headlessExtractors = new Map();
-        this.headlessExtractors.set('cookies', new HeadlessCookieExtractor());
-        this.headlessExtractors.set('localStorage', new HeadlessStorageExtractor());
     }
 
     async extract(provider: ProviderConfig): Promise<Result<ExtractionResult, AuthError>> {
@@ -73,124 +61,97 @@ export class BrowserStrategy implements IStrategy {
 
     private async tryHeadless(provider: ProviderConfig): Promise<ExtractionResult | null> {
         this.logger.info(`${provider.id}: trying headless`);
+
+        const execPath = this.browserConfig.execPath;
+        if (!execPath) {
+            this.logger.info(`${provider.id}: no browser found, skipping headless`);
+            return null;
+        }
+
+        const dataDir = expandHome(this.browserConfig.browserDataDir);
+        removeSingletonLock(dataDir);
+
+        let cdpPort: number;
         try {
-            const pw = await import('playwright-core').catch(() => null);
-            if (!pw) {
-                this.logger.info(
-                    `${provider.id}: playwright-core not available, skipping headless`,
-                );
-                return null;
+            cdpPort = await findFreePort();
+        } catch {
+            this.logger.info(`${provider.id}: failed to find free port for headless`);
+            return null;
+        }
+
+        const browserArgs: string[] = [
+            '--headless',
+            `--remote-debugging-port=${cdpPort}`,
+            `--user-data-dir=${dataDir}`,
+            '--no-first-run',
+            '--no-default-browser-check',
+            '--disable-gpu',
+        ];
+        if (provider.networkProxy) {
+            browserArgs.push(`--proxy-server=${provider.networkProxy}`);
+        }
+        browserArgs.push('about:blank');
+
+        let browser: ChildProcess | undefined;
+        let cdpClient: CdpWsClient | undefined;
+
+        try {
+            browser = spawn(execPath, browserArgs, { detached: false, stdio: 'ignore' });
+
+            const wsUrl = await waitForBrowserReady(cdpPort, this.browserConfig.headlessTimeout);
+            cdpClient = await connectCdpWs(wsUrl);
+            this.logger.info(`${provider.id}: headless CDP connected`);
+
+            const credentials: ExtractedCredentials = {};
+            let expiresAt: string | undefined;
+
+            for (const rule of provider.extract) {
+                const extractor = this.cdpExtractors.get(rule.from);
+                if (!extractor) continue;
+                try {
+                    const result = await extractor.extract(cdpClient, rule, provider.domains);
+                    if (result) {
+                        credentials[result.name] = result.value;
+                        if (result.cookies?.length) {
+                            const expiries = result.cookies
+                                .filter((c) => c.expires > 0)
+                                .map((c) => c.expires * 1000);
+                            if (expiries.length > 0) {
+                                expiresAt = new Date(Math.min(...expiries)).toISOString();
+                            }
+                        }
+                    }
+                } catch {
+                    // Extraction failure for this rule — skip
+                }
             }
 
-            const dataDir = expandHome(this.browserConfig.browserDataDir);
-            this.logger.info(
-                `${provider.id}: headless launch (channel=${this.browserConfig.channel})`,
-            );
-            const browserCtx = await pw.chromium.launchPersistentContext(dataDir, {
-                headless: true,
-                channel: this.browserConfig.channel,
-                ...(provider.networkProxy ? { proxy: { server: provider.networkProxy } } : {}),
-            });
-
-            try {
-                const page = browserCtx.pages()[0] ?? (await browserCtx.newPage());
-                const waitUntil =
-                    (provider.waitUntil as WaitUntilValue) ?? this.browserConfig.waitUntil;
-
-                if (provider.entryUrl) {
-                    await page.goto(provider.entryUrl, {
-                        waitUntil,
-                        timeout: this.browserConfig.headlessTimeout,
-                    });
-                }
-
-                const currentUrl = page.url().toLowerCase();
-                const evaluate: DomEvaluateFn = <_T>(expr: string) => page.evaluate(expr);
-
-                const authCheckDomains = this.getAuthCheckDomains(provider);
-                const authenticated = await this.pageState.isAuthenticated(
-                    currentUrl,
-                    authCheckDomains,
-                    evaluate,
-                    provider.loginUrlPatterns,
-                );
-                if (!authenticated) {
+            if (provider.required?.length) {
+                if (checkRequired(provider.required, credentials).length > 0) {
                     this.logger.info(
-                        `${provider.id}: headless not authenticated, falling back to CDP`,
+                        `${provider.id}: headless missing required credentials, falling back`,
                     );
                     return null;
                 }
-
-                this.logger.info(`${provider.id}: headless authenticated`);
-                const headlessCtx: HeadlessExtractionCtx = {
-                    cookies: () => browserCtx.cookies(),
-                    evaluate: <_T>(expr: string) => page.evaluate(expr),
-                };
-
-                const { credentials, expiresAt } = await this.runHeadlessExtractors(
-                    headlessCtx,
-                    provider.extract,
-                    provider.domains,
-                );
-
-                if (provider.required?.length) {
-                    if (checkRequired(provider.required, credentials).length > 0) return null;
-                }
-
-                this.logger.info(
-                    `${provider.id}: headless extracted ${Object.keys(credentials).length} credential(s)`,
-                );
-                return { credentials, expiresAt };
-            } finally {
-                await browserCtx.close();
+            } else if (Object.keys(credentials).length === 0) {
+                this.logger.info(`${provider.id}: headless found no credentials, falling back`);
+                return null;
             }
+
+            this.logger.info(
+                `${provider.id}: headless extracted ${Object.keys(credentials).length} credential(s)`,
+            );
+            return { credentials, expiresAt };
         } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);
-            this.logger.warn(`${provider.id}: headless failed (${msg}), falling back to CDP`);
+            this.logger.warn(`${provider.id}: headless failed (${msg}), falling back`);
             return null;
-        }
-    }
-
-    private getAuthCheckDomains(provider: ProviderConfig): string[] {
-        if (!provider.entryUrl) return provider.domains;
-        try {
-            const entryHost = new URL(provider.entryUrl).hostname;
-            if (provider.domains.some((d) => entryHost.includes(d) || d.includes(entryHost))) {
-                return provider.domains;
-            }
-            return [...provider.domains, entryHost];
-        } catch {
-            return provider.domains;
-        }
-    }
-
-    private async runHeadlessExtractors(
-        ctx: HeadlessExtractionCtx,
-        rules: ExtractRule[],
-        domains: string[],
-    ): Promise<{ credentials: ExtractedCredentials; expiresAt?: string }> {
-        const credentials: ExtractedCredentials = {};
-        let expiresAt: string | undefined;
-
-        for (const rule of rules) {
-            const extractor = this.headlessExtractors.get(rule.from);
-            if (!extractor) continue;
-
-            const result = await extractor.extract(ctx, rule, domains);
-            if (result) {
-                credentials[result.name] = result.value;
-                if (result.cookies?.length) {
-                    const expiries = result.cookies
-                        .filter((c) => c.expires > 0)
-                        .map((c) => c.expires * 1000);
-                    if (expiries.length > 0) {
-                        expiresAt = new Date(Math.min(...expiries)).toISOString();
-                    }
-                }
+        } finally {
+            cdpClient?.close();
+            if (browser && !browser.killed) {
+                killProcess(browser);
             }
         }
-
-        return { credentials, expiresAt };
     }
 
     // =========================================================================
@@ -202,7 +163,7 @@ export class BrowserStrategy implements IStrategy {
     ): Promise<Result<ExtractionResult, AuthError>> {
         const execPath = this.browserConfig.execPath;
         if (!execPath) {
-            return err(new BrowserError('No browser found. Install Chrome, Edge, or Chromium.'));
+            return err(new BrowserError('No browser found. Install Chrome or Edge.'));
         }
 
         const dataDir = expandHome(this.browserConfig.browserDataDir);
