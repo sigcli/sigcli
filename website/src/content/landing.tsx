@@ -13,9 +13,7 @@ export function LandingPage() {
             }}
         >
             {/* Header */}
-            <header
-                style={{ borderBottom: '1px solid var(--page-border)' }}
-            >
+            <header style={{ borderBottom: '1px solid var(--page-border)' }}>
                 <div className="max-w-4xl mx-auto flex items-center justify-between px-6 py-4">
                     <a href="/" className="no-underline">
                         <span
@@ -147,9 +145,9 @@ export function LandingPage() {
                         }}
                     >
                         The authentication layer for AI agents and scripts. Login once via browser
-                        SSO, then any tool can access your work systems — Jira, Slack, wikis,
-                        APIs — without storing passwords. Credentials are encrypted at rest and
-                        injected on demand.
+                        SSO, then any tool can access your work systems — Jira, Slack, wikis, APIs —
+                        without storing passwords. Credentials are encrypted at rest and injected on
+                        demand.
                     </p>
                 </section>
 

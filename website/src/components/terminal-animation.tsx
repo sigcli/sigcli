@@ -10,17 +10,11 @@ interface Step {
 const STEPS: Step[] = [
     {
         command: 'sig init',
-        output: [
-            '✓ Browser detected: Chrome',
-            '✓ Config created at ~/.sig/config.yaml',
-        ],
+        output: ['✓ Browser detected: Chrome', '✓ Config created at ~/.sig/config.yaml'],
     },
     {
         command: 'sig login jira.example.com',
-        output: [
-            '✓ Browser opened — complete login...',
-            '✓ Credentials saved for "jira"',
-        ],
+        output: ['✓ Browser opened — complete login...', '✓ Credentials saved for "jira"'],
     },
     {
         command: 'sig run jira -- curl https://jira.example.com/rest/api/2/myself',
@@ -104,18 +98,9 @@ export function TerminalAnimation() {
                 className="flex items-center gap-2 px-4 py-3"
                 style={{ borderBottom: '1px solid #27272a' }}
             >
-                <span
-                    className="w-3 h-3 rounded-full"
-                    style={{ background: '#ff5f57' }}
-                />
-                <span
-                    className="w-3 h-3 rounded-full"
-                    style={{ background: '#febc2e' }}
-                />
-                <span
-                    className="w-3 h-3 rounded-full"
-                    style={{ background: '#28c840' }}
-                />
+                <span className="w-3 h-3 rounded-full" style={{ background: '#ff5f57' }} />
+                <span className="w-3 h-3 rounded-full" style={{ background: '#febc2e' }} />
+                <span className="w-3 h-3 rounded-full" style={{ background: '#28c840' }} />
             </div>
 
             {/* Terminal content */}

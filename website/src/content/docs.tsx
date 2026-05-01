@@ -28,8 +28,7 @@ function tocItem(
 export const pageContent = {
     meta: {
         title: 'SigCLI User Guide',
-        description:
-            'User guide for SigCLI — authenticate once, use credentials everywhere.',
+        description: 'User guide for SigCLI — authenticate once, use credentials everywhere.',
     },
 
     toc: [
@@ -44,9 +43,17 @@ export const pageContent = {
         }),
 
         tocItem('#using-credentials', 'Using Credentials'),
-        tocItem('#sig-request', 'sig request', { level: 1, parent: '#using-credentials', prefix: '├ ' }),
+        tocItem('#sig-request', 'sig request', {
+            level: 1,
+            parent: '#using-credentials',
+            prefix: '├ ',
+        }),
         tocItem('#sig-run', 'sig run', { level: 1, parent: '#using-credentials', prefix: '├ ' }),
-        tocItem('#sig-proxy', 'sig proxy', { level: 1, parent: '#using-credentials', prefix: '├ ' }),
+        tocItem('#sig-proxy', 'sig proxy', {
+            level: 1,
+            parent: '#using-credentials',
+            prefix: '├ ',
+        }),
         tocItem('#sig-get', 'sig get', { level: 1, parent: '#using-credentials', prefix: '└ ' }),
 
         tocItem('#configuration', 'Configuration'),
@@ -73,7 +80,11 @@ export const pageContent = {
 
         tocItem('#remote-sync', 'Remote & Sync'),
         tocItem('#remote-setup', 'Setup', { level: 1, parent: '#remote-sync', prefix: '├ ' }),
-        tocItem('#auto-refresh', 'Auto-refresh', { level: 1, parent: '#remote-sync', prefix: '└ ' }),
+        tocItem('#auto-refresh', 'Auto-refresh', {
+            level: 1,
+            parent: '#remote-sync',
+            prefix: '└ ',
+        }),
 
         tocItem('#troubleshooting', 'Troubleshooting'),
     ] as FlatTocItem[],
@@ -106,9 +117,9 @@ export const pageContent = {
                         How it works
                     </SectionHeading>
                     <P>
-                        SigCLI opens a real browser for you to log in — any SSO, any site. It captures
-                        the session credentials, encrypts them locally, and makes them available to your
-                        scripts and AI agents on demand.
+                        SigCLI opens a real browser for you to log in — any SSO, any site. It
+                        captures the session credentials, encrypts them locally, and makes them
+                        available to your scripts and AI agents on demand.
                     </P>
                     <CodeBlock lang="bash">{`You log in once          sig stores credentials       Your tools use them
 (real browser, any SSO)  (encrypted, ~/.sig/)          (sig request / run / proxy)`}</CodeBlock>
@@ -141,23 +152,22 @@ export const pageContent = {
                         First login
                     </SectionHeading>
                     <P>
-                        Pass any URL — sig opens a browser, you log in normally, sig captures the session:
+                        Pass any URL — sig opens a browser, you log in normally, sig captures the
+                        session:
                     </P>
                     <CodeBlock lang="bash">{`sig login https://jira.example.com`}</CodeBlock>
-                    <P>
-                        That's it. Check it worked:
-                    </P>
+                    <P>That's it. Check it worked:</P>
                     <CodeBlock lang="bash">{`sig status`}</CodeBlock>
-                    <P>
-                        Now use the credentials:
-                    </P>
+                    <P>Now use the credentials:</P>
                     <CodeBlock lang="bash">{`sig request https://jira.example.com/rest/api/2/myself`}</CodeBlock>
                 </>
             ),
             aside: (
                 <P>
-                    You can also pass credentials directly without opening a browser:<br/>
-                    <Code>sig login &lt;url&gt; --token &lt;pat&gt;</Code><br/>
+                    You can also pass credentials directly without opening a browser:
+                    <br />
+                    <Code>sig login &lt;url&gt; --token &lt;pat&gt;</Code>
+                    <br />
                     <Code>sig login &lt;url&gt; --cookie "key=val"</Code>
                 </P>
             ),
@@ -170,16 +180,12 @@ export const pageContent = {
                     <SectionHeading id="using-credentials" level={1}>
                         Using Credentials
                     </SectionHeading>
-                    <P>
-                        Four ways to use stored credentials, from most secure to least:
-                    </P>
+                    <P>Four ways to use stored credentials, from most secure to least:</P>
 
                     <SectionHeading id="sig-request" level={2}>
                         sig request
                     </SectionHeading>
-                    <P>
-                        Make an authenticated HTTP request. Credentials never leave the process.
-                    </P>
+                    <P>Make an authenticated HTTP request. Credentials never leave the process.</P>
                     <CodeBlock lang="bash">{`sig request https://jira.example.com/rest/api/2/myself
 
 # POST with body
@@ -209,7 +215,8 @@ sig run jira slack -- python cross_tool.py
 # See what env vars are available
 sig run jira -- env | grep SIG_`}</CodeBlock>
                     <P>
-                        Injected variables follow the pattern <Code>SIG_&lt;PROVIDER&gt;_COOKIE</Code> or{' '}
+                        Injected variables follow the pattern{' '}
+                        <Code>SIG_&lt;PROVIDER&gt;_COOKIE</Code> or{' '}
                         <Code>SIG_&lt;PROVIDER&gt;_TOKEN</Code>.
                     </P>
 
@@ -217,8 +224,9 @@ sig run jira -- env | grep SIG_`}</CodeBlock>
                         sig proxy
                     </SectionHeading>
                     <P>
-                        Start a local proxy that injects credentials into any HTTP request transparently.
-                        Apps don't need any changes — just point <Code>HTTP_PROXY</Code> at it.
+                        Start a local proxy that injects credentials into any HTTP request
+                        transparently. Apps don't need any changes — just point{' '}
+                        <Code>HTTP_PROXY</Code> at it.
                     </P>
                     <CodeBlock lang="bash">{`sig proxy start
 
@@ -229,14 +237,16 @@ curl https://jira.example.com/rest/api/2/myself
 
 sig proxy stop`}</CodeBlock>
                     <P>
-                        Best for long-running processes, AI agents, and tools that fork many subprocesses.
+                        Best for long-running processes, AI agents, and tools that fork many
+                        subprocesses.
                     </P>
 
                     <SectionHeading id="sig-get" level={2}>
                         sig get
                     </SectionHeading>
                     <P>
-                        Print credential headers to stdout. Use sparingly — values are exposed in your shell.
+                        Print credential headers to stdout. Use sparingly — values are exposed in
+                        your shell.
                     </P>
                     <CodeBlock lang="bash">{`sig get jira                          # JSON headers
 sig get jira --format value           # raw cookie string
@@ -245,10 +255,14 @@ sig get jira --format header          # HTTP header format`}</CodeBlock>
             ),
             aside: (
                 <P>
-                    <strong>Which one should I use?</strong><br/>
-                    <Code>sig proxy</Code> — AI agents, daemons<br/>
-                    <Code>sig request</Code> — one-off API calls<br/>
-                    <Code>sig run</Code> — wrapping scripts/tools<br/>
+                    <strong>Which one should I use?</strong>
+                    <br />
+                    <Code>sig proxy</Code> — AI agents, daemons
+                    <br />
+                    <Code>sig request</Code> — one-off API calls
+                    <br />
+                    <Code>sig run</Code> — wrapping scripts/tools
+                    <br />
                     <Code>sig get</Code> — debugging only
                 </P>
             ),
@@ -266,8 +280,9 @@ sig get jira --format header          # HTTP header format`}</CodeBlock>
                         config.yaml
                     </SectionHeading>
                     <P>
-                        Everything lives in <Code>~/.sig/config.yaml</Code>. Running <Code>sig login &lt;url&gt;</Code> auto-creates
-                        provider entries, so most users never edit this file manually.
+                        Everything lives in <Code>~/.sig/config.yaml</Code>. Running{' '}
+                        <Code>sig login &lt;url&gt;</Code> auto-creates provider entries, so most
+                        users never edit this file manually.
                     </P>
                     <CodeBlock lang="yaml">{`# ~/.sig/config.yaml
 version: 2
@@ -300,8 +315,8 @@ providers:
                         Adding a provider
                     </SectionHeading>
                     <P>
-                        The easiest way: just <Code>sig login &lt;url&gt;</Code> — sig auto-creates config.
-                        For manual setup, add a provider entry with these fields:
+                        The easiest way: just <Code>sig login &lt;url&gt;</Code> — sig auto-creates
+                        config. For manual setup, add a provider entry with these fields:
                     </P>
                     <CodeBlock lang="yaml">{`my-service:
   domains: [example.com]        # which URLs this provider handles
@@ -321,8 +336,9 @@ providers:
                         localStorage tokens
                     </SectionHeading>
                     <P>
-                        Some apps store tokens in localStorage instead of cookies (Slack, Microsoft Teams).
-                        Use <Code>from: localStorage</Code> with a key pattern and optional <Code>jsonPath</Code>:
+                        Some apps store tokens in localStorage instead of cookies (Slack, Microsoft
+                        Teams). Use <Code>from: localStorage</Code> with a key pattern and optional{' '}
+                        <Code>jsonPath</Code>:
                     </P>
                     <CodeBlock lang="yaml">{`app-slack:
   domains: [your-org.enterprise.slack.com]
@@ -348,8 +364,8 @@ providers:
                         Required cookies
                     </SectionHeading>
                     <P>
-                        Public sites set tracking cookies to all visitors. Add <Code>required</Code> so
-                        sig knows which cookies mean "actually logged in":
+                        Public sites set tracking cookies to all visitors. Add <Code>required</Code>{' '}
+                        so sig knows which cookies mean "actually logged in":
                     </P>
                     <CodeBlock lang="yaml">{`reddit:
   domains: [www.reddit.com]
@@ -387,9 +403,7 @@ providers:
                     <SectionHeading id="remote-sync" level={1}>
                         Remote & Sync
                     </SectionHeading>
-                    <P>
-                        Log in on your laptop, push credentials to headless servers over SSH.
-                    </P>
+                    <P>Log in on your laptop, push credentials to headless servers over SSH.</P>
 
                     <SectionHeading id="remote-setup" level={2}>
                         Setup
@@ -408,7 +422,8 @@ sig run jira -- python deploy.py`}</CodeBlock>
                         Auto-refresh
                     </SectionHeading>
                     <P>
-                        Keep sessions alive automatically. The proxy daemon handles refresh in the background.
+                        Keep sessions alive automatically. The proxy daemon handles refresh in the
+                        background.
                     </P>
                     <CodeBlock lang="bash">{`sig watch add jira              # add to auto-refresh list
 sig proxy start                 # proxy also runs the refresh loop
@@ -433,9 +448,8 @@ sig watch add jira --auto-sync prod`}</CodeBlock>
                     <CodeBlock lang="bash">{`sig doctor`}</CodeBlock>
                     <List>
                         <Li>
-                            <strong>Login captures wrong cookies:</strong> Add{' '}
-                            <Code>required</Code> to your provider config to specify which cookies
-                            mean "logged in".
+                            <strong>Login captures wrong cookies:</strong> Add <Code>required</Code>{' '}
+                            to your provider config to specify which cookies mean "logged in".
                         </Li>
                         <Li>
                             <strong>Site blocks headless browser:</strong> Use{' '}
@@ -448,8 +462,8 @@ sig watch add jira --auto-sync prod`}</CodeBlock>
                             auto-refresh.
                         </Li>
                         <Li>
-                            <strong>Proxy HTTPS errors:</strong> Run{' '}
-                            <Code>sig proxy trust</Code> to add the local CA to your system.
+                            <strong>Proxy HTTPS errors:</strong> Run <Code>sig proxy trust</Code> to
+                            add the local CA to your system.
                         </Li>
                         <Li>
                             <strong>No browser on this machine:</strong> Use{' '}
