@@ -64,8 +64,6 @@ export { PromptStrategy } from './strategies/prompt/index.js';
 export { PromptStrategy as PromptSource } from './strategies/prompt/index.js';
 export { CdpCookieExtractor } from './strategies/browser/index.js';
 export { CdpStorageExtractor } from './strategies/browser/index.js';
-export { HeadlessCookieExtractor } from './strategies/browser/index.js';
-export { HeadlessStorageExtractor } from './strategies/browser/index.js';
 export { StrategyRegistry } from './strategies/registry.js';
 
 // AuthManager
