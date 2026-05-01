@@ -6,7 +6,7 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import YAML from 'yaml';
+import YAML, { isCollection } from 'yaml';
 
 import { ConfigError, err, type AuthError, type Result } from '../types/index.js';
 import type { ProviderEntry, SigConfig } from './schema.js';
@@ -87,8 +87,25 @@ export async function addProviderToConfig(id: string, entry: ProviderEntry): Pro
     if (!doc.getIn(['providers'])) {
         doc.setIn(['providers'], doc.createNode({}));
     }
-    doc.setIn(['providers', id], doc.createNode(entry, { flow: false }));
+    const providersNode = doc.getIn(['providers'], true);
+    if (isCollection(providersNode)) providersNode.flow = false;
+    const providerNode = doc.createNode(entry);
+    setBlockStyle(providerNode);
+    doc.setIn(['providers', id], providerNode);
     await fs.writeFile(CONFIG_PATH, doc.toString(), 'utf-8');
+}
+
+function setBlockStyle(node: unknown): void {
+    if (isCollection(node)) {
+        node.flow = false;
+        for (const item of node.items) {
+            if (typeof item === 'object' && item !== null) {
+                if ('value' in item) setBlockStyle(item.value);
+                if ('key' in item) setBlockStyle(item.key);
+                setBlockStyle(item);
+            }
+        }
+    }
 }
 
 /**
