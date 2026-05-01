@@ -46,44 +46,35 @@ in your browser         -->   credentials locally          -->  on your behalf
 
 ## Provider Configuration
 
-Most enterprise and SSO sites work with zero config — `sig login <url>` detects cookies automatically. Public sites with tracking cookies need a little more.
+Most enterprise/SSO sites work with zero config. Public sites need a bit more. Here's the progression from simple to advanced:
 
-### Zero config (auto-provision)
+### 1. Zero config (auto-provision)
 
-For internal tools, wikis, and SSO-protected systems, just run:
+For SSO-protected internal tools, just run:
 
 ```bash
 sig login https://jira.example.com
 ```
 
-sig opens a real browser, you log in normally, and it captures whatever session cookies are set. No config required.
+sig opens a real browser, you log in, and it captures session cookies automatically. No config file needed.
 
-### Adding `required` to validate cookies
+### 2. Adding `required` cookies
 
-Many public sites (social media, forums, video platforms) set tracking cookies for **all visitors** — logged in or not. Without `required`, sig can't tell auth cookies from tracking cookies and may capture a credential-less session.
-
-Add `required` to list the cookies that must be present for the session to be considered authenticated:
+Public sites set tracking cookies to **all visitors**. Without `required`, sig can't tell auth cookies from junk. Add `required` to validate:
 
 ```yaml
-providers:
-    bilibili:
-        domains: [www.bilibili.com]
-        entryUrl: https://www.bilibili.com/
-        strategy: browser
-        required: ['cookie.SESSDATA', 'cookie.bili_jct']
-        extract:
-            - from: cookies
-              as: cookie
-              match: '*'
-        apply:
-            - in: header
-              name: Cookie
-              value: '${cookie}'
+bilibili:
+    domains: [www.bilibili.com]
+    entryUrl: https://www.bilibili.com/
+    strategy: browser
+    required: ['cookie.SESSDATA', 'cookie.bili_jct']
+    extract:
+        - { from: cookies, as: cookie, match: '*' }
+    apply:
+        - { in: header, name: Cookie, value: '${cookie}' }
 ```
 
-When the `required` cookies are missing, sig falls back from headless to CDP (your real browser) where you're actually authenticated.
-
-Common sites and their required cookies:
+When required cookies are missing, sig falls back from headless to your real browser where you're logged in.
 
 | Site        | Required Cookies               |
 | ----------- | ------------------------------ |
@@ -94,11 +85,46 @@ Common sites and their required cookies:
 | LinkedIn    | `JSESSIONID`, `li_at`          |
 | V2EX        | `A2`                           |
 | Zhihu       | `z_c0`                         |
-| Hacker News | `user`                         |
 
-### localStorage extraction (advanced)
+### 3. Multiple domains
 
-Some apps (Microsoft Teams, Slack) store tokens in localStorage instead of cookies. sig supports `from: localStorage` extraction rules for these cases. See the full guide at **[sigcli.ai](https://sigcli.ai)**.
+Some sites use multiple domains (e.g. x.com migrated from twitter.com). List all domains so sig captures cookies from both:
+
+```yaml
+x:
+    domains: [x.com, twitter.com]
+    entryUrl: https://x.com/
+    strategy: browser
+    networkProxy: socks5://127.0.0.1:3333
+    required: ['cookie.ct0', 'cookie.auth_token']
+    extract:
+        - { from: cookies, as: cookie, match: '*' }
+    apply:
+        - { in: header, name: Cookie, value: '${cookie}' }
+```
+
+### 4. localStorage extraction (advanced)
+
+Some apps store tokens in localStorage instead of cookies. Use `from: localStorage` with `match` (key pattern) and `jsonPath` (nested field):
+
+```yaml
+app-slack:
+    domains: [your-org.enterprise.slack.com]
+    entryUrl: https://app.slack.com/client/YOUR_TEAM_ID
+    strategy: browser
+    required: ['session.d', 'xoxc-token']
+    extract:
+        - { from: cookies, as: session, match: '*' }
+        - from: localStorage
+          as: xoxc-token
+          match: localConfig_v2
+          jsonPath: teams.YOUR_TEAM_ID.token
+    apply:
+        - { in: header, name: Cookie, value: '${session}' }
+        - { in: header, name: Authorization, value: 'Bearer ${xoxc-token}' }
+```
+
+Full guide with debugging tips at **[sigcli.ai](https://sigcli.ai)**.
 
 ## AI Agent Skills
 
