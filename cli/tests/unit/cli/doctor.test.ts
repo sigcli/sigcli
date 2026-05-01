@@ -65,6 +65,7 @@ function validConfig(overrides: Partial<SigConfig> = {}): SigConfig {
         browser: {
             browserDataDir: '/tmp/test-browser-data',
             channel: 'chrome',
+            execPath: '/usr/bin/google-chrome',
             headlessTimeout: 30_000,
             visibleTimeout: 120_000,
             waitUntil: 'load',

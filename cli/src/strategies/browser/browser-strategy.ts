@@ -163,7 +163,7 @@ export class BrowserStrategy implements IStrategy {
     ): Promise<Result<ExtractionResult, AuthError>> {
         const execPath = this.browserConfig.execPath;
         if (!execPath) {
-            return err(new BrowserError('No browser found. Install Chrome, Edge, or Chromium.'));
+            return err(new BrowserError('No browser found. Install Chrome or Edge.'));
         }
 
         const dataDir = expandHome(this.browserConfig.browserDataDir);
