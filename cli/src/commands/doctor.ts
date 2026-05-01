@@ -12,7 +12,6 @@ import path from 'node:path';
 import { isOk } from '../types/index.js';
 import { getConfigPath, loadConfig } from '../config/loader.js';
 import type { SigConfig } from '../config/schema.js';
-import { findChannelBrowser } from '../utils/detect.js';
 import { ExitCode } from '../utils/exit-codes.js';
 import { expandHome } from '../utils/path.js';
 
@@ -135,34 +134,20 @@ async function checkBrowserAvailable(config: SigConfig | undefined): Promise<Che
         };
     }
 
-    const channel = config.browser.channel;
-    try {
-        // Verify playwright-core is importable
-        await import('playwright-core');
-
-        // Check if the channel browser is installed on the system
-        const found = findChannelBrowser(channel) !== null;
-        if (found) {
-            return {
-                label: 'Browser available',
-                ok: true,
-                detail: channel,
-            };
-        }
-
-        // Fallback: if we can't detect by channel but playwright-core is available, report cautiously
+    const execPath = config.browser.execPath;
+    if (execPath) {
         return {
             label: 'Browser available',
             ok: true,
-            detail: `${channel} (playwright-core loaded, browser not verified)`,
-        };
-    } catch {
-        return {
-            label: 'Browser available',
-            ok: false,
-            hint: 'playwright-core not installed. Run "npm install playwright-core".',
+            detail: execPath,
         };
     }
+
+    return {
+        label: 'Browser available',
+        ok: false,
+        hint: 'No browser binary found. Install Chrome or Edge, or set browser.execPath in config.',
+    };
 }
 
 function checkNodeVersion(): CheckResult {

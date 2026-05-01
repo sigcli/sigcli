@@ -193,24 +193,6 @@ describe('runInit', () => {
         }
     });
 
-    // ---- --channel flag overrides detected browser ----
-
-    it('--channel flag overrides detected browser', async () => {
-        await runInit([], { yes: true, channel: 'msedge' });
-
-        expect(mockWriteFile).toHaveBeenCalledTimes(1);
-        const [, writtenContent] = mockWriteFile.mock.calls[0] as [string, string, string];
-        expect(writtenContent).toContain('channel: msedge');
-    });
-
-    it('--channel with chromium value works', async () => {
-        await runInit([], { yes: true, channel: 'chromium' });
-
-        expect(mockWriteFile).toHaveBeenCalledTimes(1);
-        const [, writtenContent] = mockWriteFile.mock.calls[0] as [string, string, string];
-        expect(writtenContent).toContain('channel: chromium');
-    });
-
     // ---- --browser-data-dir flag ----
 
     it('--browser-data-dir flag overrides default browser data directory', async () => {
@@ -269,15 +251,6 @@ describe('runInit', () => {
         expect(output).toContain('Quick start:');
     });
 
-    // ---- success message includes correct channel ----
-
-    it('success message shows the selected channel', async () => {
-        await runInit([], { yes: true, channel: 'msedge' });
-
-        const output = stderrChunks.join('');
-        expect(output).toContain('msedge');
-    });
-
     // ---- written YAML is valid ----
 
     it('the generated YAML is parseable and contains browser and storage sections', async () => {
@@ -289,7 +262,7 @@ describe('runInit', () => {
         const YAML = await import('yaml');
         const parsed = YAML.parse(writtenContent);
         expect(parsed.browser).toBeDefined();
-        expect(parsed.browser.channel).toBeDefined();
+        expect(parsed.browser.execPath).toBeDefined();
         expect(parsed.browser.browserDataDir).toBeDefined();
         expect(parsed.storage).toBeDefined();
         expect(parsed.storage.credentialsDir).toBeDefined();

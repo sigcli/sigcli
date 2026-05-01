@@ -45,9 +45,6 @@ export function validateConfig(raw: Record<string, unknown>): Result<SigConfig, 
         if (typeof browser.browserDataDir !== 'string' || browser.browserDataDir.trim() === '') {
             errors.push('Missing required field: browser.browserDataDir');
         }
-        if (typeof browser.channel !== 'string' || browser.channel.trim() === '') {
-            errors.push('Missing required field: browser.channel');
-        }
         if (browser.headlessTimeout !== undefined && typeof browser.headlessTimeout !== 'number') {
             errors.push('browser.headlessTimeout must be a number');
         }
@@ -163,7 +160,7 @@ export function validateConfig(raw: Record<string, unknown>): Result<SigConfig, 
 
     const browser: BrowserConfig = {
         browserDataDir: browserRaw.browserDataDir as string,
-        channel: browserRaw.channel as string,
+        execPath: typeof browserRaw.execPath === 'string' ? browserRaw.execPath : '',
         headlessTimeout:
             typeof browserRaw.headlessTimeout === 'number' ? browserRaw.headlessTimeout : 30_000,
         visibleTimeout:
@@ -172,7 +169,6 @@ export function validateConfig(raw: Record<string, unknown>): Result<SigConfig, 
             typeof browserRaw.waitUntil === 'string'
                 ? (browserRaw.waitUntil as BrowserConfig['waitUntil'])
                 : WaitUntil.LOAD,
-        ...(typeof browserRaw.execPath === 'string' ? { execPath: browserRaw.execPath } : {}),
     };
 
     const storageRaw = raw.storage as Record<string, unknown>;
