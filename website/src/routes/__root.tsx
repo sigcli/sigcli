@@ -1,5 +1,5 @@
 import { TanStackDevtools } from '@tanstack/react-devtools';
-import { createRootRoute, HeadContent, Scripts, useRouterState } from '@tanstack/react-router';
+import { createRootRoute, HeadContent, Scripts } from '@tanstack/react-router';
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 
 import appCss from '../styles.css?url';
@@ -13,7 +13,7 @@ export const Route = createRootRoute({
                 content: 'width=device-width, initial-scale=1',
             },
             {
-                title: 'Sigcli — Auth CLI',
+                title: 'SigCLI — Auth CLI',
             },
             {
                 name: 'description',
@@ -36,11 +36,8 @@ export const Route = createRootRoute({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-    const pathname = useRouterState({ select: (s) => s.location.pathname });
-    const lang = pathname.startsWith('/zh') ? 'zh' : 'en';
-
     return (
-        <html lang={lang}>
+        <html lang="en">
             <head>
                 <HeadContent />
             </head>

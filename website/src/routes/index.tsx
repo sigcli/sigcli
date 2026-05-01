@@ -1,32 +1,17 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { LanguageSwitcher } from '../components/language-switcher';
-import { EditorialPage } from '../components/markdown';
-import { pageContent } from '../content/en';
+import { LandingPage } from '../content/landing';
 
 export const Route = createFileRoute('/')({
-    component: IndexPage,
+    component: LandingPage,
     head: () => ({
         meta: [
-            { title: pageContent.meta.title },
-            { name: 'description', content: pageContent.meta.description },
-        ],
-        links: [
-            { rel: 'alternate', hreflang: 'en', href: '/' },
-            { rel: 'alternate', hreflang: 'zh', href: '/zh' },
-            { rel: 'alternate', hreflang: 'x-default', href: '/' },
+            { title: 'SigCLI — Authenticate Once. Use Everywhere.' },
+            {
+                name: 'description',
+                content:
+                    'The authentication layer for AI agents and scripts. Login once via browser SSO, then any tool can access your work systems.',
+            },
         ],
     }),
 });
-
-function IndexPage() {
-    return (
-        <EditorialPage
-            toc={pageContent.toc}
-            sections={pageContent.sections}
-            hero={pageContent.hero}
-            logo="/sigcli-logo.svg"
-            languageSwitcher={<LanguageSwitcher locale="en" />}
-        />
-    );
-}
