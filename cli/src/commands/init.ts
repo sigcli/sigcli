@@ -22,12 +22,13 @@ import { ExitCode } from '../utils/exit-codes.js';
 // Browser detection
 // ---------------------------------------------------------------------------
 
-function detectBrowserChannel(): string {
+function detectBrowserExecPath(): string | undefined {
     const channels = ['msedge', 'chrome'];
     for (const ch of channels) {
-        if (findChannelBrowser(ch) !== null) return ch;
+        const browser = findNativeBrowser(ch);
+        if (browser) return browser.execPath;
     }
-    return 'msedge';
+    return undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -53,8 +54,6 @@ export async function runInit(
     }
 
     // Detect defaults
-    const detectedChannel = remote ? 'msedge' : detectBrowserChannel();
-    const defaultChannel = typeof flags.channel === 'string' ? flags.channel : detectedChannel;
     const defaultBrowserDataDir =
         typeof flags['browser-data-dir'] === 'string'
             ? flags['browser-data-dir']
@@ -64,14 +63,13 @@ export async function runInit(
             ? flags['credentials-dir']
             : path.join(sigDir, 'credentials');
 
-    let channel = defaultChannel;
     const browserDataDir = defaultBrowserDataDir;
     const credentialsDir = defaultCredentialsDir;
     let execPath: string | undefined;
 
-    // Interactive: ask browser channel, detect or prompt for execPath
+    // Interactive: detect or prompt for execPath
     const isTTY = process.stdin.isTTY && process.stdout.isTTY;
-    if (isTTY && !yes) {
+    if (isTTY && !yes && !remote) {
         const rl = createInterface({ input: process.stdin, output: process.stdout });
         try {
             process.stderr.write("\nWelcome to SigCLI! Let's set up your configuration.\n\n");
@@ -81,47 +79,42 @@ export async function runInit(
                 name: ch,
                 found: findChannelBrowser(ch) !== null,
             }));
-            const defaultIndex = browserOptions.indexOf(defaultChannel);
-            const defaultMenuChoice = defaultIndex >= 0 ? String(defaultIndex + 1) : '1';
             process.stderr.write('Available browsers:\n');
             browserStatus.forEach((b, i) => {
                 const mark = b.found ? '✓ (detected)' : '✗ (not found)';
                 process.stderr.write(`  ${i + 1}. ${b.name} ${mark}\n`);
             });
-            const channelAnswer = await rl.question(`Browser channel [${defaultMenuChoice}]: `);
+            const channelAnswer = await rl.question(`Browser [1]: `);
             const trimmed = channelAnswer.trim();
+            let selectedChannel = 'msedge';
             if (trimmed) {
                 const asNumber = parseInt(trimmed, 10);
                 if (!isNaN(asNumber) && asNumber >= 1 && asNumber <= browserOptions.length) {
-                    channel = browserOptions[asNumber - 1];
+                    selectedChannel = browserOptions[asNumber - 1];
                 } else if (browserOptions.includes(trimmed)) {
-                    channel = trimmed;
+                    selectedChannel = trimmed;
                 }
             }
 
-            // Detect execPath
-            if (!remote) {
-                const nativeBrowser = findNativeBrowser(channel);
-                if (nativeBrowser) {
-                    execPath = nativeBrowser.execPath;
-                    process.stderr.write(`  Detected: ${execPath}\n`);
-                } else {
-                    process.stderr.write(`  Could not auto-detect ${channel} binary.\n`);
-                    const userPath = await rl.question('Browser executable path: ');
-                    if (userPath.trim()) {
-                        execPath = userPath.trim();
-                    }
+            const nativeBrowser = findNativeBrowser(selectedChannel);
+            if (nativeBrowser) {
+                execPath = nativeBrowser.execPath;
+                process.stderr.write(`  Detected: ${execPath}\n`);
+            } else {
+                process.stderr.write(`  Could not auto-detect ${selectedChannel} binary.\n`);
+                const userPath = await rl.question('Browser executable path: ');
+                if (userPath.trim()) {
+                    execPath = userPath.trim();
                 }
             }
         } finally {
             rl.close();
         }
     } else if (!remote) {
-        const nativeBrowser = findNativeBrowser(channel);
-        execPath = nativeBrowser?.execPath;
+        execPath = detectBrowserExecPath();
         if (!execPath) {
             process.stderr.write(
-                `Warning: Could not detect browser binary for "${channel}". Set browser.execPath in config manually.\n`,
+                `Warning: Could not detect browser binary. Set browser.execPath in config manually.\n`,
             );
         }
     }
@@ -133,8 +126,7 @@ export async function runInit(
     // Generate config YAML
     const yaml = generateConfigYaml({
         mode: remote ? 'browserless' : 'browser',
-        channel,
-        execPath,
+        execPath: execPath ?? '',
         browserDataDir: displayBrowserDataDir,
         credentialsDir: displayCredentialsDir,
         headlessTimeout: 30_000,
@@ -172,7 +164,7 @@ export async function runInit(
     process.stderr.write(`  Credentials:    ${credentialsDir}\n`);
     if (!remote) {
         process.stderr.write(`  Browser data:   ${browserDataDir}\n`);
-        process.stderr.write(`  Browser:        ${channel}${execPath ? ` (${execPath})` : ''}\n`);
+        process.stderr.write(`  Browser:        ${execPath ?? '(not detected)'}\n`);
     } else {
         process.stderr.write(`  Browser:        disabled\n`);
     }
