@@ -177,6 +177,7 @@ export class SyncEngine {
             if (remoteYaml === null) {
                 // Create a full config so the remote passes validation
                 doc = new YAML.Document({
+                    version: 2,
                     mode: 'browserless',
                     browser: {
                         browserDataDir: '~/.sig/browser-data',
@@ -203,6 +204,9 @@ export class SyncEngine {
                 doc.setIn(['providers'], doc.createNode(merged));
 
                 // Ensure required sections exist so remote passes validation
+                if (!doc.getIn(['version'])) {
+                    doc.setIn(['version'], 2);
+                }
                 if (!doc.getIn(['mode'])) {
                     doc.setIn(['mode'], 'browserless');
                 }

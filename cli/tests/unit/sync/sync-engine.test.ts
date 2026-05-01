@@ -56,9 +56,10 @@ const testRemote: RemoteConfig = {
 };
 
 const testConfig: SigConfig = {
+    mode: 'browser',
     browser: {
         browserDataDir: '~/.sig/browser-data',
-        channel: 'chrome',
+        execPath: '',
         headlessTimeout: 30000,
         visibleTimeout: 120000,
         waitUntil: 'load',
@@ -69,21 +70,28 @@ const testConfig: SigConfig = {
     providers: {
         jira: {
             domains: ['jira.example.com'],
-            strategy: 'cookie',
-            config: { ttl: '12h' },
+            entryUrl: 'https://jira.example.com/',
+            strategy: 'browser',
+            ttl: '12h',
+            extract: [{ from: 'cookies', as: 'session', match: '*' }],
+            apply: [{ in: 'header', name: 'Cookie', value: '${session}' }],
         },
         github: {
             domains: ['github.com', 'api.github.com'],
-            strategy: 'api-token',
-            config: { headerName: 'Authorization', headerPrefix: 'Bearer' },
+            entryUrl: 'https://github.com/',
+            strategy: 'browser',
+            extract: [{ from: 'cookies', as: 'session', match: '*' }],
+            apply: [{ in: 'header', name: 'Cookie', value: '${session}' }],
         },
     },
 };
 
 const remoteConfigYaml = `# SigCLI config
+version: 2
+mode: browserless
 browser:
   browserDataDir: ~/.sig/browser-data
-  channel: chrome
+  execPath: ""
   headlessTimeout: 30000
   visibleTimeout: 120000
   waitUntil: load
@@ -93,13 +101,24 @@ providers:
   existing-remote:
     domains:
       - remote.example.com
-    strategy: cookie
+    entryUrl: https://remote.example.com/
+    strategy: browser
+    extract:
+      - from: cookies
+        as: session
+        match: "*"
+    apply:
+      - in: header
+        name: Cookie
+        value: \${session}
 `;
 
 const localConfigYaml = `# SigCLI config
+version: 2
+mode: browser
 browser:
   browserDataDir: ~/.sig/browser-data
-  channel: chrome
+  execPath: ""
   headlessTimeout: 30000
   visibleTimeout: 120000
   waitUntil: load
@@ -109,7 +128,16 @@ providers:
   local-only:
     domains:
       - local.example.com
-    strategy: cookie
+    entryUrl: https://local.example.com/
+    strategy: browser
+    extract:
+      - from: cookies
+        as: session
+        match: "*"
+    apply:
+      - in: header
+        name: Cookie
+        value: \${session}
 `;
 
 describe('SyncEngine', () => {
