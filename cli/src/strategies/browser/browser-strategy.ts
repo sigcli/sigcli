@@ -288,12 +288,7 @@ export class BrowserStrategy implements IStrategy {
                 const extractor = this.cdpExtractors.get(rule.from);
                 if (!extractor) continue;
                 try {
-                    const result = await extractor.extract(
-                        cdp,
-                        rule,
-                        provider.domains,
-                        provider.cookiePaths,
-                    );
+                    const result = await extractor.extract(cdp, rule, provider.domains);
                     if (result) {
                         credentials[result.name] = result.value;
                         if (result.cookies?.length) {

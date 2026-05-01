@@ -15,7 +15,7 @@ import type { ExtractionResult } from '../../types/interfaces/strategy.js';
 /**
  * PromptStrategy — asks the user for input interactively.
  *
- * extract[].key is used as the prompt message displayed to the user.
+ * extract[].match is used as the prompt message displayed to the user.
  */
 export class PromptStrategy implements IStrategy {
     readonly name = 'prompt';
@@ -31,11 +31,11 @@ export class PromptStrategy implements IStrategy {
 
         try {
             for (const rule of provider.extract) {
-                const answer = await this.ask(rl, rule.key);
+                const answer = await this.ask(rl, rule.match);
                 if (!answer) {
-                    return err(new ManualSetupRequired(rule.name, rule.key));
+                    return err(new ManualSetupRequired(rule.as, rule.match));
                 }
-                credentials[rule.name] = answer;
+                credentials[rule.as] = answer;
             }
         } finally {
             rl.close();

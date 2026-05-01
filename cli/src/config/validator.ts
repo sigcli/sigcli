@@ -276,11 +276,14 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
             if (typeof rule.from !== 'string') {
                 errors.push(`Provider "${id}": extract[${i}].from is required (string)`);
             }
-            if (typeof rule.name !== 'string' || rule.name.trim() === '') {
-                errors.push(`Provider "${id}": extract[${i}].name is required (string)`);
+            if (typeof rule.as !== 'string' || rule.as.trim() === '') {
+                errors.push(`Provider "${id}": extract[${i}].as is required (string)`);
             }
-            if (typeof rule.key !== 'string' || rule.key.trim() === '') {
-                errors.push(`Provider "${id}": extract[${i}].key is required (string)`);
+            if (typeof rule.match !== 'string' || rule.match.trim() === '') {
+                errors.push(`Provider "${id}": extract[${i}].match is required (string)`);
+            }
+            if (rule.jsonPath !== undefined && typeof rule.jsonPath !== 'string') {
+                errors.push(`Provider "${id}": extract[${i}].jsonPath must be a string`);
             }
         }
     }

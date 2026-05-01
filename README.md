@@ -53,7 +53,7 @@ providers:
         entryUrl: https://jira.example.com/
         strategy: browser
         extract:
-            - { from: cookies, name: session, key: '*' }
+            - { from: cookies, as: session, match: '*' }
         apply:
             - { in: header, name: Cookie, value: '${session}' }
 ```

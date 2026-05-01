@@ -26,8 +26,9 @@ providers:
         required: [access_token]
         extract:
             - from: localStorage
-              name: access_token
-              key: '*|accesstoken|*ic3.teams.office.com*'
+              as: access_token
+              match: '*|accesstoken|*ic3.teams.office.com*'
+              jsonPath: secret
         apply:
             - in: header
               name: Authorization
@@ -43,8 +44,9 @@ providers:
         required: [access_token]
         extract:
             - from: localStorage
-              name: access_token
-              key: '*|accesstoken|*graph.microsoft.com*'
+              as: access_token
+              match: '*|accesstoken|*graph.microsoft.com*'
+              jsonPath: secret
         apply:
             - in: header
               name: Authorization
@@ -69,11 +71,12 @@ providers:
         required: [session.d, xoxc-token]
         extract:
             - from: cookies
-              name: session
-              key: '*'
+              as: session
+              match: '*'
             - from: localStorage
-              name: xoxc-token
-              key: 'localConfig_v2.teams.<your-team-id>.token'
+              as: xoxc-token
+              match: 'localConfig_v2'
+              jsonPath: 'teams.<your-team-id>.token'
         apply:
             - in: header
               name: Cookie
@@ -92,8 +95,8 @@ providers:
         ttl: '10d'
         extract:
             - from: cookies
-              name: session
-              key: '*'
+              as: session
+              match: '*'
         apply:
             - in: header
               name: Cookie
@@ -110,8 +113,8 @@ providers:
         cookiePaths: ['/wiki']
         extract:
             - from: cookies
-              name: session
-              key: '*'
+              as: session
+              match: '*'
         apply:
             - in: header
               name: Cookie
