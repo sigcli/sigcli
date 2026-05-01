@@ -6,8 +6,9 @@ import { attachToPageTarget, type CdpWsClient } from '../cdp-ws.js';
 /**
  * Extracts values from browser localStorage via CDP Runtime.evaluate.
  *
- * key: "localConfig_v2.teams.E7RBBBXHB.token" — dot-path into a localStorage entry
- * key: "msal.*.accesstoken.*" — glob pattern for matching localStorage keys
+ * match: "localConfig_v2" — exact localStorage key lookup
+ * match: "msal.*.accesstoken.*" — glob pattern for matching localStorage keys
+ * jsonPath: "teams.E7RBBBXHB.token" — dot-path into the parsed JSON value
  *
  * Output value: the resolved string value.
  */
@@ -25,21 +26,19 @@ export class CdpStorageExtractor implements IBrowserExtractor {
         try {
             await cdp.send('Runtime.enable', {}, sessionId).catch(() => {});
 
-            const { storageKey, jsonPath } = this.parseKey(rule.key);
-
             let value: string | null;
-            if (storageKey.includes('*')) {
-                value = await this.extractByPattern(cdp, sessionId, storageKey);
+            if (rule.match.includes('*')) {
+                value = await this.extractByPattern(cdp, sessionId, rule.match);
             } else {
-                value = await this.extractByKey(cdp, sessionId, storageKey);
+                value = await this.extractByKey(cdp, sessionId, rule.match);
             }
 
             if (!value) return null;
 
-            if (jsonPath) {
+            if (rule.jsonPath) {
                 try {
                     const parsed = JSON.parse(value);
-                    const resolved = dlv(parsed, jsonPath);
+                    const resolved = dlv(parsed, rule.jsonPath);
                     if (resolved == null) return null;
                     value = String(resolved);
                 } catch {
@@ -47,26 +46,10 @@ export class CdpStorageExtractor implements IBrowserExtractor {
                 }
             }
 
-            return { name: rule.name, value };
+            return { name: rule.as, value };
         } finally {
             await cdp.send('Target.detachFromTarget', { sessionId }).catch(() => {});
         }
-    }
-
-    private parseKey(key: string): { storageKey: string; jsonPath?: string } {
-        if (key.includes('*')) {
-            return { storageKey: key };
-        }
-        const dotIndex = key.indexOf('.');
-        if (dotIndex === -1) {
-            return { storageKey: key };
-        }
-        // Check if first segment is a plausible localStorage key
-        // localStorage keys often contain underscores, camelCase, etc.
-        // If the full key has no glob, treat first segment as key, rest as jsonPath
-        const firstSegment = key.slice(0, dotIndex);
-        const rest = key.slice(dotIndex + 1);
-        return { storageKey: firstSegment, jsonPath: rest };
     }
 
     private async extractByKey(
@@ -120,38 +103,10 @@ export class CdpStorageExtractor implements IBrowserExtractor {
         try {
             const matches = JSON.parse(raw) as (string | null)[];
             if (!matches?.length) return null;
-
-            // Extract value from JSON entries using common patterns (secret field, or raw JWT)
-
-            for (const entry of matches) {
-                if (!entry) continue;
-                const jwt = this.extractJwtFromEntry(entry);
-                if (jwt) return jwt;
-            }
-
-            // Fallback: return first non-null match as-is
             return matches.find((m) => m != null) ?? null;
         } catch {
             return raw;
         }
-    }
-
-    private extractJwtFromEntry(entry: string): string | null {
-        // If entry is JSON with a "secret" field containing a JWT, extract it
-        try {
-            const parsed = JSON.parse(entry);
-            if (parsed?.secret && typeof parsed.secret === 'string') {
-                if (parsed.secret.startsWith('eyJ')) {
-                    return parsed.secret;
-                }
-            }
-        } catch {
-            // Not JSON — check if the entry itself is a JWT
-            if (entry.startsWith('eyJ') && entry.includes('.')) {
-                return entry;
-            }
-        }
-        return null;
     }
 
     private globToRegex(pattern: string): string {

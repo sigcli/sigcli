@@ -21,8 +21,8 @@ export class HeadlessCookieExtractor implements IHeadlessExtractor {
 
         if (!filtered.length) return null;
 
-        if (rule.key !== '*') {
-            const names = new Set(rule.key.split(',').map((n) => n.trim()));
+        if (rule.match !== '*') {
+            const names = new Set(rule.match.split(',').map((n) => n.trim()));
             filtered = filtered.filter((c) => names.has(c.name));
             if (!filtered.length) return null;
         }
@@ -32,6 +32,6 @@ export class HeadlessCookieExtractor implements IHeadlessExtractor {
             .filter((c) => c.expires > 0)
             .map((c) => ({ name: c.name, expires: c.expires }));
 
-        return { name: rule.name, value, cookies: cookieMeta };
+        return { name: rule.as, value, cookies: cookieMeta };
     }
 }

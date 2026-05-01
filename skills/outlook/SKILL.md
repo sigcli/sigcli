@@ -46,8 +46,9 @@ ms-graph:
     required: [access_token]
     extract:
         - from: localStorage
-          name: access_token
-          key: '*|accesstoken|*graph.microsoft.com*'
+          as: access_token
+          match: '*|accesstoken|*graph.microsoft.com*'
+          jsonPath: secret
     apply:
         - in: header
           name: Authorization

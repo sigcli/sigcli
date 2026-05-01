@@ -4,7 +4,7 @@ import type { ProviderConfig } from '../types.js';
 
 /**
  * Extracted credential values — flat key-value map.
- * Keys come from extract[].name in config.
+ * Keys come from extract[].as in config.
  */
 export type ExtractedCredentials = Record<string, string>;
 

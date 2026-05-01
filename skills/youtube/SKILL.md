@@ -46,8 +46,8 @@ youtube:
     required: [session.__Secure-3PAPISID, session.LOGIN_INFO]
     extract:
         - from: cookies
-          name: session
-          key: '*'
+          as: session
+          match: '*'
     apply:
         - in: header
           name: Cookie

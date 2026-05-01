@@ -1090,8 +1090,8 @@ providers:
   app-slack:
     strategy: browser
     extract:
-      - { from: cookies, name: session, key: "*" }
-      - { from: localStorage, name: xoxc-token, key: "localConfig_v2.teams.*.token" }
+      - { from: cookies, as: session, match: "*" }
+      - { from: localStorage, as: xoxc-token, match: "localConfig_v2", jsonPath: "teams.*.token" }
     apply:
       - { in: header, name: Cookie, value: "\${session}" }
       - { in: header, name: Authorization, value: "Bearer \${xoxc-token}" }`}</CodeBlock>
@@ -1242,7 +1242,7 @@ providers:
     strategy: browser
     ttl: "10d"
     extract:
-      - { from: cookies, name: session, key: "*" }
+      - { from: cookies, as: session, match: "*" }
     apply:
       - { in: header, name: Cookie, value: "\${session}" }`}</CodeBlock>
 
@@ -1265,8 +1265,8 @@ providers:
     cookiePaths: ["/wiki"]       # 子路径 cookie 的额外路径（可选）
     extract:
       - from: cookies            # cookies | localStorage | eval
-        name: session            # 存储为此名称
-        key: "*"                 # 提取哪些值（* = 全部，或 glob 模式）
+        as: session              # 输出变量名
+        match: "*"               # 提取哪些值（* = 全部，或 glob 模式）
     apply:
       - in: header               # header | body | query
         name: Cookie             # HTTP 头/字段名
@@ -1276,26 +1276,27 @@ providers:
                         extract[] 规则
                     </SectionHeading>
                     <P>
-                        每条规则告诉 sigcli 登录后从浏览器中提取什么。三个字段：
-                        <Code>from</Code>（从哪里）、<Code>name</Code>（存储为）、
-                        <Code>key</Code>（提取什么）。
+                        每条规则告诉 sigcli 登录后从浏览器中提取什么。三个必填字段：
+                        <Code>from</Code>（从哪里）、<Code>as</Code>（输出变量名）、
+                        <Code>match</Code>（提取什么）。可选的 <Code>jsonPath</Code>{' '}
+                        字段用于当值为 JSON 时提取嵌套字段。
                     </P>
                     <CodeBlock lang="yaml">{`extract:
   # 域名下的所有 cookie
-  - { from: cookies, name: session, key: "*" }
+  - { from: cookies, as: session, match: "*" }
 
-  # 特定的 localStorage 值（点路径访问 JSON）
-  - { from: localStorage, name: xoxc-token, key: "localConfig_v2.teams.E7RBBBXHB.token" }
+  # 特定的 localStorage 值（match 键，再通过 jsonPath 提取嵌套字段）
+  - { from: localStorage, as: xoxc-token, match: "localConfig_v2", jsonPath: "teams.E7RBBBXHB.token" }
 
-  # MSAL OAuth2 令牌（glob 模式）
-  - { from: localStorage, name: access_token, key: "*|accesstoken|*graph.microsoft.com*" }`}</CodeBlock>
+  # MSAL OAuth2 令牌（glob 模式，JSON 值）
+  - { from: localStorage, as: access_token, match: "*|accesstoken|*graph.microsoft.com*", jsonPath: secret }`}</CodeBlock>
 
                     <SectionHeading id="config-apply" level={2}>
                         apply[] 规则
                     </SectionHeading>
                     <P>
                         每条规则告诉 sigcli 如何将提取的值注入 HTTP 请求。模板变量 （
-                        <Code>{'${name}'}</Code>）引用 extract 规则中的 <Code>name</Code> 字段。
+                        <Code>{'${as}'}</Code>）引用 extract 规则中的 <Code>as</Code> 字段。
                     </P>
                     <CodeBlock lang="yaml">{`apply:
   # 注入所有 cookie 为 Cookie 头
@@ -1317,7 +1318,7 @@ my-jira:
   strategy: browser
   ttl: "10d"
   extract:
-    - { from: cookies, name: session, key: "*" }
+    - { from: cookies, as: session, match: "*" }
   apply:
     - { in: header, name: Cookie, value: "\${session}" }
 
@@ -1328,7 +1329,7 @@ ms-teams:
   strategy: browser
   required: [access_token]
   extract:
-    - { from: localStorage, name: access_token, key: "*|accesstoken|*ic3.teams.office.com*" }
+    - { from: localStorage, as: access_token, match: "*|accesstoken|*ic3.teams.office.com*", jsonPath: secret }
   apply:
     - { in: header, name: Authorization, value: "Bearer \${access_token}" }
 
@@ -1340,8 +1341,8 @@ app-slack:
   ttl: "7d"
   required: [session.d, xoxc-token]
   extract:
-    - { from: cookies, name: session, key: "*" }
-    - { from: localStorage, name: xoxc-token, key: "localConfig_v2.teams.E7RBBBXHB.token" }
+    - { from: cookies, as: session, match: "*" }
+    - { from: localStorage, as: xoxc-token, match: "localConfig_v2", jsonPath: "teams.E7RBBBXHB.token" }
   apply:
     - { in: header, name: Cookie, value: "\${session}" }
     - { in: header, name: Authorization, value: "Bearer \${xoxc-token}" }`}</CodeBlock>

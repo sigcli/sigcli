@@ -879,8 +879,8 @@ providers:
   app-slack:
     strategy: browser
     extract:
-      - { from: cookies, name: session, key: "*" }
-      - { from: localStorage, name: xoxc-token, key: "localConfig_v2.teams.*.token" }
+      - { from: cookies, as: session, match: "*" }
+      - { from: localStorage, as: xoxc-token, match: "localConfig_v2", jsonPath: "teams.*.token" }
     apply:
       - { in: header, name: Cookie, value: "\${session}" }
       - { in: header, name: Authorization, value: "Bearer \${xoxc-token}" }`}</CodeBlock>
@@ -1036,7 +1036,7 @@ providers:
     strategy: browser
     ttl: "10d"
     extract:
-      - { from: cookies, name: session, key: "*" }
+      - { from: cookies, as: session, match: "*" }
     apply:
       - { in: header, name: Cookie, value: "\${session}" }`}</CodeBlock>
 
@@ -1060,8 +1060,8 @@ providers:
     cookiePaths: ["/wiki"]       # extra paths for path-scoped cookies (optional)
     extract:
       - from: cookies            # cookies | localStorage | eval
-        name: session            # stored under this name
-        key: "*"                 # which values (* = all, or glob pattern)
+        as: session              # output variable name
+        match: "*"               # which values (* = all, or glob pattern)
     apply:
       - in: header               # header | body | query
         name: Cookie             # HTTP header/field name
@@ -1072,26 +1072,28 @@ providers:
                     </SectionHeading>
                     <P>
                         Each entry tells sigcli what to pull from the browser after login. Three
-                        fields: <Code>from</Code> (where), <Code>name</Code> (store as), and{' '}
-                        <Code>key</Code> (what to grab).
+                        required fields: <Code>from</Code> (where), <Code>as</Code> (output variable
+                        name), and <Code>match</Code> (what to grab). An optional{' '}
+                        <Code>jsonPath</Code> field extracts a nested value when the matched value is
+                        JSON.
                     </P>
                     <CodeBlock lang="yaml">{`extract:
   # All cookies from the domain
-  - { from: cookies, name: session, key: "*" }
+  - { from: cookies, as: session, match: "*" }
 
-  # A specific localStorage value (dot-path into JSON)
-  - { from: localStorage, name: xoxc-token, key: "localConfig_v2.teams.E7RBBBXHB.token" }
+  # A specific localStorage value (match key, then extract nested field via jsonPath)
+  - { from: localStorage, as: xoxc-token, match: "localConfig_v2", jsonPath: "teams.E7RBBBXHB.token" }
 
-  # MSAL OAuth2 token from localStorage (glob pattern)
-  - { from: localStorage, name: access_token, key: "*|accesstoken|*graph.microsoft.com*" }`}</CodeBlock>
+  # MSAL OAuth2 token from localStorage (glob pattern, JSON value)
+  - { from: localStorage, as: access_token, match: "*|accesstoken|*graph.microsoft.com*", jsonPath: secret }`}</CodeBlock>
 
                     <SectionHeading id="config-apply" level={2}>
                         apply[] rules
                     </SectionHeading>
                     <P>
                         Each entry tells sigcli how to inject extracted values into HTTP requests.
-                        Template variables (<Code>{'${name}'}</Code>) reference the{' '}
-                        <Code>name</Code> field from your extract rules.
+                        Template variables (<Code>{'${as}'}</Code>) reference the{' '}
+                        <Code>as</Code> field from your extract rules.
                     </P>
                     <CodeBlock lang="yaml">{`apply:
   # Inject all cookies as a Cookie header
@@ -1113,7 +1115,7 @@ my-jira:
   strategy: browser
   ttl: "10d"
   extract:
-    - { from: cookies, name: session, key: "*" }
+    - { from: cookies, as: session, match: "*" }
   apply:
     - { in: header, name: Cookie, value: "\${session}" }
 
@@ -1124,7 +1126,7 @@ ms-teams:
   strategy: browser
   required: [access_token]
   extract:
-    - { from: localStorage, name: access_token, key: "*|accesstoken|*ic3.teams.office.com*" }
+    - { from: localStorage, as: access_token, match: "*|accesstoken|*ic3.teams.office.com*", jsonPath: secret }
   apply:
     - { in: header, name: Authorization, value: "Bearer \${access_token}" }
 
@@ -1136,8 +1138,8 @@ app-slack:
   ttl: "7d"
   required: [session.d, xoxc-token]
   extract:
-    - { from: cookies, name: session, key: "*" }
-    - { from: localStorage, name: xoxc-token, key: "localConfig_v2.teams.E7RBBBXHB.token" }
+    - { from: cookies, as: session, match: "*" }
+    - { from: localStorage, as: xoxc-token, match: "localConfig_v2", jsonPath: "teams.E7RBBBXHB.token" }
   apply:
     - { in: header, name: Cookie, value: "\${session}" }
     - { in: header, name: Authorization, value: "Bearer \${xoxc-token}" }`}</CodeBlock>

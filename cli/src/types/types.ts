@@ -10,8 +10,9 @@
 
 export interface ExtractRule {
     from: 'cookies' | 'localStorage' | 'eval' | 'prompt';
-    name: string;
-    key: string;
+    as: string;
+    match: string;
+    jsonPath?: string;
 }
 
 export interface ApplyRule {
@@ -48,7 +49,7 @@ export interface StoredCredential {
     strategy: string; // Strategy name that produced this credential
     updatedAt: string; // ISO timestamp
     expiresAt?: string; // ISO timestamp — computed from cookie expiry
-    values: Record<string, string>; // Renamed from 'credentials', narrowed from 'unknown'
+    values: Record<string, unknown>;
 }
 
 export interface StoredEntry {

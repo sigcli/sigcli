@@ -48,7 +48,7 @@ storage:
 #
 # Every provider has:
 #   strategy: browser | prompt
-#   extract[]: { from, name, key } — what to capture from the browser
+#   extract[]: { from, as, match } — what to capture from the browser
 #   apply[]:   { in, name, value } — how to inject into HTTP requests
 #
 # Optional fields:
@@ -71,8 +71,8 @@ providers:
     #   ttl: "10d"
     #   extract:
     #     - from: cookies
-    #       name: session
-    #       key: "*"
+    #       as: session
+    #       match: "*"
     #   apply:
     #     - in: header
     #       name: Cookie
@@ -91,8 +91,8 @@ providers:
     #     - /wiki
     #   extract:
     #     - from: cookies
-    #       name: session
-    #       key: "*"
+    #       as: session
+    #       match: "*"
     #   apply:
     #     - in: header
     #       name: Cookie
@@ -114,8 +114,8 @@ providers:
     #     - session.token_v2
     #   extract:
     #     - from: cookies
-    #       name: session
-    #       key: "*"
+    #       as: session
+    #       match: "*"
     #   apply:
     #     - in: header
     #       name: Cookie
@@ -136,11 +136,12 @@ providers:
     #     - xoxc-token
     #   extract:
     #     - from: cookies
-    #       name: session
-    #       key: "*"
+    #       as: session
+    #       match: "*"
     #     - from: localStorage
-    #       name: xoxc-token
-    #       key: "localConfig_v2.teams.<TEAM_ID>.token"
+    #       as: xoxc-token
+    #       match: "localConfig_v2"
+    #       jsonPath: "teams.<TEAM_ID>.token"
     #   apply:
     #     - in: header
     #       name: Cookie
@@ -162,8 +163,9 @@ providers:
     #     - access_token
     #   extract:
     #     - from: localStorage
-    #       name: access_token
-    #       key: "*|accesstoken|*ic3.teams.office.com*"
+    #       as: access_token
+    #       match: "msal.*.accesstoken.*"
+    #       jsonPath: "secret"
     #   apply:
     #     - in: header
     #       name: Authorization
@@ -182,8 +184,9 @@ providers:
     #     - access_token
     #   extract:
     #     - from: localStorage
-    #       name: access_token
-    #       key: "*|accesstoken|*graph.microsoft.com*"
+    #       as: access_token
+    #       match: "msal.*.accesstoken.*"
+    #       jsonPath: "secret"
     #   apply:
     #     - in: header
     #       name: Authorization
@@ -200,9 +203,9 @@ providers:
     #   entryUrl: https://github.com/settings/tokens
     #   strategy: prompt
     #   extract:
-    #     - from: cookies
-    #       name: token
-    #       key: "*"
+    #     - from: prompt
+    #       as: token
+    #       match: "Enter your GitHub personal access token"
     #   apply:
     #     - in: header
     #       name: Authorization

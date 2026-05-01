@@ -46,8 +46,8 @@ linkedin:
     required: [session.JSESSIONID, session.li_at]
     extract:
         - from: cookies
-          name: session
-          key: '*'
+          as: session
+          match: '*'
     apply:
         - in: header
           name: Cookie
