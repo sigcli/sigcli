@@ -27,7 +27,6 @@ export class CdpCookieExtractor implements IBrowserExtractor {
         cdp: CdpWsClient,
         rule: ExtractRule,
         domains: string[],
-        _cookiePaths?: string[],
     ): Promise<{ name: string; value: string; cookies: CdpCookie[] } | null> {
         const result = (await cdp.send('Storage.getCookies', {
             browserContextId: undefined,

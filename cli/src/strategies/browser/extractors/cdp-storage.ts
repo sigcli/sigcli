@@ -1,56 +1,44 @@
 import dlv from 'dlv';
 
-import type { ExtractRule, IBrowserExtractor } from '../../../types/index.js';
-import { attachToPageTarget, type CdpWsClient } from '../cdp-ws.js';
+import type { ExtractRule } from '../../../types/index.js';
+import type { CdpWsClient } from '../cdp-ws.js';
 
 /**
  * Extracts values from browser localStorage via CDP Runtime.evaluate.
+ * Requires an active session with Runtime already enabled.
  *
  * key: "localConfig_v2.teams.E7RBBBXHB.token" — dot-path into a localStorage entry
  * key: "msal.*.accesstoken.*" — glob pattern for matching localStorage keys
- *
- * Output value: the resolved string value.
  */
-export class CdpStorageExtractor implements IBrowserExtractor {
-    readonly type = 'localStorage' as const;
-
+export class CdpStorageExtractor {
     async extract(
         cdp: CdpWsClient,
+        sessionId: string,
         rule: ExtractRule,
-        _domains: string[],
     ): Promise<{ name: string; value: string } | null> {
-        const sessionId = await attachToPageTarget(cdp);
-        if (!sessionId) return null;
+        const { storageKey, jsonPath } = this.parseKey(rule.key);
 
-        try {
-            await cdp.send('Runtime.enable', {}, sessionId).catch(() => {});
-
-            const { storageKey, jsonPath } = this.parseKey(rule.key);
-
-            let value: string | null;
-            if (storageKey.includes('*')) {
-                value = await this.extractByPattern(cdp, sessionId, storageKey);
-            } else {
-                value = await this.extractByKey(cdp, sessionId, storageKey);
-            }
-
-            if (!value) return null;
-
-            if (jsonPath) {
-                try {
-                    const parsed = JSON.parse(value);
-                    const resolved = dlv(parsed, jsonPath);
-                    if (resolved == null) return null;
-                    value = String(resolved);
-                } catch {
-                    return null;
-                }
-            }
-
-            return { name: rule.name, value };
-        } finally {
-            await cdp.send('Target.detachFromTarget', { sessionId }).catch(() => {});
+        let value: string | null;
+        if (storageKey.includes('*')) {
+            value = await this.extractByPattern(cdp, sessionId, storageKey);
+        } else {
+            value = await this.extractByKey(cdp, sessionId, storageKey);
         }
+
+        if (!value) return null;
+
+        if (jsonPath) {
+            try {
+                const parsed = JSON.parse(value);
+                const resolved = dlv(parsed, jsonPath);
+                if (resolved == null) return null;
+                value = String(resolved);
+            } catch {
+                return null;
+            }
+        }
+
+        return { name: rule.name, value };
     }
 
     private parseKey(key: string): { storageKey: string; jsonPath?: string } {
@@ -61,9 +49,6 @@ export class CdpStorageExtractor implements IBrowserExtractor {
         if (dotIndex === -1) {
             return { storageKey: key };
         }
-        // Check if first segment is a plausible localStorage key
-        // localStorage keys often contain underscores, camelCase, etc.
-        // If the full key has no glob, treat first segment as key, rest as jsonPath
         const firstSegment = key.slice(0, dotIndex);
         const rest = key.slice(dotIndex + 1);
         return { storageKey: firstSegment, jsonPath: rest };
@@ -121,15 +106,12 @@ export class CdpStorageExtractor implements IBrowserExtractor {
             const matches = JSON.parse(raw) as (string | null)[];
             if (!matches?.length) return null;
 
-            // Extract value from JSON entries using common patterns (secret field, or raw JWT)
-
             for (const entry of matches) {
                 if (!entry) continue;
                 const jwt = this.extractJwtFromEntry(entry);
                 if (jwt) return jwt;
             }
 
-            // Fallback: return first non-null match as-is
             return matches.find((m) => m != null) ?? null;
         } catch {
             return raw;
@@ -137,7 +119,6 @@ export class CdpStorageExtractor implements IBrowserExtractor {
     }
 
     private extractJwtFromEntry(entry: string): string | null {
-        // If entry is JSON with a "secret" field containing a JWT, extract it
         try {
             const parsed = JSON.parse(entry);
             if (parsed?.secret && typeof parsed.secret === 'string') {
@@ -146,7 +127,6 @@ export class CdpStorageExtractor implements IBrowserExtractor {
                 }
             }
         } catch {
-            // Not JSON — check if the entry itself is a JWT
             if (entry.startsWith('eyJ') && entry.includes('.')) {
                 return entry;
             }

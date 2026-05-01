@@ -173,6 +173,8 @@ export function connectCdpWs(wsUrl: string): Promise<CdpWsClient> {
         >();
         let nextId = 1;
 
+        const CDP_REQUEST_TIMEOUT = 10_000;
+
         const client: CdpWsClient = {
             send(
                 method: string,
@@ -181,7 +183,24 @@ export function connectCdpWs(wsUrl: string): Promise<CdpWsClient> {
             ): Promise<unknown> {
                 return new Promise<unknown>((res, rej) => {
                     const id = nextId++;
-                    pending.set(id, { resolve: res, reject: rej });
+                    const timer = setTimeout(() => {
+                        pending.delete(id);
+                        rej(
+                            new Error(
+                                `CDP request timed out: ${method} (${CDP_REQUEST_TIMEOUT}ms)`,
+                            ),
+                        );
+                    }, CDP_REQUEST_TIMEOUT);
+                    pending.set(id, {
+                        resolve: (v: unknown) => {
+                            clearTimeout(timer);
+                            res(v);
+                        },
+                        reject: (e: Error) => {
+                            clearTimeout(timer);
+                            rej(e);
+                        },
+                    });
                     const msg = JSON.stringify({
                         id,
                         method,

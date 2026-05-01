@@ -9,7 +9,6 @@ import {
     type AuthError,
     type ExtractedCredentials,
     type ExtractRule,
-    type IBrowserExtractor,
     type ILogger,
     type IStrategy,
     type ProviderConfig,
@@ -38,7 +37,8 @@ export class BrowserStrategy implements IStrategy {
     readonly name = 'browser';
     readonly needsBrowser = true;
 
-    private readonly cdpExtractors: Map<string, IBrowserExtractor>;
+    private readonly cookieExtractor: CdpCookieExtractor;
+    private readonly storageExtractor: CdpStorageExtractor;
     private readonly headlessExtractors: Map<string, IHeadlessExtractor>;
     private readonly browserConfig: BrowserConfig;
     private readonly pageState: IPageStateChecker;
@@ -52,9 +52,8 @@ export class BrowserStrategy implements IStrategy {
         this.browserConfig = browserConfig;
         this.pageState = pageStateChecker ?? new PageStateChecker();
         this.logger = logger ?? createNoopLogger();
-        this.cdpExtractors = new Map();
-        this.cdpExtractors.set('cookies', new CdpCookieExtractor());
-        this.cdpExtractors.set('localStorage', new CdpStorageExtractor());
+        this.cookieExtractor = new CdpCookieExtractor();
+        this.storageExtractor = new CdpStorageExtractor();
         this.headlessExtractors = new Map();
         this.headlessExtractors.set('cookies', new HeadlessCookieExtractor());
         this.headlessExtractors.set('localStorage', new HeadlessStorageExtractor());
@@ -266,53 +265,65 @@ export class BrowserStrategy implements IStrategy {
 
         while (Date.now() < deadline) {
             const sessionId = await attachToPageTarget(cdp).catch(() => null);
-            const currentUrl = await this.getCdpPageUrl(cdp, sessionId);
-            const evaluate = this.makeCdpEvaluator(cdp, sessionId);
+            try {
+                if (sessionId) {
+                    await cdp.send('Runtime.enable', {}, sessionId).catch(() => {});
+                }
+                const currentUrl = await this.getCdpPageUrl(cdp, sessionId);
+                const evaluate = this.makeCdpEvaluator(cdp, sessionId);
 
-            for (const rule of provider.extract) {
-                const extractor = this.cdpExtractors.get(rule.from);
-                if (!extractor) continue;
-                try {
-                    const result = await extractor.extract(
-                        cdp,
-                        rule,
-                        provider.domains,
-                        provider.cookiePaths,
-                    );
-                    if (result) {
-                        credentials[result.name] = result.value;
-                        if (result.cookies?.length) {
-                            const expiries = result.cookies
-                                .filter((c) => c.expires > 0)
-                                .map((c) => c.expires * 1000);
-                            if (expiries.length > 0) {
-                                expiresAt = new Date(Math.min(...expiries)).toISOString();
+                for (const rule of provider.extract) {
+                    try {
+                        let result: {
+                            name: string;
+                            value: string;
+                            cookies?: Array<{ name: string; expires: number }>;
+                        } | null = null;
+                        if (rule.from === 'cookies') {
+                            result = await this.cookieExtractor.extract(
+                                cdp,
+                                rule,
+                                provider.domains,
+                            );
+                        } else if (rule.from === 'localStorage' && sessionId) {
+                            result = await this.storageExtractor.extract(cdp, sessionId, rule);
+                        }
+                        if (result) {
+                            credentials[result.name] = result.value;
+                            if (result.cookies?.length) {
+                                const expiries = result.cookies
+                                    .filter((c) => c.expires > 0)
+                                    .map((c) => c.expires * 1000);
+                                if (expiries.length > 0) {
+                                    expiresAt = new Date(Math.min(...expiries)).toISOString();
+                                }
                             }
                         }
+                    } catch {
+                        // Transient failure — keep polling
                     }
-                } catch {
-                    // Transient failure — keep polling
                 }
-            }
 
-            if (provider.required?.length) {
-                if (checkRequired(provider.required, credentials).length === 0) {
-                    return { credentials, expiresAt };
+                if (provider.required?.length) {
+                    if (checkRequired(provider.required, credentials).length === 0) {
+                        return { credentials, expiresAt };
+                    }
+                } else {
+                    const authenticated = await this.pageState.isAuthenticated(
+                        currentUrl,
+                        provider.domains,
+                        evaluate,
+                        provider.loginUrlPatterns,
+                    );
+                    if (authenticated && Object.keys(credentials).length > 0) {
+                        return { credentials, expiresAt };
+                    }
                 }
-            } else {
-                const authenticated = await this.pageState.isAuthenticated(
-                    currentUrl,
-                    provider.domains,
-                    evaluate,
-                    provider.loginUrlPatterns,
-                );
-                if (authenticated && Object.keys(credentials).length > 0) {
-                    return { credentials, expiresAt };
+            } finally {
+                if (sessionId) {
+                    await cdp.send('Runtime.disable', {}, sessionId).catch(() => {});
+                    await cdp.send('Target.detachFromTarget', { sessionId }).catch(() => {});
                 }
-            }
-
-            if (sessionId) {
-                await cdp.send('Target.detachFromTarget', { sessionId }).catch(() => {});
             }
             await new Promise((r) => setTimeout(r, pollInterval));
         }
@@ -335,7 +346,6 @@ export class BrowserStrategy implements IStrategy {
     private async getCdpPageUrl(cdp: CdpWsClient, sessionId: string | null): Promise<string> {
         if (!sessionId) return '';
         try {
-            await cdp.send('Runtime.enable', {}, sessionId).catch(() => {});
             const result = (await cdp.send(
                 'Runtime.evaluate',
                 { expression: 'window.location.href', returnByValue: true },
