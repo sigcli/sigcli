@@ -281,6 +281,9 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
             if (rule.jsonPath !== undefined && typeof rule.jsonPath !== 'string') {
                 errors.push(`Provider "${id}": extract[${i}].jsonPath must be a string`);
             }
+            if (rule.expiresJsonPath !== undefined && typeof rule.expiresJsonPath !== 'string') {
+                errors.push(`Provider "${id}": extract[${i}].expiresJsonPath must be a string`);
+            }
         }
     }
 

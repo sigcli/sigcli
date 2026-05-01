@@ -26,6 +26,9 @@ import type { DomEvaluateFn } from './login-detector.js';
 import { PageStateChecker, type IPageStateChecker } from './page-state-checker.js';
 import { checkRequired } from './required-checker.js';
 
+// Cookies expiring within this window are treated as tracking/CSRF cookies and ignored
+const TRACKING_COOKIE_TTL_MS = 5 * 60 * 1000;
+
 export class BrowserStrategy implements IStrategy {
     readonly name = 'browser';
     readonly needsBrowser = true;
@@ -116,7 +119,11 @@ export class BrowserStrategy implements IStrategy {
             }
 
             const credentials: ExtractedCredentials = {};
-            let expiresAt: string | undefined;
+            const extractionResults: Array<{
+                cookies?: Array<{ name: string; expires: number }>;
+                expiresAt?: string;
+                ruleName: string;
+            }> = [];
 
             for (const rule of provider.extract) {
                 const extractor = this.cdpExtractors.get(rule.from);
@@ -125,14 +132,11 @@ export class BrowserStrategy implements IStrategy {
                     const result = await extractor.extract(cdpClient, rule, provider.domains);
                     if (result) {
                         credentials[result.name] = result.value;
-                        if (result.cookies?.length) {
-                            const expiries = result.cookies
-                                .filter((c) => c.expires > 0)
-                                .map((c) => c.expires * 1000);
-                            if (expiries.length > 0) {
-                                expiresAt = new Date(Math.min(...expiries)).toISOString();
-                            }
-                        }
+                        extractionResults.push({
+                            cookies: result.cookies,
+                            expiresAt: result.expiresAt,
+                            ruleName: rule.as,
+                        });
                     }
                 } catch {
                     // Extraction failure for this rule — skip
@@ -151,6 +155,7 @@ export class BrowserStrategy implements IStrategy {
                 return null;
             }
 
+            const expiresAt = this.computeExpiresAt(provider, extractionResults);
             this.logger.info(
                 `${provider.id}: headless extracted ${Object.keys(credentials).length} credential(s)`,
             );
@@ -251,7 +256,11 @@ export class BrowserStrategy implements IStrategy {
         const deadline = Date.now() + this.browserConfig.visibleTimeout;
         const pollInterval = 2000;
         const credentials: ExtractedCredentials = {};
-        let expiresAt: string | undefined;
+        const extractionResults: Array<{
+            cookies?: Array<{ name: string; expires: number }>;
+            expiresAt?: string;
+            ruleName: string;
+        }> = [];
 
         while (Date.now() < deadline) {
             const sessionId = await attachToPageTarget(cdp).catch(() => null);
@@ -265,14 +274,15 @@ export class BrowserStrategy implements IStrategy {
                     const result = await extractor.extract(cdp, rule, provider.domains);
                     if (result) {
                         credentials[result.name] = result.value;
-                        if (result.cookies?.length) {
-                            const expiries = result.cookies
-                                .filter((c) => c.expires > 0)
-                                .map((c) => c.expires * 1000);
-                            if (expiries.length > 0) {
-                                expiresAt = new Date(Math.min(...expiries)).toISOString();
-                            }
-                        }
+                        // Replace or add entry for this rule name (latest wins)
+                        const idx = extractionResults.findIndex((r) => r.ruleName === rule.as);
+                        const entry = {
+                            cookies: result.cookies,
+                            expiresAt: result.expiresAt,
+                            ruleName: rule.as,
+                        };
+                        if (idx >= 0) extractionResults[idx] = entry;
+                        else extractionResults.push(entry);
                     }
                 } catch {
                     // Transient failure — keep polling
@@ -281,6 +291,7 @@ export class BrowserStrategy implements IStrategy {
 
             if (provider.required?.length) {
                 if (checkRequired(provider.required, credentials).length === 0) {
+                    const expiresAt = this.computeExpiresAt(provider, extractionResults);
                     return { credentials, expiresAt };
                 }
             } else {
@@ -291,6 +302,7 @@ export class BrowserStrategy implements IStrategy {
                     provider.loginUrlPatterns,
                 );
                 if (authenticated && Object.keys(credentials).length > 0) {
+                    const expiresAt = this.computeExpiresAt(provider, extractionResults);
                     return { credentials, expiresAt };
                 }
             }
@@ -313,7 +325,62 @@ export class BrowserStrategy implements IStrategy {
         if (Object.keys(credentials).length === 0) {
             throw new BrowserTimeoutError('extract', this.browserConfig.visibleTimeout);
         }
+        const expiresAt = this.computeExpiresAt(provider, extractionResults);
         return { credentials, expiresAt };
+    }
+
+    // Compute expiresAt from extraction results:
+    // - Prefers cookies named in required (dotted format: "as.cookieName")
+    // - Skips cookies expiring within 5 min (tracking/CSRF)
+    // - Also considers expiresAt from localStorage extractors
+    private computeExpiresAt(
+        provider: ProviderConfig,
+        results: Array<{
+            cookies?: Array<{ name: string; expires: number }>;
+            expiresAt?: string;
+            ruleName: string;
+        }>,
+    ): string | undefined {
+        const now = Date.now();
+        const minTtlMs = TRACKING_COOKIE_TTL_MS;
+
+        // Parse required cookie names: "as.cookieName" → { as, cookieName }
+        const requiredCookieNames = new Set<string>();
+        const requiredAsNames = new Set<string>();
+        if (provider.required?.length) {
+            for (const ref of provider.required) {
+                const dot = ref.indexOf('.');
+                if (dot > 0) {
+                    requiredAsNames.add(ref.slice(0, dot));
+                    requiredCookieNames.add(ref.slice(dot + 1));
+                }
+            }
+        }
+
+        const timestamps: number[] = [];
+
+        for (const r of results) {
+            // Collect expiresAt from localStorage extractor
+            if (r.expiresAt) {
+                const ms = new Date(r.expiresAt).getTime();
+                if (!isNaN(ms) && ms - now > minTtlMs) timestamps.push(ms);
+            }
+
+            if (!r.cookies?.length) continue;
+
+            const useRequiredFilter = requiredAsNames.size > 0 && requiredAsNames.has(r.ruleName);
+
+            for (const c of r.cookies) {
+                if (c.expires <= 0) continue; // session cookie — no expiry info
+                const expiryMs = c.expires * 1000;
+                if (expiryMs - now <= minTtlMs) continue; // tracking/CSRF
+                if (useRequiredFilter && !requiredCookieNames.has(c.name)) continue;
+                timestamps.push(expiryMs);
+            }
+        }
+
+        if (timestamps.length === 0) return undefined;
+        return new Date(Math.min(...timestamps)).toISOString();
     }
 
     private async getCdpPageUrl(cdp: CdpWsClient, sessionId: string | null): Promise<string> {
