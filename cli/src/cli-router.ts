@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { Command, isOk } from './types/index.js';
 import { getConfigPath, loadConfig } from './config/loader.js';
 import { ExitCode } from './utils/exit-codes.js';
+import { createNoopLogger, createOperationalLogger } from './utils/logger.js';
 import { AuthManager } from './auth-manager.js';
 import { runCompletion } from './commands/completion.js';
 import { runDoctor } from './commands/doctor.js';
@@ -140,6 +141,7 @@ Setup:
 Security: proxy ≥ request > run > get. Full docs at https://sigcli.ai/docs/#security
 
 Global options:
+  --verbose                    Show debug output to stderr
   --help                       Show this help
 `;
 
@@ -202,7 +204,16 @@ export async function run(args: string[]): Promise<void> {
         }
         const config = configResult.value;
 
-        auth = await AuthManager.create(config);
+        const VERBOSE_COMMANDS: ReadonlySet<string> = new Set([
+            Command.LOGIN,
+            Command.REQUEST,
+            Command.RUN,
+            Command.SYNC,
+            Command.PROXY,
+        ]);
+        const verbose = flags.verbose === true || VERBOSE_COMMANDS.has(command);
+        const logger = verbose ? createOperationalLogger() : createNoopLogger();
+        auth = await AuthManager.create(config, logger);
     }
 
     switch (command) {
