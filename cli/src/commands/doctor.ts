@@ -218,6 +218,47 @@ async function checkStoredCredentials(config: SigConfig | undefined): Promise<Ch
     }
 }
 
+async function checkExpiryAwareness(config: SigConfig | undefined): Promise<CheckResult> {
+    if (!config) {
+        return {
+            label: 'Expiry awareness',
+            ok: true,
+            detail: 'skipped (no config)',
+        };
+    }
+
+    const dir = expandHome(config.storage.credentialsDir);
+    const providersMissingExpiry: string[] = [];
+
+    for (const [id, entry] of Object.entries(config.providers)) {
+        if (entry.ttl) continue; // ttl configured — expiry tracked via TTL
+        const credFile = path.join(dir, `${id}.json`);
+        try {
+            const content = await fsp.readFile(credFile, 'utf-8');
+            const data = JSON.parse(content) as { expiresAt?: string };
+            if (!data.expiresAt) providersMissingExpiry.push(id);
+        } catch {
+            // No stored credential yet — nothing to warn about
+        }
+    }
+
+    if (providersMissingExpiry.length === 0) {
+        return {
+            label: 'Expiry awareness',
+            ok: true,
+            detail: 'all providers have expiry info',
+        };
+    }
+
+    return {
+        label: 'Expiry awareness',
+        ok: false,
+        hint:
+            `Providers with no ttl and no stored expiresAt: ${providersMissingExpiry.join(', ')}. ` +
+            'Add "ttl: 2h" to the provider config so sig knows when to refresh.',
+    };
+}
+
 function checkBrowserRequired(
     config: SigConfig | undefined,
     browserAvailable: boolean,
@@ -331,6 +372,9 @@ export async function runDoctor(
 
     // i. Encryption key
     results.push(await checkEncryptionKey());
+
+    // j. Expiry awareness
+    results.push(await checkExpiryAwareness(config));
 
     printResults(results);
 

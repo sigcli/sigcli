@@ -13,6 +13,7 @@ export interface ExtractRule {
     as: string;
     match: string;
     jsonPath?: string;
+    expiresJsonPath?: string; // dot-path into the stored JSON value for the expiration timestamp
 }
 
 export interface ApplyRule {
