@@ -15,6 +15,7 @@ import {
     type Result,
 } from '../../types/index.js';
 import type { ExtractionResult } from '../../types/interfaces/strategy.js';
+import { parseDuration } from '../../utils/duration.js';
 import { createNoopLogger } from '../../utils/logger.js';
 import { expandHome } from '../../utils/path.js';
 import { killProcess } from '../../utils/process-kill.js';
@@ -27,7 +28,7 @@ import { PageStateChecker, type IPageStateChecker } from './page-state-checker.j
 import { checkRequired } from './required-checker.js';
 
 // Cookies expiring within this window are treated as tracking/CSRF cookies and ignored
-const TRACKING_COOKIE_TTL_MS = 5 * 60 * 1000;
+const TRACKING_COOKIE_TTL_MS = 60 * 1000;
 
 export class BrowserStrategy implements IStrategy {
     readonly name = 'browser';
@@ -343,38 +344,29 @@ export class BrowserStrategy implements IStrategy {
     ): string | undefined {
         const now = Date.now();
         const minTtlMs = TRACKING_COOKIE_TTL_MS;
-
-        // Parse required cookie names: "as.cookieName" → { as, cookieName }
-        const requiredCookieNames = new Set<string>();
-        const requiredAsNames = new Set<string>();
-        if (provider.required?.length) {
-            for (const ref of provider.required) {
-                const dot = ref.indexOf('.');
-                if (dot > 0) {
-                    requiredAsNames.add(ref.slice(0, dot));
-                    requiredCookieNames.add(ref.slice(dot + 1));
-                }
-            }
-        }
-
         const timestamps: number[] = [];
+
+        // TTL-based expiry (used for session cookies that have no expires)
+        const ttlMs = provider.ttl ? parseDuration(provider.ttl) : null;
+        const ttlExpiry = ttlMs ? now + ttlMs : null;
 
         for (const r of results) {
             // Collect expiresAt from localStorage extractor
             if (r.expiresAt) {
                 const ms = new Date(r.expiresAt).getTime();
-                if (!isNaN(ms) && ms - now > minTtlMs) timestamps.push(ms);
+                if (!isNaN(ms) && ms > now) timestamps.push(ms);
             }
 
             if (!r.cookies?.length) continue;
 
-            const useRequiredFilter = requiredAsNames.size > 0 && requiredAsNames.has(r.ruleName);
-
             for (const c of r.cookies) {
-                if (c.expires <= 0) continue; // session cookie — no expiry info
+                if (c.expires <= 0) {
+                    // Session cookie — use TTL as its expiry candidate
+                    if (ttlExpiry) timestamps.push(ttlExpiry);
+                    continue;
+                }
                 const expiryMs = c.expires * 1000;
                 if (expiryMs - now <= minTtlMs) continue; // tracking/CSRF
-                if (useRequiredFilter && !requiredCookieNames.has(c.name)) continue;
                 timestamps.push(expiryMs);
             }
         }
