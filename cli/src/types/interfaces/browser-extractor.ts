@@ -14,7 +14,6 @@ export interface IBrowserExtractor {
         cdp: CdpWsClient,
         rule: ExtractRule,
         domains: string[],
-        cookiePaths?: string[],
     ): Promise<{
         name: string;
         value: string;

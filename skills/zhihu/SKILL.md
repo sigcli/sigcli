@@ -38,8 +38,8 @@ zhihu:
     required: [session.z_c0]
     extract:
         - from: cookies
-          name: session
-          key: '*'
+          as: session
+          match: '*'
     apply:
         - in: header
           name: Cookie

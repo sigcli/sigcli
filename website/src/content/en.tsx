@@ -191,7 +191,7 @@ curl https://my-jira.example.com/rest/api/2/myself`}</CodeBlock>
     entryUrl: https://my-jira.example.com/
     strategy: browser
     extract:
-      - { from: cookies, name: session, key: "*" }
+      - { from: cookies, as: session, match: "*" }
     apply:
       - { in: header, name: Cookie, value: "\${session}" }`}</CodeBlock>
 

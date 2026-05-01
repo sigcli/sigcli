@@ -55,8 +55,8 @@ storage:
 #     strategy: browser
 #     extract:
 #       - from: cookies
-#         name: session
-#         key: "*"
+#         as: session
+#         match: "*"
 #     apply:
 #       - in: header
 #         name: Cookie

@@ -10,8 +10,9 @@
 
 export interface ExtractRule {
     from: 'cookies' | 'localStorage' | 'eval' | 'prompt';
-    name: string;
-    key: string;
+    as: string;
+    match: string;
+    jsonPath?: string;
 }
 
 export interface ApplyRule {

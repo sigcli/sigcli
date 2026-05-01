@@ -43,8 +43,8 @@ reddit:
     required: [session.token_v2]
     extract:
         - from: cookies
-          name: session
-          key: '*'
+          as: session
+          match: '*'
     apply:
         - in: header
           name: Cookie

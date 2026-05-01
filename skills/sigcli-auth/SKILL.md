@@ -346,8 +346,8 @@ my-provider:
     required: [session.my_cookie] # optional: wait for specific values
     extract:
         - from: cookies # cookies | localStorage | eval
-          name: session # stored under this name
-          key: '*' # which cookies (* = all)
+          as: session # output variable name
+          match: '*' # which cookies (* = all)
     apply:
         - in: header # header | body | query
           name: Cookie # HTTP header/field name
@@ -370,23 +370,24 @@ my-provider:
 
 ### extract[] fields
 
-Each entry has exactly 3 fields:
+Each entry has the following fields:
 
-| Field  | Description                         | Values                                       |
-| ------ | ----------------------------------- | -------------------------------------------- |
-| `from` | Where to extract                    | `cookies` \| `localStorage` \| `eval`        |
-| `name` | Store as this name (credential key) | Any string (referenced in `apply` templates) |
-| `key`  | What to extract                     | `*` (all) \| specific name \| glob pattern   |
+| Field      | Description                            | Values                                       |
+| ---------- | -------------------------------------- | -------------------------------------------- |
+| `from`     | Where to extract                       | `cookies` \| `localStorage` \| `eval`        |
+| `as`       | Output variable name (credential key)  | Any string (referenced in `apply` templates) |
+| `match`    | What to extract                        | `*` (all) \| specific name \| glob pattern   |
+| `jsonPath` | If value is JSON, extract nested field | Dot-path like `secret` or `teams.T123.token` |
 
 ### apply[] fields
 
 Each entry has exactly 3 fields:
 
-| Field   | Description       | Values                                      |
-| ------- | ----------------- | ------------------------------------------- |
-| `in`    | Where to inject   | `header` \| `body` \| `query`               |
-| `name`  | Field/header name | `Cookie`, `Authorization`, etc.             |
-| `value` | Value template    | `"${name}"` \| `"Bearer ${name}"` \| static |
+| Field   | Description       | Values                                  |
+| ------- | ----------------- | --------------------------------------- |
+| `in`    | Where to inject   | `header` \| `body` \| `query`           |
+| `name`  | Field/header name | `Cookie`, `Authorization`, etc.         |
+| `value` | Value template    | `"${as}"` \| `"Bearer ${as}"` \| static |
 
 ### Quick Start
 

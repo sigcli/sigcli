@@ -15,38 +15,32 @@ export class HeadlessStorageExtractor implements IHeadlessExtractor {
         rule: ExtractRule,
         _domains: string[],
     ): Promise<ExtractorResult | null> {
-        const { storageKey, jsonPath } = this.parseKey(rule.key);
+        const val = rule.match.includes('*')
+            ? await this.extractByPattern(ctx, rule.match)
+            : await ctx.evaluate<string | null>(
+                  `(() => { try { return localStorage.getItem(${JSON.stringify(rule.match)}); } catch { return null; } })()`,
+              );
 
-        if (storageKey === null) return null;
-
-        if (storageKey.includes('*')) {
-            return this.extractByPattern(ctx, rule.name, storageKey);
-        }
-
-        const val = await ctx.evaluate<string | null>(
-            `(() => { try { return localStorage.getItem(${JSON.stringify(storageKey)}); } catch { return null; } })()`,
-        );
         if (!val) return null;
 
-        if (jsonPath) {
+        if (rule.jsonPath) {
             try {
                 const parsed = JSON.parse(val);
-                const resolved = dlv(parsed, jsonPath);
+                const resolved = dlv(parsed, rule.jsonPath);
                 if (resolved == null) return null;
-                return { name: rule.name, value: String(resolved) };
+                return { name: rule.as, value: String(resolved) };
             } catch {
                 return null;
             }
         }
 
-        return { name: rule.name, value: val };
+        return { name: rule.as, value: val };
     }
 
     private async extractByPattern(
         ctx: HeadlessExtractionCtx,
-        name: string,
         pattern: string,
-    ): Promise<ExtractorResult | null> {
+    ): Promise<string | null> {
         const regex = this.globToRegex(pattern);
 
         const raw = await ctx.evaluate<string | null>(
@@ -69,43 +63,10 @@ export class HeadlessStorageExtractor implements IHeadlessExtractor {
         try {
             const matches = JSON.parse(raw) as (string | null)[];
             if (!matches?.length) return null;
-
-            for (const entry of matches) {
-                if (!entry) continue;
-                const jwt = this.extractJwtFromEntry(entry);
-                if (jwt) return { name, value: jwt };
-            }
-
-            const first = matches.find((m) => m != null);
-            return first ? { name, value: first } : null;
+            return matches.find((m) => m != null) ?? null;
         } catch {
-            return { name, value: raw };
+            return raw;
         }
-    }
-
-    private extractJwtFromEntry(entry: string): string | null {
-        try {
-            const parsed = JSON.parse(entry);
-            if (parsed?.secret && typeof parsed.secret === 'string') {
-                if (parsed.secret.startsWith('eyJ')) {
-                    return parsed.secret;
-                }
-            }
-        } catch {
-            if (entry.startsWith('eyJ') && entry.includes('.')) {
-                return entry;
-            }
-        }
-        return null;
-    }
-
-    private parseKey(key: string): { storageKey: string | null; jsonPath?: string } {
-        if (key.includes('*')) {
-            return { storageKey: key };
-        }
-        const dotIndex = key.indexOf('.');
-        if (dotIndex === -1) return { storageKey: key };
-        return { storageKey: key.slice(0, dotIndex), jsonPath: key.slice(dotIndex + 1) };
     }
 
     private globToRegex(pattern: string): string {
