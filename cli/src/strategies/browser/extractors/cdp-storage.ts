@@ -3,15 +3,6 @@ import dlv from 'dlv';
 import type { ExtractRule, IBrowserExtractor } from '../../../types/index.js';
 import { attachToPageTarget, type CdpWsClient } from '../cdp-ws.js';
 
-/**
- * Extracts values from browser localStorage via CDP Runtime.evaluate.
- *
- * match: "localConfig_v2" — exact localStorage key lookup
- * match: "msal.*.accesstoken.*" — glob pattern for matching localStorage keys
- * jsonPath: "teams.E7RBBBXHB.token" — dot-path into the parsed JSON value
- *
- * Output value: the resolved string value.
- */
 export class CdpStorageExtractor implements IBrowserExtractor {
     readonly type = 'localStorage' as const;
 
@@ -19,25 +10,39 @@ export class CdpStorageExtractor implements IBrowserExtractor {
         cdp: CdpWsClient,
         rule: ExtractRule,
         _domains: string[],
-    ): Promise<{ name: string; value: string } | null> {
+    ): Promise<{ name: string; value: string; expiresAt?: string } | null> {
         const sessionId = await attachToPageTarget(cdp);
         if (!sessionId) return null;
 
         try {
             await cdp.send('Runtime.enable', {}, sessionId).catch(() => {});
 
-            let value: string | null;
+            let rawValue: string | null;
             if (rule.match.includes('*')) {
-                value = await this.extractByPattern(cdp, sessionId, rule.match);
+                rawValue = await this.extractByPattern(cdp, sessionId, rule.match);
             } else {
-                value = await this.extractByKey(cdp, sessionId, rule.match);
+                rawValue = await this.extractByKey(cdp, sessionId, rule.match);
             }
 
-            if (!value) return null;
+            if (!rawValue) return null;
 
+            let expiresAt: string | undefined;
+            if (rule.expiresJsonPath) {
+                try {
+                    const parsed = JSON.parse(rawValue);
+                    const raw = dlv(parsed, rule.expiresJsonPath);
+                    if (raw != null) {
+                        expiresAt = this.toIsoTimestamp(raw);
+                    }
+                } catch {
+                    // ignore parse errors
+                }
+            }
+
+            let value = rawValue;
             if (rule.jsonPath) {
                 try {
-                    const parsed = JSON.parse(value);
+                    const parsed = JSON.parse(rawValue);
                     const resolved = dlv(parsed, rule.jsonPath);
                     if (resolved == null) return null;
                     value = String(resolved);
@@ -46,10 +51,22 @@ export class CdpStorageExtractor implements IBrowserExtractor {
                 }
             }
 
-            return { name: rule.as, value };
+            return { name: rule.as, value, ...(expiresAt ? { expiresAt } : {}) };
         } finally {
             await cdp.send('Target.detachFromTarget', { sessionId }).catch(() => {});
         }
+    }
+
+    private toIsoTimestamp(raw: unknown): string | undefined {
+        if (typeof raw === 'number') {
+            const ms = raw > 1e12 ? raw : raw * 1000;
+            return new Date(ms).toISOString();
+        }
+        if (typeof raw === 'string') {
+            const d = new Date(raw);
+            return isNaN(d.getTime()) ? undefined : d.toISOString();
+        }
+        return undefined;
     }
 
     private async extractByKey(

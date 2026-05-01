@@ -18,5 +18,6 @@ export interface IBrowserExtractor {
         name: string;
         value: string;
         cookies?: Array<{ name: string; expires: number }>;
+        expiresAt?: string;
     } | null>;
 }
