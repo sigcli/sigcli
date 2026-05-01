@@ -189,6 +189,164 @@ describe('validateConfig — extract rule field names', () => {
         });
     });
 
+    describe('expiresJsonPath field validation', () => {
+        it('passes when expiresJsonPath is a non-empty string', () => {
+            const config = makeConfig({
+                myapp: makeProvider([
+                    {
+                        from: 'localStorage',
+                        as: 'token',
+                        match: 'config',
+                        expiresJsonPath: 'auth.expiresAt',
+                    },
+                ]),
+            });
+            expect(isOk(validateConfig(config))).toBe(true);
+        });
+
+        it('passes when both jsonPath and expiresJsonPath are provided', () => {
+            const config = makeConfig({
+                myapp: makeProvider([
+                    {
+                        from: 'localStorage',
+                        as: 'token',
+                        match: 'localConfig_v2',
+                        jsonPath: 'auth.token',
+                        expiresJsonPath: 'auth.expiresAt',
+                    },
+                ]),
+            });
+            expect(isOk(validateConfig(config))).toBe(true);
+        });
+
+        it('passes without expiresJsonPath (field is optional)', () => {
+            const config = makeConfig({
+                myapp: makeProvider([{ from: 'localStorage', as: 'token', match: 'config' }]),
+            });
+            expect(isOk(validateConfig(config))).toBe(true);
+        });
+
+        it('fails when expiresJsonPath is a number (not string)', () => {
+            const config = makeConfig({
+                myapp: makeProvider([
+                    {
+                        from: 'localStorage',
+                        as: 'token',
+                        match: 'config',
+                        expiresJsonPath: 42,
+                    },
+                ]),
+            });
+            const result = validateConfig(config);
+            expect(isErr(result)).toBe(true);
+            if (isErr(result)) {
+                expect(result.error.message).toContain(
+                    'extract[0].expiresJsonPath must be a string',
+                );
+            }
+        });
+
+        it('fails when expiresJsonPath is an array (not string)', () => {
+            const config = makeConfig({
+                myapp: makeProvider([
+                    {
+                        from: 'localStorage',
+                        as: 'token',
+                        match: 'config',
+                        expiresJsonPath: ['auth', 'expiresAt'],
+                    },
+                ]),
+            });
+            const result = validateConfig(config);
+            expect(isErr(result)).toBe(true);
+            if (isErr(result)) {
+                expect(result.error.message).toContain(
+                    'extract[0].expiresJsonPath must be a string',
+                );
+            }
+        });
+
+        it('fails when expiresJsonPath is an object (not string)', () => {
+            const config = makeConfig({
+                myapp: makeProvider([
+                    {
+                        from: 'localStorage',
+                        as: 'token',
+                        match: 'config',
+                        expiresJsonPath: { path: 'auth.expiresAt' },
+                    },
+                ]),
+            });
+            const result = validateConfig(config);
+            expect(isErr(result)).toBe(true);
+            if (isErr(result)) {
+                expect(result.error.message).toContain(
+                    'extract[0].expiresJsonPath must be a string',
+                );
+            }
+        });
+
+        it('fails when expiresJsonPath is a boolean (not string)', () => {
+            const config = makeConfig({
+                myapp: makeProvider([
+                    {
+                        from: 'localStorage',
+                        as: 'token',
+                        match: 'config',
+                        expiresJsonPath: true,
+                    },
+                ]),
+            });
+            const result = validateConfig(config);
+            expect(isErr(result)).toBe(true);
+            if (isErr(result)) {
+                expect(result.error.message).toContain(
+                    'extract[0].expiresJsonPath must be a string',
+                );
+            }
+        });
+
+        it('error message includes the provider id', () => {
+            const config = makeConfig({
+                my_provider: makeProvider([
+                    {
+                        from: 'localStorage',
+                        as: 'token',
+                        match: 'config',
+                        expiresJsonPath: 99,
+                    },
+                ]),
+            });
+            const result = validateConfig(config);
+            expect(isErr(result)).toBe(true);
+            if (isErr(result)) {
+                expect(result.error.message).toContain('"my_provider"');
+                expect(result.error.message).toContain('expiresJsonPath must be a string');
+            }
+        });
+
+        it('validates expiresJsonPath on a second extract rule (index 1)', () => {
+            const config = makeConfig({
+                myapp: makeProvider([
+                    { from: 'cookies', as: 'session', match: '*' },
+                    {
+                        from: 'localStorage',
+                        as: 'token',
+                        match: 'config',
+                        expiresJsonPath: { bad: true },
+                    },
+                ]),
+            });
+            const result = validateConfig(config);
+            expect(isErr(result)).toBe(true);
+            if (isErr(result)) {
+                expect(result.error.message).toContain(
+                    'extract[1].expiresJsonPath must be a string',
+                );
+            }
+        });
+    });
+
     describe('valid from values', () => {
         it.each(['cookies', 'localStorage', 'eval', 'prompt'])('passes with from: %s', (from) => {
             const config = makeConfig({

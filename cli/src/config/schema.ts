@@ -66,7 +66,13 @@ export interface ProviderEntry {
     domains: string[];
     entryUrl: string;
     strategy: 'browser' | 'prompt';
-    extract: Array<{ from: string; as: string; match: string; jsonPath?: string }>;
+    extract: Array<{
+        from: string;
+        as: string;
+        match: string;
+        jsonPath?: string;
+        expiresJsonPath?: string;
+    }>;
     apply: Array<{ in: string; name: string; value: string; action?: 'set' | 'append' | 'remove' }>;
     required?: string[];
     cookiePaths?: string[];
