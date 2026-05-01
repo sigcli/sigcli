@@ -134,7 +134,7 @@ Setup:
     --remote                     Headless machine setup (mode: browserless)
     --yes                        Accept defaults, skip prompts
     --force                      Overwrite existing config
-    --channel <name>             Browser channel (msedge|chrome|chromium)
+    --channel <name>             Browser channel (msedge|chrome)
   doctor                       Check environment, config, and encryption key
   completion <shell>           Generate shell completion script (bash|zsh|fish)
 

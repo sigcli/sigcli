@@ -23,7 +23,7 @@ import { ExitCode } from '../utils/exit-codes.js';
 // ---------------------------------------------------------------------------
 
 function detectBrowserChannel(): string {
-    const channels = ['msedge', 'chrome', 'chromium'];
+    const channels = ['msedge', 'chrome'];
     for (const ch of channels) {
         if (findChannelBrowser(ch) !== null) return ch;
     }
@@ -76,7 +76,7 @@ export async function runInit(
         try {
             process.stderr.write("\nWelcome to SigCLI! Let's set up your configuration.\n\n");
 
-            const browserOptions = ['msedge', 'chrome', 'chromium'];
+            const browserOptions = ['msedge', 'chrome'];
             const browserStatus = browserOptions.map((ch) => ({
                 name: ch,
                 found: findChannelBrowser(ch) !== null,

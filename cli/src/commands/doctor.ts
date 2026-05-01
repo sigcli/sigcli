@@ -146,7 +146,7 @@ async function checkBrowserAvailable(config: SigConfig | undefined): Promise<Che
     return {
         label: 'Browser available',
         ok: false,
-        hint: 'No browser binary found. Install Chrome, Edge, or Chromium, or set browser.execPath in config.',
+        hint: 'No browser binary found. Install Chrome or Edge, or set browser.execPath in config.',
     };
 }
 
