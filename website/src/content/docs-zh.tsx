@@ -1322,15 +1322,15 @@ providers:
                         <Code>required</Code> 字段
                     </SectionHeading>
                     <P>
-                        <Code>required</Code>{' '}
-                        字段用于验证提取的凭证中是否包含特定的 cookie，只有通过验证才会存储。
-                        如果不使用此字段，sigcli 可能会将追踪 cookie 或游客 cookie
-                        存储为有效凭证——大多数公开网站会对所有访客设置这类无用的 cookie。
+                        <Code>required</Code> 字段用于验证提取的凭证中是否包含特定的
+                        cookie，只有通过验证才会存储。 如果不使用此字段，sigcli 可能会将追踪 cookie
+                        或游客 cookie 存储为有效凭证——大多数公开网站会对所有访客设置这类无用的
+                        cookie。
                     </P>
                     <P>
-                        <strong>格式：</strong>{' '}
-                        <Code>{"required: [\"<as>.<cookie_name>\"]"}</Code> —— 前缀是 extract
-                        规则中的 <Code>as</Code> 名称，后缀是必须存在于提取值中的 cookie 名称。
+                        <strong>格式：</strong> <Code>{'required: ["<as>.<cookie_name>"]'}</Code> ——
+                        前缀是 extract 规则中的 <Code>as</Code> 名称，后缀是必须存在于提取值中的
+                        cookie 名称。
                     </P>
                     <CodeBlock lang="yaml">{`# 要求 "cookie" 提取结果中包含两个特定 cookie
 required: ["cookie.reddit_session", "cookie.token_v2"]
@@ -1342,19 +1342,17 @@ required: ["access_token"]`}</CodeBlock>
                     </P>
                     <List>
                         <Li>无头提取立即被拒绝——sigcli 不会存储结果。</Li>
-                        <Li>
-                            sigcli 回退到 CDP（真实浏览器，用户实际已登录）并重新检查。
-                        </Li>
+                        <Li>sigcli 回退到 CDP（真实浏览器，用户实际已登录）并重新检查。</Li>
                         <Li>
                             如果 CDP 也未通过 required 检查，认证失败并显示明确的错误信息，
                             列出缺失的 cookie。
                         </Li>
                     </List>
                     <P>
-                        <strong>何时使用：</strong>为任何公共网站（社交媒体、论坛、新闻网站）的提供者添加{' '}
-                        <Code>required</Code>。这些网站会对所有访客设置 cookie；没有{' '}
-                        <Code>required</Code>，自动创建的提供者会将这些无用的游客 cookie
-                        存储为登录成功。
+                        <strong>何时使用：</strong>
+                        为任何公共网站（社交媒体、论坛、新闻网站）的提供者添加 <Code>required</Code>
+                        。这些网站会对所有访客设置 cookie；没有 <Code>required</Code>
+                        ，自动创建的提供者会将这些无用的游客 cookie 存储为登录成功。
                     </P>
                     <CodeBlock lang="yaml">{`reddit:
   domains: [www.reddit.com, reddit.com]
@@ -1438,17 +1436,17 @@ required: ["access_token"]`}</CodeBlock>
                         localStorage 提取
                     </SectionHeading>
                     <P>
-                        部分网站将认证令牌存储在浏览器 localStorage 中而非 cookie 里。
-                        这在 OAuth2/MSAL 流程（Microsoft Teams、Graph API）、Slack
+                        部分网站将认证令牌存储在浏览器 localStorage 中而非 cookie 里。 这在
+                        OAuth2/MSAL 流程（Microsoft Teams、Graph API）、Slack
                         以及现代单页应用中很常见。在 extract 规则中使用{' '}
                         <Code>from: localStorage</Code> 来捕获这些令牌。
                     </P>
 
                     <P>
-                        <strong>工作原理：</strong><Code>match</Code>{' '}
-                        字段指定要查找的 localStorage 键——可以是精确的键名，也可以是使用{' '}
-                        <Code>*</Code> 通配符的 glob 模式。可选的 <Code>jsonPath</Code>{' '}
-                        字段在 localStorage 条目为 JSON 字符串时提取嵌套的值。
+                        <strong>工作原理：</strong>
+                        <Code>match</Code> 字段指定要查找的 localStorage
+                        键——可以是精确的键名，也可以是使用 <Code>*</Code> 通配符的 glob 模式。可选的{' '}
+                        <Code>jsonPath</Code> 字段在 localStorage 条目为 JSON 字符串时提取嵌套的值。
                     </P>
 
                     <CodeBlock lang="yaml">{`extract:
@@ -1469,8 +1467,8 @@ required: ["access_token"]`}</CodeBlock>
                     </P>
                     <List>
                         <Li>
-                            <strong>精确匹配：</strong>{' '}
-                            <Code>match: "localConfig_v2"</Code> — 查找完全匹配的 localStorage 键。
+                            <strong>精确匹配：</strong> <Code>match: "localConfig_v2"</Code> —
+                            查找完全匹配的 localStorage 键。
                         </Li>
                         <Li>
                             <strong>glob 模式：</strong>{' '}
@@ -1481,13 +1479,14 @@ required: ["access_token"]`}</CodeBlock>
                                     'user@tenant.com-login.microsoftonline.com-accesstoken-client_id-graph.microsoft.com-openid'
                                 }
                             </Code>{' '}
-                            的长复合键存储 OAuth2 令牌；glob 模式可以匹配不同租户或客户端 ID 的所有键。
+                            的长复合键存储 OAuth2 令牌；glob 模式可以匹配不同租户或客户端 ID
+                            的所有键。
                         </Li>
                     </List>
 
                     <P>
-                        <strong>jsonPath：</strong>当 localStorage 值是 JSON 字符串且需要提取特定字段时使用。
-                        使用点号表示法遍历嵌套对象：
+                        <strong>jsonPath：</strong>当 localStorage 值是 JSON
+                        字符串且需要提取特定字段时使用。 使用点号表示法遍历嵌套对象：
                     </P>
                     <List>
                         <Li>
@@ -1495,14 +1494,14 @@ required: ["access_token"]`}</CodeBlock>
                             <Code>value.teams.E7RBBBXHB.token</Code>
                         </Li>
                         <Li>
-                            <Code>jsonPath: secret</Code> — 读取顶层 <Code>secret</Code>{' '}
-                            字段（MSAL 令牌对象将原始令牌存储在此处）
+                            <Code>jsonPath: secret</Code> — 读取顶层 <Code>secret</Code> 字段（MSAL
+                            令牌对象将原始令牌存储在此处）
                         </Li>
                     </List>
 
                     <P>
-                        <strong>调试方法：</strong>打开浏览器 DevTools → Application → Local
-                        Storage → 选择对应域名。找到与你的模式匹配的键，然后检查其值以确定正确的{' '}
+                        <strong>调试方法：</strong>打开浏览器 DevTools → Application → Local Storage
+                        → 选择对应域名。找到与你的模式匹配的键，然后检查其值以确定正确的{' '}
                         <Code>jsonPath</Code>。
                     </P>
 
