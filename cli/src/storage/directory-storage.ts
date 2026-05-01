@@ -20,7 +20,7 @@ interface ProviderFile {
     strategy: string;
     updatedAt: string;
     expiresAt?: string;
-    values: Record<string, unknown>;
+    values: Record<string, string>;
 }
 
 /**

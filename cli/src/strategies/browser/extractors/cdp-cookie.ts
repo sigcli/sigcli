@@ -15,8 +15,8 @@ export interface CdpCookie {
 /**
  * Extracts cookies from the browser via CDP Storage.getCookies.
  *
- * key: "*" = all cookies for provider domains
- * key: "name1, name2" = only specific cookies (still extracts all, filters output)
+ * match: "*" = all cookies for provider domains
+ * match: "name" = only that specific cookie
  *
  * Output value: serialized "name1=val1; name2=val2" string.
  */
@@ -27,7 +27,6 @@ export class CdpCookieExtractor implements IBrowserExtractor {
         cdp: CdpWsClient,
         rule: ExtractRule,
         domains: string[],
-        _cookiePaths?: string[],
     ): Promise<{ name: string; value: string; cookies: CdpCookie[] } | null> {
         const result = (await cdp.send('Storage.getCookies', {
             browserContextId: undefined,
@@ -39,8 +38,7 @@ export class CdpCookieExtractor implements IBrowserExtractor {
         if (!filtered.length) return null;
 
         if (rule.match !== '*') {
-            const names = new Set(rule.match.split(',').map((n) => n.trim()));
-            filtered = filtered.filter((c) => names.has(c.name));
+            filtered = filtered.filter((c) => c.name === rule.match);
             if (!filtered.length) return null;
         }
 

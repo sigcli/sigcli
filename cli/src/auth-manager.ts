@@ -245,7 +245,7 @@ export class AuthManager {
         }
 
         this.logger.info(`${provider.id}: cache hit`);
-        return creds as ExtractedCredentials;
+        return creds;
     }
 
     private async getExpiresAt(provider: ProviderConfig): Promise<Date | null> {

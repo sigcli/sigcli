@@ -90,41 +90,6 @@ describe('HeadlessCookieExtractor', () => {
         });
     });
 
-    describe('match: comma-separated names', () => {
-        it('filters to the listed cookies only', async () => {
-            const ctx = makeCtx([
-                { name: 'a', value: '1', domain: DOMAIN },
-                { name: 'b', value: '2', domain: DOMAIN },
-                { name: 'c', value: '3', domain: DOMAIN },
-            ]);
-            const rule = makeRule({ as: 'creds', match: 'a,b' });
-            const result = await extractor.extract(ctx, rule, DOMAINS);
-
-            expect(result).not.toBeNull();
-            expect(result!.value).toBe('a=1; b=2');
-        });
-
-        it('handles spaces around commas in match', async () => {
-            const ctx = makeCtx([
-                { name: 'a', value: '1', domain: DOMAIN },
-                { name: 'b', value: '2', domain: DOMAIN },
-            ]);
-            const rule = makeRule({ as: 'creds', match: 'a, b' });
-            const result = await extractor.extract(ctx, rule, DOMAINS);
-
-            expect(result).not.toBeNull();
-            expect(result!.value).toBe('a=1; b=2');
-        });
-
-        it('returns null when none of the listed cookies match', async () => {
-            const ctx = makeCtx([{ name: 'other', value: 'v', domain: DOMAIN }]);
-            const rule = makeRule({ as: 'creds', match: 'a,b' });
-            const result = await extractor.extract(ctx, rule, DOMAINS);
-
-            expect(result).toBeNull();
-        });
-    });
-
     describe('domain filtering', () => {
         it('returns null when no cookies match the provider domains', async () => {
             const ctx = makeCtx([{ name: 'session', value: 'abc', domain: 'other.com' }]);

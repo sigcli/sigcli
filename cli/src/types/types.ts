@@ -49,7 +49,7 @@ export interface StoredCredential {
     strategy: string; // Strategy name that produced this credential
     updatedAt: string; // ISO timestamp
     expiresAt?: string; // ISO timestamp — computed from cookie expiry
-    values: Record<string, unknown>;
+    values: Record<string, string>; // Renamed from 'credentials', narrowed from 'unknown'
 }
 
 export interface StoredEntry {

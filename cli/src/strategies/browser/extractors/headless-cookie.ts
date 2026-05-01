@@ -22,8 +22,7 @@ export class HeadlessCookieExtractor implements IHeadlessExtractor {
         if (!filtered.length) return null;
 
         if (rule.match !== '*') {
-            const names = new Set(rule.match.split(',').map((n) => n.trim()));
-            filtered = filtered.filter((c) => names.has(c.name));
+            filtered = filtered.filter((c) => c.name === rule.match);
             if (!filtered.length) return null;
         }
 
