@@ -56,7 +56,7 @@ storage:
 #       - in: header
 #         name: Cookie
 #         value: "\${session}"
-#     # ttl: 12h                         # Optional: credential lifetime
+#     # ttl: 2h                             # Approximate credential lifetime (default: 2h)
 #     # waitUntil: networkidle           # Optional: load|networkidle|domcontentloaded|commit
 #     # loginUrlPatterns:                   # Optional: custom URL patterns to detect login pages
 #     #   - /login
