@@ -120,6 +120,16 @@ export const pageContent = {
         tocItem('#config-apply', 'apply[] rules', {
             level: 1,
             parent: '#configuration',
+            prefix: '├ ',
+        }),
+        tocItem('#required-field', 'The required field', {
+            level: 1,
+            parent: '#configuration',
+            prefix: '├ ',
+        }),
+        tocItem('#localstorage-extraction', 'localStorage extraction', {
+            level: 1,
+            parent: '#configuration',
             prefix: '└ ',
         }),
         tocItem('#browser-adapters', 'Browser Adapters'),
@@ -1104,6 +1114,241 @@ providers:
 
   # Inject into query string
   - { in: query, name: api_key, value: "\${api_key}" }`}</CodeBlock>
+
+                    <SectionHeading id="required-field" level={2}>
+                        The <Code>required</Code> field
+                    </SectionHeading>
+                    <P>
+                        The <Code>required</Code> field validates that extracted credentials contain
+                        specific cookies before sigcli accepts and stores them. Without it, sigcli
+                        may happily store tracking or guest cookies that most public websites set
+                        for every visitor — leaving you with useless credentials.
+                    </P>
+                    <P>
+                        <strong>Format:</strong> <Code>{'required: ["<as>.<cookie_name>"]'}</Code> —
+                        the prefix is the <Code>as</Code> name from your extract rule, the suffix is
+                        the cookie name that must be present inside that extracted value.
+                    </P>
+                    <CodeBlock lang="yaml">{`# Require two specific cookies inside the "cookie" extraction
+required: ["cookie.reddit_session", "cookie.token_v2"]
+
+# Require a localStorage token (no dot-suffix needed — the as name itself is checked)
+required: ["access_token"]`}</CodeBlock>
+                    <P>
+                        <strong>Behavior when required cookies are missing:</strong>
+                    </P>
+                    <List>
+                        <Li>
+                            Headless extraction is rejected immediately — sigcli does not store the
+                            result.
+                        </Li>
+                        <Li>
+                            Sigcli falls back to CDP (real browser, where you are actually logged
+                            in) and re-checks.
+                        </Li>
+                        <Li>
+                            If CDP also fails the required check, authentication fails with a clear
+                            error message listing the missing cookies.
+                        </Li>
+                    </List>
+                    <P>
+                        <strong>When to use it:</strong> Add <Code>required</Code> to any provider
+                        for a public site (social media, forums, news). These sites set cookies to
+                        all visitors; without <Code>required</Code>, auto-provisioned providers will
+                        store those useless guest cookies as if login succeeded.
+                    </P>
+                    <CodeBlock lang="yaml">{`reddit:
+  domains: [www.reddit.com, reddit.com]
+  entryUrl: https://www.reddit.com/
+  strategy: browser
+  required: ["cookie.reddit_session", "cookie.token_v2"]
+  extract:
+    - from: cookies
+      as: cookie
+      match: "*"
+  apply:
+    - in: header
+      name: Cookie
+      value: "\${cookie}"`}</CodeBlock>
+                    <P>Common sites and the cookies they require after login:</P>
+                    <div className="w-full max-w-full overflow-x-auto" style={{ padding: '8px 0' }}>
+                        <table
+                            className="w-full"
+                            style={{ borderSpacing: 0, borderCollapse: 'collapse' }}
+                        >
+                            <thead>
+                                <tr>
+                                    {['Site', 'Required Cookies'].map((h) => (
+                                        <th
+                                            key={h}
+                                            className="text-left"
+                                            style={{
+                                                padding: '4px 12px 4px 0',
+                                                fontSize: 'var(--type-table-size)',
+                                                fontFamily: 'var(--font-primary)',
+                                                fontWeight: 400,
+                                                color: 'var(--text-muted)',
+                                                borderBottom: '1px solid var(--page-border)',
+                                            }}
+                                        >
+                                            {h}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {[
+                                    ['Bilibili', 'SESSDATA, bili_jct'],
+                                    ['Reddit', 'reddit_session, token_v2'],
+                                    ['X (Twitter)', 'ct0, auth_token'],
+                                    ['YouTube', 'SAPISID, __Secure-3PAPISID'],
+                                    ['LinkedIn', 'JSESSIONID, li_at'],
+                                ].map(([site, cookies]) => (
+                                    <tr key={site}>
+                                        <td
+                                            style={{
+                                                padding: '4px 12px 4px 0',
+                                                fontSize: 'var(--type-table-size)',
+                                                fontFamily: 'var(--font-primary)',
+                                                fontWeight: 475,
+                                                color: 'var(--text-primary)',
+                                                borderBottom: '1px solid var(--page-border)',
+                                            }}
+                                        >
+                                            {site}
+                                        </td>
+                                        <td
+                                            style={{
+                                                padding: '4px 12px 4px 0',
+                                                fontSize: 'var(--type-table-size)',
+                                                fontFamily: 'var(--font-code)',
+                                                fontWeight: 475,
+                                                color: 'var(--text-primary)',
+                                                borderBottom: '1px solid var(--page-border)',
+                                            }}
+                                        >
+                                            {cookies}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <SectionHeading id="localstorage-extraction" level={2}>
+                        localStorage Extraction
+                    </SectionHeading>
+                    <P>
+                        Some sites store auth tokens in browser localStorage instead of cookies.
+                        This is common with OAuth2/MSAL flows (Microsoft Teams, Graph API), Slack,
+                        and modern single-page applications. Use <Code>from: localStorage</Code> in
+                        your extract rules to capture these tokens.
+                    </P>
+
+                    <P>
+                        <strong>How it works:</strong> The <Code>match</Code> field specifies which
+                        localStorage key to look up — either an exact key name or a glob pattern
+                        using <Code>*</Code> wildcards. The optional <Code>jsonPath</Code> field
+                        extracts a nested value when the localStorage entry is a JSON string.
+                    </P>
+
+                    <CodeBlock lang="yaml">{`extract:
+  # Exact key lookup
+  - from: localStorage
+    as: xoxc-token
+    match: "localConfig_v2"
+    jsonPath: "teams.E7RBBBXHB.token"
+
+  # Glob pattern (MSAL stores tokens with long compound keys)
+  - from: localStorage
+    as: access_token
+    match: "*|accesstoken|*graph.microsoft.com*"
+    jsonPath: secret`}</CodeBlock>
+
+                    <P>
+                        <strong>Match patterns:</strong>
+                    </P>
+                    <List>
+                        <Li>
+                            <strong>Exact:</strong> <Code>match: "localConfig_v2"</Code> — looks up
+                            this exact localStorage key.
+                        </Li>
+                        <Li>
+                            <strong>Glob:</strong>{' '}
+                            <Code>{'match: "*|accesstoken|*graph.microsoft.com*"'}</Code> — matches
+                            keys using <Code>*</Code> wildcards. MSAL stores OAuth2 tokens with long
+                            compound keys like{' '}
+                            <Code>
+                                {
+                                    'user@tenant.com-login.microsoftonline.com-accesstoken-client_id-graph.microsoft.com-openid'
+                                }
+                            </Code>
+                            ; a glob pattern matches all of them regardless of tenant or client ID.
+                        </Li>
+                    </List>
+
+                    <P>
+                        <strong>jsonPath:</strong> Used when the localStorage value is a JSON string
+                        and you need a specific field. Uses dot notation to traverse nested objects:
+                    </P>
+                    <List>
+                        <Li>
+                            <Code>jsonPath: "teams.E7RBBBXHB.token"</Code> — traverses{' '}
+                            <Code>value.teams.E7RBBBXHB.token</Code>
+                        </Li>
+                        <Li>
+                            <Code>jsonPath: secret</Code> — reads the top-level <Code>secret</Code>{' '}
+                            field (MSAL token objects store the raw token here)
+                        </Li>
+                    </List>
+
+                    <P>
+                        <strong>Debugging:</strong> Open browser DevTools → Application → Local
+                        Storage → select the domain. Find the key that matches your pattern, then
+                        inspect the value to determine the correct <Code>jsonPath</Code>.
+                    </P>
+
+                    <P>
+                        <strong>Microsoft Teams (MSAL OAuth2):</strong>
+                    </P>
+                    <CodeBlock lang="yaml">{`ms-teams:
+  domains: [teams.cloud.microsoft]
+  entryUrl: https://teams.cloud.microsoft/v2/
+  strategy: browser
+  required: ["access_token"]
+  extract:
+    - from: localStorage
+      as: access_token
+      match: "*|accesstoken|*ic3.teams.office.com*"
+      jsonPath: secret
+  apply:
+    - in: header
+      name: Authorization
+      value: "Bearer \${access_token}"`}</CodeBlock>
+
+                    <P>
+                        <strong>Slack (cookie + localStorage):</strong>
+                    </P>
+                    <CodeBlock lang="yaml">{`app-slack:
+  domains: [your-org.enterprise.slack.com]
+  entryUrl: https://app.slack.com/client/YOUR_TEAM_ID
+  strategy: browser
+  required: ["session.d", "xoxc-token"]
+  extract:
+    - from: cookies
+      as: session
+      match: "*"
+    - from: localStorage
+      as: xoxc-token
+      match: "localConfig_v2"
+      jsonPath: "teams.YOUR_TEAM_ID.token"
+  apply:
+    - in: header
+      name: Cookie
+      value: "\${session}"
+    - in: header
+      name: Authorization
+      value: "Bearer \${xoxc-token}"`}</CodeBlock>
 
                     <P>
                         <strong>Real-world examples:</strong>
