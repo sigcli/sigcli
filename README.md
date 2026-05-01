@@ -56,7 +56,24 @@ For SSO-protected internal tools, just run:
 sig login https://jira.example.com
 ```
 
-sig opens a real browser, you log in, and it captures session cookies automatically. No config file needed.
+sig opens a real browser, you log in, and it writes config automatically:
+
+```yaml
+# ~/.sig/config.yaml (auto-generated)
+jira-example:
+    domains:
+        - jira.example.com
+    entryUrl: https://jira.example.com/
+    strategy: browser
+    extract:
+        - from: cookies
+          as: session
+          match: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: '${session}'
+```
 
 ### 2. Adding `required` cookies
 
@@ -64,14 +81,21 @@ Public sites set tracking cookies to **all visitors**. Without `required`, sig c
 
 ```yaml
 bilibili:
-    domains: [www.bilibili.com]
+    domains:
+        - www.bilibili.com
     entryUrl: https://www.bilibili.com/
     strategy: browser
-    required: ['cookie.SESSDATA', 'cookie.bili_jct']
+    required:
+        - cookie.SESSDATA
+        - cookie.bili_jct
     extract:
-        - { from: cookies, as: cookie, match: '*' }
+        - from: cookies
+          as: cookie
+          match: '*'
     apply:
-        - { in: header, name: Cookie, value: '${cookie}' }
+        - in: header
+          name: Cookie
+          value: '${cookie}'
 ```
 
 When required cookies are missing, sig falls back from headless to your real browser where you're logged in.
@@ -92,15 +116,23 @@ Some sites use multiple domains (e.g. x.com migrated from twitter.com). List all
 
 ```yaml
 x:
-    domains: [x.com, twitter.com]
+    domains:
+        - x.com
+        - twitter.com
     entryUrl: https://x.com/
     strategy: browser
     networkProxy: socks5://127.0.0.1:3333
-    required: ['cookie.ct0', 'cookie.auth_token']
+    required:
+        - cookie.ct0
+        - cookie.auth_token
     extract:
-        - { from: cookies, as: cookie, match: '*' }
+        - from: cookies
+          as: cookie
+          match: '*'
     apply:
-        - { in: header, name: Cookie, value: '${cookie}' }
+        - in: header
+          name: Cookie
+          value: '${cookie}'
 ```
 
 ### 4. localStorage extraction (advanced)
@@ -109,19 +141,28 @@ Some apps store tokens in localStorage instead of cookies. Use `from: localStora
 
 ```yaml
 app-slack:
-    domains: [your-org.enterprise.slack.com]
+    domains:
+        - your-org.enterprise.slack.com
     entryUrl: https://app.slack.com/client/YOUR_TEAM_ID
     strategy: browser
-    required: ['session.d', 'xoxc-token']
+    required:
+        - session.d
+        - xoxc-token
     extract:
-        - { from: cookies, as: session, match: '*' }
+        - from: cookies
+          as: session
+          match: '*'
         - from: localStorage
           as: xoxc-token
           match: localConfig_v2
           jsonPath: teams.YOUR_TEAM_ID.token
     apply:
-        - { in: header, name: Cookie, value: '${session}' }
-        - { in: header, name: Authorization, value: 'Bearer ${xoxc-token}' }
+        - in: header
+          name: Cookie
+          value: '${session}'
+        - in: header
+          name: Authorization
+          value: 'Bearer ${xoxc-token}'
 ```
 
 Full guide with debugging tips at **[sigcli.ai](https://sigcli.ai)**.
