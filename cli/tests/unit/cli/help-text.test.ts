@@ -106,10 +106,10 @@ describe('CLI help text grouping (#9)', () => {
         expect(output).toContain('--remote');
     });
 
-    it('help output does not mention --verbose', async () => {
+    it('help output mentions --verbose', async () => {
         await run(['help']);
         const output = stdoutChunks.join('');
-        expect(output).not.toContain('--verbose');
+        expect(output).toContain('--verbose');
     });
 
     it('--help flag on any command shows help text', async () => {

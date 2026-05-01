@@ -102,6 +102,19 @@ export class BrowserStrategy implements IStrategy {
             cdpClient = await connectCdpWs(wsUrl);
             this.logger.info(`${provider.id}: headless CDP connected`);
 
+            // Navigate to entryUrl so the server can set session cookies (e.g. JSESSIONID)
+            const sessionId = await attachToPageTarget(cdpClient);
+            if (sessionId) {
+                await cdpClient.send('Page.navigate', { url: provider.entryUrl }, sessionId);
+                await this.waitForPageReady(
+                    cdpClient,
+                    sessionId,
+                    provider.waitUntil ?? this.browserConfig.waitUntil,
+                    this.browserConfig.headlessTimeout,
+                );
+                this.logger.info(`${provider.id}: headless navigated to entryUrl`);
+            }
+
             const credentials: ExtractedCredentials = {};
             let expiresAt: string | undefined;
 
@@ -329,8 +342,35 @@ export class BrowserStrategy implements IStrategy {
             return result?.result?.value as T;
         };
     }
-}
 
-// =========================================================================
-// Helpers
-// =========================================================================
+    private async waitForPageReady(
+        cdp: CdpWsClient,
+        sessionId: string,
+        waitUntil: string,
+        timeout: number,
+    ): Promise<void> {
+        const deadline = Date.now() + timeout;
+        const targetState = waitUntil === 'domcontentloaded' ? 'interactive' : 'complete';
+
+        if (waitUntil === 'commit') {
+            await new Promise((r) => setTimeout(r, 500));
+            return;
+        }
+
+        while (Date.now() < deadline) {
+            try {
+                await cdp.send('Runtime.enable', {}, sessionId).catch(() => {});
+                const result = (await cdp.send(
+                    'Runtime.evaluate',
+                    { expression: 'document.readyState', returnByValue: true },
+                    sessionId,
+                )) as { result?: { value?: string } };
+                const state = result?.result?.value;
+                if (state === 'complete' || state === targetState) return;
+            } catch {
+                // Page may be mid-navigation
+            }
+            await new Promise((r) => setTimeout(r, 300));
+        }
+    }
+}
