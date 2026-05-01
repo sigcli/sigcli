@@ -44,20 +44,6 @@ in your browser         -->   credentials locally          -->  on your behalf
 
 **sig login** opens a real browser to the provider's entry URL. You log in normally — SSO, MFA, SAML, anything. Once authenticated, sig extracts credentials (cookies, localStorage tokens) based on your config's `extract[]` rules, encrypts them with AES-256-GCM, and stores them locally. When your agent needs to make a request, `apply[]` rules control how credentials are injected into HTTP headers, body, or query params.
 
-### Config Example
-
-```yaml
-providers:
-    my-jira:
-        domains: [jira.example.com]
-        entryUrl: https://jira.example.com/
-        strategy: browser
-        extract:
-            - { from: cookies, as: session, match: '*' }
-        apply:
-            - { in: header, name: Cookie, value: '${session}' }
-```
-
 ## Provider Configuration
 
 Most enterprise and SSO sites work with zero config — `sig login <url>` detects cookies automatically. Public sites with tracking cookies need a little more.
