@@ -1278,8 +1278,8 @@ providers:
                     <P>
                         每条规则告诉 sigcli 登录后从浏览器中提取什么。三个必填字段：
                         <Code>from</Code>（从哪里）、<Code>as</Code>（输出变量名）、
-                        <Code>match</Code>（提取什么）。可选的 <Code>jsonPath</Code>{' '}
-                        字段用于当值为 JSON 时提取嵌套字段。
+                        <Code>match</Code>（提取什么）。可选的 <Code>jsonPath</Code> 字段用于当值为
+                        JSON 时提取嵌套字段。
                     </P>
                     <CodeBlock lang="yaml">{`extract:
   # 域名下的所有 cookie

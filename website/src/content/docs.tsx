@@ -1074,8 +1074,8 @@ providers:
                         Each entry tells sigcli what to pull from the browser after login. Three
                         required fields: <Code>from</Code> (where), <Code>as</Code> (output variable
                         name), and <Code>match</Code> (what to grab). An optional{' '}
-                        <Code>jsonPath</Code> field extracts a nested value when the matched value is
-                        JSON.
+                        <Code>jsonPath</Code> field extracts a nested value when the matched value
+                        is JSON.
                     </P>
                     <CodeBlock lang="yaml">{`extract:
   # All cookies from the domain
@@ -1092,8 +1092,8 @@ providers:
                     </SectionHeading>
                     <P>
                         Each entry tells sigcli how to inject extracted values into HTTP requests.
-                        Template variables (<Code>{'${as}'}</Code>) reference the{' '}
-                        <Code>as</Code> field from your extract rules.
+                        Template variables (<Code>{'${as}'}</Code>) reference the <Code>as</Code>{' '}
+                        field from your extract rules.
                     </P>
                     <CodeBlock lang="yaml">{`apply:
   # Inject all cookies as a Cookie header
