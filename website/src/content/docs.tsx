@@ -1121,13 +1121,13 @@ providers:
                     <P>
                         The <Code>required</Code> field validates that extracted credentials contain
                         specific cookies before sigcli accepts and stores them. Without it, sigcli
-                        may happily store tracking or guest cookies that most public websites set for
-                        every visitor — leaving you with useless credentials.
+                        may happily store tracking or guest cookies that most public websites set
+                        for every visitor — leaving you with useless credentials.
                     </P>
                     <P>
-                        <strong>Format:</strong> <Code>{"required: [\"<as>.<cookie_name>\"]"}</Code>{' '}
-                        — the prefix is the <Code>as</Code> name from your extract rule, the suffix
-                        is the cookie name that must be present inside that extracted value.
+                        <strong>Format:</strong> <Code>{'required: ["<as>.<cookie_name>"]'}</Code> —
+                        the prefix is the <Code>as</Code> name from your extract rule, the suffix is
+                        the cookie name that must be present inside that extracted value.
                     </P>
                     <CodeBlock lang="yaml">{`# Require two specific cookies inside the "cookie" extraction
 required: ["cookie.reddit_session", "cookie.token_v2"]
