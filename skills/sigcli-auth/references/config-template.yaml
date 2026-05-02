@@ -18,41 +18,43 @@ storage:
 providers:
     # ── Microsoft Teams Chat API ────────────────────────────────────────────
     # OAuth2 bearer token extracted from MSAL localStorage.
+    # Env var: SIG_MS_TEAMS_TOKEN (used by scripts as --token "$SIG_MS_TEAMS_TOKEN")
     ms-teams:
         name: Microsoft Teams
         domains: ['teams.cloud.microsoft']
         entryUrl: https://teams.cloud.microsoft/v2/
         strategy: browser
         required:
-            - access_token
+            - token
         extract:
             - from: localStorage
-              as: access_token
+              as: token
               match: 'msal.*.accesstoken.*'
               jsonPath: 'secret'
         apply:
             - in: header
               name: Authorization
-              value: 'Bearer ${access_token}'
+              value: 'Bearer ${token}'
 
     # ── Microsoft Graph API (Outlook + Teams people search) ─────────────────
     # Same login page as ms-teams, different audience token.
+    # Env var: SIG_MS_GRAPH_TOKEN (used by scripts as --graph-token "$SIG_MS_GRAPH_TOKEN")
     ms-graph:
         name: Microsoft Graph
         domains: ['graph.microsoft.com']
         entryUrl: https://teams.cloud.microsoft/v2/
         strategy: browser
         required:
-            - access_token
+            - token
         extract:
             - from: localStorage
-              as: access_token
+              as: token
               match: 'msal.*.accesstoken.*'
               jsonPath: 'secret'
         apply:
             - in: header
               name: Authorization
-              value: 'Bearer ${access_token}'
+              value: 'Bearer ${token}'
 
     # ── Slack ───────────────────────────────────────────────────────────────
     # Cookie (xoxd) + localStorage (xoxc token).
@@ -64,6 +66,8 @@ providers:
     # To find your Team ID: open Slack in a browser → the URL looks like
     #   https://app.slack.com/client/<TEAM_ID>/...
     # Enterprise Grid orgs start with "E", regular workspaces start with "T".
+    #
+    # Env vars: SIG_APP_SLACK_COOKIE, SIG_APP_SLACK_LOCAL_XOXC_TOKEN
     app-slack:
         name: Slack
         domains: ['<your-workspace>.slack.com', 'edgeapi.slack.com']
@@ -71,23 +75,23 @@ providers:
         strategy: browser
         ttl: '7d'
         required:
-            - session.d
-            - xoxc-token
+            - cookie.d
+            - local_xoxc_token
         extract:
             - from: cookies
-              as: session
+              as: cookie
               match: '*'
             - from: localStorage
-              as: xoxc-token
+              as: local_xoxc_token
               match: 'localConfig_v2'
               jsonPath: 'teams.<your-team-id>.token'
         apply:
             - in: header
               name: Cookie
-              value: '${session}'
+              value: '${cookie}'
             - in: header
               name: Authorization
-              value: 'Bearer ${xoxc-token}'
+              value: 'Bearer ${local_xoxc_token}'
 
 # ── Optional: auto-refresh credentials before they expire ─────────────────
 # Managed by: sig watch add/remove/set-interval

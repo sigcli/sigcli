@@ -156,9 +156,9 @@ Use `sig run` to inject credentials as `SIG_<PROVIDER>_*` environment variables.
 # Run a script with credentials
 sig run grafana -- python fetch_data.py
 
-# Env vars injected (for provider "jira-tools", extract as: "session"):
+# Env vars injected (for provider "jira-tools", extract as: "cookie"):
 #   SIG_JIRA_TOOLS_PROVIDER=jira-tools
-#   SIG_JIRA_TOOLS_SESSION=<value>
+#   SIG_JIRA_TOOLS_COOKIE=<value>
 
 # Multiple providers at once
 sig run provider-a provider-b -- python cross_tool.py
@@ -318,13 +318,15 @@ my-jira:
     ttl: '10d'
     extract:
         - from: cookies
-          as: session
+          as: cookie
           match: '*'
     apply:
         - in: header
           name: Cookie
-          value: '${session}'
+          value: '${cookie}'
 ```
+
+Env var produced: `SIG_MY_JIRA_COOKIE`
 
 **Cookie path scoping (Confluence):**
 
@@ -336,12 +338,12 @@ my-wiki:
     cookiePaths: [/wiki]
     extract:
         - from: cookies
-          as: session
+          as: cookie
           match: '*'
     apply:
         - in: header
           name: Cookie
-          value: '${session}'
+          value: '${cookie}'
 ```
 
 **Required cookies (Reddit):**
@@ -354,17 +356,19 @@ reddit:
     ttl: '7d'
     networkProxy: socks5h://127.0.0.1:1080
     required:
-        - session.reddit_session
-        - session.token_v2
+        - cookie.reddit_session
+        - cookie.token_v2
     extract:
         - from: cookies
-          as: session
+          as: cookie
           match: '*'
     apply:
         - in: header
           name: Cookie
-          value: '${session}'
+          value: '${cookie}'
 ```
+
+Env var produced: `SIG_REDDIT_COOKIE`
 
 **Cookies + localStorage (Slack):**
 
@@ -375,24 +379,26 @@ app-slack:
     strategy: browser
     ttl: '7d'
     required:
-        - session.d
-        - xoxc-token
+        - cookie.d
+        - local_xoxc_token
     extract:
         - from: cookies
-          as: session
+          as: cookie
           match: '*'
         - from: localStorage
-          as: xoxc-token
+          as: local_xoxc_token
           match: 'localConfig_v2'
           jsonPath: 'teams.<TEAM_ID>.token'
     apply:
         - in: header
           name: Cookie
-          value: '${session}'
+          value: '${cookie}'
         - in: header
           name: Authorization
-          value: 'Bearer ${xoxc-token}'
+          value: 'Bearer ${local_xoxc_token}'
 ```
+
+Env vars produced: `SIG_APP_SLACK_COOKIE`, `SIG_APP_SLACK_LOCAL_XOXC_TOKEN`
 
 **OAuth2 via localStorage (Microsoft Teams):**
 
@@ -403,17 +409,19 @@ ms-teams:
     entryUrl: https://teams.cloud.microsoft/v2/
     strategy: browser
     required:
-        - access_token
+        - token
     extract:
         - from: localStorage
-          as: access_token
+          as: token
           match: 'msal.*.accesstoken.*'
           jsonPath: 'secret'
     apply:
         - in: header
           name: Authorization
-          value: 'Bearer ${access_token}'
+          value: 'Bearer ${token}'
 ```
+
+Env var produced: `SIG_MS_TEAMS_TOKEN`
 
 **Prompt strategy (no browser):**
 

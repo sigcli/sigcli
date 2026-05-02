@@ -43,16 +43,16 @@ ms-graph:
     domains: [graph.microsoft.com]
     entryUrl: https://teams.cloud.microsoft/v2/
     strategy: browser
-    required: [access_token]
+    required: [token]
     extract:
         - from: localStorage
-          as: access_token
+          as: token
           match: '*|accesstoken|*graph.microsoft.com*'
           jsonPath: secret
     apply:
         - in: header
           name: Authorization
-          value: 'Bearer ${access_token}'
+          value: 'Bearer ${token}'
 ```
 
 No separate Outlook-specific provider is needed — the Graph API token covers all mail endpoints. The token is extracted from Teams portal localStorage after you log in at the entry URL.
