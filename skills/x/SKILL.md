@@ -40,15 +40,16 @@ x:
     entryUrl: https://x.com/i/flow/login
     strategy: browser
     ttl: '7d'
-    required: [session.ct0, session.auth_token]
+    networkProxy: socks5h://127.0.0.1:1080
+    required: [cookie.ct0, cookie.auth_token]
     extract:
         - from: cookies
-          as: session
+          as: cookie
           match: '*'
     apply:
         - in: header
           name: Cookie
-          value: '${session}'
+          value: '${cookie}'
 ```
 
 ## Scripts Reference
@@ -62,7 +63,7 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 | `x_user.py`      | User profile           | None     |
 | `x_tweets.py`    | User's tweet timeline  | None     |
 | `x_tweet.py`     | Single tweet + thread  | None     |
-| `x_search.py`    | Search tweets          | None     |
+| `x_search.py`    | Search tweets          | Required |
 | `x_trending.py`  | Trending topics        | Required |
 | `x_followers.py` | Followers or following | Required |
 
@@ -166,13 +167,13 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 ## Known Limitations
 
-**Verified live** (working): `x_user.py`, `x_tweets.py`, `x_tweet.py`, `x_trending.py`
+**Verified live** (working): `x_user.py`, `x_tweets.py`, `x_tweet.py`, `x_trending.py`, `x_search.py`, `x_followers.py`
 
-**Not yet verified live** (unit-tested only): `x_search.py`, `x_followers.py`, `x_post.py`, `x_like.py`, `x_retweet.py`, `x_follow.py`, `x_bookmark.py`. These scripts follow the same GraphQL patterns as the verified ones but have not been tested against the live API. If you encounter issues, please open an issue or PR.
+**Not yet verified live** (unit-tested only): `x_post.py`, `x_like.py`, `x_retweet.py`, `x_follow.py`, `x_bookmark.py`. These scripts follow the same GraphQL patterns as the verified ones but have not been tested against the live API.
 
 **Query ID rotation** — X rotates GraphQL query IDs with each deployment. The client auto-resolves fresh IDs from X's JS bundles and caches them for 1 hour. If a request returns 404, it may be a stale query ID — restart the script to force a refresh.
 
-**Account restrictions** — Some endpoints (search, followers) may return 404 for accounts that are new, unverified, or suspended. This is an X-side restriction, not a script bug.
+**POST required for some endpoints** — X now requires POST (not GET) for SearchTimeline and Followers GraphQL endpoints. The scripts handle this automatically.
 
 **Login caution** — Using `sig login https://x.com/` (headless browser) can trigger X's bot detection and result in account suspension. Prefer `sig login --cookie "..."` with cookies copied from a real browser session.
 
@@ -219,7 +220,7 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 ### Search for tweets
 
-1. `python3 scripts/x_search.py --query "machine learning" --type top --limit 10`
+1. `sig run x -- python3 scripts/x_search.py --query "machine learning" --type top --limit 10`
 
 ### Check trending topics
 
