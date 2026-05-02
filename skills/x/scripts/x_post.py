@@ -27,11 +27,12 @@ def create_tweet(cookie: str, text: str, reply_to: str = "") -> dict:
         }
 
     data = client.graphql_post("CreateTweet", variables, features=FEATURES_TIMELINE)
-    result = (data.get("data") or {}).get("create_tweet", {}).get("tweet_results", {}).get("result")
+    create_tweet_data = (data.get("data") or {}).get("create_tweet", {})
+    result = create_tweet_data.get("tweet_results", {}).get("result")
     if not result:
         raise XApiError("POST_FAILED", "Tweet creation failed — check response or try again")
 
-    tweet_id = result.get("rest_id") or ""
+    tweet_id = (result or {}).get("rest_id") or ""
     return {
         "success": True,
         "tweet_id": tweet_id,
