@@ -1,18 +1,90 @@
 'use client';
 
 const skills = [
-    { name: 'Outlook', platform: 'Email', read: 'Inbox, search, folders', write: 'Send, reply, forward', auth: 'OAuth2' },
-    { name: 'MS Teams', platform: 'Chat', read: 'Messages, channels, calendar', write: 'Send messages', auth: 'OAuth2' },
-    { name: 'Slack', platform: 'Chat', read: 'Channels, search, users', write: 'Send messages, reactions', auth: 'Cookie' },
-    { name: 'V2EX', platform: 'Forum', read: 'Hot topics, search, threads', write: 'Post, reply, favorite', auth: 'Cookie' },
-    { name: 'Reddit', platform: 'Forum', read: 'Hot posts, search, users', write: 'Post, comment, vote', auth: 'Cookie' },
-    { name: 'Hacker News', platform: 'Forum', read: 'Top/new/best, search', write: 'Comment, vote', auth: 'Cookie' },
-    { name: 'Zhihu', platform: 'Q&A', read: 'Hot list, search, answers', write: 'Read-only', auth: 'Cookie' },
-    { name: 'Bilibili', platform: 'Video', read: 'Trending, search, comments', write: 'Like, coin, favorite', auth: 'Cookie' },
-    { name: 'YouTube', platform: 'Video', read: 'Search, channels, comments', write: 'Like, subscribe', auth: 'Cookie' },
-    { name: 'X (Twitter)', platform: 'Social', read: 'Users, tweets, trending', write: 'Tweet, like, retweet', auth: 'Cookie' },
-    { name: 'LinkedIn', platform: 'Professional', read: 'Profiles, feed, jobs', write: 'Post, like, connect', auth: 'Cookie' },
-    { name: 'Xiaohongshu', platform: 'Social', read: 'Feed, search, notes', write: 'Like, favorite', auth: 'Cookie' },
+    {
+        name: 'Outlook',
+        platform: 'Email',
+        read: 'Inbox, search, folders',
+        write: 'Send, reply, forward',
+        auth: 'OAuth2',
+    },
+    {
+        name: 'MS Teams',
+        platform: 'Chat',
+        read: 'Messages, channels, calendar',
+        write: 'Send messages',
+        auth: 'OAuth2',
+    },
+    {
+        name: 'Slack',
+        platform: 'Chat',
+        read: 'Channels, search, users',
+        write: 'Send messages, reactions',
+        auth: 'Cookie',
+    },
+    {
+        name: 'V2EX',
+        platform: 'Forum',
+        read: 'Hot topics, search, threads',
+        write: 'Post, reply, favorite',
+        auth: 'Cookie',
+    },
+    {
+        name: 'Reddit',
+        platform: 'Forum',
+        read: 'Hot posts, search, users',
+        write: 'Post, comment, vote',
+        auth: 'Cookie',
+    },
+    {
+        name: 'Hacker News',
+        platform: 'Forum',
+        read: 'Top/new/best, search',
+        write: 'Comment, vote',
+        auth: 'Cookie',
+    },
+    {
+        name: 'Zhihu',
+        platform: 'Q&A',
+        read: 'Hot list, search, answers',
+        write: 'Read-only',
+        auth: 'Cookie',
+    },
+    {
+        name: 'Bilibili',
+        platform: 'Video',
+        read: 'Trending, search, comments',
+        write: 'Like, coin, favorite',
+        auth: 'Cookie',
+    },
+    {
+        name: 'YouTube',
+        platform: 'Video',
+        read: 'Search, channels, comments',
+        write: 'Like, subscribe',
+        auth: 'Cookie',
+    },
+    {
+        name: 'X (Twitter)',
+        platform: 'Social',
+        read: 'Users, tweets, trending',
+        write: 'Tweet, like, retweet',
+        auth: 'Cookie',
+    },
+    {
+        name: 'LinkedIn',
+        platform: 'Professional',
+        read: 'Profiles, feed, jobs',
+        write: 'Post, like, connect',
+        auth: 'Cookie',
+    },
+    {
+        name: 'Xiaohongshu',
+        platform: 'Social',
+        read: 'Feed, search, notes',
+        write: 'Like, favorite',
+        auth: 'Cookie',
+    },
 ];
 
 export function SkillsPage() {
@@ -156,10 +228,24 @@ sig run x -- python3 scripts/x_search.py --query "AI agents"`}
                     >
                         Skills Catalog
                     </h2>
-                    <div className="overflow-x-auto rounded-lg" style={{ border: '1px solid var(--page-border)' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                    <div
+                        className="overflow-x-auto rounded-lg"
+                        style={{ border: '1px solid var(--page-border)' }}
+                    >
+                        <table
+                            style={{
+                                width: '100%',
+                                borderCollapse: 'collapse',
+                                fontSize: '0.9rem',
+                            }}
+                        >
                             <thead>
-                                <tr style={{ borderBottom: '1px solid var(--page-border)', background: 'rgba(0,0,0,0.02)' }}>
+                                <tr
+                                    style={{
+                                        borderBottom: '1px solid var(--page-border)',
+                                        background: 'rgba(0,0,0,0.02)',
+                                    }}
+                                >
                                     <Th>Skill</Th>
                                     <Th>Platform</Th>
                                     <Th>Read</Th>
@@ -169,7 +255,10 @@ sig run x -- python3 scripts/x_search.py --query "AI agents"`}
                             </thead>
                             <tbody>
                                 {skills.map((s) => (
-                                    <tr key={s.name} style={{ borderBottom: '1px solid var(--page-border)' }}>
+                                    <tr
+                                        key={s.name}
+                                        style={{ borderBottom: '1px solid var(--page-border)' }}
+                                    >
                                         <Td bold>{s.name}</Td>
                                         <Td>{s.platform}</Td>
                                         <Td>{s.read}</Td>
