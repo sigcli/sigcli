@@ -1,4 +1,4 @@
-# SigCLI configuration template for skills
+# Sigcli configuration template for skills
 # Copy to ~/.sig/config.yaml and replace <...> placeholders with your values.
 #
 # Docs: https://sigcli.ai
@@ -7,7 +7,7 @@ mode: browser
 
 browser:
     browserDataDir: ~/.sig/browser-data
-    channel: msedge # or chrome, chromium
+    channel: chrome
     headlessTimeout: 30000
     visibleTimeout: 120000
     waitUntil: load
@@ -17,36 +17,38 @@ storage:
 
 providers:
     # ── Microsoft Teams Chat API ────────────────────────────────────────────
-    # Bearer token extracted from MSAL localStorage cache.
+    # OAuth2 bearer token extracted from MSAL localStorage.
     ms-teams:
         name: Microsoft Teams
-        domains: [teams.cloud.microsoft]
+        domains: ['teams.cloud.microsoft']
         entryUrl: https://teams.cloud.microsoft/v2/
         strategy: browser
-        required: [access_token]
+        required:
+            - access_token
         extract:
             - from: localStorage
               as: access_token
-              match: '*|accesstoken|*ic3.teams.office.com*'
-              jsonPath: secret
+              match: 'msal.*.accesstoken.*'
+              jsonPath: 'secret'
         apply:
             - in: header
               name: Authorization
               value: 'Bearer ${access_token}'
 
-    # ── Microsoft Graph API (Outlook, People, Calendar) ────────────────────
-    # Same login URL as ms-teams, different audience.
+    # ── Microsoft Graph API (Outlook + Teams people search) ─────────────────
+    # Same login page as ms-teams, different audience token.
     ms-graph:
         name: Microsoft Graph
-        domains: [graph.microsoft.com]
+        domains: ['graph.microsoft.com']
         entryUrl: https://teams.cloud.microsoft/v2/
         strategy: browser
-        required: [access_token]
+        required:
+            - access_token
         extract:
             - from: localStorage
               as: access_token
-              match: '*|accesstoken|*graph.microsoft.com*'
-              jsonPath: secret
+              match: 'msal.*.accesstoken.*'
+              jsonPath: 'secret'
         apply:
             - in: header
               name: Authorization
@@ -64,11 +66,13 @@ providers:
     # Enterprise Grid orgs start with "E", regular workspaces start with "T".
     app-slack:
         name: Slack
-        domains: [<your-workspace>.slack.com] # e.g. mycompany.slack.com
+        domains: ['<your-workspace>.slack.com', 'edgeapi.slack.com']
         entryUrl: https://app.slack.com/client/<your-team-id>
         strategy: browser
         ttl: '7d'
-        required: [session.d, xoxc-token]
+        required:
+            - session.d
+            - xoxc-token
         extract:
             - from: cookies
               as: session
@@ -85,47 +89,11 @@ providers:
               name: Authorization
               value: 'Bearer ${xoxc-token}'
 
-    # ── Jira ────────────────────────────────────────────────────────────────
-    # Simple cookie extraction.
-    jira-tools:
-        name: jira.tools.sap
-        domains: [jira.tools.sap]
-        entryUrl: https://jira.tools.sap/
-        strategy: browser
-        ttl: '10d'
-        extract:
-            - from: cookies
-              as: session
-              match: '*'
-        apply:
-            - in: header
-              name: Cookie
-              value: '${session}'
-
-    # ── Wiki ────────────────────────────────────────────────────────────────
-    # Cookie with path scoping (Confluence uses /wiki path).
-    wiki-one:
-        name: wiki.one.int.sap
-        domains: [wiki.one.int.sap]
-        entryUrl: https://wiki.one.int.sap/
-        strategy: browser
-        ttl: '12h'
-        cookiePaths: ['/wiki']
-        extract:
-            - from: cookies
-              as: session
-              match: '*'
-        apply:
-            - in: header
-              name: Cookie
-              value: '${session}'
-
 # ── Optional: auto-refresh credentials before they expire ─────────────────
 # Managed by: sig watch add/remove/set-interval
 # watch:
 #   interval: "5m"
 #   providers:
-#     jira-tools:
 #     ms-teams:
 #     ms-graph:
 
