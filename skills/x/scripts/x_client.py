@@ -285,10 +285,14 @@ class XClient:
         if self._ct is not None:
             return
         try:
-            home = self._session.get("https://x.com", timeout=TIMEOUT)
+            # Use a plain session without Bearer/Auth headers — X returns 401
+            # on the home page when Authorization header is present with cookie.
+            plain = requests.Session()
+            plain.headers.update({"User-Agent": USER_AGENT})
+            home = plain.get("https://x.com", timeout=TIMEOUT)
             soup = bs4.BeautifulSoup(home.content, "html.parser")
             ondemand_url = get_ondemand_file_url(response=soup)
-            ondemand_resp = self._session.get(ondemand_url, timeout=TIMEOUT)
+            ondemand_resp = plain.get(ondemand_url, timeout=TIMEOUT)
             self._ct = ClientTransaction(home_page_response=soup, ondemand_file_response=ondemand_resp.text)
         except Exception:
             self._ct = None
