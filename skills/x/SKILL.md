@@ -12,7 +12,7 @@ View profiles, read tweets, search posts, check trending topics, and interact wi
 **Python dependencies** (install once):
 
 ```bash
-pip install requests beautifulsoup4 XClientTransaction
+pip install -r requirements.txt
 ```
 
 **Network proxy** — X is blocked in some regions. If `x.com` is not directly reachable, set a SOCKS proxy:
