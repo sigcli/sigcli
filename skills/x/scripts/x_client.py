@@ -21,7 +21,7 @@ import requests
 
 GRAPHQL_BASE = "https://x.com/i/api/graphql"
 BEARER_TOKEN = "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
-USER_AGENT = "sigcli-skill/1.0"
+USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 TIMEOUT = 20
 
 # ---------------------------------------------------------------------------
@@ -30,12 +30,12 @@ TIMEOUT = 20
 
 DEFAULT_QUERY_IDS = {
     "UserByScreenName": "IGgvgiOx4QZndDHuD3x9TQ",
-    "UserTweets": "naBcZ4al-iTCFBYGOAMzBQ",
-    "TweetDetail": "QrLp7AR-eMyamw8D1N9l6A",
-    "SearchTimeline": "XN_HccZ9SU-miQVvwTAlFQ",
-    "Followers": "xOdl9jiaOqwHUm68qsq6Hg",
-    "Following": "lQxnNSmlJkQHod0yzbVYDg",
-    "CreateTweet": "c50A_puUoQGK_4SXseYz3A",
+    "UserTweets": "Ob0lCmufQqqLTwh_Wck5XA",
+    "TweetDetail": "B3ZxDiQ__9OXTkCCuAp79w",
+    "SearchTimeline": "BqWLX1Tjvgh6eSZWEMH_kw",
+    "Followers": "QAV06ZzlL6dfYpN3JgTxeg",
+    "Following": "E2d66uAEwlxTS0vfTc7A-Q",
+    "CreateTweet": "Qkq4oPdZYuNB_Qw3TDuFqQ",
     "FavoriteTweet": "lI07N6Otwv1PhnEgXILM7A",
     "UnfavoriteTweet": "ZYKSe-w7KEslx3JhSIk5LA",
     "CreateRetweet": "mbRO74GrOvSfRcJnlMapnQ",
