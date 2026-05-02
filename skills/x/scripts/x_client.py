@@ -13,7 +13,10 @@ import re
 import time
 import urllib.parse
 
+import bs4
 import requests
+from x_client_transaction import ClientTransaction
+from x_client_transaction.utils import get_ondemand_file_url
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -36,6 +39,7 @@ DEFAULT_QUERY_IDS = {
     "Followers": "QAV06ZzlL6dfYpN3JgTxeg",
     "Following": "E2d66uAEwlxTS0vfTc7A-Q",
     "CreateTweet": "Qkq4oPdZYuNB_Qw3TDuFqQ",
+    "DeleteTweet": "nxpZCY2K-I6QoFHAHeojFQ",
     "FavoriteTweet": "lI07N6Otwv1PhnEgXILM7A",
     "UnfavoriteTweet": "ZYKSe-w7KEslx3JhSIk5LA",
     "CreateRetweet": "mbRO74GrOvSfRcJnlMapnQ",
@@ -47,6 +51,26 @@ DEFAULT_QUERY_IDS = {
 _cached_query_ids: dict[str, str] = {}
 _cache_ts: float = 0.0
 _CACHE_TTL = 3600  # 1 hour
+_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".query_id_cache.json")
+
+
+def _load_file_cache() -> tuple[dict[str, str], float]:
+    """Load query IDs from disk cache file."""
+    try:
+        with open(_CACHE_FILE, "r") as f:
+            data = json.load(f)
+        return data.get("ids", {}), data.get("ts", 0.0)
+    except (OSError, json.JSONDecodeError, KeyError):
+        return {}, 0.0
+
+
+def _save_file_cache(ids: dict[str, str], ts: float) -> None:
+    """Persist query IDs to disk cache file."""
+    try:
+        with open(_CACHE_FILE, "w") as f:
+            json.dump({"ids": ids, "ts": ts}, f)
+    except OSError:
+        pass
 
 
 def _fetch_query_ids_from_bundles(session: requests.Session) -> dict[str, str]:
@@ -74,16 +98,35 @@ def _fetch_query_ids_from_bundles(session: requests.Session) -> dict[str, str]:
 
 
 def get_query_ids(session: requests.Session) -> dict[str, str]:
-    """Return query IDs, auto-refreshing from X's JS bundles when stale."""
+    """Return query IDs, using file cache across processes and refreshing when stale."""
     global _cached_query_ids, _cache_ts
-    if _cached_query_ids and (time.time() - _cache_ts) < _CACHE_TTL:
+    now = time.time()
+
+    # 1. In-memory cache (same process)
+    if _cached_query_ids and (now - _cache_ts) < _CACHE_TTL:
         return _cached_query_ids
+
+    # 2. File cache (cross-process, survives between script calls)
+    file_ids, file_ts = _load_file_cache()
+    if file_ids and (now - file_ts) < _CACHE_TTL:
+        _cached_query_ids = file_ids
+        _cache_ts = file_ts
+        return _cached_query_ids
+
+    # 3. Fetch fresh from X's JS bundles
     fresh = _fetch_query_ids_from_bundles(session)
     if fresh:
         merged = {**DEFAULT_QUERY_IDS, **fresh}
         _cached_query_ids = merged
-        _cache_ts = time.time()
+        _cache_ts = now
+        _save_file_cache(merged, now)
         return merged
+
+    # 4. Fallback to whatever we have
+    if file_ids:
+        _cached_query_ids = file_ids
+        _cache_ts = file_ts
+        return file_ids
     if _cached_query_ids:
         return _cached_query_ids
     return DEFAULT_QUERY_IDS
@@ -193,6 +236,7 @@ class XClient:
         if self._ct0:
             self._session.headers["X-Csrf-Token"] = self._ct0
             self._session.headers["X-Twitter-Auth-Type"] = "OAuth2Session"
+        self._ct: ClientTransaction | None = None
 
     @classmethod
     def create(cls) -> "XClient":
@@ -236,21 +280,50 @@ class XClient:
 
     # -- HTTP transport ----------------------------------------------------
 
+    def _ensure_ct(self):
+        """Lazy-init ClientTransaction for x-client-transaction-id generation."""
+        if self._ct is not None:
+            return
+        try:
+            home = self._session.get("https://x.com", timeout=TIMEOUT)
+            soup = bs4.BeautifulSoup(home.content, "html.parser")
+            ondemand_url = get_ondemand_file_url(response=soup)
+            ondemand_resp = self._session.get(ondemand_url, timeout=TIMEOUT)
+            self._ct = ClientTransaction(home_page_response=soup, ondemand_file_response=ondemand_resp.text)
+        except Exception:
+            self._ct = None
+
+    def _transaction_id(self, method: str, path: str) -> str | None:
+        """Generate x-client-transaction-id for a request."""
+        self._ensure_ct()
+        if self._ct is None:
+            return None
+        try:
+            return self._ct.generate_transaction_id(method=method, path=path)
+        except Exception:
+            return None
+
     def _get(self, url: str, params: dict | None = None) -> dict:
-        resp = self._session.get(url, params=params, timeout=TIMEOUT)
+        from urllib.parse import urlparse
+        tid = self._transaction_id("GET", urlparse(url).path)
+        headers = {"X-Client-Transaction-Id": tid} if tid else {}
+        resp = self._session.get(url, params=params, headers=headers, timeout=TIMEOUT)
         if resp.status_code == 429:
             retry_after = int(resp.headers.get("Retry-After", "5"))
             time.sleep(retry_after)
-            resp = self._session.get(url, params=params, timeout=TIMEOUT)
+            resp = self._session.get(url, params=params, headers=headers, timeout=TIMEOUT)
         resp.raise_for_status()
         return resp.json()
 
     def _post_json(self, url: str, payload: dict) -> dict:
-        resp = self._session.post(url, json=payload, timeout=TIMEOUT)
+        from urllib.parse import urlparse
+        tid = self._transaction_id("POST", urlparse(url).path)
+        headers = {"X-Client-Transaction-Id": tid} if tid else {}
+        resp = self._session.post(url, json=payload, headers=headers, timeout=TIMEOUT)
         if resp.status_code == 429:
             retry_after = int(resp.headers.get("Retry-After", "5"))
             time.sleep(retry_after)
-            resp = self._session.post(url, json=payload, timeout=TIMEOUT)
+            resp = self._session.post(url, json=payload, headers=headers, timeout=TIMEOUT)
         resp.raise_for_status()
         return resp.json()
 
