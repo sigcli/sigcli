@@ -358,13 +358,14 @@ def parse_user(result: dict) -> dict | None:
     if not result:
         return None
     legacy = result.get("legacy") or {}
+    core = result.get("core") or {}
     expanded_url = ""
     url_entities = (legacy.get("entities") or {}).get("url", {}).get("urls") or []
     if url_entities:
         expanded_url = url_entities[0].get("expanded_url") or ""
     return {
-        "screen_name": legacy.get("screen_name") or "",
-        "name": legacy.get("name") or "",
+        "screen_name": core.get("screen_name") or legacy.get("screen_name") or "",
+        "name": core.get("name") or legacy.get("name") or "",
         "bio": legacy.get("description") or "",
         "location": legacy.get("location") or "",
         "url": expanded_url,
@@ -373,7 +374,7 @@ def parse_user(result: dict) -> dict | None:
         "tweets": legacy.get("statuses_count") or 0,
         "likes": legacy.get("favourites_count") or 0,
         "verified": result.get("is_blue_verified") or legacy.get("verified") or False,
-        "created_at": legacy.get("created_at") or "",
+        "created_at": core.get("created_at") or legacy.get("created_at") or "",
         "id": result.get("rest_id") or "",
     }
 
