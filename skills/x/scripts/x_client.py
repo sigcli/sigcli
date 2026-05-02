@@ -39,6 +39,7 @@ DEFAULT_QUERY_IDS = {
     "Followers": "QAV06ZzlL6dfYpN3JgTxeg",
     "Following": "E2d66uAEwlxTS0vfTc7A-Q",
     "CreateTweet": "Qkq4oPdZYuNB_Qw3TDuFqQ",
+    "DeleteTweet": "nxpZCY2K-I6QoFHAHeojFQ",
     "FavoriteTweet": "lI07N6Otwv1PhnEgXILM7A",
     "UnfavoriteTweet": "ZYKSe-w7KEslx3JhSIk5LA",
     "CreateRetweet": "mbRO74GrOvSfRcJnlMapnQ",

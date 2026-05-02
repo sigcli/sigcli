@@ -72,6 +72,7 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 | Script          | Purpose                | Auth     |
 | --------------- | ---------------------- | -------- |
 | `x_post.py`     | Create a tweet         | Required |
+| `x_delete.py`   | Delete a tweet         | Required |
 | `x_like.py`     | Like or unlike         | Required |
 | `x_retweet.py`  | Retweet or unretweet   | Required |
 | `x_follow.py`   | Follow or unfollow     | Required |
@@ -125,6 +126,13 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 --cookie COOKIE       X session cookie (required)
 --text TEXT           Tweet text content (required)
 --reply-to ID        Tweet ID to reply to (optional)
+```
+
+### x_delete.py
+
+```
+--cookie COOKIE       X session cookie (required)
+--id ID               Tweet ID or URL to delete (required)
 ```
 
 ### x_like.py
