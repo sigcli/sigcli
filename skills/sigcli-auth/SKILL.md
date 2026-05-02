@@ -159,6 +159,8 @@ sig run grafana -- python fetch_data.py
 # Env vars injected (for provider "jira-tools", extract as: "cookie"):
 #   SIG_JIRA_TOOLS_PROVIDER=jira-tools
 #   SIG_JIRA_TOOLS_COOKIE=<value>
+#
+# The env var name is: SIG_<PROVIDER>_<AS> (uppercased, dashes to underscores)
 
 # Multiple providers at once
 sig run provider-a provider-b -- python cross_tool.py
@@ -379,26 +381,26 @@ app-slack:
     strategy: browser
     ttl: '7d'
     required:
-        - cookie.d
-        - local_xoxc_token
+        - session.d
+        - xoxc-token
     extract:
         - from: cookies
-          as: cookie
+          as: session
           match: '*'
         - from: localStorage
-          as: local_xoxc_token
+          as: xoxc-token
           match: 'localConfig_v2'
           jsonPath: 'teams.<TEAM_ID>.token'
     apply:
         - in: header
           name: Cookie
-          value: '${cookie}'
+          value: '${session}'
         - in: header
           name: Authorization
-          value: 'Bearer ${local_xoxc_token}'
+          value: 'Bearer ${xoxc-token}'
 ```
 
-Env vars produced: `SIG_APP_SLACK_COOKIE`, `SIG_APP_SLACK_LOCAL_XOXC_TOKEN`
+Env vars produced: `SIG_APP_SLACK_SESSION`, `SIG_APP_SLACK_XOXC_TOKEN`
 
 **OAuth2 via localStorage (Microsoft Teams):**
 
@@ -409,19 +411,20 @@ ms-teams:
     entryUrl: https://teams.cloud.microsoft/v2/
     strategy: browser
     required:
-        - token
+        - access_token
     extract:
         - from: localStorage
-          as: token
-          match: 'msal.*.accesstoken.*'
+          as: access_token
+          match: '*|accesstoken|*ic3.teams.office.com*'
           jsonPath: 'secret'
+          expiresJsonPath: 'expiresOn'
     apply:
         - in: header
           name: Authorization
-          value: 'Bearer ${token}'
+          value: 'Bearer ${access_token}'
 ```
 
-Env var produced: `SIG_MS_TEAMS_TOKEN`
+Env var produced: `SIG_MS_TEAMS_ACCESS_TOKEN`
 
 **Prompt strategy (no browser):**
 
