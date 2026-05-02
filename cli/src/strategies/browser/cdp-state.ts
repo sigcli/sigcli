@@ -1,4 +1,5 @@
-import { spawn } from 'node:child_process';
+import { execSync, spawn, type ChildProcess } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import lockfile from 'proper-lockfile';
@@ -140,6 +141,52 @@ export async function acquireBrowser(
         browser.unref();
         logger.info(`browser spawned with pid=${browser.pid}`);
 
+        // Detect singleton rejection: if process exits within 2s, another
+        // instance owns this data-dir. Find and kill the orphan, then retry.
+        const earlyExit = await waitForEarlyExit(browser, 2000);
+        if (earlyExit) {
+            logger.info(`browser exited immediately (singleton rejection), looking for orphan`);
+            const orphanPort = await findOrphanCdpPort(dataDir, logger);
+            if (orphanPort && (await isCdpResponding(orphanPort))) {
+                logger.info(`found orphan browser on port ${orphanPort}, reusing`);
+                const orphanPid = await getPidForPort(orphanPort);
+                const newState: CdpState = {
+                    pid: orphanPid ?? 0,
+                    port: orphanPort,
+                    users: [process.pid],
+                    createdAt: Date.now(),
+                };
+                await writeCdpState(dataDir, newState);
+                return { port: orphanPort, alreadyReady: true };
+            }
+            // Can't find orphan's CDP port — kill anything using this data-dir
+            await killOrphanByDataDir(dataDir, logger);
+            // Retry spawn
+            const retryPort = await findFreePort();
+            const retryArgs = [
+                ...browserArgs.filter((a) => !a.startsWith('--remote-debugging-port=')),
+            ];
+            retryArgs.unshift(`--remote-debugging-port=${retryPort}`);
+            logger.info(`retrying browser spawn on port ${retryPort}`);
+            const retryBrowser = spawn(execPath, retryArgs, {
+                detached: true,
+                stdio: 'ignore',
+                windowsHide: true,
+            });
+            if (!retryBrowser.pid) {
+                throw new Error('Failed to spawn browser process on retry');
+            }
+            retryBrowser.unref();
+            const retryState: CdpState = {
+                pid: retryBrowser.pid,
+                port: retryPort,
+                users: [process.pid],
+                createdAt: Date.now(),
+            };
+            await writeCdpState(dataDir, retryState);
+            return { port: retryPort, alreadyReady: false };
+        }
+
         const newState: CdpState = {
             pid: browser.pid,
             port,
@@ -220,4 +267,116 @@ export async function releaseBrowser(dataDir: string, logger: ILogger): Promise<
 
 function pruneDeadUsers(users: number[]): number[] {
     return users.filter((pid) => isProcessAlive(pid));
+}
+
+function waitForEarlyExit(child: ChildProcess, ms: number): Promise<boolean> {
+    return new Promise((resolve) => {
+        let exited = false;
+        child.on('exit', () => {
+            exited = true;
+            resolve(true);
+        });
+        setTimeout(() => {
+            if (!exited) resolve(false);
+        }, ms).unref();
+    });
+}
+
+async function findOrphanCdpPort(dataDir: string, logger: ILogger): Promise<number | null> {
+    const socketPath = join(dataDir, 'SingletonSocket');
+    if (!existsSync(socketPath)) {
+        logger.info(`no SingletonSocket found, orphan may have exited`);
+        return null;
+    }
+
+    // Try to find the orphan's PID from lsof or wmic and parse its command line
+    if (process.platform === 'win32') {
+        return findOrphanPortWindows(dataDir, logger);
+    }
+    return findOrphanPortUnix(dataDir, logger);
+}
+
+async function findOrphanPortUnix(dataDir: string, logger: ILogger): Promise<number | null> {
+    try {
+        const output = execSync(
+            `ps aux | grep -- '--user-data-dir=${dataDir}' | grep -- '--remote-debugging-port=' | grep -v grep`,
+            { encoding: 'utf-8', timeout: 5000 },
+        );
+        const match = output.match(/--remote-debugging-port=(\d+)/);
+        if (match) {
+            const port = parseInt(match[1], 10);
+            logger.info(`found orphan CDP port ${port} from process list`);
+            return port;
+        }
+    } catch {
+        // No matching process
+    }
+    return null;
+}
+
+async function findOrphanPortWindows(dataDir: string, logger: ILogger): Promise<number | null> {
+    try {
+        const output = execSync(
+            `wmic process where "CommandLine like '%--user-data-dir=${dataDir.replace(/\\/g, '\\\\')}%'" get CommandLine /format:list`,
+            { encoding: 'utf-8', timeout: 5000 },
+        );
+        const match = output.match(/--remote-debugging-port=(\d+)/);
+        if (match) {
+            const port = parseInt(match[1], 10);
+            logger.info(`found orphan CDP port ${port} from process list`);
+            return port;
+        }
+    } catch {
+        // No matching process
+    }
+    return null;
+}
+
+async function getPidForPort(port: number): Promise<number | null> {
+    if (process.platform === 'win32') {
+        try {
+            const output = execSync(`netstat -ano | findstr :${port}`, {
+                encoding: 'utf-8',
+                timeout: 5000,
+            });
+            const match = output.match(/LISTENING\s+(\d+)/);
+            if (match) return parseInt(match[1], 10);
+        } catch {
+            // ignore
+        }
+        return null;
+    }
+    try {
+        const output = execSync(`lsof -ti :${port}`, { encoding: 'utf-8', timeout: 5000 });
+        const pid = parseInt(output.trim().split('\n')[0], 10);
+        return isNaN(pid) ? null : pid;
+    } catch {
+        return null;
+    }
+}
+
+async function killOrphanByDataDir(dataDir: string, logger: ILogger): Promise<void> {
+    if (process.platform === 'win32') {
+        try {
+            execSync(
+                `wmic process where "CommandLine like '%--user-data-dir=${dataDir.replace(/\\/g, '\\\\')}%'" call terminate`,
+                { stdio: 'ignore', timeout: 5000 },
+            );
+            logger.info(`killed orphan browser via wmic`);
+        } catch {
+            logger.warn(`failed to kill orphan via wmic`);
+        }
+    } else {
+        try {
+            execSync(`pkill -f -- '--user-data-dir=${dataDir}'`, {
+                stdio: 'ignore',
+                timeout: 5000,
+            });
+            logger.info(`killed orphan browser via pkill`);
+        } catch {
+            logger.warn(`failed to kill orphan via pkill (may already be gone)`);
+        }
+    }
+    // Give OS time to release resources
+    await new Promise((r) => setTimeout(r, 1000));
 }
