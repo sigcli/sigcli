@@ -9,13 +9,13 @@ Read channels, search messages, check unreads, send messages, manage reactions, 
 
 ## Authentication
 
-Use `sig run` to inject credentials as environment variables. The shared `slack_client.py` reads `SIG_APP_SLACK_COOKIE` and `SIG_APP_SLACK_LOCAL_XOXC_TOKEN` from the environment.
+Use `sig run` to inject credentials as environment variables. The shared `slack_client.py` reads `SIG_APP_SLACK_SESSION` and `SIG_APP_SLACK_XOXC_TOKEN` from the environment.
 
 ```bash
 sig run app-slack -- bash -c 'python scripts/slack_send.py --channel "#general" --message "Hello"'
 ```
 
-The default provider is `app-slack`. The env var names follow the rule: `SIG_<PROVIDER>_COOKIE` and `SIG_<PROVIDER>_LOCAL_XOXC_TOKEN` where `<PROVIDER>` is the provider name uppercased with `-` replaced by `_`.
+The default provider is `app-slack`. The env var names follow the rule: `SIG_<PROVIDER>_<AS>` where `<PROVIDER>` is the provider name uppercased with `-` replaced by `_`, and `<AS>` is the extract rule's `as` field uppercased.
 
 If you get an auth error or `invalid_auth`:
 
