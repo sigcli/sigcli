@@ -13,7 +13,10 @@ import re
 import time
 import urllib.parse
 
+import bs4
 import requests
+from x_client_transaction import ClientTransaction
+from x_client_transaction.utils import get_ondemand_file_url
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -193,6 +196,7 @@ class XClient:
         if self._ct0:
             self._session.headers["X-Csrf-Token"] = self._ct0
             self._session.headers["X-Twitter-Auth-Type"] = "OAuth2Session"
+        self._ct: ClientTransaction | None = None
 
     @classmethod
     def create(cls) -> "XClient":
@@ -236,21 +240,50 @@ class XClient:
 
     # -- HTTP transport ----------------------------------------------------
 
+    def _ensure_ct(self):
+        """Lazy-init ClientTransaction for x-client-transaction-id generation."""
+        if self._ct is not None:
+            return
+        try:
+            home = self._session.get("https://x.com", timeout=TIMEOUT)
+            soup = bs4.BeautifulSoup(home.content, "html.parser")
+            ondemand_url = get_ondemand_file_url(response=soup)
+            ondemand_resp = self._session.get(ondemand_url, timeout=TIMEOUT)
+            self._ct = ClientTransaction(home_page_response=soup, ondemand_file_response=ondemand_resp.text)
+        except Exception:
+            self._ct = None
+
+    def _transaction_id(self, method: str, path: str) -> str | None:
+        """Generate x-client-transaction-id for a request."""
+        self._ensure_ct()
+        if self._ct is None:
+            return None
+        try:
+            return self._ct.generate_transaction_id(method=method, path=path)
+        except Exception:
+            return None
+
     def _get(self, url: str, params: dict | None = None) -> dict:
-        resp = self._session.get(url, params=params, timeout=TIMEOUT)
+        from urllib.parse import urlparse
+        tid = self._transaction_id("GET", urlparse(url).path)
+        headers = {"X-Client-Transaction-Id": tid} if tid else {}
+        resp = self._session.get(url, params=params, headers=headers, timeout=TIMEOUT)
         if resp.status_code == 429:
             retry_after = int(resp.headers.get("Retry-After", "5"))
             time.sleep(retry_after)
-            resp = self._session.get(url, params=params, timeout=TIMEOUT)
+            resp = self._session.get(url, params=params, headers=headers, timeout=TIMEOUT)
         resp.raise_for_status()
         return resp.json()
 
     def _post_json(self, url: str, payload: dict) -> dict:
-        resp = self._session.post(url, json=payload, timeout=TIMEOUT)
+        from urllib.parse import urlparse
+        tid = self._transaction_id("POST", urlparse(url).path)
+        headers = {"X-Client-Transaction-Id": tid} if tid else {}
+        resp = self._session.post(url, json=payload, headers=headers, timeout=TIMEOUT)
         if resp.status_code == 429:
             retry_after = int(resp.headers.get("Retry-After", "5"))
             time.sleep(retry_after)
-            resp = self._session.post(url, json=payload, timeout=TIMEOUT)
+            resp = self._session.post(url, json=payload, headers=headers, timeout=TIMEOUT)
         resp.raise_for_status()
         return resp.json()
 
