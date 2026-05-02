@@ -20,6 +20,7 @@ import { createNoopLogger } from '../../utils/logger.js';
 import { expandHome } from '../../utils/path.js';
 import { killProcess } from '../../utils/process-kill.js';
 import { findFreePort, removeSingletonLock, waitForBrowserReady } from './browser-lifecycle.js';
+import { acquireBrowser, releaseBrowser } from './cdp-state.js';
 import { attachToPageTarget, connectCdpWs, type CdpWsClient } from './cdp-ws.js';
 import { CdpCookieExtractor } from './extractors/cdp-cookie.js';
 import { CdpStorageExtractor } from './extractors/cdp-storage.js';
@@ -186,19 +187,8 @@ export class BrowserStrategy implements IStrategy {
         }
 
         const dataDir = expandHome(this.browserConfig.browserDataDir);
-        removeSingletonLock(dataDir);
-
-        let cdpPort: number;
-        try {
-            cdpPort = await findFreePort();
-        } catch (e) {
-            return err(new BrowserError(`Failed to find free port: ${(e as Error).message}`));
-        }
-
-        this.logger.info(`${provider.id}: CDP port ${cdpPort}`);
 
         const browserArgs: string[] = [
-            `--remote-debugging-port=${cdpPort}`,
             `--user-data-dir=${dataDir}`,
             '--no-first-run',
             '--no-default-browser-check',
@@ -208,28 +198,33 @@ export class BrowserStrategy implements IStrategy {
         }
         browserArgs.push(provider.entryUrl);
 
-        let browser: ChildProcess | undefined;
-        const cleanup = () => {
-            if (browser && !browser.killed) {
-                killProcess(browser);
-            }
+        let cdpClient: CdpWsClient | undefined;
+        let released = false;
+
+        const cleanup = async () => {
+            if (released) return;
+            released = true;
+            cdpClient?.close();
+            await releaseBrowser(dataDir, this.logger).catch((e) => {
+                this.logger.warn(`release failed: ${(e as Error).message}`);
+            });
         };
         const sigHandler = () => {
-            cleanup();
-            process.exit(130);
+            void cleanup().finally(() => process.exit(130));
         };
 
-        process.on('exit', cleanup);
         process.on('SIGINT', sigHandler);
         process.on('SIGTERM', sigHandler);
 
-        let cdpClient: CdpWsClient | undefined;
-
         try {
-            this.logger.info(`${provider.id}: launching browser for CDP`);
-            browser = spawn(execPath, browserArgs, { detached: false, stdio: 'ignore' });
-
-            const wsUrl = await waitForBrowserReady(cdpPort, this.browserConfig.visibleTimeout);
+            const { wsUrl } = await acquireBrowser(
+                dataDir,
+                execPath,
+                browserArgs,
+                this.browserConfig.visibleTimeout,
+                this.logger,
+                provider.entryUrl,
+            );
             cdpClient = await connectCdpWs(wsUrl);
             this.logger.info(`${provider.id}: CDP connected`);
 
@@ -242,9 +237,7 @@ export class BrowserStrategy implements IStrategy {
             if (e instanceof BrowserTimeoutError) return err(e);
             return err(new BrowserError(`Browser extraction failed: ${(e as Error).message}`));
         } finally {
-            cdpClient?.close();
-            cleanup();
-            process.removeListener('exit', cleanup);
+            await cleanup();
             process.removeListener('SIGINT', sigHandler);
             process.removeListener('SIGTERM', sigHandler);
         }
