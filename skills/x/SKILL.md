@@ -5,91 +5,106 @@ description: 'Interact with X (Twitter) — view profiles, read tweets and threa
 
 # X (Twitter)
 
-View profiles, read tweets, search posts, check trending topics, and interact with X/Twitter.
+## Skill Directory
 
-## Prerequisites
+`<SKILL_DIR>` is the directory containing this SKILL.md file. To find it, look at the path where this skill was loaded from. It is typically `~/.claude/skills/x` (installed) or wherever this file lives. Determine it ONCE at the start and reuse it.
 
-**Python dependencies** (install once):
+## Fast Gate (run this FIRST, every time)
 
-```bash
-pip install -r requirements.txt
-```
-
-**Network proxy** — X is blocked in some regions. If `x.com` is not directly reachable, set a SOCKS proxy:
+Run these two commands silently — do NOT ask the user anything:
 
 ```bash
-export HTTPS_PROXY=socks5://127.0.0.1:3333
-export HTTP_PROXY=socks5://127.0.0.1:3333
+sig status x 2>&1
 ```
 
-All scripts respect standard `HTTPS_PROXY`/`HTTP_PROXY` env vars. Set them BEFORE running any script. The sigcli config also supports `networkProxy` per provider.
+Check the JSON `"valid"` field:
 
-## Authentication
+- `"valid": true` — proceed to detect proxy below.
+- `"valid": false` — run `sig login x`, then re-check `sig status x`.
+- Command not found or provider not found — run Full Setup.
 
-**ALL operations require a session cookie.** Use `sig run x` to inject it:
+**Detect proxy** (do NOT ask user — read from config):
 
 ```bash
-sig run x -- bash -c 'HTTPS_PROXY=socks5://127.0.0.1:3333 python3 scripts/x_search.py --query "AI agents" --limit 5'
+grep -A15 "^\s*x:" ~/.sig/config.yaml | grep networkProxy | awk '{print $2}'
 ```
 
-The env var `SIG_X_COOKIE` is injected by `sig run x`. Read scripts use it internally via `XClient.create()`. Write scripts take it explicitly as `--cookie "$SIG_X_COOKIE"`.
+If this outputs a URL (e.g. `socks5://127.0.0.1:1234`), use it as `HTTPS_PROXY=<url> HTTP_PROXY=<url>` in ALL python3 commands. If empty, omit proxy. NEVER ask the user about proxy — it's in the config.
+NOTE: if using socks5 protocol, convert to socks5h for python scripts, e.g. `socks5://127.0.0.1:1234` becomes `socks5h://127.0.0.1:1234`
 
-### First-time login
+Once valid + proxy detected, go straight to executing the user's request.
 
-X's login page blocks automated browsers. **Copy cookies manually from your browser:**
+---
 
-1. Open https://x.com/ in your browser and log in
-2. Open DevTools (F12) → Network tab → pick any request → copy the `Cookie:` header value
-3. You need at least `ct0` and `auth_token` cookies
-4. Run:
+## Full Setup (only when Fast Gate fails — sig not found or provider not configured)
+
+### Step 1: Install sig (if missing)
 
 ```bash
-sig login https://x.com/ --as x --cookie "ct0=<your-ct0>; auth_token=<your-token>"
+npm install -g @sigcli/cli
+sig init
 ```
 
-### Re-authenticate when expired
+### Step 2: Login to X
 
 ```bash
-sig status x          # Check if valid
-sig logout x          # Clear old credentials
-sig login https://x.com/ --as x --cookie "ct0=...; auth_token=..."
+sig login x
 ```
 
-### Signet provider config (`~/.sig/config.yaml`)
+If the user needs a proxy for X (ask them only during first-time setup), use:
 
-```yaml
-x:
-    domains: [x.com, twitter.com]
-    entryUrl: https://x.com/i/flow/login
-    strategy: browser
-    ttl: '7d'
-    networkProxy: socks5h://127.0.0.1:3333
-    required: [cookie.ct0, cookie.auth_token]
-    extract:
-        - from: cookies
-          as: cookie
-          match: '*'
-    apply:
-        - in: header
-          name: Cookie
-          value: '${cookie}'
+```bash
+sig login x --network-proxy=socks5://127.0.0.1:3333
 ```
 
-## How to Run Scripts
+Note: for socks5h proxy, use `socks5://` (not `socks5h://`) in the `--network-proxy` flag.
+
+After login, `x` is provisioned automatically to `~/.sig/config.yaml`.
+
+### Step 3: Install Python dependencies
+
+```bash
+pip install -r <SKILL_DIR>/requirements.txt
+```
+
+If already installed, this is a no-op.
+
+### Step 4: Validate (confirms auth + network + query IDs)
+
+```bash
+sig run x -- bash -c 'cd <SKILL_DIR> && HTTPS_PROXY=<proxy> HTTP_PROXY=<proxy> python3 scripts/x_user.py --username x'
+```
+
+- If **succeeds** (JSON with user data): done. Query IDs are now cached to disk for 1 hour.
+- If **connection error**: proxy is wrong. Ask user for correct proxy URL.
+- If **HTTP 403**: query IDs stale and auto-refresh failed. Retry once. If persistent, wait and try later.
+
+---
+
+## Running Scripts
+
+**Working directory**: All commands must run from THIS skill's directory (the folder containing this SKILL.md). Use `cd` in the bash command to ensure this.
 
 **Pattern for ALL scripts:**
 
 ```bash
-sig run x -- bash -c 'HTTPS_PROXY=socks5://127.0.0.1:3333 python3 scripts/<script>.py [args]'
+sig run x -- bash -c 'cd <SKILL_DIR> && [HTTPS_PROXY=<proxy> HTTP_PROXY=<proxy>] python3 scripts/<script>.py [args]'
 ```
 
-For write operations, pass the cookie explicitly:
+Where:
 
-```bash
-sig run x -- bash -c 'HTTPS_PROXY=socks5://127.0.0.1:3333 python3 scripts/x_post.py --cookie "$SIG_X_COOKIE" --text "Hello"'
-```
+- `<SKILL_DIR>` is the absolute path to this skill's folder. Determine it once at the start of the conversation by finding where this SKILL.md lives.
+- `<proxy>` is the `networkProxy` value from `~/.sig/config.yaml` (detected in Fast Gate). Omit if none configured.
 
-If proxy is not needed (X is directly reachable), omit the `HTTPS_PROXY=...` prefix.
+Rules:
+
+- ALWAYS include the proxy env vars if `networkProxy` is set in the provider config. The scripts make their own HTTP calls and do NOT inherit the provider's networkProxy setting.
+- Read scripts use the cookie internally (no `--cookie` arg needed).
+- Write scripts require `--cookie "$SIG_X_COOKIE"` explicitly.
+- Screen names: always without `@` (use `elonmusk` not `@elonmusk`).
+- Tweet IDs: accept bare ID (`12345`) or full URL (`https://x.com/user/status/12345`).
+
+---
 
 ## Scripts Reference
 
@@ -115,62 +130,76 @@ If proxy is not needed (X is directly reachable), omit the `HTTPS_PROXY=...` pre
 | `x_follow.py`   | Follow or unfollow     | `--cookie COOKIE --username NAME [--undo]`    |
 | `x_bookmark.py` | Bookmark or unbookmark | `--cookie COOKIE --id ID_OR_URL [--undo]`     |
 
-## Workflow Examples
+---
+
+## Command Examples
+
+All examples assume you've `cd`'d into `<SKILL_DIR>` and set proxy if needed.
 
 ### Search tweets
 
 ```bash
-sig run x -- bash -c 'HTTPS_PROXY=socks5://127.0.0.1:3333 python3 scripts/x_search.py --query "Claude AI" --type top --limit 10'
+sig run x -- bash -c 'cd <SKILL_DIR> && python3 scripts/x_search.py --query "Claude AI" --type top --limit 10'
 ```
 
-### View a user profile
+### View user profile
 
 ```bash
-sig run x -- bash -c 'HTTPS_PROXY=socks5://127.0.0.1:3333 python3 scripts/x_user.py --username elonmusk'
+sig run x -- bash -c 'cd <SKILL_DIR> && python3 scripts/x_user.py --username elonmusk'
 ```
 
 ### Read recent tweets
 
 ```bash
-sig run x -- bash -c 'HTTPS_PROXY=socks5://127.0.0.1:3333 python3 scripts/x_tweets.py --username elonmusk --limit 10'
+sig run x -- bash -c 'cd <SKILL_DIR> && python3 scripts/x_tweets.py --username elonmusk --limit 10'
 ```
 
 ### Read a tweet thread
 
 ```bash
-sig run x -- bash -c 'HTTPS_PROXY=socks5://127.0.0.1:3333 python3 scripts/x_tweet.py --id "https://x.com/user/status/12345678"'
+sig run x -- bash -c 'cd <SKILL_DIR> && python3 scripts/x_tweet.py --id "https://x.com/user/status/12345678"'
 ```
 
 ### Post a tweet (ALWAYS confirm with user first)
 
 ```bash
-sig run x -- bash -c 'HTTPS_PROXY=socks5://127.0.0.1:3333 python3 scripts/x_post.py --cookie "$SIG_X_COOKIE" --text "Hello from sigcli!"'
+sig run x -- bash -c 'cd <SKILL_DIR> && python3 scripts/x_post.py --cookie "$SIG_X_COOKIE" --text "Hello from sigcli!"'
 ```
 
 ### Reply to a tweet
 
 ```bash
-sig run x -- bash -c 'HTTPS_PROXY=socks5://127.0.0.1:3333 python3 scripts/x_post.py --cookie "$SIG_X_COOKIE" --text "Great point!" --reply-to 2050336207561724307'
+sig run x -- bash -c 'cd <SKILL_DIR> && python3 scripts/x_post.py --cookie "$SIG_X_COOKIE" --text "Great point!" --reply-to 2050336207561724307'
 ```
 
-### Delete a tweet
+### Delete a tweet (confirm with user first — irreversible)
 
 ```bash
-sig run x -- bash -c 'HTTPS_PROXY=socks5://127.0.0.1:3333 python3 scripts/x_delete.py --cookie "$SIG_X_COOKIE" --id 2050417089987711033'
+sig run x -- bash -c 'cd <SKILL_DIR> && python3 scripts/x_delete.py --cookie "$SIG_X_COOKIE" --id 2050417089987711033'
 ```
 
-### Like / unlike a tweet
+### Like / unlike
 
 ```bash
-sig run x -- bash -c 'HTTPS_PROXY=socks5://127.0.0.1:3333 python3 scripts/x_like.py --cookie "$SIG_X_COOKIE" --id 12345'
-sig run x -- bash -c 'HTTPS_PROXY=socks5://127.0.0.1:3333 python3 scripts/x_like.py --cookie "$SIG_X_COOKIE" --id 12345 --undo'
+sig run x -- bash -c 'cd <SKILL_DIR> && python3 scripts/x_like.py --cookie "$SIG_X_COOKIE" --id 12345'
+sig run x -- bash -c 'cd <SKILL_DIR> && python3 scripts/x_like.py --cookie "$SIG_X_COOKIE" --id 12345 --undo'
 ```
 
 ### Follow / unfollow
 
 ```bash
-sig run x -- bash -c 'HTTPS_PROXY=socks5://127.0.0.1:3333 python3 scripts/x_follow.py --cookie "$SIG_X_COOKIE" --username elonmusk'
+sig run x -- bash -c 'cd <SKILL_DIR> && python3 scripts/x_follow.py --cookie "$SIG_X_COOKIE" --username elonmusk'
+sig run x -- bash -c 'cd <SKILL_DIR> && python3 scripts/x_follow.py --cookie "$SIG_X_COOKIE" --username elonmusk --undo'
 ```
+
+### Bookmark / unbookmark
+
+```bash
+sig run x -- bash -c 'cd <SKILL_DIR> && python3 scripts/x_bookmark.py --cookie "$SIG_X_COOKIE" --id 12345'
+sig run x -- bash -c 'cd <SKILL_DIR> && python3 scripts/x_bookmark.py --cookie "$SIG_X_COOKIE" --id 12345 --undo'
+```
+
+---
 
 ## Safety Rules
 
@@ -178,27 +207,30 @@ sig run x -- bash -c 'HTTPS_PROXY=socks5://127.0.0.1:3333 python3 scripts/x_foll
 2. **Like, retweet, follow, bookmark are reversible** — use `--undo` to reverse.
 3. **Delete is irreversible** — confirm with user before deleting.
 
-## Error Handling
+---
 
-| Error             | Cause                       | Fix                                                   |
-| ----------------- | --------------------------- | ----------------------------------------------------- |
-| `AUTH_REQUIRED`   | No cookie or missing ct0    | Run `sig login https://x.com/ --as x --cookie "..."`  |
-| `HTTP_401`        | Cookie expired              | Re-authenticate (see above)                           |
-| `HTTP_403`        | Rate limited or IP blocked  | Wait and retry; check proxy                           |
-| `HTTP_429`        | Rate limited                | Wait a few seconds and retry                          |
-| `NOT_FOUND`       | User or tweet doesn't exist | Verify the ID or username                             |
-| `POST_FAILED`     | Tweet creation failed       | Check error details; may be duplicate or policy block |
-| Timeout           | Network unreachable         | **Set HTTPS_PROXY** — X may be blocked in your region |
-| `ConnectionError` | Can't reach x.com           | **Set HTTPS_PROXY** — X may be blocked in your region |
+## Error Recovery
+
+When a command fails, follow this decision tree:
+
+| Error                    | Meaning                         | Action                                                                  |
+| ------------------------ | ------------------------------- | ----------------------------------------------------------------------- |
+| `ConnectionError`        | Can't reach x.com               | Ask user for proxy URL, then retry with `HTTPS_PROXY=<url>`             |
+| `Timeout`                | Network too slow                | Retry once. If still fails, check proxy.                                |
+| `AUTH_REQUIRED` / 401    | Cookie missing or expired       | Run `sig status x`. If expired, guide user to re-authenticate.          |
+| `HTTP_403`               | IP blocked or query IDs stale   | Retry once (auto-refresh kicks in). If still 403, change proxy or wait. |
+| `HTTP_429`               | Rate limited                    | Wait 30 seconds, then retry.                                            |
+| `NOT_FOUND`              | User/tweet doesn't exist        | Verify the ID or username with the user.                                |
+| `POST_FAILED`            | Tweet creation failed           | Show error details to user. May be duplicate or policy violation.       |
+| Query ID / GraphQL error | Stale query IDs, refresh failed | Clear cache (restart script), retry. If persistent, bundles changed.    |
+
+**Key principle**: if ANY command fails on first run, do NOT silently proceed. Diagnose using this table, fix the issue, and re-validate before continuing with the user's request.
+
+---
 
 ## Technical Notes
 
-**Query ID auto-refresh** — X rotates GraphQL query IDs with each deployment. The client automatically fetches fresh IDs from X's JS bundles and caches them for 1 hour. No manual intervention needed.
-
-**Transaction ID** — X requires an `x-client-transaction-id` header for API requests. The client generates this automatically using the `XClientTransaction` library (fetches X homepage + ondemand.s bundle on first call, then reuses).
-
-**Screen names** — Always pass without `@`. Use `elonmusk` not `@elonmusk`.
-
-**Tweet IDs** — Scripts accept bare IDs (`12345`) or full URLs (`https://x.com/user/status/12345`).
-
-**Pagination** — Timeline endpoints paginate internally (up to 5 pages).
+- **Query ID caching**: Query IDs are cached to a file (`scripts/.query_id_cache.json`) so they persist across script calls. First script invocation fetches from X's JS bundles (~3s), all subsequent calls within 1 hour read from disk instantly. The file auto-refreshes when the TTL expires.
+- **Transaction ID**: X requires `x-client-transaction-id` header. Generated automatically using the `XClientTransaction` library.
+- **Pagination**: Timeline endpoints paginate internally (up to 5 pages).
+- **Cookie TTL**: Cookies typically last 7 days. After that, re-authenticate.

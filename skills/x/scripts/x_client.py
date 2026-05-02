@@ -51,6 +51,26 @@ DEFAULT_QUERY_IDS = {
 _cached_query_ids: dict[str, str] = {}
 _cache_ts: float = 0.0
 _CACHE_TTL = 3600  # 1 hour
+_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".query_id_cache.json")
+
+
+def _load_file_cache() -> tuple[dict[str, str], float]:
+    """Load query IDs from disk cache file."""
+    try:
+        with open(_CACHE_FILE, "r") as f:
+            data = json.load(f)
+        return data.get("ids", {}), data.get("ts", 0.0)
+    except (OSError, json.JSONDecodeError, KeyError):
+        return {}, 0.0
+
+
+def _save_file_cache(ids: dict[str, str], ts: float) -> None:
+    """Persist query IDs to disk cache file."""
+    try:
+        with open(_CACHE_FILE, "w") as f:
+            json.dump({"ids": ids, "ts": ts}, f)
+    except OSError:
+        pass
 
 
 def _fetch_query_ids_from_bundles(session: requests.Session) -> dict[str, str]:
@@ -78,16 +98,35 @@ def _fetch_query_ids_from_bundles(session: requests.Session) -> dict[str, str]:
 
 
 def get_query_ids(session: requests.Session) -> dict[str, str]:
-    """Return query IDs, auto-refreshing from X's JS bundles when stale."""
+    """Return query IDs, using file cache across processes and refreshing when stale."""
     global _cached_query_ids, _cache_ts
-    if _cached_query_ids and (time.time() - _cache_ts) < _CACHE_TTL:
+    now = time.time()
+
+    # 1. In-memory cache (same process)
+    if _cached_query_ids and (now - _cache_ts) < _CACHE_TTL:
         return _cached_query_ids
+
+    # 2. File cache (cross-process, survives between script calls)
+    file_ids, file_ts = _load_file_cache()
+    if file_ids and (now - file_ts) < _CACHE_TTL:
+        _cached_query_ids = file_ids
+        _cache_ts = file_ts
+        return _cached_query_ids
+
+    # 3. Fetch fresh from X's JS bundles
     fresh = _fetch_query_ids_from_bundles(session)
     if fresh:
         merged = {**DEFAULT_QUERY_IDS, **fresh}
         _cached_query_ids = merged
-        _cache_ts = time.time()
+        _cache_ts = now
+        _save_file_cache(merged, now)
         return merged
+
+    # 4. Fallback to whatever we have
+    if file_ids:
+        _cached_query_ids = file_ids
+        _cache_ts = file_ts
+        return file_ids
     if _cached_query_ids:
         return _cached_query_ids
     return DEFAULT_QUERY_IDS
