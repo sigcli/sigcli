@@ -72,7 +72,7 @@ def get_followers(client: XClient, username: str, limit: int = 50, mode: str = "
         }
         if cursor:
             variables["cursor"] = cursor
-        data = client.graphql_get(operation, variables, features=FEATURES_TIMELINE)
+        data = client.graphql_post(operation, variables, features=FEATURES_TIMELINE)
         instructions = (
             (((data.get("data") or {}).get("user") or {}).get("result") or {}).get("timeline", {}).get("timeline", {}).get("instructions") or []
         )
