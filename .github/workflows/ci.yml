@@ -87,7 +87,9 @@ jobs:
                   python-version: '3.12'
 
             - name: Install dependencies
-              run: pip install requests beautifulsoup4 pytest responses
+              run: |
+                  pip install pytest responses ruff
+                  find skills -name requirements.txt -exec pip install -r {} \;
 
             - name: Lint (ruff)
               run: pip install ruff && cd skills && ruff check .
