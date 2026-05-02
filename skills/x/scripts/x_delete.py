@@ -15,8 +15,7 @@ def delete_tweet(cookie: str, tweet_id: str) -> dict:
     client.require_cookie()
 
     variables = {"tweet_id": tweet_id, "dark_request": False}
-    data = client.graphql_post("DeleteTweet", variables)
-    result = (data.get("data") or {}).get("delete_tweet", {}).get("tweet_results", {})
+    client.graphql_post("DeleteTweet", variables)
     return {
         "success": True,
         "tweet_id": tweet_id,

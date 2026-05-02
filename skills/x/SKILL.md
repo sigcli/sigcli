@@ -63,11 +63,13 @@ After login, `x` is provisioned automatically to `~/.sig/config.yaml`.
 
 ### Step 3: Install Python dependencies
 
+Ensure deps are installed for the SAME python3 that `sig run` will use:
+
 ```bash
-pip install -r <SKILL_DIR>/requirements.txt
+sig run x -- bash -c 'python3 -m pip install -r <SKILL_DIR>/requirements.txt'
 ```
 
-If already installed, this is a no-op.
+This guarantees the packages land in the correct python environment. If already installed, this is a no-op.
 
 ### Step 4: Validate (confirms auth + network + query IDs)
 
