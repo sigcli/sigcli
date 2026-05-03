@@ -220,7 +220,7 @@ When a command fails, follow this decision tree:
 | ------------------------ | ------------------------------- | ----------------------------------------------------------------------- |
 | `ConnectionError`        | Can't reach x.com               | Ask user for proxy URL, then retry with `HTTPS_PROXY=<url>`             |
 | `Timeout`                | Network too slow                | Retry once. If still fails, check proxy.                                |
-| `AUTH_REQUIRED` / 401    | Cookie missing or expired       | Run `sig status x`. If expired, guide user to re-authenticate.          |
+| `AUTH_REQUIRED` / 401    | Cookie missing or expired       | Run `sig login x`, then re-check `sig status x`.                        |
 | `HTTP_403`               | IP blocked or query IDs stale   | Retry once (auto-refresh kicks in). If still 403, change proxy or wait. |
 | `HTTP_429`               | Rate limited                    | Wait 30 seconds, then retry.                                            |
 | `NOT_FOUND`              | User/tweet doesn't exist        | Verify the ID or username with the user.                                |

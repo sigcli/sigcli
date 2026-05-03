@@ -55,16 +55,8 @@ The default Signet provider is `youtube`. The env var is `SIG_YOUTUBE_COOKIE`.
 If a write script returns auth error, re-authenticate:
 
 ```bash
-sig login https://www.youtube.com/
+sig login youtube
 ```
-
-**If browser automation fails**, copy cookies manually from Chrome:
-
-1. Open https://www.youtube.com/ and log in
-2. DevTools (F12) → Network → click any request to youtube.com
-3. Find the `Cookie:` header → copy the full value
-4. Key cookies needed: `__Secure-3PAPISID` (for SAPISIDHASH auth), `__Secure-3PSID`, `LOGIN_INFO`, `SID`, `HSID`, `SSID`
-5. Run: `sig login https://www.youtube.com/ --cookie "paste-full-cookie-here"`
 
 **Signet provider config:**
 
