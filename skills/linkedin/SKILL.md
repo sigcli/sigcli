@@ -53,18 +53,10 @@ The default Signet provider is `linkedin`. The env var is `SIG_LINKEDIN_COOKIE`.
 If a script returns auth error, re-authenticate:
 
 ```bash
-sig login https://www.linkedin.com/login
+sig login linkedin
 ```
 
-> **Login caution:** Headless browser automation may trigger LinkedIn security challenges (CAPTCHA, phone verification, or temporary account restrictions). LinkedIn actively detects automated logins. If `sig login` fails, use the manual cookie method below.
-
-**Manual cookie setup (recommended):**
-
-1. Open https://www.linkedin.com/ and log in normally in Chrome
-2. DevTools (F12) → Application → Cookies → `https://www.linkedin.com`
-3. Find `JSESSIONID` (starts with `"ajax:..."`) and `li_at` (long session token)
-4. Construct the cookie string: `JSESSIONID="ajax:xxxxx"; li_at=yyyyy`
-5. Run: `sig login https://www.linkedin.com/login --cookie 'JSESSIONID="ajax:xxxxx"; li_at=yyyyy'`
+This opens the user's real browser via CDP (no automation markers), avoiding LinkedIn's bot detection.
 
 **Signet provider config:**
 
