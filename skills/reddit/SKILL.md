@@ -53,15 +53,10 @@ The default Signet provider is `reddit`. The env var is `SIG_REDDIT_COOKIE`.
 If a write script returns auth error, re-authenticate:
 
 ```bash
-sig login https://www.reddit.com/
+sig login reddit
 ```
 
-**Note:** Reddit's login page has aggressive bot detection that may block automated browsers. If `sig login` fails, copy the `token_v2` cookie from your browser manually:
-
-1. Open https://www.reddit.com/ in your browser and log in
-2. Open DevTools (F12) → Application → Cookies → `www.reddit.com`
-3. Copy the value of the `token_v2` cookie
-4. Run: `sig login https://www.reddit.com/ --as reddit --cookie "token_v2=<your-token>"`
+Then retry the `sig run` command.
 
 **Signet provider config:**
 
