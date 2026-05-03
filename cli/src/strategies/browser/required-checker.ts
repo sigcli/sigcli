@@ -31,7 +31,7 @@ export function checkRequired(required: string[], credentials: ExtractedCredenti
                 continue;
             }
             // For cookie strings, check "field=" presence
-            if (value.includes('=') && value.includes(';')) {
+            if (value.includes('=')) {
                 if (!value.includes(`${field}=`)) {
                     unmet.push(req);
                 }
