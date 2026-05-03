@@ -206,8 +206,9 @@ sig run x -- bash -c 'cd <SKILL_DIR> && python3 scripts/x_bookmark.py --cookie "
 ## Safety Rules
 
 1. **ALWAYS show tweet text to user and get explicit confirmation before posting.** Tweets are public.
-2. **Like, retweet, follow, bookmark are reversible** — use `--undo` to reverse.
-3. **Delete is irreversible** — confirm with user before deleting.
+2. **Tweets and replies must be ≤ 280 characters.** Check length before posting. URLs count as ~23 characters (t.co shortening). If the text exceeds 280 characters, shorten it or split into a thread.
+3. **Like, retweet, follow, bookmark are reversible** — use `--undo` to reverse.
+4. **Delete is irreversible** — confirm with user before deleting.
 
 ---
 
