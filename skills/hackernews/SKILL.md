@@ -53,15 +53,10 @@ The default Signet provider is `hackernews`. The env var is `SIG_HACKERNEWS_COOK
 If a write script returns auth error, re-authenticate:
 
 ```bash
-sig login https://news.ycombinator.com/login
+sig login hackernews
 ```
 
-**If browser automation fails**, copy cookies manually:
-
-1. Open https://news.ycombinator.com/ and log in
-2. DevTools (F12) → Application → Cookies → `news.ycombinator.com`
-3. Copy the `user` cookie value (format: `username&token`)
-4. Run: `sig login https://news.ycombinator.com/ --cookie "user=username&token"`
+Then retry the `sig run` command.
 
 **Signet provider config:**
 
