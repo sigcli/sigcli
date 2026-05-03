@@ -43,3 +43,35 @@ export function killPid(pid: number, signal: NodeJS.Signals = 'SIGTERM'): void {
         process.kill(pid, signal);
     }
 }
+
+/**
+ * Kill a process and all its children by PID, cross-platform.
+ * On Windows, taskkill /T handles the tree natively.
+ * On macOS/Linux, kills children first via pkill -P, then the parent.
+ */
+export function killProcessTree(pid: number): void {
+    try {
+        process.kill(pid, 0);
+    } catch {
+        return; // already dead
+    }
+
+    if (process.platform === 'win32') {
+        try {
+            execSync(`taskkill /F /T /PID ${pid}`, { stdio: 'ignore' });
+        } catch {
+            /* process may already be gone */
+        }
+    } else {
+        try {
+            execSync(`pkill -P ${pid}`, { stdio: 'ignore' });
+        } catch {
+            /* no children or already gone */
+        }
+        try {
+            process.kill(pid, 'SIGKILL');
+        } catch {
+            /* already gone */
+        }
+    }
+}

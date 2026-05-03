@@ -171,6 +171,10 @@ Full guide with debugging tips at **[sigcli.ai](https://sigcli.ai)**.
 
 Pre-built Python scripts that let AI agents operate 14+ web services — email, chat, forums, video platforms, social networks, and more. Each skill includes scripts + documentation that agents read and execute autonomously.
 
+<p align="center">
+  <img src="pitch/x-demo.gif" alt="X (Twitter) skill: search and reply from your terminal" width="720" />
+</p>
+
 Install skills to your coding agent (Claude Code, Cursor, Windsurf, Cline):
 
 ```bash

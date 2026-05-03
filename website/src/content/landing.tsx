@@ -28,6 +28,26 @@ export function LandingPage() {
                     </a>
                     <div className="flex items-center gap-4">
                         <a
+                            href="/skills/"
+                            className="no-underline flex items-center gap-1.5 px-3 py-1 rounded-md transition-colors duration-150"
+                            style={{
+                                fontSize: 'var(--type-toc-size)',
+                                fontWeight: 475,
+                                color: 'var(--text-secondary)',
+                                border: '1px solid var(--page-border)',
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.color = 'var(--text-primary)';
+                                e.currentTarget.style.borderColor = 'var(--text-tertiary)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.color = 'var(--text-secondary)';
+                                e.currentTarget.style.borderColor = 'var(--page-border)';
+                            }}
+                        >
+                            Skills
+                        </a>
+                        <a
                             href="/docs/"
                             className="no-underline flex items-center gap-1.5 px-3 py-1 rounded-md transition-colors duration-150"
                             style={{
@@ -118,7 +138,7 @@ export function LandingPage() {
                     >
                         Authenticate Once. Use Everywhere.
                     </p>
-                    <div className="max-w-2xl mx-auto">
+                    <div className="max-w-2xl mx-auto text-left">
                         <TerminalAnimation />
                     </div>
                 </section>
@@ -190,12 +210,16 @@ export function LandingPage() {
                             color: 'var(--text-primary)',
                         }}
                     >
-                        Three ways to use credentials
+                        Four ways to use credentials
                     </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <MethodCard
                             command="sig get"
                             description="Get credential headers for your own HTTP calls"
+                        />
+                        <MethodCard
+                            command="sig request"
+                            description="Make authenticated HTTP requests directly"
                         />
                         <MethodCard
                             command="sig run"

@@ -69,3 +69,33 @@ export function removeSingletonLock(dataDir: string): void {
         // Not critical
     }
 }
+
+export async function isCdpResponding(port: number): Promise<boolean> {
+    try {
+        const json = await fetchJsonWithTimeout(`http://127.0.0.1:${port}/json/version`, 2000);
+        return !!json.webSocketDebuggerUrl;
+    } catch {
+        return false;
+    }
+}
+
+function fetchJsonWithTimeout(url: string, timeoutMs: number): Promise<Record<string, unknown>> {
+    return new Promise((resolve, reject) => {
+        const req = http.get(url, (res) => {
+            let data = '';
+            res.on('data', (chunk: string) => (data += chunk));
+            res.on('end', () => {
+                try {
+                    resolve(JSON.parse(data) as Record<string, unknown>);
+                } catch {
+                    reject(new Error(`Failed to parse JSON from ${url}`));
+                }
+            });
+        });
+        req.on('error', reject);
+        req.setTimeout(timeoutMs, () => {
+            req.destroy();
+            reject(new Error(`Timeout fetching ${url}`));
+        });
+    });
+}
