@@ -92,6 +92,7 @@ sig init --remote          # Set up for headless/remote machine
 sig doctor                 # Check environment and config
 sig get <provider|url>     # Get credential headers
 sig login <url>            # Authenticate
+  --mode <mode>              Login mode: auto|headless|visible (default: auto)
 sig request <url>          # Make authenticated HTTP request
 sig status [provider]      # Show auth status
 sig logout [provider]      # Clear credentials
