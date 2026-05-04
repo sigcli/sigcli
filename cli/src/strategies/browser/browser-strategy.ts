@@ -55,6 +55,19 @@ export class BrowserStrategy implements IStrategy {
 
     async extract(provider: ProviderConfig): Promise<Result<ExtractionResult, AuthError>> {
         this.logger.info(`${provider.id}: starting browser extraction`);
+        const mode = provider.loginMode ?? 'auto';
+
+        if (mode === 'headless') {
+            const result = await this.tryHeadless(provider);
+            if (result) return ok(result);
+            return err(new BrowserError('Headless extraction failed'));
+        }
+
+        if (mode === 'visible') {
+            return this.extractViaCdp(provider);
+        }
+
+        // auto: try headless, fallback to visible
         const headlessResult = await this.tryHeadless(provider);
         if (headlessResult) return ok(headlessResult);
         return this.extractViaCdp(provider);

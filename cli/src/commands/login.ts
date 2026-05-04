@@ -19,6 +19,7 @@ function toProviderEntry(pc: ProviderConfig): ProviderEntry {
         ...(pc.cookiePaths?.length ? { cookiePaths: pc.cookiePaths } : {}),
         ...(pc.ttl ? { ttl: pc.ttl } : {}),
         ...(pc.networkProxy ? { networkProxy: pc.networkProxy } : {}),
+        ...(pc.loginMode ? { loginMode: pc.loginMode } : {}),
     };
 }
 
@@ -48,10 +49,18 @@ export async function runLogin(
 
     const networkProxy =
         typeof flags['network-proxy'] === 'string' ? flags['network-proxy'] : undefined;
+    const loginMode =
+        typeof flags['mode'] === 'string'
+            ? (flags['mode'] as 'headless' | 'visible' | 'auto')
+            : undefined;
 
     // Apply networkProxy to auto-provisioned providers so it persists in config
     if (networkProxy !== undefined && provider.autoProvisioned) {
         provider.networkProxy = networkProxy;
+    }
+    // Apply loginMode to auto-provisioned providers so it persists in config
+    if (loginMode !== undefined && provider.autoProvisioned) {
+        provider.loginMode = loginMode;
     }
 
     // Step 2: --as <id>: rename the auto-provisioned provider
@@ -116,6 +125,7 @@ export async function runLogin(
     const result = await auth.getExtractedCreds(provider.id, {
         force: true,
         ...(networkProxy !== undefined ? { networkProxy } : {}),
+        ...(loginMode !== undefined ? { loginMode } : {}),
     });
     if (!isOk(result)) {
         await logAuditEvent({

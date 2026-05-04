@@ -74,6 +74,7 @@ export class AuthManager {
                     extract: entry.extract,
                     apply: entry.apply,
                     networkProxy: entry.networkProxy,
+                    loginMode: entry.loginMode,
                     required: entry.required,
                     cookiePaths: entry.cookiePaths,
                     ttl: entry.ttl,
@@ -120,7 +121,7 @@ export class AuthManager {
      */
     public async getExtractedCreds(
         providerId: string,
-        options: { force?: boolean; networkProxy?: string } = {},
+        options: { force?: boolean; networkProxy?: string; loginMode?: string } = {},
     ): Promise<Result<ExtractedCredentials, AuthError>> {
         const provider = this.providers.get(providerId);
         if (!provider) return err(new ProviderNotFoundError(providerId));
@@ -132,9 +133,16 @@ export class AuthManager {
         const cached = await this.getCached(provider);
         if (cached) return ok(cached);
 
-        const effectiveProvider = options.networkProxy
-            ? { ...provider, networkProxy: options.networkProxy }
-            : provider;
+        const effectiveProvider =
+            options.networkProxy || options.loginMode
+                ? {
+                      ...provider,
+                      ...(options.networkProxy ? { networkProxy: options.networkProxy } : {}),
+                      ...(options.loginMode
+                          ? { loginMode: options.loginMode as ProviderConfig['loginMode'] }
+                          : {}),
+                  }
+                : provider;
 
         return this.authenticate(effectiveProvider);
     }
