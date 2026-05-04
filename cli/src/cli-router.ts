@@ -80,6 +80,7 @@ Authentication:
   login [provider]|[url --as <id>]  Authenticate via browser
     --as <id>                       Custom provider ID for auto-provisioned
     --force                         Skip stored credentials, force re-auth
+    --mode <mode>                   Login mode: headless|visible|auto (default: auto)
     --network-proxy <url>           Browser proxy (e.g. socks5://127.0.0.1:1080)
   logout [provider]                 Clear credentials (all if none specified)
 
