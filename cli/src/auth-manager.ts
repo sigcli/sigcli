@@ -133,16 +133,10 @@ export class AuthManager {
         const cached = await this.getCached(provider);
         if (cached) return ok(cached);
 
-        const effectiveProvider =
-            options.networkProxy || options.loginMode
-                ? {
-                      ...provider,
-                      ...(options.networkProxy ? { networkProxy: options.networkProxy } : {}),
-                      ...(options.loginMode
-                          ? { loginMode: options.loginMode as ProviderConfig['loginMode'] }
-                          : {}),
-                  }
-                : provider;
+        const effectiveProvider = { ...provider };
+        if (options.networkProxy) effectiveProvider.networkProxy = options.networkProxy;
+        if (options.loginMode)
+            effectiveProvider.loginMode = options.loginMode as ProviderConfig['loginMode'];
 
         return this.authenticate(effectiveProvider);
     }
