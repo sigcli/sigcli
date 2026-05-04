@@ -167,8 +167,6 @@ export const pageContent = {
                     You can also pass credentials directly without opening a browser:
                     <br />
                     <Code>sig login &lt;url&gt; --token &lt;pat&gt;</Code>
-                    <br />
-                    <Code>sig login &lt;url&gt; --cookie "key=val"</Code>
                 </P>
             ),
         },
