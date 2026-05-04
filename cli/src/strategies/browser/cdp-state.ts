@@ -278,7 +278,7 @@ function waitForEarlyExit(child: ChildProcess, ms: number): Promise<boolean> {
         });
         setTimeout(() => {
             if (!exited) resolve(false);
-        }, ms).unref();
+        }, ms);
     });
 }
 

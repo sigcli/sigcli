@@ -451,8 +451,8 @@ sig watch add jira --auto-sync prod`}</CodeBlock>
                         </Li>
                         <Li>
                             <strong>Site blocks headless browser:</strong> Use{' '}
-                            <Code>sig login &lt;url&gt; --mode cdp</Code> to use your real browser
-                            without automation markers.
+                            <Code>sig login &lt;url&gt; --mode visible</Code> to use your real
+                            browser without automation markers.
                         </Li>
                         <Li>
                             <strong>Credentials expire quickly:</strong> Set a longer{' '}

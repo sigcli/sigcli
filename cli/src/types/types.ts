@@ -31,6 +31,7 @@ export interface ProviderConfig {
     strategy: string; // Strategy name: "browser" | "prompt"
     autoProvisioned?: boolean; // True if created by auto-provision (not from config file)
     networkProxy?: string; // Browser network proxy, e.g. "socks5://127.0.0.1:1080"
+    loginMode?: 'headless' | 'visible' | 'auto'; // Browser login mode
 
     extract: ExtractRule[];
     apply: ApplyRule[];
