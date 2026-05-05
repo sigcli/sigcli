@@ -28,6 +28,12 @@ function toIsoTimestamp(raw: unknown): string | undefined {
         return new Date(ms).toISOString();
     }
     if (typeof raw === 'string') {
+        // Handle numeric strings (e.g. MSAL "expiresOn": "1777983731")
+        if (/^\d+$/.test(raw)) {
+            const num = Number(raw);
+            const ms = num > 1e12 ? num : num * 1000;
+            return new Date(ms).toISOString();
+        }
         const d = new Date(raw);
         return isNaN(d.getTime()) ? undefined : d.toISOString();
     }
@@ -118,13 +124,16 @@ describe('toIsoTimestamp', () => {
             expect(toIsoTimestamp('')).toBeUndefined();
         });
 
-        it('returns undefined for a numeric string (not parsed as number)', () => {
-            // A string "1735689600000" goes through the string branch → valid date parse
+        it('parses a numeric string as epoch-milliseconds', () => {
+            // A string "1735689600000" is detected as all-digits → treated as epoch-ms
             const result = toIsoTimestamp('1735689600000');
-            // new Date('1735689600000') → NaN in most engines (not a valid ISO string)
-            // The result depends on JS engine behavior; at minimum it should not throw
-            // In V8, new Date('1735689600000') is Invalid Date
-            expect(result).toBeUndefined();
+            expect(result).toBe('2025-01-01T00:00:00.000Z');
+        });
+
+        it('parses a numeric string as epoch-seconds when ≤ 1e12', () => {
+            // MSAL stores expiresOn as a numeric string (e.g. "1735689600")
+            const result = toIsoTimestamp('1735689600');
+            expect(result).toBe('2025-01-01T00:00:00.000Z');
         });
     });
 
