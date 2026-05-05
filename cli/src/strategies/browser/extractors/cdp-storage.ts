@@ -63,6 +63,12 @@ export class CdpStorageExtractor implements IBrowserExtractor {
             return new Date(ms).toISOString();
         }
         if (typeof raw === 'string') {
+            // Handle numeric strings (e.g. MSAL "expiresOn": "1777983731")
+            if (/^\d+$/.test(raw)) {
+                const num = Number(raw);
+                const ms = num > 1e12 ? num : num * 1000;
+                return new Date(ms).toISOString();
+            }
             const d = new Date(raw);
             return isNaN(d.getTime()) ? undefined : d.toISOString();
         }
