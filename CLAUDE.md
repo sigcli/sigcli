@@ -4,6 +4,41 @@ Monorepo for SigCLI authentication tools. pnpm workspaces, ESM, Node >= 18.
 
 When you make this project, do not add you as an author in commit. e.g. DO NOT add this in commit message "Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 
+## Behavioral Guidelines (Karpathy Rules)
+
+**Tradeoff:** These bias toward caution over speed. For trivial tasks, use judgment.
+
+### Think Before Coding
+
+- State assumptions explicitly. If uncertain, ask.
+- Multiple interpretations? Present them — don't pick silently.
+- Simpler approach exists? Say so. Push back when warranted.
+- Something unclear? Stop. Name what's confusing. Ask.
+
+### Simplicity First
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- 200 lines could be 50? Rewrite it.
+
+### Surgical Changes
+
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- Notice unrelated dead code? Mention it — don't delete it.
+- Remove only imports/variables YOUR changes made unused.
+- Every changed line should trace directly to the user's request.
+
+### Goal-Driven Execution
+
+- Transform tasks into verifiable goals before coding.
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- Multi-step tasks: state a brief plan with verify steps.
+- Strong success criteria let you loop independently.
+
 ## Monorepo Structure
 
 ```
