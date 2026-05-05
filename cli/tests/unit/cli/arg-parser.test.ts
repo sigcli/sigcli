@@ -198,4 +198,31 @@ describe('parseArgs', () => {
         const result = parseArgs(['--help']);
         expect(result.command).toBe('help');
     });
+
+    // ---------------------------------------------------------------------------
+    // separatorIdx tracking
+    // ---------------------------------------------------------------------------
+
+    it('sets separatorIdx to -1 when no -- is present', () => {
+        const result = parseArgs(['run', 'jira', 'echo', 'hello']);
+        expect(result.separatorIdx).toBe(-1);
+    });
+
+    it('sets separatorIdx to count of pre-separator positionals', () => {
+        const result = parseArgs(['run', 'jira', '--', 'echo', 'hello']);
+        expect(result.separatorIdx).toBe(1);
+        expect(result.positionals).toEqual(['jira', 'echo', 'hello']);
+    });
+
+    it('sets separatorIdx to 0 when -- is first positional', () => {
+        const result = parseArgs(['run', '--', 'echo', 'hello']);
+        expect(result.separatorIdx).toBe(0);
+        expect(result.positionals).toEqual(['echo', 'hello']);
+    });
+
+    it('sets separatorIdx with multiple pre-separator positionals', () => {
+        const result = parseArgs(['run', 'jira', 'wiki', '--', 'curl', '-s', 'http://x']);
+        expect(result.separatorIdx).toBe(2);
+        expect(result.positionals).toEqual(['jira', 'wiki', 'curl', '-s', 'http://x']);
+    });
 });

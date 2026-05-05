@@ -26,6 +26,7 @@ interface ParsedArgs {
     command: string;
     positionals: string[];
     flags: Record<string, string | boolean | string[]>;
+    separatorIdx: number;
 }
 
 export function parseArgs(args: string[]): ParsedArgs {
@@ -33,11 +34,13 @@ export function parseArgs(args: string[]): ParsedArgs {
     const command = firstIsFlag ? 'help' : (args[0] ?? 'help');
     const positionals: string[] = [];
     const flags: Record<string, string | boolean | string[]> = {};
+    let separatorIdx = -1;
 
     let i = firstIsFlag ? 0 : 1;
     while (i < args.length) {
         const arg = args[i];
         if (arg === '--') {
+            separatorIdx = positionals.length;
             // Everything after -- is positional (for sig run)
             for (let j = i + 1; j < args.length; j++) {
                 positionals.push(args[j]);
@@ -69,7 +72,7 @@ export function parseArgs(args: string[]): ParsedArgs {
         }
     }
 
-    return { command, positionals, flags };
+    return { command, positionals, flags, separatorIdx };
 }
 
 const HELP = `sig — authenticate once, use everywhere
@@ -162,7 +165,7 @@ const DEPS_COMMANDS: ReadonlySet<string> = new Set([
 ]);
 
 export async function run(args: string[]): Promise<void> {
-    const { command, positionals, flags } = parseArgs(args);
+    const { command, positionals, flags, separatorIdx } = parseArgs(args);
 
     if (command === Command.HELP || flags.help === true) {
         process.stdout.write(HELP);
@@ -252,6 +255,17 @@ export async function run(args: string[]): Promise<void> {
             await runRemove(positionals, flags, auth as AuthManager);
             break;
         case Command.RUN:
+            if (separatorIdx > 0) {
+                for (let i = 0; i < separatorIdx; i++) {
+                    if (!(auth as AuthManager).providerRegistry.get(positionals[i])) {
+                        process.stderr.write(
+                            `Error: No provider "${positionals[i]}" found. Run "sig providers" to list configured providers.\n`,
+                        );
+                        process.exitCode = ExitCode.GENERAL_ERROR;
+                        return;
+                    }
+                }
+            }
             await runRun(positionals, flags, auth as AuthManager);
             break;
         case Command.PROXY:
