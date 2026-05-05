@@ -6,7 +6,12 @@ import lockfile from 'proper-lockfile';
 
 import type { ILogger } from '../../types/index.js';
 import { killProcessTree } from '../../utils/process-kill.js';
-import { findFreePort, isCdpResponding, waitForBrowserReady } from './browser-lifecycle.js';
+import {
+    fetchJson,
+    findFreePort,
+    isCdpResponding,
+    waitForBrowserReady,
+} from './browser-lifecycle.js';
 import { connectCdpWs } from './cdp-ws.js';
 
 export interface CdpState {
@@ -254,15 +259,53 @@ export async function releaseBrowser(dataDir: string, logger: ILogger): Promise<
                 return;
             }
 
-            logger.info(`release: no remaining users, killing browser pid=${state.pid}`);
+            logger.info(`release: no remaining users, closing browser pid=${state.pid}`);
             if (isProcessAlive(state.pid)) {
-                killProcessTree(state.pid);
+                await closeBrowserGracefully(state.port, state.pid, logger);
             }
             await clearCdpState(dataDir);
         });
     } catch (e) {
         logger.warn(`release: failed to acquire lock: ${(e as Error).message}`);
     }
+}
+
+/**
+ * Gracefully close the browser via CDP Browser.close, which flushes cookies to disk.
+ * Falls back to SIGKILL if the browser doesn't exit within timeout.
+ */
+async function closeBrowserGracefully(
+    port: number,
+    pid: number,
+    logger: ILogger,
+    timeoutMs = 5000,
+): Promise<void> {
+    try {
+        const json = await fetchJson(`http://127.0.0.1:${port}/json/version`);
+        const wsUrl = json.webSocketDebuggerUrl as string;
+        if (wsUrl) {
+            const cdp = await connectCdpWs(wsUrl);
+            await cdp.send('Browser.close').catch(() => {});
+            cdp.close();
+            logger.info(`release: sent Browser.close, waiting for exit`);
+
+            // Wait for process to exit
+            const deadline = Date.now() + timeoutMs;
+            while (Date.now() < deadline && isProcessAlive(pid)) {
+                await new Promise((r) => setTimeout(r, 200));
+            }
+
+            if (!isProcessAlive(pid)) {
+                logger.info(`release: browser exited gracefully`);
+                return;
+            }
+        }
+    } catch {
+        // CDP connection failed — fall through to force kill
+    }
+
+    logger.info(`release: graceful close failed, force killing pid=${pid}`);
+    killProcessTree(pid);
 }
 
 function pruneDeadUsers(users: number[]): number[] {
