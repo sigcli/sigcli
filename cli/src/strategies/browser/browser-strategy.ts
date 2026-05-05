@@ -180,9 +180,22 @@ export class BrowserStrategy implements IStrategy {
             this.logger.warn(`${provider.id}: headless failed (${msg}), falling back`);
             return null;
         } finally {
-            cdpClient?.close();
+            if (cdpClient) {
+                await cdpClient.send('Browser.close').catch(() => {});
+                cdpClient.close();
+            }
+            // Wait briefly for graceful exit, then force kill if needed
             if (browser && !browser.killed) {
-                killProcess(browser);
+                await new Promise<void>((resolve) => {
+                    const timeout = setTimeout(() => resolve(), 3000);
+                    browser!.on('exit', () => {
+                        clearTimeout(timeout);
+                        resolve();
+                    });
+                });
+                if (!browser.killed) {
+                    killProcess(browser);
+                }
             }
         }
     }
