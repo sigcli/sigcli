@@ -60,10 +60,10 @@ sig get / sig request / sig run / sig proxy
 
 ### Strategies
 
-| Strategy  | `needsBrowser` | How it works                                                        |
-| --------- | -------------- | ------------------------------------------------------------------- |
-| `browser` | yes            | Headless → CDP → visible cascade. Polls extract[] rules until done. |
-| `prompt`  | no             | Asks user interactively for each extract[] rule value.              |
+| Strategy  | `needsBrowser` | How it works                                                                            |
+| --------- | -------------- | --------------------------------------------------------------------------------------- |
+| `browser` | yes            | 3-phase cascade: existing state → headless → visible. Probes `validateUrl ?? entryUrl`. |
+| `prompt`  | no             | Asks user interactively for each extract[] rule value.                                  |
 
 ### Extract Rules
 
@@ -92,15 +92,13 @@ apply:
 
 Template interpolation: `${key}` resolves to the extracted value with that `as` name.
 
-### Required Fields
+### Validation
 
-Optional completion criteria — auth is not considered done until these fields exist:
+sig validates extracted credentials by probing `validateUrl` (if set) or detecting login redirects on `entryUrl`:
 
-```yaml
-required:
-    - session.reddit_session # format: <as-name>.<cookie-name-or-subfield>
-    - xoxc-token # or just the as-name for non-cookie sources
-```
+- **SSO sites** (enterprise): zero config — redirect to IDP is detected automatically
+- **Public sites**: set `validateUrl` to a protected endpoint (returns 401/403 when not logged in)
+- **OAuth/localStorage**: token presence + `expiresJsonPath` is sufficient — no `validateUrl` needed
 
 ---
 
@@ -130,6 +128,7 @@ sig login <provider|url> [OPTIONS]
 
   --as <id>              # Custom provider ID for auto-provisioned providers
   --force                # Skip stored credentials, force re-authentication
+  --mode <mode>          # Login mode: auto (default) | headless | visible
   --network-proxy <url>  # Browser proxy (e.g. socks5h://127.0.0.1:1080)
 ```
 
@@ -271,7 +270,7 @@ apply:
 
 The provider ID is derived from the hostname (e.g., `jira-tools` from `jira.tools.example.com`). Override with `--as <custom-id>`.
 
-For services that need more than cookies (localStorage, specific required fields), add a provider entry to `~/.sig/config.yaml`.
+For services that need more than cookies (localStorage, validateUrl, or custom apply rules), add a provider entry to `~/.sig/config.yaml`.
 
 ---
 
@@ -285,17 +284,14 @@ For services that need more than cookies (localStorage, specific required fields
     domains: # Domain matching (exact or glob)
         - example.com
     entryUrl: <url> # Starting URL for browser auth
+    validateUrl: <url> # Optional: protected endpoint to verify credentials (2xx = valid)
     strategy: browser | prompt # How to acquire credentials
+    loginMode: auto | headless | visible # Optional: controls login cascade (default: auto)
     ttl: <duration> # Credential lifetime (e.g. "12h", "7d", "2h")
-    required: # Completion criteria
-        - <as-name>.<field>
-    cookiePaths: # Extra URL paths for path-scoped cookies
-        - /wiki
     loginUrlPatterns: # URL substrings indicating login page
         - /login
         - /sso
-    waitUntil: load | networkidle | domcontentloaded | commit
-    networkProxy: <url> # SOCKS proxy for browser (e.g. socks5h://127.0.0.1:1080)
+    networkProxy: <url> # SOCKS proxy for browser (e.g. socks5://127.0.0.1:3333)
     extract:
         - from: cookies | localStorage | eval | prompt
           as: <key>
@@ -349,18 +345,15 @@ my-wiki:
           value: '${cookie}'
 ```
 
-**Required cookies (Reddit):**
+**Public site with validateUrl (Reddit):**
 
 ```yaml
 reddit:
     domains: [www.reddit.com, reddit.com]
-    entryUrl: https://www.reddit.com/login
+    entryUrl: https://www.reddit.com/
+    validateUrl: https://www.reddit.com/prefs/friends
     strategy: browser
-    ttl: '7d'
-    networkProxy: socks5h://127.0.0.1:1080
-    required:
-        - cookie.reddit_session
-        - cookie.token_v2
+    ttl: '2h'
     extract:
         - from: cookies
           as: cookie
@@ -381,9 +374,6 @@ app-slack:
     entryUrl: https://app.slack.com/client/<TEAM_ID>
     strategy: browser
     ttl: '7d'
-    required:
-        - session.d
-        - xoxc-token
     extract:
         - from: cookies
           as: session
@@ -411,8 +401,6 @@ ms-teams:
     domains: [teams.cloud.microsoft]
     entryUrl: https://teams.cloud.microsoft/v2/
     strategy: browser
-    required:
-        - access_token
     extract:
         - from: localStorage
           as: access_token
@@ -519,7 +507,7 @@ sig login <url>             # 30-120s; launches browser
 
 7. **Use `--verbose` to debug.** Internal logs go to stderr, hidden by default.
 
-8. **Auto-provisioning works for most sites.** Only add config entries when you need localStorage extraction, required fields, or custom apply rules.
+8. **Auto-provisioning works for most sites.** Only add config entries when you need localStorage extraction, validateUrl, or custom apply rules.
 
 ---
 

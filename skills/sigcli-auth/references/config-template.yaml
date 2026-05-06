@@ -10,9 +10,8 @@ mode: browser
 browser:
     browserDataDir: ~/.sig/browser-data
     execPath: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
-    headlessTimeout: 30000
+    headlessTimeout: 20000
     visibleTimeout: 120000
-    waitUntil: load
 
 storage:
     credentialsDir: ~/.sig/credentials
@@ -27,8 +26,6 @@ providers:
         entryUrl: https://teams.cloud.microsoft/v2/
         strategy: browser
         ttl: '2h'
-        required:
-            - access_token
         extract:
             - from: localStorage
               as: access_token
@@ -49,8 +46,6 @@ providers:
         entryUrl: https://teams.cloud.microsoft/v2/
         strategy: browser
         ttl: '2h'
-        required:
-            - access_token
         extract:
             - from: localStorage
               as: access_token
@@ -73,19 +68,16 @@ providers:
     #   https://app.slack.com/client/<TEAM_ID>/...
     # Enterprise Grid orgs start with "E", regular workspaces start with "T".
     #
-    # Env vars: SIG_APP_SLACK_SESSION, SIG_APP_SLACK_XOXC_TOKEN
+    # Env vars: SIG_APP_SLACK_COOKIE, SIG_APP_SLACK_XOXC_TOKEN
     app-slack:
         name: Slack
         domains: ['<your-workspace>.slack.com']
         entryUrl: https://app.slack.com/client/<your-team-id>
         strategy: browser
         ttl: '7d'
-        required:
-            - session.d
-            - xoxc-token
         extract:
             - from: cookies
-              as: session
+              as: cookie
               match: '*'
             - from: localStorage
               as: xoxc-token
@@ -94,10 +86,29 @@ providers:
         apply:
             - in: header
               name: Cookie
-              value: '${session}'
+              value: '${cookie}'
             - in: header
               name: Authorization
               value: 'Bearer ${xoxc-token}'
+
+    # ── Reddit (public site — needs validateUrl) ────────────────────────────
+    # Public sites set tracking cookies to all visitors. validateUrl lets sig
+    # distinguish auth cookies from anonymous ones.
+    # Env var: SIG_REDDIT_COOKIE
+    reddit:
+        domains: ['www.reddit.com', 'reddit.com']
+        entryUrl: https://www.reddit.com/
+        validateUrl: https://www.reddit.com/prefs/friends
+        strategy: browser
+        ttl: '2h'
+        extract:
+            - from: cookies
+              as: cookie
+              match: '*'
+        apply:
+            - in: header
+              name: Cookie
+              value: '${cookie}'
 
 # ── Optional: auto-refresh credentials before they expire ─────────────────
 # Managed by: sig watch add/remove/set-interval

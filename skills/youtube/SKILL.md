@@ -66,17 +66,17 @@ sig login youtube
 youtube:
     domains: [www.youtube.com, youtube.com]
     entryUrl: https://www.youtube.com/
+    validateUrl: https://www.youtube.com/account
     strategy: browser
-    ttl: '30d'
-    required: [session.__Secure-3PAPISID, session.LOGIN_INFO]
+    ttl: '2h'
     extract:
         - from: cookies
-          as: session
+          as: cookie
           match: '*'
     apply:
         - in: header
           name: Cookie
-          value: '${session}'
+          value: '${cookie}'
 ```
 
 ## Scripts Reference

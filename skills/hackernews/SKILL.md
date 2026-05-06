@@ -63,17 +63,17 @@ Then retry the failed command. `sig login` runs headless browser extraction and 
 ```yaml
 hackernews:
     domains: [news.ycombinator.com]
-    entryUrl: https://news.ycombinator.com/login
+    entryUrl: https://news.ycombinator.com/
     strategy: browser
-    required: [session.user]
+    ttl: '2h'
     extract:
         - from: cookies
-          as: session
+          as: cookie
           match: '*'
     apply:
         - in: header
           name: Cookie
-          value: '${session}'
+          value: '${cookie}'
 ```
 
 ## Scripts Reference

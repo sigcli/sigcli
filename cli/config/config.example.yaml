@@ -10,11 +10,9 @@ mode: browser
 # Browser settings (required)
 browser:
     browserDataDir: ~/.sig/browser-data # Persistent browser profile directory
-    channel: chrome # Browser channel (chrome, msedge, chromium)
     # execPath: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
-    headlessTimeout: 30000 # Timeout for headless auth attempt (ms)
+    headlessTimeout: 20000 # Timeout for headless auth attempt (ms)
     visibleTimeout: 120000 # Timeout for visible/user-assisted auth (ms)
-    waitUntil: load # Page load condition (load, networkidle, domcontentloaded, commit)
 
 # Storage settings (required)
 storage:
@@ -52,16 +50,16 @@ storage:
 #   apply[]:   { in, name, value } — how to inject into HTTP requests
 #
 # Optional fields:
+#   validateUrl     — protected endpoint to verify credentials (2xx = valid, 401/403 = invalid)
+#   loginMode       — login cascade mode: auto (default) | headless | visible
 #   ttl             — credential lifetime (e.g. "12h", "7d")
-#   required[]      — completion criteria in "name.field" format
-#   cookiePaths     — extra URL paths to query cookies from
-#   waitUntil       — page load condition override (load|networkidle|domcontentloaded|commit)
 #   loginUrlPatterns — URL substrings that indicate a login page (e.g. /login, /auth/sso)
-#   networkProxy    — SOCKS proxy for browser (e.g. socks5h://127.0.0.1:1080)
+#   networkProxy    — SOCKS proxy for browser (e.g. socks5://127.0.0.1:3333)
 
 providers:
     # ---------------------------------------------------------------------------
     # Simplest case: cookie-based SSO (auto-provisioned default)
+    # SSO sites work with zero config — redirect detection is automatic.
     # ---------------------------------------------------------------------------
     # my-jira:
     #   domains:
@@ -71,55 +69,34 @@ providers:
     #   ttl: "10d"
     #   extract:
     #     - from: cookies
-    #       as: session
+    #       as: cookie
     #       match: "*"
     #   apply:
     #     - in: header
     #       name: Cookie
-    #       value: "${session}"
+    #       value: "${cookie}"
 
     # ---------------------------------------------------------------------------
-    # Cookie path scoping (e.g. Confluence sets cookies on /wiki)
-    # ---------------------------------------------------------------------------
-    # my-wiki:
-    #   domains:
-    #     - wiki.example.com
-    #   entryUrl: https://wiki.example.com/
-    #   strategy: browser
-    #   ttl: "12h"
-    #   cookiePaths:
-    #     - /wiki
-    #   extract:
-    #     - from: cookies
-    #       as: session
-    #       match: "*"
-    #   apply:
-    #     - in: header
-    #       name: Cookie
-    #       value: "${session}"
-
-    # ---------------------------------------------------------------------------
-    # Required cookies — wait for specific cookies before auth is complete
+    # Public site with validateUrl
+    # Public sites set tracking cookies to all visitors. validateUrl lets sig
+    # distinguish auth cookies from anonymous ones (2xx = logged in).
     # ---------------------------------------------------------------------------
     # reddit:
     #   domains:
     #     - www.reddit.com
     #     - reddit.com
-    #   entryUrl: https://www.reddit.com/login
+    #   entryUrl: https://www.reddit.com/
+    #   validateUrl: https://www.reddit.com/prefs/friends
     #   strategy: browser
-    #   ttl: "7d"
-    #   networkProxy: socks5h://127.0.0.1:1080
-    #   required:
-    #     - session.reddit_session
-    #     - session.token_v2
+    #   ttl: "2h"
     #   extract:
     #     - from: cookies
-    #       as: session
+    #       as: cookie
     #       match: "*"
     #   apply:
     #     - in: header
     #       name: Cookie
-    #       value: "${session}"
+    #       value: "${cookie}"
 
     # ---------------------------------------------------------------------------
     # Cookies + localStorage (e.g. Slack xoxc token)
@@ -131,12 +108,9 @@ providers:
     #   entryUrl: https://app.slack.com/client/<TEAM_ID>
     #   strategy: browser
     #   ttl: "7d"
-    #   required:
-    #     - session.d
-    #     - xoxc-token
     #   extract:
     #     - from: cookies
-    #       as: session
+    #       as: cookie
     #       match: "*"
     #     - from: localStorage
     #       as: xoxc-token
@@ -145,7 +119,7 @@ providers:
     #   apply:
     #     - in: header
     #       name: Cookie
-    #       value: "${session}"
+    #       value: "${cookie}"
     #     - in: header
     #       name: Authorization
     #       value: "Bearer ${xoxc-token}"
@@ -159,38 +133,36 @@ providers:
     #     - teams.cloud.microsoft
     #   entryUrl: https://teams.cloud.microsoft/v2/
     #   strategy: browser
-    #   required:
-    #     - access_token
+    #   ttl: "2h"
     #   extract:
     #     - from: localStorage
     #       as: access_token
-    #       match: "msal.*.accesstoken.*"
+    #       match: "*|accesstoken|*ic3.teams.office.com*"
     #       jsonPath: "secret"
+    #       expiresJsonPath: "expiresOn"
     #   apply:
     #     - in: header
     #       name: Authorization
     #       value: "Bearer ${access_token}"
 
     # ---------------------------------------------------------------------------
-    # Multiple apply rules (e.g. Graph API with same login page)
+    # Forced visible mode (e.g. site that blocks headless)
     # ---------------------------------------------------------------------------
-    # ms-graph:
-    #   name: Microsoft Graph
+    # grafana:
     #   domains:
-    #     - graph.microsoft.com
-    #   entryUrl: https://teams.cloud.microsoft/v2/
+    #     - grafana.example.com
+    #   entryUrl: https://grafana.example.com/
+    #   loginMode: visible
     #   strategy: browser
-    #   required:
-    #     - access_token
+    #   ttl: "2h"
     #   extract:
-    #     - from: localStorage
-    #       as: access_token
-    #       match: "msal.*.accesstoken.*"
-    #       jsonPath: "secret"
+    #     - from: cookies
+    #       as: cookie
+    #       match: "*"
     #   apply:
     #     - in: header
-    #       name: Authorization
-    #       value: "Bearer ${access_token}"
+    #       name: Cookie
+    #       value: "${cookie}"
 
     # ---------------------------------------------------------------------------
     # Prompt strategy (no browser — manual token input)

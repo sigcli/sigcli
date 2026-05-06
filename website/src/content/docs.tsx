@@ -72,7 +72,7 @@ export const pageContent = {
             parent: '#configuration',
             prefix: '├ ',
         }),
-        tocItem('#required-cookies', 'Required cookies', {
+        tocItem('#public-sites', 'Public sites (validateUrl)', {
             level: 1,
             parent: '#configuration',
             prefix: '└ ',
@@ -319,7 +319,9 @@ providers:
                     <CodeBlock lang="yaml">{`my-service:
   domains: [example.com]        # which URLs this provider handles
   entryUrl: https://example.com/  # URL opened for login
+  validateUrl: https://example.com/api/me  # optional: protected endpoint to verify credentials
   strategy: browser             # use browser to authenticate
+  loginMode: auto               # optional: auto (default) | headless | visible
   ttl: 12h                      # how long credentials are valid
   extract:
     - from: cookies             # what to capture (cookies or localStorage)
@@ -358,20 +360,19 @@ providers:
       name: Authorization
       value: "Bearer \${xoxc-token}"`}</CodeBlock>
 
-                    <SectionHeading id="required-cookies" level={2}>
-                        Required cookies
+                    <SectionHeading id="public-sites" level={2}>
+                        Public sites (validateUrl)
                     </SectionHeading>
                     <P>
-                        Public sites set tracking cookies to all visitors. Add <Code>required</Code>{' '}
-                        so sig knows which cookies mean "actually logged in":
+                        Public sites set tracking cookies to all visitors. Add{' '}
+                        <Code>validateUrl</Code> pointing to a protected endpoint so sig can
+                        distinguish auth cookies from anonymous ones:
                     </P>
                     <CodeBlock lang="yaml">{`reddit:
-  domains: [www.reddit.com]
+  domains: [www.reddit.com, reddit.com]
   entryUrl: https://www.reddit.com/
+  validateUrl: https://www.reddit.com/prefs/friends
   strategy: browser
-  required:
-    - cookie.reddit_session
-    - cookie.token_v2
   extract:
     - from: cookies
       as: cookie
@@ -381,8 +382,9 @@ providers:
       name: Cookie
       value: "\${cookie}"`}</CodeBlock>
                     <P>
-                        If required cookies are missing after headless login, sig automatically
-                        opens your real browser where you're already logged in.
+                        sig probes <Code>validateUrl</Code> with extracted credentials — 2xx means
+                        logged in, 401/403 means not. SSO sites don't need this — redirect detection
+                        works automatically.
                     </P>
                 </>
             ),
@@ -446,13 +448,14 @@ sig watch add jira --auto-sync prod`}</CodeBlock>
                     <CodeBlock lang="bash">{`sig doctor`}</CodeBlock>
                     <List>
                         <Li>
-                            <strong>Login captures wrong cookies:</strong> Add <Code>required</Code>{' '}
-                            to your provider config to specify which cookies mean "logged in".
+                            <strong>Login captures wrong cookies:</strong> Add{' '}
+                            <Code>validateUrl</Code> to your provider config pointing to a protected
+                            endpoint.
                         </Li>
                         <Li>
                             <strong>Site blocks headless browser:</strong> Use{' '}
-                            <Code>sig login &lt;url&gt; --mode visible</Code> to use your real
-                            browser without automation markers.
+                            <Code>sig login &lt;url&gt; --mode visible</Code> or set{' '}
+                            <Code>loginMode: visible</Code> in provider config.
                         </Li>
                         <Li>
                             <strong>Credentials expire quickly:</strong> Set a longer{' '}
