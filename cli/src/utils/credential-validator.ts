@@ -16,6 +16,7 @@ import { buildUserAgent } from './http.js';
  *
  * Rules:
  *   - empty credentials → false
+ *   - not all extract rules produced values → false
  *   - 401/403 → false
  *   - 3xx redirect to login URL → false
  *   - 2xx → true
@@ -26,6 +27,8 @@ export async function validate(
     credentials: ExtractedCredentials,
 ): Promise<boolean> {
     if (!credentials || Object.keys(credentials).length === 0) return false;
+
+    if (!provider.extract.every((rule) => !!credentials[rule.as])) return false;
 
     const url = provider.validateUrl ?? provider.entryUrl;
     if (!url) return true;
