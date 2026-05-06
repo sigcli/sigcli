@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SyncEngine } from '../../../src/sync/sync-engine.js';
-import { MemoryStorage } from '../../../src/storage/memory-storage.js';
-import type { StoredCredential } from '../../../src/core/types.js';
-import type { RemoteConfig } from '../../../src/sync/types.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { SigConfig } from '../../../src/config/schema.js';
+import { MemoryStorage } from '../../../src/storage/memory-storage.js';
 import type { ISyncTransport } from '../../../src/sync/interfaces/transport.js';
+import { SyncEngine } from '../../../src/sync/sync-engine.js';
+import type { RemoteConfig } from '../../../src/sync/types.js';
+import type { StoredCredential } from '../../../src/types/types.js';
 
 // Mock transport
 const mockListRemote = vi.fn();
@@ -40,10 +41,10 @@ vi.mock('../../../src/config/loader.js', () => ({
 
 function makeCredential(providerId: string, updatedAt: string): StoredCredential {
     return {
-        credential: { type: 'bearer', accessToken: `token-${providerId}` },
         providerId,
-        strategy: 'oauth2',
+        strategy: 'browser',
         updatedAt,
+        values: { access_token: `token-${providerId}` },
     };
 }
 
@@ -55,9 +56,10 @@ const testRemote: RemoteConfig = {
 };
 
 const testConfig: SigConfig = {
+    mode: 'browser',
     browser: {
         browserDataDir: '~/.sig/browser-data',
-        channel: 'chrome',
+        execPath: '',
         headlessTimeout: 30000,
         visibleTimeout: 120000,
         waitUntil: 'load',
@@ -68,21 +70,28 @@ const testConfig: SigConfig = {
     providers: {
         jira: {
             domains: ['jira.example.com'],
-            strategy: 'cookie',
-            config: { ttl: '12h' },
+            entryUrl: 'https://jira.example.com/',
+            strategy: 'browser',
+            ttl: '12h',
+            extract: [{ from: 'cookies', as: 'session', match: '*' }],
+            apply: [{ in: 'header', name: 'Cookie', value: '${session}' }],
         },
         github: {
             domains: ['github.com', 'api.github.com'],
-            strategy: 'api-token',
-            config: { headerName: 'Authorization', headerPrefix: 'Bearer' },
+            entryUrl: 'https://github.com/',
+            strategy: 'browser',
+            extract: [{ from: 'cookies', as: 'session', match: '*' }],
+            apply: [{ in: 'header', name: 'Cookie', value: '${session}' }],
         },
     },
 };
 
 const remoteConfigYaml = `# SigCLI config
+version: 2
+mode: browserless
 browser:
   browserDataDir: ~/.sig/browser-data
-  channel: chrome
+  execPath: ""
   headlessTimeout: 30000
   visibleTimeout: 120000
   waitUntil: load
@@ -92,13 +101,24 @@ providers:
   existing-remote:
     domains:
       - remote.example.com
-    strategy: cookie
+    entryUrl: https://remote.example.com/
+    strategy: browser
+    extract:
+      - from: cookies
+        as: session
+        match: "*"
+    apply:
+      - in: header
+        name: Cookie
+        value: \${session}
 `;
 
 const localConfigYaml = `# SigCLI config
+version: 2
+mode: browser
 browser:
   browserDataDir: ~/.sig/browser-data
-  channel: chrome
+  execPath: ""
   headlessTimeout: 30000
   visibleTimeout: 120000
   waitUntil: load
@@ -108,7 +128,16 @@ providers:
   local-only:
     domains:
       - local.example.com
-    strategy: cookie
+    entryUrl: https://local.example.com/
+    strategy: browser
+    extract:
+      - from: cookies
+        as: session
+        match: "*"
+    apply:
+      - in: header
+        name: Cookie
+        value: \${session}
 `;
 
 describe('SyncEngine', () => {

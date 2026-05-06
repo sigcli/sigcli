@@ -1,6 +1,19 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import path from 'node:path';
+// Import after mocking
+import fs from 'node:fs';
+import fsp from 'node:fs/promises';
 import os from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { runDoctor } from '../../../src/commands/doctor.js';
+import {
+    ConfigError,
+    err,
+    getConfigPath,
+    loadConfig,
+    ok,
+    type SigConfig,
+} from '../../../src/index.js';
 
 // --------------------------------------------------------------------------
 // Mocks — must be set up before importing the module under test
@@ -38,13 +51,6 @@ vi.mock('playwright-core', () => ({
     default: {},
 }));
 
-// Import after mocking
-import fs from 'node:fs';
-import fsp from 'node:fs/promises';
-import { ok, err, ConfigError, getConfigPath, loadConfig } from '../../../src/index.js';
-import { runDoctor } from '../../../src/cli/commands/doctor.js';
-import type { SigConfig } from '../../../src/index.js';
-
 const mockExistsSync = vi.mocked(fs.existsSync);
 const mockAccess = vi.mocked(fsp.access);
 const mockReaddir = vi.mocked(fsp.readdir);
@@ -58,7 +64,7 @@ function validConfig(overrides: Partial<SigConfig> = {}): SigConfig {
     return <SigConfig>{
         browser: {
             browserDataDir: '/tmp/test-browser-data',
-            channel: 'chrome',
+            execPath: '/usr/bin/google-chrome',
             headlessTimeout: 30_000,
             visibleTimeout: 120_000,
             waitUntil: 'load',

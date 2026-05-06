@@ -1,13 +1,14 @@
-import { describe, it, expect, afterEach } from 'vitest';
 import { randomBytes } from 'node:crypto';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { afterEach, describe, expect, it } from 'vitest';
+
 import {
-    encrypt,
     decrypt,
-    isEncryptedEnvelope,
+    encrypt,
     generateEncryptionKey,
+    isEncryptedEnvelope,
     loadEncryptionKey,
     type EncryptedEnvelope,
 } from '../../../src/crypto/encryption.js';

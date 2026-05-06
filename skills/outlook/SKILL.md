@@ -20,12 +20,12 @@ The Graph API token lacks `Mail.Send` scope (your organization's Azure AD policy
 This skill requires a **Graph API token** from Signet. Use `sig run` to inject it as an environment variable:
 
 ```bash
-sig run ms-graph -- bash -c 'python3 scripts/outlook_messages.py --graph-token "$SIG_MS_GRAPH_TOKEN" --unread-only --limit 10'
+sig run ms-graph -- bash -c 'python3 scripts/outlook_messages.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --unread-only --limit 10'
 ```
 
-The default Signet provider is `ms-graph`. The env var name follows the rule: `SIG_<PROVIDER>_TOKEN` where `<PROVIDER>` is the provider name uppercased with `-` replaced by `_`. If the user has a different provider name, derive the env var accordingly.
+The default Signet provider is `ms-graph`. The env var name follows the rule: `SIG_<PROVIDER>_<AS>` where `<PROVIDER>` is the provider name uppercased with `-` replaced by `_`, and `<AS>` is the extract rule's `as` field uppercased. For ms-graph with `as: access_token`, the env var is `SIG_MS_GRAPH_ACCESS_TOKEN`.
 
-**Note:** `sig run` for bearer providers sets `SIG_<PROVIDER>_TOKEN` to the raw JWT (without `Bearer` prefix). The scripts add `Bearer` themselves.
+**Note:** `sig run` injects the raw JWT (without `Bearer` prefix). The scripts add `Bearer` themselves.
 
 If a script returns 401 or auth error, re-authenticate:
 
@@ -39,14 +39,24 @@ Then retry the `sig run` command.
 
 ```yaml
 ms-graph:
-    domains: ['graph.microsoft.com']
+    name: Microsoft Graph
+    domains: [graph.microsoft.com]
     entryUrl: https://teams.cloud.microsoft/v2/
-    strategy: oauth2
-    config:
-        audiences: ['https://graph.microsoft.com']
+    strategy: browser
+    required: [access_token]
+    extract:
+        - from: localStorage
+          as: access_token
+          match: '*|accesstoken|*graph.microsoft.com*'
+          jsonPath: secret
+          expiresJsonPath: expiresOn
+    apply:
+        - in: header
+          name: Authorization
+          value: 'Bearer ${access_token}'
 ```
 
-No separate Outlook-specific provider is needed — the Graph API audience covers all mail endpoints. The token is obtained via the Teams portal entry URL, which grants `Mail.Read` and `Mail.ReadWrite` scopes.
+No separate Outlook-specific provider is needed — the Graph API token covers all mail endpoints. The token is extracted from Teams portal localStorage after you log in at the entry URL.
 
 ## Scripts Reference
 
@@ -188,38 +198,38 @@ Note: `$orderby` is not supported with `$search` — results are returned by rel
 
 ### Check inbox (recent unread emails)
 
-1. `sig run ms-graph -- bash -c 'python3 scripts/outlook_messages.py --graph-token "$SIG_MS_GRAPH_TOKEN" --unread-only --limit 10'`
+1. `sig run ms-graph -- bash -c 'python3 scripts/outlook_messages.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --unread-only --limit 10'`
 
 ### Read a specific email
 
-1. List messages to find the ID: `sig run ms-graph -- bash -c 'python3 scripts/outlook_messages.py --graph-token "$SIG_MS_GRAPH_TOKEN" --limit 5'`
-2. Read full content: `sig run ms-graph -- bash -c 'python3 scripts/outlook_read.py --graph-token "$SIG_MS_GRAPH_TOKEN" --message-id "$MSG_ID"'`
+1. List messages to find the ID: `sig run ms-graph -- bash -c 'python3 scripts/outlook_messages.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --limit 5'`
+2. Read full content: `sig run ms-graph -- bash -c 'python3 scripts/outlook_read.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --message-id "$MSG_ID"'`
 
 ### Search for emails
 
-1. `sig run ms-graph -- bash -c 'python3 scripts/outlook_search.py --graph-token "$SIG_MS_GRAPH_TOKEN" --query "from:jane.doe@example.com subject:report"'`
+1. `sig run ms-graph -- bash -c 'python3 scripts/outlook_search.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --query "from:jane.doe@example.com subject:report"'`
 
 ### Send an email
 
 1. **Show draft to user and get confirmation**
-2. `sig run ms-graph -- bash -c 'python3 scripts/outlook_send.py --graph-token "$SIG_MS_GRAPH_TOKEN" --to "jane.doe@example.com" --subject "Meeting follow-up" --body "Hi Jane, ..."'`
+2. `sig run ms-graph -- bash -c 'python3 scripts/outlook_send.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --to "jane.doe@example.com" --subject "Meeting follow-up" --body "Hi Jane, ..."'`
 
 ### Reply to an email
 
-1. Read the email first: `sig run ms-graph -- bash -c 'python3 scripts/outlook_read.py --graph-token "$SIG_MS_GRAPH_TOKEN" --message-id "$MSG_ID"'`
+1. Read the email first: `sig run ms-graph -- bash -c 'python3 scripts/outlook_read.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --message-id "$MSG_ID"'`
 2. **Show reply draft to user and get confirmation**
-3. `sig run ms-graph -- bash -c 'python3 scripts/outlook_reply.py --graph-token "$SIG_MS_GRAPH_TOKEN" --message-id "$MSG_ID" --action reply --body "Thanks, sounds good!"'`
+3. `sig run ms-graph -- bash -c 'python3 scripts/outlook_reply.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --message-id "$MSG_ID" --action reply --body "Thanks, sounds good!"'`
 
 ### Forward an email
 
 1. **Show forward draft to user and get confirmation**
-2. `sig run ms-graph -- bash -c 'python3 scripts/outlook_reply.py --graph-token "$SIG_MS_GRAPH_TOKEN" --message-id "$MSG_ID" --action forward --body "FYI" --to "colleague@example.com"'`
+2. `sig run ms-graph -- bash -c 'python3 scripts/outlook_reply.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --message-id "$MSG_ID" --action forward --body "FYI" --to "colleague@example.com"'`
 
 ### Download an attachment
 
-1. List attachments: `sig run ms-graph -- bash -c 'python3 scripts/outlook_attachments.py --graph-token "$SIG_MS_GRAPH_TOKEN" --message-id "$MSG_ID"'`
-2. Download: `sig run ms-graph -- bash -c 'python3 scripts/outlook_attachments.py --graph-token "$SIG_MS_GRAPH_TOKEN" --message-id "$MSG_ID" --download "$ATTACHMENT_ID" --output-dir ~/Downloads'`
+1. List attachments: `sig run ms-graph -- bash -c 'python3 scripts/outlook_attachments.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --message-id "$MSG_ID"'`
+2. Download: `sig run ms-graph -- bash -c 'python3 scripts/outlook_attachments.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --message-id "$MSG_ID" --download "$ATTACHMENT_ID" --output-dir ~/Downloads'`
 
 ### Check mail folders
 
-1. `sig run ms-graph -- bash -c 'python3 scripts/outlook_folders.py --graph-token "$SIG_MS_GRAPH_TOKEN" --include-children'`
+1. `sig run ms-graph -- bash -c 'python3 scripts/outlook_folders.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --include-children'`

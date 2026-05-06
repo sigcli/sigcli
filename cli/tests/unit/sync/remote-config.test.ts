@@ -1,4 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+// Import after mocking
+import fs from 'node:fs/promises';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { addRemote, getRemote, getRemotes, removeRemote } from '../../../src/sync/remote-config.js';
 import type { RemoteConfig } from '../../../src/sync/types.js';
 
 // Mock fs before importing the module under test
@@ -9,10 +13,6 @@ vi.mock('node:fs/promises', () => ({
         mkdir: vi.fn(),
     },
 }));
-
-// Import after mocking
-import fs from 'node:fs/promises';
-import { getRemotes, getRemote, addRemote, removeRemote } from '../../../src/sync/remote-config.js';
 
 const mockFs = vi.mocked(fs);
 

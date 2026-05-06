@@ -6,5 +6,26 @@
     "printWidth": 100,
     "trailingComma": "all",
     "arrowParens": "always",
-    "endOfLine": "lf"
+    "endOfLine": "lf",
+    "plugins": ["@ianvs/prettier-plugin-sort-imports"],
+    "importOrder": [
+        "^node:",
+        "<THIRD_PARTY_MODULES>",
+        "",
+        "^\\.\\.?/types/",
+        "^\\.\\.?/core/",
+        "^\\.\\.?/config/",
+        "^\\.\\.?/providers/",
+        "^\\.\\.?/storage/",
+        "^\\.\\.?/crypto/",
+        "^\\.\\.?/strategies/",
+        "^\\.\\.?/browser/",
+        "^\\.\\.?/apply/",
+        "^\\.\\.?/sync/",
+        "^\\.\\.?/proxy/",
+        "^\\.\\.?/utils/",
+        "^\\.\\.?/cli/",
+        "^[./]"
+    ],
+    "importOrderTypeScriptVersion": "5.0.0"
 }

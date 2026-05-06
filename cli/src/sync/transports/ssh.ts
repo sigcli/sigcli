@@ -1,11 +1,12 @@
 import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import path from 'node:path';
 import os from 'node:os';
-import type { RemoteConfig } from '../types.js';
-import type { StoredCredential } from '../../core/types.js';
+import path from 'node:path';
+import { promisify } from 'node:util';
+
+import { decrypt, encrypt, isEncryptedEnvelope } from '../../crypto/encryption.js';
+import type { StoredCredential } from '../../types/index.js';
 import type { ISyncTransport, RemoteEntry } from '../interfaces/transport.js';
-import { encrypt, decrypt, isEncryptedEnvelope } from '../../crypto/encryption.js';
+import type { RemoteConfig } from '../types.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -76,7 +77,19 @@ export class SshTransport implements ISyncTransport {
     }
 
     private remotePath(remote: RemoteConfig): string {
-        return remote.path ?? DEFAULT_REMOTE_PATH;
+        const p = remote.path ?? DEFAULT_REMOTE_PATH;
+        if (!/^[a-zA-Z0-9._~/-]+$/.test(p)) {
+            throw new Error(
+                `Invalid remote path: "${p}" — only alphanumeric, ., _, ~, -, / allowed`,
+            );
+        }
+        return p;
+    }
+
+    private validateFilename(filename: string): void {
+        if (!/^[a-zA-Z0-9_.-]+\.json$/.test(filename)) {
+            throw new Error(`Invalid credential filename: "${filename}"`);
+        }
     }
 
     private remoteCredentialsPath(remote: RemoteConfig): string {
@@ -100,6 +113,7 @@ export class SshTransport implements ISyncTransport {
 
             for (const file of files) {
                 const filename = path.basename(file);
+                if (!/^[a-zA-Z0-9_.-]+\.json$/.test(filename)) continue;
                 try {
                     const { stdout: content } = await execFileAsync('ssh', [
                         ...this.sshArgs(remote),
@@ -133,6 +147,7 @@ export class SshTransport implements ISyncTransport {
 
     /** Read a single credential from remote */
     async readRemote(remote: RemoteConfig, filename: string): Promise<StoredCredential | null> {
+        this.validateFilename(filename);
         const target = this.remoteTarget(remote);
         const rpath = this.remoteCredentialsPath(remote);
 
@@ -149,14 +164,15 @@ export class SshTransport implements ISyncTransport {
             }
             const data = parsed as StoredCredential & {
                 version?: number;
-                metadata?: Record<string, unknown>;
             };
             return {
-                credential: data.credential,
                 providerId: data.providerId,
                 strategy: data.strategy,
                 updatedAt: data.updatedAt,
-                ...(data.metadata ? { metadata: data.metadata } : {}),
+                values:
+                    data.values ??
+                    (data as unknown as Record<string, Record<string, string>>)['credentials'] ??
+                    {},
             };
         } catch {
             return null;
@@ -169,15 +185,16 @@ export class SshTransport implements ISyncTransport {
         filename: string,
         stored: StoredCredential,
     ): Promise<void> {
+        this.validateFilename(filename);
         const rpath = this.remoteCredentialsPath(remote);
 
         const data = {
-            version: 1,
+            version: 2,
             providerId: stored.providerId,
-            credential: stored.credential,
+            values: stored.values,
             strategy: stored.strategy,
             updatedAt: stored.updatedAt,
-            ...(stored.metadata ? { metadata: stored.metadata } : {}),
+            ...(stored.expiresAt ? { expiresAt: stored.expiresAt } : {}),
         };
 
         const remoteKey = await this.fetchRemoteKey(remote);

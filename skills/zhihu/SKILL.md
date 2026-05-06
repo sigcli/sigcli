@@ -7,6 +7,37 @@ description: 'Interact with Zhihu (zhihu.com) — browse hot questions, read ans
 
 Browse, search, read, and interact with Zhihu — China's largest Q&A platform.
 
+## Skill Directory
+
+`<SKILL_DIR>` is the directory containing this SKILL.md file. Determine it ONCE at the start and reuse it.
+
+## Fast Gate (run this FIRST, every time)
+
+Run these commands silently — do NOT ask the user anything:
+
+```bash
+sig status zhihu 2>&1
+```
+
+Check the JSON `"valid"` field:
+
+- `"valid": true` — proceed to detect proxy below.
+- `"valid": false` — run `sig login zhihu`, then re-check `sig status zhihu`.
+- Command not found or provider not found — run Full Setup (see Authentication section).
+
+**Detect proxy** (do NOT ask user — read from config):
+
+```bash
+grep -A15 "^\s*zhihu:" ~/.sig/config.yaml | grep networkProxy | awk '{print $2}'
+```
+
+If this outputs a URL (e.g. `socks5://127.0.0.1:1234`), use it as `HTTPS_PROXY=<url> HTTP_PROXY=<url>` in ALL python3 commands. If empty, omit proxy. NEVER ask the user about proxy — it's in the config.
+NOTE: if using socks5 protocol, convert to socks5h for python scripts, e.g. `socks5://127.0.0.1:1234` becomes `socks5h://127.0.0.1:1234`
+
+Once valid + proxy detected, go straight to executing the user's request.
+
+---
+
 ## Authentication
 
 This skill uses **cookie-based authentication** for access to Zhihu. Use `sig run` to inject the session cookie:
@@ -31,12 +62,19 @@ Then retry the `sig run` command.
 
 ```yaml
 zhihu:
-    domains: ['www.zhihu.com', 'zhihu.com']
+    domains: [www.zhihu.com, zhihu.com]
     entryUrl: https://www.zhihu.com/signin
-    strategy: cookie
-    config:
-        ttl: '7d'
-        requiredCookies: ['z_c0']
+    strategy: browser
+    ttl: '7d'
+    required: [session.z_c0]
+    extract:
+        - from: cookies
+          as: session
+          match: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: '${session}'
 ```
 
 ## Scripts Reference
@@ -105,20 +143,6 @@ Note: Question title and ID are extracted from the answers endpoint since Zhihu'
 ```
 
 Note: Direct topic detail API is protected by anti-crawler. This script searches topics by keyword instead.
-
-## Proxy
-
-Zhihu may be slow or unreachable in some networks. Set a proxy via environment variables:
-
-```bash
-# SOCKS5 proxy
-HTTPS_PROXY=socks5://localhost:1080 HTTP_PROXY=socks5://localhost:1080 python3 scripts/zhihu_hot.py --cookie "..."
-
-# HTTP proxy
-HTTPS_PROXY=http://localhost:8080 HTTP_PROXY=http://localhost:8080 python3 scripts/zhihu_hot.py --cookie "..."
-```
-
-For SOCKS5 proxies, `pysocks` must be installed: `pip install pysocks`
 
 ## Key Concepts
 

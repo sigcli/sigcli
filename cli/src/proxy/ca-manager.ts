@@ -1,16 +1,20 @@
 import 'reflect-metadata';
-import {
-    X509CertificateGenerator,
-    X509Certificate,
-    KeyUsagesExtension,
-    KeyUsageFlags,
-    BasicConstraintsExtension,
-    SubjectAlternativeNameExtension,
-    cryptoProvider,
-} from '@peculiar/x509';
+
 import { webcrypto } from 'node:crypto';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import {
+    BasicConstraintsExtension,
+    cryptoProvider,
+    KeyUsageFlags,
+    KeyUsagesExtension,
+    SubjectAlternativeNameExtension,
+    X509Certificate,
+    X509CertificateGenerator,
+} from '@peculiar/x509';
+
+import type { ILogger } from '../types/index.js';
+import { createNoopLogger } from '../utils/logger.js';
 
 cryptoProvider.set(webcrypto as Crypto);
 
@@ -43,9 +47,11 @@ export class CaManager {
     private caPrivKey: CryptoKey | null = null;
     private readonly leafCache = new Map<string, LeafEntry>();
     private readonly proxyDir: string;
+    private readonly logger: ILogger;
 
-    constructor(proxyDir: string) {
+    constructor(proxyDir: string, logger?: ILogger) {
         this.proxyDir = proxyDir;
+        this.logger = logger ?? createNoopLogger();
     }
 
     async ensureCa(): Promise<void> {
@@ -66,6 +72,7 @@ export class CaManager {
 
             this.caCert = new X509Certificate(crtPem);
             this.caPrivKey = privKey;
+            this.logger.info('ca: loaded existing CA');
             return;
         } catch {
             // Generate a fresh CA below
@@ -100,6 +107,7 @@ export class CaManager {
 
         this.caCert = cert;
         this.caPrivKey = keys.privateKey;
+        this.logger.info('ca: generated new CA');
     }
 
     async leafCertFor(hostname: string): Promise<{ cert: string; key: string }> {
@@ -144,6 +152,7 @@ export class CaManager {
             if (oldest !== undefined) this.leafCache.delete(oldest);
         }
         this.leafCache.set(hostname, entry);
+        this.logger.info(`ca: generated cert for ${hostname}`);
 
         return { cert: entry.cert, key: entry.key };
     }

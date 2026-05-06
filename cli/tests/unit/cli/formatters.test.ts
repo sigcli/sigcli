@@ -1,12 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import {
-    formatJson,
-    formatTable,
     formatCredentialHeaders,
     formatExpiry,
+    formatJson,
     formatStatusIndicator,
+    formatTable,
     stripAnsi,
-} from '../../../src/cli/formatters.js';
+} from '../../../src/utils/formatters.js';
 
 describe('formatJson', () => {
     it('returns pretty-printed JSON for a simple object', () => {
@@ -106,27 +107,29 @@ describe('formatTable', () => {
 
 describe('formatExpiry', () => {
     it('shows minutes for < 60m', () => {
-        expect(formatExpiry(0)).toBe('0m');
-        expect(formatExpiry(45)).toBe('45m');
-        expect(formatExpiry(59)).toBe('59m');
+        expect(formatExpiry(0)).toBe('~0m');
+        expect(formatExpiry(45)).toBe('~45m');
+        expect(formatExpiry(59)).toBe('~59m');
     });
 
     it('shows hours for 1h–23h', () => {
-        expect(formatExpiry(60)).toBe('1h');
-        expect(formatExpiry(300)).toBe('5h');
-        expect(formatExpiry(1439)).toBe('23h');
+        expect(formatExpiry(60)).toBe('~1h');
+        expect(formatExpiry(90)).toBe('~1h');
+        expect(formatExpiry(300)).toBe('~5h');
+        expect(formatExpiry(1439)).toBe('~23h');
     });
 
     it('shows days for 1d–29d', () => {
-        expect(formatExpiry(1440)).toBe('1d');
-        expect(formatExpiry(17280)).toBe('12d');
-        expect(formatExpiry(43199)).toBe('29d');
+        expect(formatExpiry(1440)).toBe('~1d');
+        expect(formatExpiry(2160)).toBe('~1d');
+        expect(formatExpiry(17280)).toBe('~12d');
+        expect(formatExpiry(43199)).toBe('~29d');
     });
 
     it('shows months for >= 30d', () => {
-        expect(formatExpiry(43200)).toBe('1mo');
-        expect(formatExpiry(86400)).toBe('2mo');
-        expect(formatExpiry(573304)).toBe('13mo');
+        expect(formatExpiry(43200)).toBe('~1mo');
+        expect(formatExpiry(86400)).toBe('~2mo');
+        expect(formatExpiry(573304)).toBe('~13mo');
     });
 });
 

@@ -1,5 +1,5 @@
-import fs from 'node:fs';
 import { EventEmitter } from 'node:events';
+import fs from 'node:fs';
 
 const DEBOUNCE_MS = 100;
 

@@ -1,10 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { formatHeaders, extractLocalStorage } from '../src/formatter.js';
+import { describe, expect, it } from 'vitest';
+
+import { extractLocalStorage, formatHeaders } from '../src/formatter.js';
 import type {
-    CookieCredential,
-    BearerCredential,
     ApiKeyCredential,
     BasicCredential,
+    BearerCredential,
+    CookieCredential,
 } from '../src/types.js';
 
 describe('formatHeaders', () => {

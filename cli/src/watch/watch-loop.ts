@@ -4,14 +4,13 @@
  */
 
 import { Cron } from 'croner';
-import type { AuthManager } from '../auth-manager.js';
-import type { IStorage } from '../core/interfaces/storage.js';
-import type { ILogger } from '../core/types.js';
+
+import { isOk, type ILogger, type IStorage } from '../types/index.js';
 import type { SigConfig } from '../config/schema.js';
-import { isOk } from '../core/result.js';
+import { getRemote } from '../sync/remote-config.js';
 import { SyncEngine } from '../sync/sync-engine.js';
 import { SshTransport } from '../sync/transports/ssh.js';
-import { getRemote } from '../sync/remote-config.js';
+import type { AuthManager } from '../auth-manager.js';
 import type { WatchProviderEntry } from './watch-config.js';
 
 // ============================================================================
@@ -65,7 +64,7 @@ export async function runCycle(
         // (session cookies have no expiry, server can invalidate at any time).
         // Browser re-auth via cached SSO sessions is cheap.
         deps.logger.info(`${providerId}: refreshing...`);
-        const credResult = await deps.authManager.getCredentials(providerId);
+        const credResult = await deps.authManager.getExtractedCreds(providerId);
 
         if (isOk(credResult)) {
             result.refreshed.push(providerId);
