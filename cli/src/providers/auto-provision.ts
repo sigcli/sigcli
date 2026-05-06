@@ -60,8 +60,8 @@ export function createDefaultProvider(url: string, existingIds?: Set<string>): P
         entryUrl: `${parsed.protocol}//${parsed.host}/`,
         strategy: 'browser',
         ttl: '2h',
-        extract: [{ from: 'cookies' as const, as: 'session', match: '*' }],
-        apply: [{ in: 'header' as const, name: 'Cookie', value: '${session}' }],
+        extract: [{ from: 'cookies' as const, as: 'cookie', match: '*' }],
+        apply: [{ in: 'header' as const, name: 'Cookie', value: '${cookie}' }],
         autoProvisioned: true,
     };
 }
