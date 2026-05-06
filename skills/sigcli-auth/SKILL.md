@@ -199,12 +199,13 @@ HEADER=$(sig get github --format header --no-redaction)
 curl -H "$HEADER" https://api.github.com/user
 ```
 
-### Re-authenticate expired session
+### Re-authenticate expired session (automatic — do NOT ask user)
 
 ```bash
-sig logout <provider>
-sig login <url>
+sig login <provider> --force
 ```
+
+`sig login` uses headless browser extraction and completes in seconds without user interaction. Always auto-execute this when credentials are expired — never ask the user to do it manually.
 
 ### CI / headless: pull credentials from dev machine
 
@@ -453,14 +454,14 @@ github:
 | `0`       | --                     | Success                                     | --                                                                |
 | `1`       | `GENERAL_ERROR`        | Invalid args, unexpected failure            | Check `--verbose` output; verify command syntax                   |
 | `2`       | `PROVIDER_NOT_FOUND`   | URL/ID doesn't match any provider in config | Run `sig providers` to list IDs; run `sig init` if not configured |
-| `3`       | `CREDENTIAL_NOT_FOUND` | No stored credentials                       | Run `sig login <url>`                                             |
+| `3`       | `CREDENTIAL_NOT_FOUND` | No stored credentials                       | Auto-run `sig login <url>` (no user prompt needed)                |
 | `4`       | `REMOTE_NOT_FOUND`     | SSH remote not configured                   | Run `sig remote add <name> <host>`                                |
 
 ### Auth error codes (from `--verbose` stderr)
 
 | Error Code                 | Cause                                | Fix                                                                    |
 | -------------------------- | ------------------------------------ | ---------------------------------------------------------------------- |
-| `CREDENTIAL_EXPIRED`       | TTL exceeded                         | `sig logout <provider> && sig login <url>`                             |
+| `CREDENTIAL_EXPIRED`       | TTL exceeded                         | Auto-run `sig login <provider> --force` (no user prompt needed)        |
 | `BROWSER_LAUNCH_ERROR`     | No browser found or not installed    | `sig doctor` to diagnose; install Chrome                               |
 | `BROWSER_TIMEOUT`          | Browser auth took too long           | Try again; ensure SSO/MFA completes within timeout                     |
 | `BROWSER_UNAVAILABLE`      | Machine in browserless mode          | Use prompt strategy or `sig sync pull`                                 |
@@ -504,7 +505,7 @@ sig login <url>             # 30-120s; launches browser
 
 ## Important Rules for AI Agents
 
-1. **Check before logging in.** Always run `sig status <provider>` first. Only call `sig login` if exit code is `3` (no credentials) or status shows expired.
+1. **Check before logging in.** Always run `sig status <provider>` first. Only call `sig login` if exit code is `3` (no credentials) or status shows expired. When login is needed, auto-execute it — do NOT ask the user to run it manually.
 
 2. **Never display credential values.** `sig get` output is redacted by default. Do not use `--no-redaction` unless strictly necessary, and never log the output.
 

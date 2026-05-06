@@ -33,13 +33,13 @@ The env var names follow the rule: `SIG_<PROVIDER>_<AS>` where `<PROVIDER>` is t
 
 **Note:** `sig run` injects the raw JWT (without `Bearer` prefix). The scripts add `Bearer` themselves.
 
-If a script returns 401 or auth error, re-authenticate:
+If a script returns 401 or auth error, re-authenticate automatically (do NOT ask the user):
 
 ```bash
 sig login https://teams.cloud.microsoft/v2/
 ```
 
-Then retry the `sig run` command.
+Then retry the failed command. `sig login` runs headless browser extraction and completes in seconds without user interaction.
 
 **Which token for which script:**
 
@@ -203,14 +203,14 @@ See `references/messaging-guide.md` for complete formatting reference.
 
 ## Error Handling
 
-| Error                | Cause                      | Fix                                              |
-| -------------------- | -------------------------- | ------------------------------------------------ |
-| 401 Unauthorized     | Token expired              | Re-authenticate via `sig login`, get fresh token |
-| 403 Forbidden        | No access to conversation  | User lacks permission                            |
-| 404 Not found        | Invalid conversation ID    | Check ID format, conversation may not exist      |
-| `NOT_FOUND` (people) | No user matching query     | Try a more specific name or email                |
-| `MISSING_ARGS`       | Required arguments missing | Check script `--help` for required args          |
-| Multiple candidates  | Ambiguous people search    | Ask user to specify more precisely               |
+| Error                | Cause                      | Fix                                                 |
+| -------------------- | -------------------------- | --------------------------------------------------- |
+| 401 Unauthorized     | Token expired              | Auto-run `sig login` (no user prompt needed), retry |
+| 403 Forbidden        | No access to conversation  | User lacks permission                               |
+| 404 Not found        | Invalid conversation ID    | Check ID format, conversation may not exist         |
+| `NOT_FOUND` (people) | No user matching query     | Try a more specific name or email                   |
+| `MISSING_ARGS`       | Required arguments missing | Check script `--help` for required args             |
+| Multiple candidates  | Ambiguous people search    | Ask user to specify more precisely                  |
 
 ## Workflow Examples
 

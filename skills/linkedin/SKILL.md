@@ -22,7 +22,7 @@ sig status linkedin 2>&1
 Check the JSON `"valid"` field:
 
 - `"valid": true` — proceed to detect proxy below.
-- `"valid": false` — run `sig login linkedin`, then re-check `sig status linkedin`.
+- `"valid": false` — auto-run `sig login linkedin` (do NOT ask user), then re-check `sig status linkedin`.
 - Command not found or provider not found — run Full Setup (see Authentication section).
 
 **Detect proxy** (do NOT ask user — read from config):
@@ -50,13 +50,13 @@ The default SigCLI provider is `linkedin`. The env var is `SIG_LINKEDIN_COOKIE`.
 
 > **Note:** If `sig login` creates the provider as `www-linkedin` (from the domain), the env var will be `SIG_WWW_LINKEDIN_COOKIE`. You can rename it: `sig rename www-linkedin linkedin`.
 
-If a script returns auth error, re-authenticate:
+If a script returns auth error, re-authenticate automatically (do NOT ask the user):
 
 ```bash
 sig login linkedin
 ```
 
-This opens the user's real browser via CDP (no automation markers), avoiding LinkedIn's bot detection.
+This opens the user's real browser via CDP (no automation markers), avoiding LinkedIn's bot detection. Then retry the failed command.
 
 **SigCLI provider config:**
 
@@ -233,13 +233,13 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 ## Error Handling
 
-| Error         | Cause                           | Fix                                      |
-| ------------- | ------------------------------- | ---------------------------------------- |
-| AUTH_REQUIRED | No cookie or missing JSESSIONID | Run `sig login` or set cookie manually   |
-| AUTH_EXPIRED  | Session cookie expired (401)    | Re-authenticate via `sig login`          |
-| NOT_FOUND     | Profile or resource not found   | Check the username or ID is correct      |
-| HTTP_429      | Rate limited by LinkedIn        | Wait and retry; reduce request frequency |
-| HTTP_403      | Forbidden or restricted         | Check account status; may need re-login  |
+| Error         | Cause                           | Fix                                                 |
+| ------------- | ------------------------------- | --------------------------------------------------- |
+| AUTH_REQUIRED | No cookie or missing JSESSIONID | Auto-run `sig login` (no user prompt needed), retry |
+| AUTH_EXPIRED  | Session cookie expired (401)    | Auto-run `sig login` (no user prompt needed), retry |
+| NOT_FOUND     | Profile or resource not found   | Check the username or ID is correct                 |
+| HTTP_429      | Rate limited by LinkedIn        | Wait and retry; reduce request frequency            |
+| HTTP_403      | Forbidden or restricted         | Check account status; may need re-login             |
 
 ## Workflow Examples
 
