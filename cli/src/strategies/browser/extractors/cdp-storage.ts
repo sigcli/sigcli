@@ -39,6 +39,11 @@ export class CdpStorageExtractor implements IBrowserExtractor {
                 }
             }
 
+            // If expiresAt is in the past, the token is stale — treat as not found
+            if (expiresAt && new Date(expiresAt).getTime() <= Date.now()) {
+                return null;
+            }
+
             let value = rawValue;
             if (rule.jsonPath) {
                 try {
