@@ -72,7 +72,22 @@ export class AuthManager {
                 // Check credential type constraints
                 const typeCheck = this.checkCredentialType(provider, stored.credential);
                 if (!isOk(typeCheck)) return typeCheck;
-                return ok(stored.credential);
+
+                // Step 1b: Server-side validation — detect stale sessions
+                if (provider.entryUrl) {
+                    const probe = await this.validateCredential(provider, stored.credential);
+                    if (probe.isLoginRedirect || probe.status === 401) {
+                        this.logger?.info(
+                            `Credentials for "${providerId}" failed server validation (status=${probe.status}, redirect=${probe.isLoginRedirect}), re-authenticating...`,
+                        );
+                        await this.storage.delete(key);
+                        // Fall through to refresh/authenticate below
+                    } else {
+                        return ok(stored.credential);
+                    }
+                } else {
+                    return ok(stored.credential);
+                }
             }
 
             // Step 2: Try refresh
