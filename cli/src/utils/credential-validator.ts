@@ -47,6 +47,7 @@ export async function validate(
         if (res.status === 401 || res.status === 403) return false;
 
         if (res.status >= 300 && res.status < 400) {
+            if (provider.validateUrl) return false;
             const location = (res.headers.get('location') ?? '').toLowerCase();
             return !LOGIN_URL_PATTERNS.some((p) => location.includes(p));
         }
