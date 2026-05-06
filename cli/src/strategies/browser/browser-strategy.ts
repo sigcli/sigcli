@@ -101,7 +101,7 @@ export class BrowserStrategy implements IStrategy {
             async (cdp) => {
                 const [credentials, expiry] = await this.runExtractors(cdp, provider);
                 if (!(await validate(provider, credentials))) return null;
-                this.logger.info(`${provider.id}: tryExistingState — valid`);
+                this.logger.info(`${provider.id}: credentials validated`);
                 return { credentials, expiresAt: this.computeExpiresAt(provider, expiry) };
             },
         );
@@ -209,6 +209,8 @@ export class BrowserStrategy implements IStrategy {
     ): Promise<ExtractionResult | null> {
         const deadline = Date.now() + timeout;
         let loginPageSince: number | null = null;
+
+        await this.waitForPageReady(cdp, deadline);
 
         while (Date.now() < deadline) {
             const sessionId = await attachToPageTarget(cdp).catch(() => null);
@@ -386,6 +388,27 @@ export class BrowserStrategy implements IStrategy {
             return result?.result?.value ?? '';
         } catch {
             return '';
+        }
+    }
+
+    private async waitForPageReady(cdp: CdpWsClient, deadline: number): Promise<void> {
+        while (Date.now() < deadline) {
+            const sessionId = await attachToPageTarget(cdp).catch(() => null);
+            if (sessionId) {
+                try {
+                    await cdp.send('Runtime.enable', {}, sessionId).catch(() => {});
+                    const result = (await cdp.send(
+                        'Runtime.evaluate',
+                        { expression: 'document.readyState', returnByValue: true },
+                        sessionId,
+                    )) as { result?: { value?: string } };
+                    if (result?.result?.value === 'complete') return;
+                } catch {
+                    // page mid-navigation
+                }
+                await cdp.send('Target.detachFromTarget', { sessionId }).catch(() => {});
+            }
+            await new Promise((r) => setTimeout(r, 500));
         }
     }
 }
