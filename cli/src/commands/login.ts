@@ -92,7 +92,7 @@ export async function runLogin(
     // Step 4: Authenticate (3-phase cascade: no-nav → headless → visible)
     process.stderr.write(`[sig] Authenticating with "${provider.name}"...\n`);
     const result = await auth.getExtractedCreds(provider.id, {
-        force: true,
+        ...(flags.force === true ? { force: true } : {}),
         ...(networkProxy !== undefined ? { networkProxy } : {}),
         ...(loginMode !== undefined ? { loginMode } : {}),
     });

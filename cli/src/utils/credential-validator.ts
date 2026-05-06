@@ -16,10 +16,10 @@ import { buildUserAgent } from './http.js';
  *
  * Rules:
  *   - empty credentials → false
- *   - 401/403 → false
+ *   - 401/403 → retry once, then false
  *   - 3xx redirect to login URL → false
  *   - 2xx → true
- *   - network error → true (optimistic)
+ *   - network error → false
  */
 export async function validate(
     provider: ProviderConfig,
@@ -30,32 +30,42 @@ export async function validate(
     const url = provider.validateUrl ?? provider.entryUrl;
     if (!url) return true;
 
-    try {
-        const headers = ApplyEngine.applyRules(provider.apply, credentials).headers;
-        const dispatcher = provider.networkProxy
-            ? createProxyDispatcher(provider.networkProxy)
-            : undefined;
+    const headers = ApplyEngine.applyRules(provider.apply, credentials).headers;
+    const dispatcher = provider.networkProxy
+        ? createProxyDispatcher(provider.networkProxy)
+        : undefined;
 
-        const res = await fetch(url, {
-            method: 'GET',
-            headers: { ...headers, [HttpHeader.USER_AGENT]: buildUserAgent() },
-            redirect: 'manual',
-            dispatcher,
-            signal: AbortSignal.timeout(10_000),
-        });
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            const res = await fetch(url, {
+                method: 'GET',
+                headers: { ...headers, [HttpHeader.USER_AGENT]: buildUserAgent() },
+                redirect: 'manual',
+                dispatcher,
+                signal: AbortSignal.timeout(10_000),
+            });
 
-        if (res.status === 401 || res.status === 403) return false;
+            if (res.status === 401 || res.status === 403) {
+                if (attempt === 0) {
+                    await new Promise((r) => setTimeout(r, 1000));
+                    continue;
+                }
+                return false;
+            }
 
-        if (res.status >= 300 && res.status < 400) {
-            if (provider.validateUrl) return false;
-            const location = (res.headers.get('location') ?? '').toLowerCase();
-            return !LOGIN_URL_PATTERNS.some((p) => location.includes(p));
+            if (res.status >= 300 && res.status < 400) {
+                if (provider.validateUrl) return false;
+                const location = (res.headers.get('location') ?? '').toLowerCase();
+                return !LOGIN_URL_PATTERNS.some((p) => location.includes(p));
+            }
+
+            return true;
+        } catch {
+            return false;
         }
-
-        return true;
-    } catch {
-        return true;
     }
+
+    return false;
 }
 
 /**
