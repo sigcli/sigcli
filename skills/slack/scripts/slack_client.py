@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Shared Slack Web API client for Slack skill scripts.
 
-Handles Signet token extraction, HTTP transport with xoxc/xoxd auth,
+Handles SigCLI token extraction, HTTP transport with xoxc/xoxd auth,
 rate-limit retries, channel resolution, and time-range parsing.
 """
 
@@ -50,7 +50,7 @@ def error_response(code: str, message: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Token extraction from Signet
+# Token extraction from SigCLI
 # ---------------------------------------------------------------------------
 
 
@@ -96,7 +96,7 @@ class SlackClient:
 
     Auth is sent as:
     - ``token`` form parameter (xoxc)
-    - ``Cookie`` header (full cookie string from Signet, containing ``d=xoxd-...``)
+    - ``Cookie`` header (full cookie string from SigCLI, containing ``d=xoxd-...``)
     """
 
     def __init__(self, xoxc: str, cookies: str):
@@ -113,7 +113,7 @@ class SlackClient:
 
     @classmethod
     def create(cls) -> SlackClient:
-        """Create a client by extracting credentials from Signet."""
+        """Create a client by extracting credentials from SigCLI."""
         xoxc, cookies = get_slack_credentials()
         return cls(xoxc, cookies)
 

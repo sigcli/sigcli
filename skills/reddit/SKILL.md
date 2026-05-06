@@ -48,7 +48,7 @@ Once valid + proxy detected, go straight to executing the user's request.
 sig run reddit -- bash -c 'python3 scripts/reddit_comment.py --cookie "$SIG_REDDIT_COOKIE" --parent t3_1abc --text "Great post!"'
 ```
 
-The default Signet provider is `reddit`. The env var is `SIG_REDDIT_COOKIE`.
+The default SigCLI provider is `reddit`. The env var is `SIG_REDDIT_COOKIE`.
 
 If a write script returns auth error, re-authenticate:
 
@@ -58,7 +58,7 @@ sig login reddit
 
 Then retry the `sig run` command.
 
-**Signet provider config:**
+**SigCLI provider config:**
 
 ```yaml
 reddit:
