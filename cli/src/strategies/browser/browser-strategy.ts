@@ -131,6 +131,20 @@ export class BrowserStrategy implements IStrategy {
                     this.browserConfig.headlessTimeout,
                 );
                 this.logger.info(`${provider.id}: headless navigated to entryUrl`);
+
+                // If page landed on a login/SSO page, session is stale — fall back
+                const currentUrl = await this.getCdpPageUrl(cdpClient, sessionId);
+                const evaluate = this.makeCdpEvaluator(cdpClient, sessionId);
+                const authenticated = await this.pageState.isAuthenticated(
+                    currentUrl,
+                    provider.domains,
+                    evaluate,
+                    provider.loginUrlPatterns,
+                );
+                if (!authenticated) {
+                    this.logger.info(`${provider.id}: headless landed on login page, falling back`);
+                    return null;
+                }
             }
 
             const credentials: ExtractedCredentials = {};
