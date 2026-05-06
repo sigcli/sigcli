@@ -135,6 +135,9 @@ x:
         - in: header
           name: x-csrf-token
           value: '${ct0}'
+        - in: header
+          name: authorization
+          value: 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA'
 ```
 
 ### 4. localStorage extraction (advanced)
