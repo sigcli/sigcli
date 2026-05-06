@@ -1,3 +1,5 @@
+import { fetch, ProxyAgent, Socks5ProxyAgent, type Dispatcher } from 'undici';
+
 import {
     HttpHeader,
     LOGIN_URL_PATTERNS,
@@ -30,10 +32,16 @@ export async function validate(
 
     try {
         const headers = ApplyEngine.applyRules(provider.apply, credentials).headers;
+        const dispatcher = provider.networkProxy
+            ? createProxyDispatcher(provider.networkProxy)
+            : undefined;
+
         const res = await fetch(url, {
             method: 'GET',
             headers: { ...headers, [HttpHeader.USER_AGENT]: buildUserAgent() },
             redirect: 'manual',
+            dispatcher,
+            signal: AbortSignal.timeout(10_000),
         });
 
         if (res.status === 401 || res.status === 403) return false;
@@ -77,4 +85,11 @@ export function getExpiresAt(stored: StoredCredential, provider: ProviderConfig)
         }
     }
     return null;
+}
+
+function createProxyDispatcher(proxy: string): Dispatcher {
+    if (proxy.startsWith('socks5://') || proxy.startsWith('socks://')) {
+        return new Socks5ProxyAgent(proxy);
+    }
+    return new ProxyAgent(proxy);
 }
