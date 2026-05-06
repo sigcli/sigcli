@@ -44,7 +44,7 @@ export class CdpCookieExtractor implements IBrowserExtractor {
 
         const serialized =
             rule.match !== '*' && filtered.length === 1
-                ? filtered[0].value
+                ? filtered[0].value.replace(/^"|"$/g, '')
                 : filtered.map((c) => `${c.name}=${c.value}`).join('; ');
 
         return { name: rule.as, value: serialized, cookies: filtered };
