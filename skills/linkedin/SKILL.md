@@ -46,7 +46,7 @@ Once valid + proxy detected, go straight to executing the user's request.
 sig run linkedin -- bash -c 'python3 scripts/linkedin_me.py --cookie "$SIG_LINKEDIN_COOKIE"'
 ```
 
-The default Signet provider is `linkedin`. The env var is `SIG_LINKEDIN_COOKIE`.
+The default SigCLI provider is `linkedin`. The env var is `SIG_LINKEDIN_COOKIE`.
 
 > **Note:** If `sig login` creates the provider as `www-linkedin` (from the domain), the env var will be `SIG_WWW_LINKEDIN_COOKIE`. You can rename it: `sig rename www-linkedin linkedin`.
 
@@ -58,7 +58,7 @@ sig login linkedin
 
 This opens the user's real browser via CDP (no automation markers), avoiding LinkedIn's bot detection.
 
-**Signet provider config:**
+**SigCLI provider config:**
 
 ```yaml
 linkedin:

@@ -46,7 +46,7 @@ This skill uses **cookie-based authentication** for access to Zhihu. Use `sig ru
 sig run zhihu -- bash -c 'python3 scripts/zhihu_hot.py --cookie "$SIG_ZHIHU_COOKIE"'
 ```
 
-The default Signet provider is `zhihu`. The env var is `SIG_ZHIHU_COOKIE`.
+The default SigCLI provider is `zhihu`. The env var is `SIG_ZHIHU_COOKIE`.
 
 **All operations require authentication** — Zhihu's API enforces cookie-based auth on all endpoints.
 
@@ -58,7 +58,7 @@ sig login https://www.zhihu.com/
 
 Then retry the `sig run` command.
 
-**Signet provider config:**
+**SigCLI provider config:**
 
 ```yaml
 zhihu:
