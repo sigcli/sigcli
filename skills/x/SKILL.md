@@ -61,6 +61,34 @@ Note: for socks5h proxy, use `socks5://` (not `socks5h://`) in the `--network-pr
 
 After login, `x` is provisioned automatically to `~/.sig/config.yaml`.
 
+**SigCLI provider config:**
+
+```yaml
+x:
+    domains: [x.com, twitter.com]
+    entryUrl: https://x.com/
+    validateUrl: https://x.com/i/api/2/notifications/all.json?count=1
+    strategy: browser
+    ttl: '2h'
+    extract:
+        - from: cookies
+          as: cookie
+          match: '*'
+        - from: cookies
+          as: ct0
+          match: 'ct0'
+    apply:
+        - in: header
+          name: Cookie
+          value: '${cookie}'
+        - in: header
+          name: x-csrf-token
+          value: '${ct0}'
+        - in: header
+          name: authorization
+          value: 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA'
+```
+
 ### Step 3: Install Python dependencies
 
 Ensure deps are installed for the SAME python3 that `sig run` will use:

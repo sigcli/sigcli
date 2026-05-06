@@ -41,6 +41,44 @@ sig login https://teams.cloud.microsoft/v2/
 
 Then retry the failed command. `sig login` runs headless browser extraction and completes in seconds without user interaction.
 
+**SigCLI provider configs:**
+
+```yaml
+ms-teams:
+    name: Microsoft Teams
+    domains: [teams.cloud.microsoft]
+    entryUrl: https://teams.cloud.microsoft/v2/
+    strategy: browser
+    ttl: '2h'
+    extract:
+        - from: localStorage
+          as: access_token
+          match: '*|accesstoken|*ic3.teams.office.com*'
+          jsonPath: secret
+          expiresJsonPath: expiresOn
+    apply:
+        - in: header
+          name: Authorization
+          value: 'Bearer ${access_token}'
+
+ms-graph:
+    name: Microsoft Graph
+    domains: [graph.microsoft.com]
+    entryUrl: https://teams.cloud.microsoft/v2/
+    strategy: browser
+    ttl: '2h'
+    extract:
+        - from: localStorage
+          as: access_token
+          match: '*|accesstoken|*graph.microsoft.com*'
+          jsonPath: secret
+          expiresJsonPath: expiresOn
+    apply:
+        - in: header
+          name: Authorization
+          value: 'Bearer ${access_token}'
+```
+
 **Which token for which script:**
 
 - Chat API token (`--token`): conversations, messages, send, chat, members, meetings

@@ -35,7 +35,7 @@ sig login https://teams.cloud.microsoft/v2/
 
 Then retry the failed command. `sig login` runs headless browser extraction and completes in seconds without user interaction.
 
-**SigCLI provider config** (already in `sigcli-auth/SKILL.md`):
+**SigCLI provider config:**
 
 ```yaml
 ms-graph:
