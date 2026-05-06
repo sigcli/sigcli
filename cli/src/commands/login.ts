@@ -73,38 +73,7 @@ export async function runLogin(
         auth.providerRegistry.register(provider);
     }
 
-    // Step 3: If not --force, check stored creds
-    if (flags.force !== true) {
-        process.stderr.write(`[sig] [1/2] Checking stored credentials...\n`);
-        const status = await auth.getStatus(provider.id);
-
-        if (status.valid) {
-            process.stderr.write(`[sig] [1/2] Stored credentials valid (skipping login)\n`);
-            if (provider.autoProvisioned) {
-                await addProviderToConfig(provider.id, toProviderEntry(provider));
-            }
-            const credResult = await auth.getExtractedCreds(provider.id);
-            if (isOk(credResult)) {
-                process.stdout.write(
-                    formatJson({
-                        provider: provider.id,
-                        strategy: provider.strategy,
-                        ...(status.expiresAt ? { expiresAt: status.expiresAt } : {}),
-                        method: 'stored',
-                    }) + '\n',
-                );
-                return;
-            }
-        }
-
-        if (status.configured && !status.valid) {
-            process.stderr.write(`[sig] [1/2] Stored credentials expired\n`);
-        } else if (!status.configured) {
-            process.stderr.write(`[sig] [1/2] No stored credentials found\n`);
-        }
-    }
-
-    // Step 4: Check browser availability for browser-based strategies
+    // Step 3: Check browser availability for browser-based strategies
     if (!auth.browserAvailable && provider.strategy === 'browser') {
         process.stderr.write(
             `Browser is not available on this machine.\n` +
@@ -120,8 +89,8 @@ export async function runLogin(
         return;
     }
 
-    // Step 5: Authenticate (clears stored and re-extracts)
-    process.stderr.write(`[sig] [2/2] Authenticating with "${provider.name}"...\n`);
+    // Step 4: Authenticate (3-phase cascade: no-nav → headless → visible)
+    process.stderr.write(`[sig] Authenticating with "${provider.name}"...\n`);
     const result = await auth.getExtractedCreds(provider.id, {
         force: true,
         ...(networkProxy !== undefined ? { networkProxy } : {}),
