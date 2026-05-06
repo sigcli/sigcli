@@ -162,7 +162,7 @@ export function validateConfig(raw: Record<string, unknown>): Result<SigConfig, 
         browserDataDir: browserRaw.browserDataDir as string,
         execPath: typeof browserRaw.execPath === 'string' ? browserRaw.execPath : '',
         headlessTimeout:
-            typeof browserRaw.headlessTimeout === 'number' ? browserRaw.headlessTimeout : 30_000,
+            typeof browserRaw.headlessTimeout === 'number' ? browserRaw.headlessTimeout : 20_000,
         visibleTimeout:
             typeof browserRaw.visibleTimeout === 'number' ? browserRaw.visibleTimeout : 120_000,
         waitUntil:
@@ -328,6 +328,7 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
         ...(typeof raw.name === 'string' ? { name: raw.name } : {}),
         domains: raw.domains as string[],
         entryUrl: raw.entryUrl as string,
+        ...(typeof raw.validateUrl === 'string' ? { validateUrl: raw.validateUrl } : {}),
         strategy: raw.strategy as ProviderEntry['strategy'],
         extract: raw.extract as ProviderEntry['extract'],
         apply: raw.apply as ProviderEntry['apply'],

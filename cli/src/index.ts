@@ -70,7 +70,7 @@ export { StrategyRegistry } from './strategies/registry.js';
 export { AuthManager } from './auth-manager.js';
 
 // Credential helpers
-export { checkTtl, validateCredential, getExpiresAt } from './utils/credential-validator.js';
+export { checkTtl, validate, getExpiresAt } from './utils/credential-validator.js';
 
 // Storage implementations
 export { DirectoryStorage } from './storage/directory-storage.js';

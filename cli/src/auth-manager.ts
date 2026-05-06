@@ -1,5 +1,4 @@
 import {
-    CredentialNotFoundError,
     err,
     isOk,
     ok,
@@ -23,7 +22,6 @@ import { CachedStorage } from './storage/cached-storage.js';
 import { DirectoryStorage } from './storage/directory-storage.js';
 import { loadEncryptionKey } from './crypto/encryption.js';
 import { BrowserStrategy } from './strategies/browser/index.js';
-import { checkRequired } from './strategies/browser/required-checker.js';
 import { PromptStrategy } from './strategies/prompt/index.js';
 import { ApplyEngine, type ApplyResult } from './apply/apply-engine.js';
 import { parseDuration } from './utils/duration.js';
@@ -70,6 +68,7 @@ export class AuthManager {
                     name: entry.name ?? id,
                     domains: entry.domains,
                     entryUrl: entry.entryUrl,
+                    validateUrl: entry.validateUrl,
                     strategy: entry.strategy,
                     extract: entry.extract,
                     apply: entry.apply,
@@ -284,16 +283,6 @@ export class AuthManager {
         if (!isOk(extractResult)) {
             this.logger.error(`${provider.id}: auth failed — ${extractResult.error.message}`);
             return extractResult;
-        }
-
-        if (provider.required?.length) {
-            const unmet = checkRequired(provider.required, extractResult.value.credentials);
-            if (unmet.length > 0) {
-                this.logger.error(`${provider.id}: required fields not met — ${unmet.join(', ')}`);
-                return err(
-                    new CredentialNotFoundError(`Required fields not met: ${unmet.join(', ')}`),
-                );
-            }
         }
 
         const storedEntry: StoredCredential = {

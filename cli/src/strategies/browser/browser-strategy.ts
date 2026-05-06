@@ -5,6 +5,7 @@ import {
     BrowserError,
     BrowserTimeoutError,
     err,
+    LOGIN_URL_PATTERNS,
     ok,
     type AuthError,
     type ExtractedCredentials,
@@ -15,391 +16,358 @@ import {
     type Result,
 } from '../../types/index.js';
 import type { ExtractionResult } from '../../types/interfaces/strategy.js';
+import { validate } from '../../utils/credential-validator.js';
 import { parseDuration } from '../../utils/duration.js';
 import { createNoopLogger } from '../../utils/logger.js';
 import { expandHome } from '../../utils/path.js';
 import { killProcess } from '../../utils/process-kill.js';
-import { findFreePort, removeSingletonLock, waitForBrowserReady } from './browser-lifecycle.js';
+import { findFreePort, waitForBrowserReady } from './browser-lifecycle.js';
 import { acquireBrowser, releaseBrowser } from './cdp-state.js';
 import { attachToPageTarget, connectCdpWs, type CdpWsClient } from './cdp-ws.js';
 import { CdpCookieExtractor } from './extractors/cdp-cookie.js';
 import { CdpStorageExtractor } from './extractors/cdp-storage.js';
-import type { DomEvaluateFn } from './login-detector.js';
-import { PageStateChecker, type IPageStateChecker } from './page-state-checker.js';
-import { checkRequired } from './required-checker.js';
 
-// Cookies expiring within this window are treated as tracking/CSRF cookies and ignored
-const TRACKING_COOKIE_TTL_MS = 60 * 1000;
+const TRACKING_COOKIE_TTL_MS = 60_000;
+const EXISTING_STATE_TIMEOUT = 5000;
+const LOGIN_PAGE_SETTLE_MS = 5000;
+const POLL_INTERVAL_MS = 3000;
+
+interface CookieExpiry {
+    name: string;
+    expires: number;
+}
+
+interface RuleExpiry {
+    cookies?: CookieExpiry[];
+    expiresAt?: string;
+    ruleName: string;
+}
 
 export class BrowserStrategy implements IStrategy {
     readonly name = 'browser';
     readonly needsBrowser = true;
 
-    private readonly cdpExtractors: Map<string, IBrowserExtractor>;
-    private readonly browserConfig: BrowserConfig;
-    private readonly pageState: IPageStateChecker;
+    private readonly extractors: Map<string, IBrowserExtractor>;
+    private readonly config: BrowserConfig;
     private readonly logger: ILogger;
 
-    constructor(
-        browserConfig: BrowserConfig,
-        pageStateChecker?: IPageStateChecker,
-        logger?: ILogger,
-    ) {
-        this.browserConfig = browserConfig;
-        this.pageState = pageStateChecker ?? new PageStateChecker();
+    constructor(browserConfig: BrowserConfig, _?: unknown, logger?: ILogger) {
+        this.config = browserConfig;
         this.logger = logger ?? createNoopLogger();
-        this.cdpExtractors = new Map();
-        this.cdpExtractors.set('cookies', new CdpCookieExtractor());
-        this.cdpExtractors.set('localStorage', new CdpStorageExtractor());
+        this.extractors = new Map<string, IBrowserExtractor>();
+        this.extractors.set('cookies', new CdpCookieExtractor());
+        this.extractors.set('localStorage', new CdpStorageExtractor());
     }
 
     async extract(provider: ProviderConfig): Promise<Result<ExtractionResult, AuthError>> {
-        this.logger.info(`${provider.id}: starting browser extraction`);
         const mode = provider.loginMode ?? 'auto';
+        this.logger.info(`${provider.id}: extract mode=${mode}`);
 
-        if (mode === 'headless') {
-            const result = await this.tryHeadless(provider);
-            if (result) return ok(result);
-            return err(new BrowserError('Headless extraction failed'));
-        }
+        if (mode === 'visible') return this.tryVisible(provider);
 
-        if (mode === 'visible') {
-            return this.extractViaCdp(provider);
-        }
+        const existing = await this.tryExistingState(provider);
+        if (existing) return ok(existing);
 
-        // auto: try headless, fallback to visible
-        const headlessResult = await this.tryHeadless(provider);
-        if (headlessResult) return ok(headlessResult);
-        return this.extractViaCdp(provider);
+        const headless = await this.tryHeadless(provider);
+        if (headless) return ok(headless);
+
+        if (mode === 'headless') return err(new BrowserError('Headless extraction failed'));
+
+        return this.tryVisible(provider);
     }
 
     // =========================================================================
-    // Headless — fast, silent, no interaction needed
+    // tryExistingState — headless CDP, no navigation, read browser data dir
+    // =========================================================================
+
+    private async tryExistingState(provider: ProviderConfig): Promise<ExtractionResult | null> {
+        const execPath = this.config.execPath;
+        if (!execPath) return null;
+
+        this.logger.info(`${provider.id}: tryExistingState`);
+        const dataDir = expandHome(this.config.browserDataDir);
+
+        const port = await findFreePort().catch(() => null);
+        if (!port) return null;
+
+        const args = this.headlessArgs(dataDir, port);
+        args.push('about:blank');
+
+        return this.withHeadlessBrowser(
+            execPath,
+            args,
+            port,
+            EXISTING_STATE_TIMEOUT,
+            async (cdp) => {
+                const [credentials, expiry] = await this.runExtractors(cdp, provider);
+                if (!(await validate(provider, credentials))) return null;
+                this.logger.info(`${provider.id}: credentials validated`);
+                return { credentials, expiresAt: this.computeExpiresAt(provider, expiry) };
+            },
+        );
+    }
+
+    // =========================================================================
+    // tryHeadless — navigate to entryUrl, poll until valid or login page settles
     // =========================================================================
 
     private async tryHeadless(provider: ProviderConfig): Promise<ExtractionResult | null> {
-        this.logger.info(`${provider.id}: trying headless`);
+        const execPath = this.config.execPath;
+        if (!execPath) return null;
 
-        const execPath = this.browserConfig.execPath;
-        if (!execPath) {
-            this.logger.info(`${provider.id}: no browser found, skipping headless`);
-            return null;
-        }
+        this.logger.info(`${provider.id}: tryHeadless → ${provider.entryUrl}`);
+        const dataDir = expandHome(this.config.browserDataDir);
 
-        const dataDir = expandHome(this.browserConfig.browserDataDir);
-        removeSingletonLock(dataDir);
+        const port = await findFreePort().catch(() => null);
+        if (!port) return null;
 
-        let cdpPort: number;
-        try {
-            cdpPort = await findFreePort();
-        } catch {
-            this.logger.info(`${provider.id}: failed to find free port for headless`);
-            return null;
-        }
+        const args = this.headlessArgs(dataDir, port, provider.networkProxy);
+        args.push(provider.entryUrl);
 
-        const browserArgs: string[] = [
-            '--headless',
-            `--remote-debugging-port=${cdpPort}`,
-            `--user-data-dir=${dataDir}`,
-            '--no-first-run',
-            '--no-default-browser-check',
-            '--disable-gpu',
-        ];
-        if (provider.networkProxy) {
-            browserArgs.push(`--proxy-server=${provider.networkProxy}`);
-        }
-        browserArgs.push('about:blank');
-
-        let browser: ChildProcess | undefined;
-        let cdpClient: CdpWsClient | undefined;
-
-        try {
-            browser = spawn(execPath, browserArgs, { detached: false, stdio: 'ignore' });
-
-            const wsUrl = await waitForBrowserReady(cdpPort, this.browserConfig.headlessTimeout);
-            cdpClient = await connectCdpWs(wsUrl);
-            this.logger.info(`${provider.id}: headless CDP connected`);
-
-            // Navigate to entryUrl so the server can set session cookies (e.g. JSESSIONID)
-            const sessionId = await attachToPageTarget(cdpClient);
-            if (sessionId) {
-                await cdpClient.send('Page.navigate', { url: provider.entryUrl }, sessionId);
-                await this.waitForPageReady(
-                    cdpClient,
-                    sessionId,
-                    provider.waitUntil ?? this.browserConfig.waitUntil,
-                    this.browserConfig.headlessTimeout,
-                );
-                this.logger.info(`${provider.id}: headless navigated to entryUrl`);
-
-                // If page landed on a login/SSO page, session is stale — fall back
-                const currentUrl = await this.getCdpPageUrl(cdpClient, sessionId);
-                const evaluate = this.makeCdpEvaluator(cdpClient, sessionId);
-                const authenticated = await this.pageState.isAuthenticated(
-                    currentUrl,
-                    provider.domains,
-                    evaluate,
-                    provider.loginUrlPatterns,
-                );
-                if (!authenticated) {
-                    this.logger.info(`${provider.id}: headless landed on login page, falling back`);
-                    return null;
-                }
-            }
-
-            const credentials: ExtractedCredentials = {};
-            const extractionResults: Array<{
-                cookies?: Array<{ name: string; expires: number }>;
-                expiresAt?: string;
-                ruleName: string;
-            }> = [];
-
-            for (const rule of provider.extract) {
-                const extractor = this.cdpExtractors.get(rule.from);
-                if (!extractor) continue;
-                try {
-                    const result = await extractor.extract(cdpClient, rule, provider.domains);
-                    if (result) {
-                        credentials[result.name] = result.value;
-                        extractionResults.push({
-                            cookies: result.cookies,
-                            expiresAt: result.expiresAt,
-                            ruleName: rule.as,
-                        });
-                    }
-                } catch {
-                    // Extraction failure for this rule — skip
-                }
-            }
-
-            if (provider.required?.length) {
-                if (checkRequired(provider.required, credentials).length > 0) {
-                    this.logger.info(
-                        `${provider.id}: headless missing required credentials, falling back`,
-                    );
-                    return null;
-                }
-            } else if (Object.keys(credentials).length === 0) {
-                this.logger.info(`${provider.id}: headless found no credentials, falling back`);
-                return null;
-            }
-
-            const expiresAt = this.computeExpiresAt(provider, extractionResults);
-            this.logger.info(
-                `${provider.id}: headless extracted ${Object.keys(credentials).length} credential(s)`,
-            );
-            return { credentials, expiresAt };
-        } catch (e) {
-            const msg = e instanceof Error ? e.message : String(e);
-            this.logger.warn(`${provider.id}: headless failed (${msg}), falling back`);
-            return null;
-        } finally {
-            if (cdpClient) {
-                await cdpClient.send('Browser.close').catch(() => {});
-                cdpClient.close();
-            }
-            // Wait briefly for graceful exit, then force kill if needed
-            if (browser && !browser.killed) {
-                await new Promise<void>((resolve) => {
-                    const timeout = setTimeout(() => resolve(), 3000);
-                    browser!.on('exit', () => {
-                        clearTimeout(timeout);
-                        resolve();
-                    });
-                });
-                if (!browser.killed) {
-                    killProcess(browser);
-                }
-            }
-        }
+        return this.withHeadlessBrowser(
+            execPath,
+            args,
+            port,
+            this.config.headlessTimeout,
+            async (cdp) => {
+                return this.pollUntilValid(cdp, provider, this.config.headlessTimeout, true);
+            },
+        );
     }
 
     // =========================================================================
-    // CDP — native browser, user interacts, poll until auth complete
+    // tryVisible — real browser, user interacts, poll until valid or timeout
     // =========================================================================
 
-    private async extractViaCdp(
+    private async tryVisible(
         provider: ProviderConfig,
     ): Promise<Result<ExtractionResult, AuthError>> {
-        const execPath = this.browserConfig.execPath;
-        if (!execPath) {
-            return err(new BrowserError('No browser found. Install Chrome or Edge.'));
-        }
+        const execPath = this.config.execPath;
+        if (!execPath) return err(new BrowserError('No browser found. Install Chrome or Edge.'));
 
-        const dataDir = expandHome(this.browserConfig.browserDataDir);
-
-        const browserArgs: string[] = [
+        this.logger.info(`${provider.id}: tryVisible → ${provider.entryUrl}`);
+        const dataDir = expandHome(this.config.browserDataDir);
+        const args = [
             `--user-data-dir=${dataDir}`,
             '--no-first-run',
             '--no-default-browser-check',
+            ...(provider.networkProxy ? [`--proxy-server=${provider.networkProxy}`] : []),
+            provider.entryUrl,
         ];
-        if (provider.networkProxy) {
-            browserArgs.push(`--proxy-server=${provider.networkProxy}`);
-        }
-        browserArgs.push(provider.entryUrl);
 
-        let cdpClient: CdpWsClient | undefined;
+        let cdp: CdpWsClient | undefined;
         let released = false;
 
         const cleanup = async () => {
             if (released) return;
             released = true;
-            cdpClient?.close();
-            await releaseBrowser(dataDir, this.logger).catch((e) => {
-                this.logger.warn(`release failed: ${(e as Error).message}`);
-            });
+            cdp?.close();
+            await releaseBrowser(dataDir, this.logger).catch(() => {});
         };
-        const sigHandler = () => {
-            void cleanup().finally(() => process.exit(130));
-        };
-
-        process.on('SIGINT', sigHandler);
-        process.on('SIGTERM', sigHandler);
+        const onSignal = () => void cleanup().finally(() => process.exit(130));
+        process.on('SIGINT', onSignal);
+        process.on('SIGTERM', onSignal);
 
         try {
             const { wsUrl } = await acquireBrowser(
                 dataDir,
                 execPath,
-                browserArgs,
-                this.browserConfig.visibleTimeout,
+                args,
+                this.config.visibleTimeout,
                 this.logger,
                 provider.entryUrl,
             );
-            cdpClient = await connectCdpWs(wsUrl);
-            this.logger.info(`${provider.id}: CDP connected`);
+            cdp = await connectCdpWs(wsUrl);
 
-            const result = await this.pollUntilComplete(cdpClient, provider);
-            this.logger.info(
-                `${provider.id}: extraction complete (${Object.keys(result.credentials).length} credentials)`,
+            const result = await this.pollUntilValid(
+                cdp,
+                provider,
+                this.config.visibleTimeout,
+                false,
             );
+            if (!result) throw new BrowserTimeoutError('extract', this.config.visibleTimeout);
             return ok(result);
         } catch (e) {
             if (e instanceof BrowserTimeoutError) return err(e);
             return err(new BrowserError(`Browser extraction failed: ${(e as Error).message}`));
         } finally {
             await cleanup();
-            process.removeListener('SIGINT', sigHandler);
-            process.removeListener('SIGTERM', sigHandler);
+            process.removeListener('SIGINT', onSignal);
+            process.removeListener('SIGTERM', onSignal);
         }
     }
 
-    private async pollUntilComplete(
+    // =========================================================================
+    // Core: poll loop — shared by tryHeadless and tryVisible
+    // =========================================================================
+
+    private async pollUntilValid(
         cdp: CdpWsClient,
         provider: ProviderConfig,
-    ): Promise<ExtractionResult> {
-        const deadline = Date.now() + this.browserConfig.visibleTimeout;
-        const pollInterval = 2000;
-        const credentials: ExtractedCredentials = {};
-        const extractionResults: Array<{
-            cookies?: Array<{ name: string; expires: number }>;
-            expiresAt?: string;
-            ruleName: string;
-        }> = [];
+        timeout: number,
+        exitOnLoginPage: boolean,
+    ): Promise<ExtractionResult | null> {
+        const deadline = Date.now() + timeout;
+        let loginPageSince: number | null = null;
+
+        await this.waitForPageReady(cdp, deadline);
 
         while (Date.now() < deadline) {
             const sessionId = await attachToPageTarget(cdp).catch(() => null);
-            const currentUrl = await this.getCdpPageUrl(cdp, sessionId);
-            const evaluate = this.makeCdpEvaluator(cdp, sessionId);
+            const [credentials, expiry] = await this.runExtractors(cdp, provider);
 
-            for (const rule of provider.extract) {
-                const extractor = this.cdpExtractors.get(rule.from);
-                if (!extractor) continue;
-                try {
-                    const result = await extractor.extract(cdp, rule, provider.domains);
-                    if (result) {
-                        credentials[result.name] = result.value;
-                        // Replace or add entry for this rule name (latest wins)
-                        const idx = extractionResults.findIndex((r) => r.ruleName === rule.as);
-                        const entry = {
-                            cookies: result.cookies,
-                            expiresAt: result.expiresAt,
-                            ruleName: rule.as,
-                        };
-                        if (idx >= 0) extractionResults[idx] = entry;
-                        else extractionResults.push(entry);
-                    }
-                } catch {
-                    // Transient failure — keep polling
-                }
+            if (await validate(provider, credentials)) {
+                this.logger.info(`${provider.id}: credentials validated`);
+                return { credentials, expiresAt: this.computeExpiresAt(provider, expiry) };
             }
 
-            if (provider.required?.length) {
-                if (checkRequired(provider.required, credentials).length === 0) {
-                    const expiresAt = this.computeExpiresAt(provider, extractionResults);
-                    return { credentials, expiresAt };
-                }
-            } else {
-                const authenticated = await this.pageState.isAuthenticated(
-                    currentUrl,
-                    provider.domains,
-                    evaluate,
+            if (exitOnLoginPage) {
+                const url = await this.getPageUrl(cdp, sessionId);
+                loginPageSince = this.checkLoginPageSettled(
+                    url,
                     provider.loginUrlPatterns,
+                    loginPageSince,
                 );
-                if (authenticated && Object.keys(credentials).length > 0) {
-                    const expiresAt = this.computeExpiresAt(provider, extractionResults);
-                    return { credentials, expiresAt };
+                if (loginPageSince && Date.now() - loginPageSince > LOGIN_PAGE_SETTLE_MS) {
+                    this.logger.info(`${provider.id}: login page settled, needs user interaction`);
+                    return null;
                 }
             }
 
-            if (sessionId) {
-                await cdp.send('Target.detachFromTarget', { sessionId }).catch(() => {});
-            }
-            await new Promise((r) => setTimeout(r, pollInterval));
+            if (sessionId) await cdp.send('Target.detachFromTarget', { sessionId }).catch(() => {});
+            await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
         }
 
-        if (provider.required?.length) {
-            const missing = checkRequired(provider.required, credentials);
-            if (missing.length > 0) {
-                throw new BrowserTimeoutError(
-                    `extract (missing: ${missing.join(', ')})`,
-                    this.browserConfig.visibleTimeout,
-                );
-            }
-        }
-        if (Object.keys(credentials).length === 0) {
-            throw new BrowserTimeoutError('extract', this.browserConfig.visibleTimeout);
-        }
-        const expiresAt = this.computeExpiresAt(provider, extractionResults);
-        return { credentials, expiresAt };
+        return null;
     }
 
-    // Compute expiresAt from extraction results:
-    // - Prefers cookies named in required (dotted format: "as.cookieName")
-    // - Skips cookies expiring within 5 min (tracking/CSRF)
-    // - Also considers expiresAt from localStorage extractors
-    private computeExpiresAt(
-        provider: ProviderConfig,
-        results: Array<{
-            cookies?: Array<{ name: string; expires: number }>;
-            expiresAt?: string;
-            ruleName: string;
-        }>,
-    ): string | undefined {
-        const now = Date.now();
-        const minTtlMs = TRACKING_COOKIE_TTL_MS;
-        const timestamps: number[] = [];
+    // =========================================================================
+    // Extraction — run all configured extractors against CDP
+    // =========================================================================
 
-        // TTL-based expiry (used for session cookies that have no expires)
+    private async runExtractors(
+        cdp: CdpWsClient,
+        provider: ProviderConfig,
+    ): Promise<[ExtractedCredentials, RuleExpiry[]]> {
+        const credentials: ExtractedCredentials = {};
+        const expiry: RuleExpiry[] = [];
+
+        for (const rule of provider.extract) {
+            const extractor = this.extractors.get(rule.from);
+            if (!extractor) continue;
+            try {
+                const result = await extractor.extract(cdp, rule, provider.domains);
+                if (!result) continue;
+                credentials[result.name] = result.value;
+                const idx = expiry.findIndex((r) => r.ruleName === rule.as);
+                const entry: RuleExpiry = {
+                    cookies: result.cookies,
+                    expiresAt: result.expiresAt,
+                    ruleName: rule.as,
+                };
+                if (idx >= 0) expiry[idx] = entry;
+                else expiry.push(entry);
+            } catch {
+                // transient — skip
+            }
+        }
+
+        this.logger.info(`${provider.id}: extracted keys=[${Object.keys(credentials).join(', ')}]`);
+        return [credentials, expiry];
+    }
+
+    // =========================================================================
+    // Helpers
+    // =========================================================================
+
+    private headlessArgs(dataDir: string, port: number, proxy?: string): string[] {
+        return [
+            '--headless',
+            `--remote-debugging-port=${port}`,
+            `--user-data-dir=${dataDir}`,
+            '--no-first-run',
+            '--no-default-browser-check',
+            '--disable-gpu',
+            ...(proxy ? [`--proxy-server=${proxy}`] : []),
+        ];
+    }
+
+    private async withHeadlessBrowser<T>(
+        execPath: string,
+        args: string[],
+        port: number,
+        timeout: number,
+        fn: (cdp: CdpWsClient) => Promise<T>,
+    ): Promise<T | null> {
+        let browser: ChildProcess | undefined;
+        let cdp: CdpWsClient | undefined;
+
+        try {
+            browser = spawn(execPath, args, { detached: false, stdio: 'ignore' });
+            const wsUrl = await waitForBrowserReady(port, timeout);
+            cdp = await connectCdpWs(wsUrl);
+            return await fn(cdp);
+        } catch {
+            return null;
+        } finally {
+            if (cdp) {
+                await cdp.send('Browser.close').catch(() => {});
+                cdp.close();
+            }
+            if (browser && !browser.killed) {
+                await this.gracefulKill(browser);
+            }
+        }
+    }
+
+    private async gracefulKill(browser: ChildProcess): Promise<void> {
+        await new Promise<void>((resolve) => {
+            const t = setTimeout(() => resolve(), 3000);
+            browser.on('exit', () => {
+                clearTimeout(t);
+                resolve();
+            });
+        });
+        if (!browser.killed) killProcess(browser);
+    }
+
+    private checkLoginPageSettled(
+        url: string,
+        customPatterns: string[] | undefined,
+        since: number | null,
+    ): number | null {
+        if (!this.isLoginUrl(url, customPatterns)) return null;
+        return since ?? Date.now();
+    }
+
+    private isLoginUrl(url: string, customPatterns?: string[]): boolean {
+        if (!url) return false;
+        const lower = url.toLowerCase();
+        const patterns = customPatterns
+            ? [...LOGIN_URL_PATTERNS, ...customPatterns]
+            : LOGIN_URL_PATTERNS;
+        return patterns.some((p) => lower.includes(p));
+    }
+
+    private computeExpiresAt(provider: ProviderConfig, results: RuleExpiry[]): string | undefined {
+        const now = Date.now();
+        const timestamps: number[] = [];
         const ttlMs = provider.ttl ? parseDuration(provider.ttl) : null;
         const ttlExpiry = ttlMs ? now + ttlMs : null;
 
         for (const r of results) {
-            // Collect expiresAt from localStorage extractor
             if (r.expiresAt) {
                 const ms = new Date(r.expiresAt).getTime();
                 if (!isNaN(ms) && ms > now) timestamps.push(ms);
             }
-
             if (!r.cookies?.length) continue;
-
             for (const c of r.cookies) {
                 if (c.expires <= 0) {
-                    // Session cookie — use TTL as its expiry candidate
                     if (ttlExpiry) timestamps.push(ttlExpiry);
                     continue;
                 }
                 const expiryMs = c.expires * 1000;
-                if (expiryMs - now <= minTtlMs) continue; // tracking/CSRF
+                if (expiryMs - now <= TRACKING_COOKIE_TTL_MS) continue;
                 timestamps.push(expiryMs);
             }
         }
@@ -408,7 +376,7 @@ export class BrowserStrategy implements IStrategy {
         return new Date(Math.min(...timestamps)).toISOString();
     }
 
-    private async getCdpPageUrl(cdp: CdpWsClient, sessionId: string | null): Promise<string> {
+    private async getPageUrl(cdp: CdpWsClient, sessionId: string | null): Promise<string> {
         if (!sessionId) return '';
         try {
             await cdp.send('Runtime.enable', {}, sessionId).catch(() => {});
@@ -423,46 +391,24 @@ export class BrowserStrategy implements IStrategy {
         }
     }
 
-    private makeCdpEvaluator(cdp: CdpWsClient, sessionId: string | null): DomEvaluateFn {
-        return async <T>(expression: string): Promise<T> => {
-            if (!sessionId) return undefined as T;
-            const result = (await cdp.send(
-                'Runtime.evaluate',
-                { expression, returnByValue: true },
-                sessionId,
-            )) as { result?: { value?: T } };
-            return result?.result?.value as T;
-        };
-    }
-
-    private async waitForPageReady(
-        cdp: CdpWsClient,
-        sessionId: string,
-        waitUntil: string,
-        timeout: number,
-    ): Promise<void> {
-        const deadline = Date.now() + timeout;
-        const targetState = waitUntil === 'domcontentloaded' ? 'interactive' : 'complete';
-
-        if (waitUntil === 'commit') {
-            await new Promise((r) => setTimeout(r, 500));
-            return;
-        }
-
+    private async waitForPageReady(cdp: CdpWsClient, deadline: number): Promise<void> {
         while (Date.now() < deadline) {
-            try {
-                await cdp.send('Runtime.enable', {}, sessionId).catch(() => {});
-                const result = (await cdp.send(
-                    'Runtime.evaluate',
-                    { expression: 'document.readyState', returnByValue: true },
-                    sessionId,
-                )) as { result?: { value?: string } };
-                const state = result?.result?.value;
-                if (state === 'complete' || state === targetState) return;
-            } catch {
-                // Page may be mid-navigation
+            const sessionId = await attachToPageTarget(cdp).catch(() => null);
+            if (sessionId) {
+                try {
+                    await cdp.send('Runtime.enable', {}, sessionId).catch(() => {});
+                    const result = (await cdp.send(
+                        'Runtime.evaluate',
+                        { expression: 'document.readyState', returnByValue: true },
+                        sessionId,
+                    )) as { result?: { value?: string } };
+                    if (result?.result?.value === 'complete') return;
+                } catch {
+                    // page mid-navigation
+                }
+                await cdp.send('Target.detachFromTarget', { sessionId }).catch(() => {});
             }
-            await new Promise((r) => setTimeout(r, 300));
+            await new Promise((r) => setTimeout(r, 500));
         }
     }
 }
