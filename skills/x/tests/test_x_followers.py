@@ -87,7 +87,7 @@ _FOLLOWERS_RESPONSE = {
 def test_get_followers_returns_list():
     """get_followers returns formatted followers list."""
     responses.get(url=re.compile(r".+/UserByScreenName"), json=_USER_RESPONSE, status=200)
-    responses.get(url=re.compile(r".+/Followers"), json=_FOLLOWERS_RESPONSE, status=200)
+    responses.post(url=re.compile(r".+/Followers"), json=_FOLLOWERS_RESPONSE, status=200)
     client = client_mod.XClient(cookie="ct0=abc123; auth_token=xyz")
     result = mod.get_followers(client, "testuser", limit=50, mode="followers")
     assert result["username"] == "testuser"
@@ -101,7 +101,7 @@ def test_get_followers_returns_list():
 def test_get_followers_respects_limit():
     """get_followers respects the limit parameter."""
     responses.get(url=re.compile(r".+/UserByScreenName"), json=_USER_RESPONSE, status=200)
-    responses.get(url=re.compile(r".+/Followers"), json=_FOLLOWERS_RESPONSE, status=200)
+    responses.post(url=re.compile(r".+/Followers"), json=_FOLLOWERS_RESPONSE, status=200)
     client = client_mod.XClient(cookie="ct0=abc123; auth_token=xyz")
     result = mod.get_followers(client, "testuser", limit=1)
     assert result["count"] == 1

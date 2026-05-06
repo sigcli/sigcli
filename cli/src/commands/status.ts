@@ -1,0 +1,62 @@
+import type { ProviderStatus } from '../types/index.js';
+import { detectFormat, formatOutput } from '../utils/formatter.js';
+import { formatExpiry, formatStatusIndicator, formatTable } from '../utils/formatters.js';
+import type { AuthManager } from '../auth-manager.js';
+import { getWatchProviders, type WatchProviderEntry } from '../watch/watch-config.js';
+
+function buildRows(
+    statuses: ProviderStatus[],
+    watchMap: Map<string, WatchProviderEntry>,
+): Record<string, string>[] {
+    return statuses.map((s) => {
+        const entry = watchMap.get(s.id);
+        return {
+            id: s.id,
+            strategy: s.strategy,
+            status: formatStatusIndicator(s.valid, s.configured),
+            expires: s.expiresInMinutes !== undefined ? formatExpiry(s.expiresInMinutes) : '-',
+            watch: entry ? '\u2713' : '-',
+            sync: entry?.autoSync.length ? entry.autoSync.join(', ') : '-',
+        };
+    });
+}
+
+export async function runStatus(
+    positionals: string[],
+    flags: Record<string, string | boolean | string[]>,
+    auth: AuthManager,
+): Promise<void> {
+    const providerId = (flags.provider as string) ?? positionals[0];
+    const format = detectFormat(flags.format as string | undefined, 'table');
+    const tableOptions = { maxColumnWidths: { id: 30, sync: 20 } };
+
+    const watchEntries = await getWatchProviders();
+    const watchMap = new Map(watchEntries.map((e) => [e.providerId, e]));
+
+    if (providerId) {
+        const resolved = auth.providerRegistry.resolveFlexible(providerId);
+        const status = await auth.getStatus(resolved?.id ?? providerId);
+        if (format === 'table') {
+            process.stdout.write(formatTable(buildRows([status], watchMap), tableOptions) + '\n');
+        } else {
+            process.stdout.write(
+                formatOutput(status as unknown as Record<string, unknown>, format) + '\n',
+            );
+        }
+        return;
+    }
+
+    const statuses = await auth.getAllStatus();
+
+    if (format === 'table') {
+        if (statuses.length === 0) {
+            process.stderr.write('No providers configured.\n');
+            return;
+        }
+        process.stdout.write(formatTable(buildRows(statuses, watchMap), tableOptions) + '\n');
+    } else {
+        process.stdout.write(
+            formatOutput(statuses as unknown as Record<string, unknown>[], format) + '\n',
+        );
+    }
+}

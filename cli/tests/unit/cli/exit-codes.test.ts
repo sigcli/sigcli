@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { ExitCode } from '../../../src/cli/exit-codes.js';
+import { describe, expect, it } from 'vitest';
+
+import { ExitCode } from '../../../src/utils/exit-codes.js';
 
 describe('ExitCode', () => {
     it('SUCCESS is 0', () => {

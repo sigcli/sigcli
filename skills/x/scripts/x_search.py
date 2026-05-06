@@ -17,7 +17,7 @@ def search_tweets(client: XClient, query: str, limit: int = 20, product: str = "
         "querySource": "typed_query",
         "product": product,
     }
-    data = client.graphql_get("SearchTimeline", variables, features=FEATURES_TIMELINE)
+    data = client.graphql_post("SearchTimeline", variables, features=FEATURES_TIMELINE)
     instructions = (
         ((data.get("data") or {}).get("search_by_raw_query") or {}).get("search_timeline", {}).get("timeline", {}).get("instructions") or []
     )

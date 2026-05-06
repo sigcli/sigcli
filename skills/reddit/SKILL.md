@@ -7,6 +7,37 @@ description: 'Interact with Reddit — browse subreddits, read posts and comment
 
 Browse subreddits, read posts and comments, search content, view user profiles, and interact with Reddit.
 
+## Skill Directory
+
+`<SKILL_DIR>` is the directory containing this SKILL.md file. Determine it ONCE at the start and reuse it.
+
+## Fast Gate (run this FIRST, every time)
+
+Run these commands silently — do NOT ask the user anything:
+
+```bash
+sig status reddit 2>&1
+```
+
+Check the JSON `"valid"` field:
+
+- `"valid": true` — proceed to detect proxy below.
+- `"valid": false` — run `sig login reddit`, then re-check `sig status reddit`.
+- Command not found or provider not found — run Full Setup (see Authentication section).
+
+**Detect proxy** (do NOT ask user — read from config):
+
+```bash
+grep -A15 "^\s*reddit:" ~/.sig/config.yaml | grep networkProxy | awk '{print $2}'
+```
+
+If this outputs a URL (e.g. `socks5://127.0.0.1:1234`), use it as `HTTPS_PROXY=<url> HTTP_PROXY=<url>` in ALL python3 commands. If empty, omit proxy. NEVER ask the user about proxy — it's in the config.
+NOTE: if using socks5 protocol, convert to socks5h for python scripts, e.g. `socks5://127.0.0.1:1234` becomes `socks5h://127.0.0.1:1234`
+
+Once valid + proxy detected, go straight to executing the user's request.
+
+---
+
 ## Authentication
 
 **Read operations** work without authentication via Reddit's public JSON API. No credentials needed.
@@ -22,26 +53,28 @@ The default Signet provider is `reddit`. The env var is `SIG_REDDIT_COOKIE`.
 If a write script returns auth error, re-authenticate:
 
 ```bash
-sig login https://www.reddit.com/
+sig login reddit
 ```
 
-**Note:** Reddit's login page has aggressive bot detection that may block automated browsers. If `sig login` fails, copy the `token_v2` cookie from your browser manually:
-
-1. Open https://www.reddit.com/ in your browser and log in
-2. Open DevTools (F12) → Application → Cookies → `www.reddit.com`
-3. Copy the value of the `token_v2` cookie
-4. Run: `sig login https://www.reddit.com/ --as reddit --cookie "token_v2=<your-token>"`
+Then retry the `sig run` command.
 
 **Signet provider config:**
 
 ```yaml
 reddit:
-    domains: ['www.reddit.com', 'reddit.com']
+    domains: [www.reddit.com, reddit.com]
     entryUrl: https://www.reddit.com/login
-    strategy: cookie
-    config:
-        ttl: '7d'
-        requiredCookies: ['token_v2']
+    strategy: browser
+    ttl: '7d'
+    required: [session.token_v2]
+    extract:
+        - from: cookies
+          as: session
+          match: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: '${session}'
 ```
 
 ## Scripts Reference
@@ -217,23 +250,27 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 ## Error Handling
 
-| Error          | Cause                      | Fix                                 |
-| -------------- | -------------------------- | ----------------------------------- |
-| HTTP_403       | Subreddit is private       | Use a different subreddit           |
-| HTTP_404       | Subreddit/user not found   | Check the name is spelled correctly |
-| HTTP_429       | Rate limited by Reddit     | Wait a few seconds and retry        |
-| HTTP_503       | Reddit is temporarily down | Wait and retry                      |
-| AUTH_REQUIRED  | No cookie for write op     | Run `sig login` and retry           |
-| NO_TOKEN       | No token_v2 in cookie      | Re-authenticate via `sig login`     |
-| COMMENT_FAILED | Comment rejected           | Check error details                 |
-| SUBMIT_FAILED  | Post creation rejected     | Check subreddit rules               |
-| EDIT_FAILED    | Edit rejected              | Must be the author                  |
+| Error           | Cause                      | Fix                                                   |
+| --------------- | -------------------------- | ----------------------------------------------------- |
+| HTTP_403        | Subreddit is private       | Use a different subreddit                             |
+| HTTP_404        | Subreddit/user not found   | Check the name is spelled correctly                   |
+| HTTP_429        | Rate limited by Reddit     | Wait a few seconds and retry                          |
+| HTTP_503        | Reddit is temporarily down | Wait and retry                                        |
+| Timeout         | Network blocked or slow    | Check proxy config; retry with `HTTPS_PROXY`          |
+| ConnectionError | Can't reach reddit.com     | Proxy is missing or wrong; check `~/.sig/config.yaml` |
+| AUTH_REQUIRED   | No cookie for write op     | Run `sig login` and retry                             |
+| NO_TOKEN        | No token_v2 in cookie      | Re-authenticate via `sig login`                       |
+| COMMENT_FAILED  | Comment rejected           | Check error details                                   |
+| SUBMIT_FAILED   | Post creation rejected     | Check subreddit rules                                 |
+| EDIT_FAILED     | Edit rejected              | Must be the author                                    |
 
 ## Workflow Examples
 
+All commands below assume you've detected proxy via Fast Gate. If `networkProxy` is set, prefix ALL python3 commands with `HTTPS_PROXY=<proxy> HTTP_PROXY=<proxy>`. For socks5 proxies, use `socks5h://` in the env var.
+
 ### Browse hot posts
 
-1. `python3 scripts/reddit_hot.py --subreddit programming --limit 10`
+1. `cd <SKILL_DIR> && HTTPS_PROXY=<proxy> HTTP_PROXY=<proxy> python3 scripts/reddit_hot.py --subreddit programming --limit 10`
 2. Get next page: `python3 scripts/reddit_hot.py --subreddit programming --limit 10 --after t3_xxx`
 
 ### Browse popular posts

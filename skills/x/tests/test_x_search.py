@@ -85,8 +85,8 @@ _SEARCH_RESPONSE = {
 @responses.activate
 def test_search_tweets_returns_results():
     """search_tweets returns formatted search results."""
-    responses.get(url=re.compile(r".+/SearchTimeline"), json=_SEARCH_RESPONSE, status=200)
-    client = client_mod.XClient()
+    responses.post(url=re.compile(r".+/SearchTimeline"), json=_SEARCH_RESPONSE, status=200)
+    client = client_mod.XClient(cookie="ct0=abc123; auth_token=xyz")
     result = mod.search_tweets(client, "claude code", limit=20)
     assert result["query"] == "claude code"
     assert result["product"] == "Latest"
@@ -99,8 +99,8 @@ def test_search_tweets_returns_results():
 def test_search_tweets_empty():
     """search_tweets returns empty for no results."""
     empty = {"data": {"search_by_raw_query": {"search_timeline": {"timeline": {"instructions": []}}}}}
-    responses.get(url=re.compile(r".+/SearchTimeline"), json=empty, status=200)
-    client = client_mod.XClient()
+    responses.post(url=re.compile(r".+/SearchTimeline"), json=empty, status=200)
+    client = client_mod.XClient(cookie="ct0=abc123; auth_token=xyz")
     result = mod.search_tweets(client, "xyznonexistent", limit=20)
     assert result["count"] == 0
     assert result["tweets"] == []
@@ -109,8 +109,8 @@ def test_search_tweets_empty():
 @responses.activate
 def test_search_tweets_respects_limit():
     """search_tweets respects the limit parameter."""
-    responses.get(url=re.compile(r".+/SearchTimeline"), json=_SEARCH_RESPONSE, status=200)
-    client = client_mod.XClient()
+    responses.post(url=re.compile(r".+/SearchTimeline"), json=_SEARCH_RESPONSE, status=200)
+    client = client_mod.XClient(cookie="ct0=abc123; auth_token=xyz")
     result = mod.search_tweets(client, "claude", limit=1)
     assert result["count"] == 1
     assert len(result["tweets"]) == 1

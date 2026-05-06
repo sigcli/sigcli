@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { runCompletion } from '../../../src/cli/commands/completion.js';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+import { runCompletion } from '../../../src/commands/completion.js';
 
 describe('runCompletion', () => {
     let stdoutData: string;

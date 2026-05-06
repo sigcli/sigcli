@@ -1,5 +1,4 @@
-import type { IStorage } from '../core/interfaces/storage.js';
-import type { StoredCredential, StoredEntry } from '../core/types.js';
+import type { IStorage, StoredCredential, StoredEntry } from '../types/index.js';
 
 /**
  * In-memory storage implementation for testing.
@@ -25,7 +24,6 @@ export class MemoryStorage implements IStorage {
             providerId,
             strategy: stored.strategy,
             updatedAt: stored.updatedAt,
-            credentialType: stored.credential.type,
         }));
     }
 

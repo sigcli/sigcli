@@ -10,18 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ZhIndexRouteImport } from './routes/zh/index'
+import { Route as SkillsIndexRouteImport } from './routes/skills/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
-import { Route as ZhDocsIndexRouteImport } from './routes/zh/docs/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ZhIndexRoute = ZhIndexRouteImport.update({
-  id: '/zh/',
-  path: '/zh/',
+const SkillsIndexRoute = SkillsIndexRouteImport.update({
+  id: '/skills/',
+  path: '/skills/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocsIndexRoute = DocsIndexRouteImport.update({
@@ -29,44 +28,35 @@ const DocsIndexRoute = DocsIndexRouteImport.update({
   path: '/docs/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ZhDocsIndexRoute = ZhDocsIndexRouteImport.update({
-  id: '/zh/docs/',
-  path: '/zh/docs/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/docs/': typeof DocsIndexRoute
-  '/zh/': typeof ZhIndexRoute
-  '/zh/docs/': typeof ZhDocsIndexRoute
+  '/skills/': typeof SkillsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/docs': typeof DocsIndexRoute
-  '/zh': typeof ZhIndexRoute
-  '/zh/docs': typeof ZhDocsIndexRoute
+  '/skills': typeof SkillsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/docs/': typeof DocsIndexRoute
-  '/zh/': typeof ZhIndexRoute
-  '/zh/docs/': typeof ZhDocsIndexRoute
+  '/skills/': typeof SkillsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/docs/' | '/zh/' | '/zh/docs/'
+  fullPaths: '/' | '/docs/' | '/skills/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/docs' | '/zh' | '/zh/docs'
-  id: '__root__' | '/' | '/docs/' | '/zh/' | '/zh/docs/'
+  to: '/' | '/docs' | '/skills'
+  id: '__root__' | '/' | '/docs/' | '/skills/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
-  ZhIndexRoute: typeof ZhIndexRoute
-  ZhDocsIndexRoute: typeof ZhDocsIndexRoute
+  SkillsIndexRoute: typeof SkillsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -78,11 +68,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/zh/': {
-      id: '/zh/'
-      path: '/zh'
-      fullPath: '/zh/'
-      preLoaderRoute: typeof ZhIndexRouteImport
+    '/skills/': {
+      id: '/skills/'
+      path: '/skills'
+      fullPath: '/skills/'
+      preLoaderRoute: typeof SkillsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/docs/': {
@@ -92,21 +82,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/zh/docs/': {
-      id: '/zh/docs/'
-      path: '/zh/docs'
-      fullPath: '/zh/docs/'
-      preLoaderRoute: typeof ZhDocsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DocsIndexRoute: DocsIndexRoute,
-  ZhIndexRoute: ZhIndexRoute,
-  ZhDocsIndexRoute: ZhDocsIndexRoute,
+  SkillsIndexRoute: SkillsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

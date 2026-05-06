@@ -7,6 +7,37 @@ description: 'Interact with Hacker News (news.ycombinator.com) — browse top, n
 
 Browse, search, and read Hacker News stories, comments, and user profiles.
 
+## Skill Directory
+
+`<SKILL_DIR>` is the directory containing this SKILL.md file. Determine it ONCE at the start and reuse it.
+
+## Fast Gate (run this FIRST, every time)
+
+Run these commands silently — do NOT ask the user anything:
+
+```bash
+sig status hackernews 2>&1
+```
+
+Check the JSON `"valid"` field:
+
+- `"valid": true` — proceed to detect proxy below.
+- `"valid": false` — run `sig login hackernews`, then re-check `sig status hackernews`.
+- Command not found or provider not found — run Full Setup (see Authentication section).
+
+**Detect proxy** (do NOT ask user — read from config):
+
+```bash
+grep -A15 "^\s*hackernews:" ~/.sig/config.yaml | grep networkProxy | awk '{print $2}'
+```
+
+If this outputs a URL (e.g. `socks5://127.0.0.1:1234`), use it as `HTTPS_PROXY=<url> HTTP_PROXY=<url>` in ALL python3 commands. If empty, omit proxy. NEVER ask the user about proxy — it's in the config.
+NOTE: if using socks5 protocol, convert to socks5h for python scripts, e.g. `socks5://127.0.0.1:1234` becomes `socks5h://127.0.0.1:1234`
+
+Once valid + proxy detected, go straight to executing the user's request.
+
+---
+
 ## Authentication
 
 **Read operations** work without authentication. All Hacker News Firebase and Algolia APIs are public.
@@ -22,25 +53,27 @@ The default Signet provider is `hackernews`. The env var is `SIG_HACKERNEWS_COOK
 If a write script returns auth error, re-authenticate:
 
 ```bash
-sig login https://news.ycombinator.com/login
+sig login hackernews
 ```
 
-**If browser automation fails**, copy cookies manually:
-
-1. Open https://news.ycombinator.com/ and log in
-2. DevTools (F12) → Application → Cookies → `news.ycombinator.com`
-3. Copy the `user` cookie value (format: `username&token`)
-4. Run: `sig login https://news.ycombinator.com/ --cookie "user=username&token"`
+Then retry the `sig run` command.
 
 **Signet provider config:**
 
 ```yaml
 hackernews:
-    domains: ['news.ycombinator.com']
+    domains: [news.ycombinator.com]
     entryUrl: https://news.ycombinator.com/login
-    strategy: cookie
-    config:
-        requiredCookies: ['user']
+    strategy: browser
+    required: [session.user]
+    extract:
+        - from: cookies
+          as: session
+          match: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: '${session}'
 ```
 
 ## Scripts Reference

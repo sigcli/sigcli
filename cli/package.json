@@ -1,6 +1,6 @@
 {
     "name": "@sigcli/cli",
-    "version": "1.3.0-beta.2",
+    "version": "1.6.5",
     "description": "General-purpose authentication CLI with pluggable strategies and browser adapters",
     "main": "dist/index.js",
     "type": "module",
@@ -23,14 +23,15 @@
         "@peculiar/x509": "^2.0.0",
         "croner": "^10.0.1",
         "dlv": "^1.1.3",
-        "playwright-core": "^1.50.0",
         "proper-lockfile": "^4.1.2",
         "yaml": "^2.7.0"
     },
     "devDependencies": {
+        "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
         "@types/dlv": "^1.1.5",
         "@types/node": "^20.10.0",
         "@types/proper-lockfile": "^4.1.4",
+        "prettier": "^3.8.3",
         "reflect-metadata": "^0.2.2",
         "vitest": "^3.0.0"
     },
@@ -39,8 +40,7 @@
         "auth",
         "authentication",
         "oauth2",
-        "browser",
-        "playwright-core"
+        "browser"
     ],
     "author": "pylon <pylon.peng@gmail.com>",
     "license": "MIT",

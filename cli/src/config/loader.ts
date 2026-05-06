@@ -4,13 +4,12 @@
  */
 
 import fs from 'node:fs/promises';
-import path from 'node:path';
 import os from 'node:os';
-import YAML from 'yaml';
-import type { Result } from '../core/result.js';
-import { err } from '../core/result.js';
-import { ConfigError, type AuthError } from '../core/errors.js';
-import type { SigConfig, ProviderEntry } from './schema.js';
+import path from 'node:path';
+import YAML, { isCollection } from 'yaml';
+
+import { ConfigError, err, type AuthError, type Result } from '../types/index.js';
+import type { ProviderEntry, SigConfig } from './schema.js';
 import { validateConfig } from './validator.js';
 
 const CONFIG_PATH = path.join(os.homedir(), '.sig', 'config.yaml');
@@ -58,6 +57,7 @@ export async function loadConfig(): Promise<Result<SigConfig, AuthError>> {
  */
 export async function saveConfig(config: SigConfig): Promise<void> {
     const filtered = {
+        version: 2,
         ...config,
         providers: Object.fromEntries(
             Object.entries(config.providers).filter(
@@ -66,7 +66,11 @@ export async function saveConfig(config: SigConfig): Promise<void> {
         ),
     };
     await fs.mkdir(path.dirname(CONFIG_PATH), { recursive: true });
-    await fs.writeFile(CONFIG_PATH, YAML.stringify(filtered), 'utf-8');
+    await fs.writeFile(
+        CONFIG_PATH,
+        YAML.stringify(filtered, { collectionStyle: 'block' }),
+        'utf-8',
+    );
 }
 
 /**
@@ -84,8 +88,25 @@ export async function addProviderToConfig(id: string, entry: ProviderEntry): Pro
     if (!doc.getIn(['providers'])) {
         doc.setIn(['providers'], doc.createNode({}));
     }
-    doc.setIn(['providers', id], doc.createNode(entry));
+    const providersNode = doc.getIn(['providers'], true);
+    if (isCollection(providersNode)) providersNode.flow = false;
+    const providerNode = doc.createNode(entry);
+    setBlockStyle(providerNode);
+    doc.setIn(['providers', id], providerNode);
     await fs.writeFile(CONFIG_PATH, doc.toString(), 'utf-8');
+}
+
+function setBlockStyle(node: unknown): void {
+    if (isCollection(node)) {
+        node.flow = false;
+        for (const item of node.items) {
+            if (typeof item === 'object' && item !== null) {
+                if ('value' in item) setBlockStyle(item.value);
+                if ('key' in item) setBlockStyle(item.key);
+                setBlockStyle(item);
+            }
+        }
+    }
 }
 
 /**

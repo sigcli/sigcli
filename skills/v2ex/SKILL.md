@@ -7,6 +7,37 @@ description: 'Interact with V2EX (v2ex.com) — browse hot and latest topics, re
 
 Browse, search, read, and interact with V2EX — the creative workers' community.
 
+## Skill Directory
+
+`<SKILL_DIR>` is the directory containing this SKILL.md file. Determine it ONCE at the start and reuse it.
+
+## Fast Gate (run this FIRST, every time)
+
+Run these commands silently — do NOT ask the user anything:
+
+```bash
+sig status v2ex 2>&1
+```
+
+Check the JSON `"valid"` field:
+
+- `"valid": true` — proceed to detect proxy below.
+- `"valid": false` — run `sig login v2ex`, then re-check `sig status v2ex`.
+- Command not found or provider not found — run Full Setup (see Authentication section).
+
+**Detect proxy** (do NOT ask user — read from config):
+
+```bash
+grep -A15 "^\s*v2ex:" ~/.sig/config.yaml | grep networkProxy | awk '{print $2}'
+```
+
+If this outputs a URL (e.g. `socks5://127.0.0.1:1234`), use it as `HTTPS_PROXY=<url> HTTP_PROXY=<url>` in ALL python3 commands. If empty, omit proxy. NEVER ask the user about proxy — it's in the config.
+NOTE: if using socks5 protocol, convert to socks5h for python scripts, e.g. `socks5://127.0.0.1:1234` becomes `socks5h://127.0.0.1:1234`
+
+Once valid + proxy detected, go straight to executing the user's request.
+
+---
+
 ## Authentication
 
 This skill uses **cookie-based authentication** for full read/write access to V2EX. Use `sig run` to inject the session cookie:
@@ -33,9 +64,17 @@ Then retry the `sig run` command.
 
 ```yaml
 v2ex:
-    domains: ['www.v2ex.com', 'v2ex.com']
+    domains: [www.v2ex.com, v2ex.com]
     entryUrl: https://www.v2ex.com/signin
-    strategy: cookie
+    strategy: browser
+    extract:
+        - from: cookies
+          as: session
+          match: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: '${session}'
 ```
 
 ## Scripts Reference
@@ -203,27 +242,6 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 **Daily check-in** — V2EX awards coins for daily sign-in. Use `v2ex_daily.py` to redeem.
 
 **Search** — Uses the SOV2EX third-party search engine (sov2ex.com) which indexes V2EX content for full-text search.
-
-## Proxy
-
-V2EX is blocked by firewalls in some regions. If scripts fail with `Connection reset by peer` or timeout errors, set a proxy via environment variables:
-
-```bash
-# SOCKS5 proxy
-HTTPS_PROXY=socks5://localhost:1080 HTTP_PROXY=socks5://localhost:1080 python3 scripts/v2ex_hot.py
-
-# HTTP proxy
-HTTPS_PROXY=http://localhost:8080 HTTP_PROXY=http://localhost:8080 python3 scripts/v2ex_hot.py
-```
-
-For SOCKS5 proxies, `pysocks` must be installed: `pip install pysocks`
-
-With `sig run`, pass the proxy env vars through:
-
-```bash
-HTTPS_PROXY=socks5://localhost:1080 HTTP_PROXY=socks5://localhost:1080 \
-  sig run v2ex -- bash -c 'python3 scripts/v2ex_hot.py --cookie "$SIG_V2EX_COOKIE"'
-```
 
 ## Error Handling
 

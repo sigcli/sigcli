@@ -14,24 +14,24 @@ This skill requires **two tokens** from Signet for full functionality. Use `sig 
 **Scripts needing only Chat token** (conversations, messages, send, meetings):
 
 ```bash
-sig run ms-teams -- bash -c 'python scripts/teams_conversations.py --token "$SIG_MS_TEAMS_TOKEN" --search "standup"'
+sig run ms-teams -- bash -c 'python scripts/teams_conversations.py --token "$SIG_MS_TEAMS_ACCESS_TOKEN" --search "standup"'
 ```
 
 **Scripts needing only Graph token** (calendar, people):
 
 ```bash
-sig run ms-graph -- bash -c 'python scripts/teams_calendar.py --graph-token "$SIG_MS_GRAPH_TOKEN" --range today'
+sig run ms-graph -- bash -c 'python scripts/teams_calendar.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --range today'
 ```
 
 **Scripts needing both tokens** (chat, members):
 
 ```bash
-sig run ms-teams ms-graph -- bash -c 'python scripts/teams_chat.py --token "$SIG_MS_TEAMS_TOKEN" --graph-token "$SIG_MS_GRAPH_TOKEN" --query "John Smith" --region apac'
+sig run ms-teams ms-graph -- bash -c 'python scripts/teams_chat.py --token "$SIG_MS_TEAMS_ACCESS_TOKEN" --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --query "John Smith" --region apac'
 ```
 
-The env var names follow the rule: `SIG_<PROVIDER>_TOKEN` where `<PROVIDER>` is the provider name uppercased with `-` replaced by `_`. If the user has different provider names, derive the env vars accordingly.
+The env var names follow the rule: `SIG_<PROVIDER>_<AS>` where `<PROVIDER>` is the provider name uppercased with `-` replaced by `_`, and `<AS>` is the extract rule's `as` field uppercased. For ms-teams/ms-graph with `as: access_token`, the env vars are `SIG_MS_TEAMS_ACCESS_TOKEN` and `SIG_MS_GRAPH_ACCESS_TOKEN`.
 
-**Note:** `sig run` for bearer providers sets `SIG_<PROVIDER>_TOKEN` to the raw JWT (without `Bearer` prefix). The scripts add `Bearer` themselves.
+**Note:** `sig run` injects the raw JWT (without `Bearer` prefix). The scripts add `Bearer` themselves.
 
 If a script returns 401 or auth error, re-authenticate:
 
@@ -218,35 +218,35 @@ See `references/messaging-guide.md` for complete formatting reference.
 
 1. Find their chat:
     ```bash
-    sig run ms-teams ms-graph -- bash -c 'python scripts/teams_chat.py --token "$SIG_MS_TEAMS_TOKEN" --graph-token "$SIG_MS_GRAPH_TOKEN" --query "John Smith" --region apac'
+    sig run ms-teams ms-graph -- bash -c 'python scripts/teams_chat.py --token "$SIG_MS_TEAMS_ACCESS_TOKEN" --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --query "John Smith" --region apac'
     ```
-2. Send: `sig run ms-teams -- bash -c 'python scripts/teams_send.py --token "$SIG_MS_TEAMS_TOKEN" --conversation-id "$CONV_ID" --message "Hello!" --region apac'`
+2. Send: `sig run ms-teams -- bash -c 'python scripts/teams_send.py --token "$SIG_MS_TEAMS_ACCESS_TOKEN" --conversation-id "$CONV_ID" --message "Hello!" --region apac'`
 
 ### Summarize a conversation
 
-1. Search: `sig run ms-teams -- bash -c 'python scripts/teams_conversations.py --token "$SIG_MS_TEAMS_TOKEN" --search "project standup"'`
-2. Get messages: `sig run ms-teams -- bash -c 'python scripts/teams_messages.py --token "$SIG_MS_TEAMS_TOKEN" --conversation-id "$CONV_ID" --limit 50'`
+1. Search: `sig run ms-teams -- bash -c 'python scripts/teams_conversations.py --token "$SIG_MS_TEAMS_ACCESS_TOKEN" --search "project standup"'`
+2. Get messages: `sig run ms-teams -- bash -c 'python scripts/teams_messages.py --token "$SIG_MS_TEAMS_ACCESS_TOKEN" --conversation-id "$CONV_ID" --limit 50'`
 3. Summarize the returned messages
 
 ### Get a meeting transcript
 
-1. Find recordings: `sig run ms-teams -- bash -c 'python scripts/teams_meetings.py --token "$SIG_MS_TEAMS_TOKEN" --conversation-id "$CONV_ID"'`
-2. Fetch transcript: `sig run ms-teams -- bash -c 'python scripts/teams_meetings.py --token "$SIG_MS_TEAMS_TOKEN" --transcript-url "$AMS_URL"'`
+1. Find recordings: `sig run ms-teams -- bash -c 'python scripts/teams_meetings.py --token "$SIG_MS_TEAMS_ACCESS_TOKEN" --conversation-id "$CONV_ID"'`
+2. Fetch transcript: `sig run ms-teams -- bash -c 'python scripts/teams_meetings.py --token "$SIG_MS_TEAMS_ACCESS_TOKEN" --transcript-url "$AMS_URL"'`
 
 ### Check today's calendar
 
-1. `sig run ms-graph -- bash -c 'python scripts/teams_calendar.py --graph-token "$SIG_MS_GRAPH_TOKEN" --range today'`
+1. `sig run ms-graph -- bash -c 'python scripts/teams_calendar.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --range today'`
 
 ### Look up a colleague
 
-1. `sig run ms-graph -- bash -c 'python scripts/teams_people.py --graph-token "$SIG_MS_GRAPH_TOKEN" --action search --query "Jane Doe" --enrich'`
+1. `sig run ms-graph -- bash -c 'python scripts/teams_people.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --action search --query "Jane Doe" --enrich'`
 
 ### Check org chart
 
-1. Manager: `sig run ms-graph -- bash -c 'python scripts/teams_people.py --graph-token "$SIG_MS_GRAPH_TOKEN" --action manager'`
-2. Reports: `sig run ms-graph -- bash -c 'python scripts/teams_people.py --graph-token "$SIG_MS_GRAPH_TOKEN" --action reports'`
+1. Manager: `sig run ms-graph -- bash -c 'python scripts/teams_people.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --action manager'`
+2. Reports: `sig run ms-graph -- bash -c 'python scripts/teams_people.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --action reports'`
 
 ### Reply to a message in a thread
 
-1. Get messages to find the parent message ID: `sig run ms-teams -- bash -c 'python scripts/teams_messages.py --token "$SIG_MS_TEAMS_TOKEN" --conversation-id "$CONV_ID" --limit 10'`
-2. Reply: `sig run ms-teams -- bash -c 'python scripts/teams_send.py --token "$SIG_MS_TEAMS_TOKEN" --conversation-id "$CONV_ID" --parent-message-id "$MSG_ID" --message "Thanks!"'`
+1. Get messages to find the parent message ID: `sig run ms-teams -- bash -c 'python scripts/teams_messages.py --token "$SIG_MS_TEAMS_ACCESS_TOKEN" --conversation-id "$CONV_ID" --limit 10'`
+2. Reply: `sig run ms-teams -- bash -c 'python scripts/teams_send.py --token "$SIG_MS_TEAMS_ACCESS_TOKEN" --conversation-id "$CONV_ID" --parent-message-id "$MSG_ID" --message "Thanks!"'`

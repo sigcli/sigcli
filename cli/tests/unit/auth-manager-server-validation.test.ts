@@ -1,86 +1,43 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { AuthManager } from '../../src/auth-manager.js';
-import { MemoryStorage } from '../../src/storage/memory-storage.js';
-import { ProviderRegistry } from '../../src/providers/provider-registry.js';
-import { StrategyRegistry } from '../../src/strategies/registry.js';
-import { CookieStrategyFactory } from '../../src/strategies/cookie.strategy.js';
-import { ApiTokenStrategyFactory } from '../../src/strategies/api-token.strategy.js';
-import type { ProviderConfig, CookieCredential, ApiKeyCredential } from '../../src/core/types.js';
-import type { IBrowserAdapter } from '../../src/core/interfaces/browser-adapter.js';
-import { isOk, isErr } from '../../src/core/result.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const cookieProvider: ProviderConfig = {
+import type { ExtractedCredentials, ProviderConfig } from '../../src/types/index.js';
+import { validateCredential } from '../../src/utils/credential-validator.js';
+
+const provider: ProviderConfig = {
     id: 'sso-app',
     name: 'SSO App',
-    domains: ['sso-app.example.com'],
-    entryUrl: 'https://sso-app.example.com/',
-    strategy: 'cookie',
-    strategyConfig: { strategy: 'cookie' },
+    domains: ['myapp.example.com'],
+    entryUrl: 'https://myapp.example.com/',
+    strategy: 'browser',
+    extract: [{ from: 'cookies', as: 'session', match: 'JSESSIONID' }],
+    apply: [{ in: 'header', name: 'Cookie', value: 'JSESSIONID=${session}' }],
 };
 
 const noEntryProvider: ProviderConfig = {
     id: 'no-entry',
     name: 'No Entry URL',
     domains: ['no-entry.example.com'],
-    strategy: 'api-token',
-    strategyConfig: { strategy: 'api-token', headerName: 'Authorization', headerPrefix: 'Bearer' },
+    strategy: 'browser',
+    extract: [{ from: 'cookies', as: 'session', match: 'token' }],
+    apply: [{ in: 'header', name: 'Cookie', value: 'token=${session}' }],
 };
 
-function makeCookieCredential(): CookieCredential {
-    return {
-        type: 'cookie',
-        cookies: [{ name: 'session', value: 'abc123', domain: 'sso-app.example.com', expires: -1 }],
-        obtainedAt: new Date().toISOString(),
-    };
-}
+const credentials: ExtractedCredentials = { session: 'abc123' };
 
-describe('AuthManager - server-side validation in getCredentials()', () => {
-    let storage: MemoryStorage;
-    let authManager: AuthManager;
-
-    beforeEach(() => {
-        storage = new MemoryStorage();
-        const strategyRegistry = new StrategyRegistry();
-        strategyRegistry.register(new CookieStrategyFactory());
-        strategyRegistry.register(new ApiTokenStrategyFactory());
-        const providerRegistry = new ProviderRegistry([cookieProvider, noEntryProvider]);
-
-        authManager = new AuthManager({
-            storage,
-            strategyRegistry,
-            providerRegistry,
-            browserAdapterFactory: () => ({}) as IBrowserAdapter,
-            browserConfig: {
-                browserDataDir: '/tmp/test-browser-data',
-                channel: 'chrome',
-                headlessTimeout: 30000,
-                visibleTimeout: 120000,
-                waitUntil: 'load',
-            },
-        });
-    });
-
+describe('validateCredential — server-side session probe', () => {
     afterEach(() => {
         vi.unstubAllGlobals();
     });
 
-    it('returns cached credential when server responds 200', async () => {
-        const cred = makeCookieCredential();
-        await authManager.setCredential('sso-app', cred);
-
+    it('returns status 200 and no login redirect for valid session', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 200, headers: new Headers() }));
 
-        const result = await authManager.getCredentials('sso-app');
-        expect(isOk(result)).toBe(true);
-        if (result.ok) {
-            expect(result.value.type).toBe('cookie');
-        }
+        const result = await validateCredential(provider, credentials);
+        expect(result.status).toBe(200);
+        expect(result.isLoginRedirect).toBe(false);
     });
 
-    it('triggers re-auth when server returns login redirect (302 → /login)', async () => {
-        const cred = makeCookieCredential();
-        await authManager.setCredential('sso-app', cred);
-
+    it('detects login redirect (302 → /login)', async () => {
         vi.stubGlobal(
             'fetch',
             vi.fn().mockResolvedValue({
@@ -89,66 +46,34 @@ describe('AuthManager - server-side validation in getCredentials()', () => {
             }),
         );
 
-        // Re-auth will fail because browser adapter is a stub — we just verify
-        // that stored credential is deleted (not returned as-is)
-        const result = await authManager.getCredentials('sso-app');
-        // Should attempt re-auth (and fail because of stub adapter)
-        expect(isErr(result)).toBe(true);
-
-        // Stored credential should have been cleared
-        const stored = await storage.get('sso-app');
-        expect(stored).toBeNull();
+        const result = await validateCredential(provider, credentials);
+        expect(result.status).toBe(302);
+        expect(result.isLoginRedirect).toBe(true);
     });
 
-    it('triggers re-auth when server returns 401', async () => {
-        const cred = makeCookieCredential();
-        await authManager.setCredential('sso-app', cred);
+    it('detects redirect to SSO/SAML endpoint', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({
+                status: 301,
+                headers: new Headers({ location: 'https://idp.example.com/saml/sso?...' }),
+            }),
+        );
 
+        const result = await validateCredential(provider, credentials);
+        expect(result.status).toBe(301);
+        expect(result.isLoginRedirect).toBe(true);
+    });
+
+    it('returns 401 without flagging as login redirect', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 401, headers: new Headers() }));
 
-        const result = await authManager.getCredentials('sso-app');
-        expect(isErr(result)).toBe(true);
-
-        // Stored credential should have been cleared
-        const stored = await storage.get('sso-app');
-        expect(stored).toBeNull();
+        const result = await validateCredential(provider, credentials);
+        expect(result.status).toBe(401);
+        expect(result.isLoginRedirect).toBe(false);
     });
 
-    it('returns cached credential on network error (graceful degradation)', async () => {
-        const cred = makeCookieCredential();
-        await authManager.setCredential('sso-app', cred);
-
-        vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED')));
-
-        const result = await authManager.getCredentials('sso-app');
-        expect(isOk(result)).toBe(true);
-        if (result.ok) {
-            expect(result.value.type).toBe('cookie');
-        }
-    });
-
-    it('skips server probe when provider has no entryUrl', async () => {
-        const cred: ApiKeyCredential = {
-            type: 'api-key',
-            key: 'my-token',
-            headerName: 'Authorization',
-            headerPrefix: 'Bearer',
-        };
-        await authManager.setCredential('no-entry', cred);
-
-        const fetchMock = vi.fn();
-        vi.stubGlobal('fetch', fetchMock);
-
-        const result = await authManager.getCredentials('no-entry');
-        expect(isOk(result)).toBe(true);
-        // fetch should never have been called
-        expect(fetchMock).not.toHaveBeenCalled();
-    });
-
-    it('does not flag non-login redirect as stale', async () => {
-        const cred = makeCookieCredential();
-        await authManager.setCredential('sso-app', cred);
-
+    it('does not flag non-login redirect as login redirect', async () => {
         vi.stubGlobal(
             'fetch',
             vi.fn().mockResolvedValue({
@@ -157,7 +82,47 @@ describe('AuthManager - server-side validation in getCredentials()', () => {
             }),
         );
 
-        const result = await authManager.getCredentials('sso-app');
-        expect(isOk(result)).toBe(true);
+        const result = await validateCredential(provider, credentials);
+        expect(result.status).toBe(302);
+        expect(result.isLoginRedirect).toBe(false);
+    });
+
+    it('returns null status on network error (graceful degradation)', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED')));
+
+        const result = await validateCredential(provider, credentials);
+        expect(result.status).toBeNull();
+        expect(result.isLoginRedirect).toBe(false);
+    });
+
+    it('skips probe when provider has no entryUrl', async () => {
+        const fetchMock = vi.fn();
+        vi.stubGlobal('fetch', fetchMock);
+
+        const providerNoUrl = {
+            ...noEntryProvider,
+            entryUrl: undefined,
+        } as unknown as ProviderConfig;
+        const result = await validateCredential(providerNoUrl, credentials);
+
+        expect(result.status).toBeNull();
+        expect(result.isLoginRedirect).toBe(false);
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('applies credential headers from apply rules in the probe request', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({ status: 200, headers: new Headers() });
+        vi.stubGlobal('fetch', fetchMock);
+
+        await validateCredential(provider, credentials);
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            'https://myapp.example.com/',
+            expect.objectContaining({
+                method: 'GET',
+                redirect: 'manual',
+                headers: expect.objectContaining({ Cookie: 'JSESSIONID=abc123' }),
+            }),
+        );
     });
 });

@@ -1,4 +1,5 @@
 'use client';
+
 /*
  * Editorial markdown components.
  *
@@ -6,7 +7,6 @@
  * Conflicting names with shadcn: --brand-primary, --brand-secondary,
  * --link-accent, --page-border.
  */
-
 import {
     useCallback,
     useEffect,
@@ -16,8 +16,9 @@ import {
     useSyncExternalStore,
     useTransition,
 } from 'react';
+
 import { createTocDb, searchToc, type SearchState } from './search.js';
-import type { TocNodeType, VisualLevel, TocTreeNode, FlatTocItem } from './toc-tree.js';
+import type { FlatTocItem, TocNodeType, TocTreeNode, VisualLevel } from './toc-tree.js';
 
 export type { TocNodeType, VisualLevel, TocTreeNode, FlatTocItem };
 if (typeof self === 'undefined') (globalThis as any).self = globalThis;
@@ -1604,6 +1605,25 @@ export function EditorialPage({
                     </a>
 
                     <div className="flex items-center gap-4">
+                        {/* Skills button */}
+                        <a
+                            href="/skills/"
+                            className="no-underline flex items-center gap-1.5 px-3 py-1 rounded-md text-(length:--type-toc-size) font-[475] [font-family:var(--font-primary)] transition-colors duration-150"
+                            style={{
+                                color: 'var(--text-secondary)',
+                                border: '1px solid var(--page-border)',
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.color = 'var(--text-primary)';
+                                e.currentTarget.style.borderColor = 'var(--text-tertiary)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.color = 'var(--text-secondary)';
+                                e.currentTarget.style.borderColor = 'var(--page-border)';
+                            }}
+                        >
+                            Skills
+                        </a>
                         {/* Docs button */}
                         <a
                             href={locale === 'zh' ? '/zh/docs/' : '/docs/'}

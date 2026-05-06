@@ -1,0 +1,454 @@
+import { spawn, type ChildProcess } from 'node:child_process';
+
+import type { BrowserConfig } from '../../config/schema.js';
+import {
+    BrowserError,
+    BrowserTimeoutError,
+    err,
+    ok,
+    type AuthError,
+    type ExtractedCredentials,
+    type IBrowserExtractor,
+    type ILogger,
+    type IStrategy,
+    type ProviderConfig,
+    type Result,
+} from '../../types/index.js';
+import type { ExtractionResult } from '../../types/interfaces/strategy.js';
+import { parseDuration } from '../../utils/duration.js';
+import { createNoopLogger } from '../../utils/logger.js';
+import { expandHome } from '../../utils/path.js';
+import { killProcess } from '../../utils/process-kill.js';
+import { findFreePort, removeSingletonLock, waitForBrowserReady } from './browser-lifecycle.js';
+import { acquireBrowser, releaseBrowser } from './cdp-state.js';
+import { attachToPageTarget, connectCdpWs, type CdpWsClient } from './cdp-ws.js';
+import { CdpCookieExtractor } from './extractors/cdp-cookie.js';
+import { CdpStorageExtractor } from './extractors/cdp-storage.js';
+import type { DomEvaluateFn } from './login-detector.js';
+import { PageStateChecker, type IPageStateChecker } from './page-state-checker.js';
+import { checkRequired } from './required-checker.js';
+
+// Cookies expiring within this window are treated as tracking/CSRF cookies and ignored
+const TRACKING_COOKIE_TTL_MS = 60 * 1000;
+
+export class BrowserStrategy implements IStrategy {
+    readonly name = 'browser';
+    readonly needsBrowser = true;
+
+    private readonly cdpExtractors: Map<string, IBrowserExtractor>;
+    private readonly browserConfig: BrowserConfig;
+    private readonly pageState: IPageStateChecker;
+    private readonly logger: ILogger;
+
+    constructor(
+        browserConfig: BrowserConfig,
+        pageStateChecker?: IPageStateChecker,
+        logger?: ILogger,
+    ) {
+        this.browserConfig = browserConfig;
+        this.pageState = pageStateChecker ?? new PageStateChecker();
+        this.logger = logger ?? createNoopLogger();
+        this.cdpExtractors = new Map();
+        this.cdpExtractors.set('cookies', new CdpCookieExtractor());
+        this.cdpExtractors.set('localStorage', new CdpStorageExtractor());
+    }
+
+    async extract(provider: ProviderConfig): Promise<Result<ExtractionResult, AuthError>> {
+        this.logger.info(`${provider.id}: starting browser extraction`);
+        const mode = provider.loginMode ?? 'auto';
+
+        if (mode === 'headless') {
+            const result = await this.tryHeadless(provider);
+            if (result) return ok(result);
+            return err(new BrowserError('Headless extraction failed'));
+        }
+
+        if (mode === 'visible') {
+            return this.extractViaCdp(provider);
+        }
+
+        // auto: try headless, fallback to visible
+        const headlessResult = await this.tryHeadless(provider);
+        if (headlessResult) return ok(headlessResult);
+        return this.extractViaCdp(provider);
+    }
+
+    // =========================================================================
+    // Headless — fast, silent, no interaction needed
+    // =========================================================================
+
+    private async tryHeadless(provider: ProviderConfig): Promise<ExtractionResult | null> {
+        this.logger.info(`${provider.id}: trying headless`);
+
+        const execPath = this.browserConfig.execPath;
+        if (!execPath) {
+            this.logger.info(`${provider.id}: no browser found, skipping headless`);
+            return null;
+        }
+
+        const dataDir = expandHome(this.browserConfig.browserDataDir);
+        removeSingletonLock(dataDir);
+
+        let cdpPort: number;
+        try {
+            cdpPort = await findFreePort();
+        } catch {
+            this.logger.info(`${provider.id}: failed to find free port for headless`);
+            return null;
+        }
+
+        const browserArgs: string[] = [
+            '--headless',
+            `--remote-debugging-port=${cdpPort}`,
+            `--user-data-dir=${dataDir}`,
+            '--no-first-run',
+            '--no-default-browser-check',
+            '--disable-gpu',
+        ];
+        if (provider.networkProxy) {
+            browserArgs.push(`--proxy-server=${provider.networkProxy}`);
+        }
+        browserArgs.push('about:blank');
+
+        let browser: ChildProcess | undefined;
+        let cdpClient: CdpWsClient | undefined;
+
+        try {
+            browser = spawn(execPath, browserArgs, { detached: false, stdio: 'ignore' });
+
+            const wsUrl = await waitForBrowserReady(cdpPort, this.browserConfig.headlessTimeout);
+            cdpClient = await connectCdpWs(wsUrl);
+            this.logger.info(`${provider.id}: headless CDP connected`);
+
+            // Navigate to entryUrl so the server can set session cookies (e.g. JSESSIONID)
+            const sessionId = await attachToPageTarget(cdpClient);
+            if (sessionId) {
+                await cdpClient.send('Page.navigate', { url: provider.entryUrl }, sessionId);
+                await this.waitForPageReady(
+                    cdpClient,
+                    sessionId,
+                    provider.waitUntil ?? this.browserConfig.waitUntil,
+                    this.browserConfig.headlessTimeout,
+                );
+                this.logger.info(`${provider.id}: headless navigated to entryUrl`);
+            }
+
+            const credentials: ExtractedCredentials = {};
+            const extractionResults: Array<{
+                cookies?: Array<{ name: string; expires: number }>;
+                expiresAt?: string;
+                ruleName: string;
+            }> = [];
+
+            for (const rule of provider.extract) {
+                const extractor = this.cdpExtractors.get(rule.from);
+                if (!extractor) continue;
+                try {
+                    const result = await extractor.extract(cdpClient, rule, provider.domains);
+                    if (result) {
+                        credentials[result.name] = result.value;
+                        extractionResults.push({
+                            cookies: result.cookies,
+                            expiresAt: result.expiresAt,
+                            ruleName: rule.as,
+                        });
+                    }
+                } catch {
+                    // Extraction failure for this rule — skip
+                }
+            }
+
+            if (provider.required?.length) {
+                if (checkRequired(provider.required, credentials).length > 0) {
+                    this.logger.info(
+                        `${provider.id}: headless missing required credentials, falling back`,
+                    );
+                    return null;
+                }
+            } else if (Object.keys(credentials).length === 0) {
+                this.logger.info(`${provider.id}: headless found no credentials, falling back`);
+                return null;
+            }
+
+            const expiresAt = this.computeExpiresAt(provider, extractionResults);
+            this.logger.info(
+                `${provider.id}: headless extracted ${Object.keys(credentials).length} credential(s)`,
+            );
+            return { credentials, expiresAt };
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            this.logger.warn(`${provider.id}: headless failed (${msg}), falling back`);
+            return null;
+        } finally {
+            if (cdpClient) {
+                await cdpClient.send('Browser.close').catch(() => {});
+                cdpClient.close();
+            }
+            // Wait briefly for graceful exit, then force kill if needed
+            if (browser && !browser.killed) {
+                await new Promise<void>((resolve) => {
+                    const timeout = setTimeout(() => resolve(), 3000);
+                    browser!.on('exit', () => {
+                        clearTimeout(timeout);
+                        resolve();
+                    });
+                });
+                if (!browser.killed) {
+                    killProcess(browser);
+                }
+            }
+        }
+    }
+
+    // =========================================================================
+    // CDP — native browser, user interacts, poll until auth complete
+    // =========================================================================
+
+    private async extractViaCdp(
+        provider: ProviderConfig,
+    ): Promise<Result<ExtractionResult, AuthError>> {
+        const execPath = this.browserConfig.execPath;
+        if (!execPath) {
+            return err(new BrowserError('No browser found. Install Chrome or Edge.'));
+        }
+
+        const dataDir = expandHome(this.browserConfig.browserDataDir);
+
+        const browserArgs: string[] = [
+            `--user-data-dir=${dataDir}`,
+            '--no-first-run',
+            '--no-default-browser-check',
+        ];
+        if (provider.networkProxy) {
+            browserArgs.push(`--proxy-server=${provider.networkProxy}`);
+        }
+        browserArgs.push(provider.entryUrl);
+
+        let cdpClient: CdpWsClient | undefined;
+        let released = false;
+
+        const cleanup = async () => {
+            if (released) return;
+            released = true;
+            cdpClient?.close();
+            await releaseBrowser(dataDir, this.logger).catch((e) => {
+                this.logger.warn(`release failed: ${(e as Error).message}`);
+            });
+        };
+        const sigHandler = () => {
+            void cleanup().finally(() => process.exit(130));
+        };
+
+        process.on('SIGINT', sigHandler);
+        process.on('SIGTERM', sigHandler);
+
+        try {
+            const { wsUrl } = await acquireBrowser(
+                dataDir,
+                execPath,
+                browserArgs,
+                this.browserConfig.visibleTimeout,
+                this.logger,
+                provider.entryUrl,
+            );
+            cdpClient = await connectCdpWs(wsUrl);
+            this.logger.info(`${provider.id}: CDP connected`);
+
+            const result = await this.pollUntilComplete(cdpClient, provider);
+            this.logger.info(
+                `${provider.id}: extraction complete (${Object.keys(result.credentials).length} credentials)`,
+            );
+            return ok(result);
+        } catch (e) {
+            if (e instanceof BrowserTimeoutError) return err(e);
+            return err(new BrowserError(`Browser extraction failed: ${(e as Error).message}`));
+        } finally {
+            await cleanup();
+            process.removeListener('SIGINT', sigHandler);
+            process.removeListener('SIGTERM', sigHandler);
+        }
+    }
+
+    private async pollUntilComplete(
+        cdp: CdpWsClient,
+        provider: ProviderConfig,
+    ): Promise<ExtractionResult> {
+        const deadline = Date.now() + this.browserConfig.visibleTimeout;
+        const pollInterval = 2000;
+        const credentials: ExtractedCredentials = {};
+        const extractionResults: Array<{
+            cookies?: Array<{ name: string; expires: number }>;
+            expiresAt?: string;
+            ruleName: string;
+        }> = [];
+
+        while (Date.now() < deadline) {
+            const sessionId = await attachToPageTarget(cdp).catch(() => null);
+            const currentUrl = await this.getCdpPageUrl(cdp, sessionId);
+            const evaluate = this.makeCdpEvaluator(cdp, sessionId);
+
+            for (const rule of provider.extract) {
+                const extractor = this.cdpExtractors.get(rule.from);
+                if (!extractor) continue;
+                try {
+                    const result = await extractor.extract(cdp, rule, provider.domains);
+                    if (result) {
+                        credentials[result.name] = result.value;
+                        // Replace or add entry for this rule name (latest wins)
+                        const idx = extractionResults.findIndex((r) => r.ruleName === rule.as);
+                        const entry = {
+                            cookies: result.cookies,
+                            expiresAt: result.expiresAt,
+                            ruleName: rule.as,
+                        };
+                        if (idx >= 0) extractionResults[idx] = entry;
+                        else extractionResults.push(entry);
+                    }
+                } catch {
+                    // Transient failure — keep polling
+                }
+            }
+
+            if (provider.required?.length) {
+                if (checkRequired(provider.required, credentials).length === 0) {
+                    const expiresAt = this.computeExpiresAt(provider, extractionResults);
+                    return { credentials, expiresAt };
+                }
+            } else {
+                const authenticated = await this.pageState.isAuthenticated(
+                    currentUrl,
+                    provider.domains,
+                    evaluate,
+                    provider.loginUrlPatterns,
+                );
+                if (authenticated && Object.keys(credentials).length > 0) {
+                    const expiresAt = this.computeExpiresAt(provider, extractionResults);
+                    return { credentials, expiresAt };
+                }
+            }
+
+            if (sessionId) {
+                await cdp.send('Target.detachFromTarget', { sessionId }).catch(() => {});
+            }
+            await new Promise((r) => setTimeout(r, pollInterval));
+        }
+
+        if (provider.required?.length) {
+            const missing = checkRequired(provider.required, credentials);
+            if (missing.length > 0) {
+                throw new BrowserTimeoutError(
+                    `extract (missing: ${missing.join(', ')})`,
+                    this.browserConfig.visibleTimeout,
+                );
+            }
+        }
+        if (Object.keys(credentials).length === 0) {
+            throw new BrowserTimeoutError('extract', this.browserConfig.visibleTimeout);
+        }
+        const expiresAt = this.computeExpiresAt(provider, extractionResults);
+        return { credentials, expiresAt };
+    }
+
+    // Compute expiresAt from extraction results:
+    // - Prefers cookies named in required (dotted format: "as.cookieName")
+    // - Skips cookies expiring within 5 min (tracking/CSRF)
+    // - Also considers expiresAt from localStorage extractors
+    private computeExpiresAt(
+        provider: ProviderConfig,
+        results: Array<{
+            cookies?: Array<{ name: string; expires: number }>;
+            expiresAt?: string;
+            ruleName: string;
+        }>,
+    ): string | undefined {
+        const now = Date.now();
+        const minTtlMs = TRACKING_COOKIE_TTL_MS;
+        const timestamps: number[] = [];
+
+        // TTL-based expiry (used for session cookies that have no expires)
+        const ttlMs = provider.ttl ? parseDuration(provider.ttl) : null;
+        const ttlExpiry = ttlMs ? now + ttlMs : null;
+
+        for (const r of results) {
+            // Collect expiresAt from localStorage extractor
+            if (r.expiresAt) {
+                const ms = new Date(r.expiresAt).getTime();
+                if (!isNaN(ms) && ms > now) timestamps.push(ms);
+            }
+
+            if (!r.cookies?.length) continue;
+
+            for (const c of r.cookies) {
+                if (c.expires <= 0) {
+                    // Session cookie — use TTL as its expiry candidate
+                    if (ttlExpiry) timestamps.push(ttlExpiry);
+                    continue;
+                }
+                const expiryMs = c.expires * 1000;
+                if (expiryMs - now <= minTtlMs) continue; // tracking/CSRF
+                timestamps.push(expiryMs);
+            }
+        }
+
+        if (timestamps.length === 0) return undefined;
+        return new Date(Math.min(...timestamps)).toISOString();
+    }
+
+    private async getCdpPageUrl(cdp: CdpWsClient, sessionId: string | null): Promise<string> {
+        if (!sessionId) return '';
+        try {
+            await cdp.send('Runtime.enable', {}, sessionId).catch(() => {});
+            const result = (await cdp.send(
+                'Runtime.evaluate',
+                { expression: 'window.location.href', returnByValue: true },
+                sessionId,
+            )) as { result?: { value?: string } };
+            return result?.result?.value ?? '';
+        } catch {
+            return '';
+        }
+    }
+
+    private makeCdpEvaluator(cdp: CdpWsClient, sessionId: string | null): DomEvaluateFn {
+        return async <T>(expression: string): Promise<T> => {
+            if (!sessionId) return undefined as T;
+            const result = (await cdp.send(
+                'Runtime.evaluate',
+                { expression, returnByValue: true },
+                sessionId,
+            )) as { result?: { value?: T } };
+            return result?.result?.value as T;
+        };
+    }
+
+    private async waitForPageReady(
+        cdp: CdpWsClient,
+        sessionId: string,
+        waitUntil: string,
+        timeout: number,
+    ): Promise<void> {
+        const deadline = Date.now() + timeout;
+        const targetState = waitUntil === 'domcontentloaded' ? 'interactive' : 'complete';
+
+        if (waitUntil === 'commit') {
+            await new Promise((r) => setTimeout(r, 500));
+            return;
+        }
+
+        while (Date.now() < deadline) {
+            try {
+                await cdp.send('Runtime.enable', {}, sessionId).catch(() => {});
+                const result = (await cdp.send(
+                    'Runtime.evaluate',
+                    { expression: 'document.readyState', returnByValue: true },
+                    sessionId,
+                )) as { result?: { value?: string } };
+                const state = result?.result?.value;
+                if (state === 'complete' || state === targetState) return;
+            } catch {
+                // Page may be mid-navigation
+            }
+            await new Promise((r) => setTimeout(r, 300));
+        }
+    }
+}

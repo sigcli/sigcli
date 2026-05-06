@@ -1,34 +1,26 @@
-import type { IAuthStrategy, IAuthStrategyFactory } from '../core/interfaces/auth-strategy.js';
-import type { StrategyConfig } from '../config/schema.js';
-import { ConfigError } from '../core/errors.js';
+import type { IStrategy } from '../types/index.js';
 
 /**
- * Registry that maps strategy names to their factories.
- * Built-in strategies are registered at startup; users can add custom ones.
+ * StrategyRegistry — manages source strategy instances by name.
+ *
+ * Used by AuthManager to look up which strategy handles a given provider.strategy.
  */
 export class StrategyRegistry {
-    private factories = new Map<string, IAuthStrategyFactory>();
+    private strategies = new Map<string, IStrategy>();
 
-    register(factory: IAuthStrategyFactory): void {
-        this.factories.set(factory.name, factory);
+    register(strategy: IStrategy): void {
+        this.strategies.set(strategy.name, strategy);
     }
 
-    get(name: string, config: StrategyConfig): IAuthStrategy {
-        const factory = this.factories.get(name);
-        if (!factory) {
-            const available = Array.from(this.factories.keys()).join(', ');
-            throw new ConfigError(
-                `Unknown strategy "${name}". Available strategies: ${available || 'none'}`,
-            );
-        }
-        return factory.create(config);
+    get(name: string): IStrategy | undefined {
+        return this.strategies.get(name);
+    }
+
+    list(): IStrategy[] {
+        return [...this.strategies.values()];
     }
 
     has(name: string): boolean {
-        return this.factories.has(name);
-    }
-
-    list(): string[] {
-        return Array.from(this.factories.keys());
+        return this.strategies.has(name);
     }
 }

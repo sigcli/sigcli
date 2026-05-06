@@ -1,9 +1,10 @@
 import fs from 'node:fs/promises';
-import path from 'node:path';
 import os from 'node:os';
-import type { ProviderFile, ProviderInfo } from './types.js';
+import path from 'node:path';
+
+import { decrypt, isEncryptedEnvelope, loadEncryptionKey } from './crypto.js';
 import { CredentialNotFoundError, CredentialParseError } from './errors.js';
-import { isEncryptedEnvelope, decrypt, loadEncryptionKey } from './crypto.js';
+import type { ProviderFile, ProviderInfo } from './types.js';
 
 const DEFAULT_CREDENTIALS_DIR = path.join(os.homedir(), '.sig', 'credentials');
 

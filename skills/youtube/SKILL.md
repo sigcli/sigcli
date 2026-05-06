@@ -7,6 +7,37 @@ description: 'Interact with YouTube — search videos, get video details, browse
 
 Search videos, get video details, browse channels, read comments, view trending, browse playlists, and interact with YouTube.
 
+## Skill Directory
+
+`<SKILL_DIR>` is the directory containing this SKILL.md file. Determine it ONCE at the start and reuse it.
+
+## Fast Gate (run this FIRST, every time)
+
+Run these commands silently — do NOT ask the user anything:
+
+```bash
+sig status youtube 2>&1
+```
+
+Check the JSON `"valid"` field:
+
+- `"valid": true` — proceed to detect proxy below.
+- `"valid": false` — run `sig login youtube`, then re-check `sig status youtube`.
+- Command not found or provider not found — run Full Setup (see Authentication section).
+
+**Detect proxy** (do NOT ask user — read from config):
+
+```bash
+grep -A15 "^\s*youtube:" ~/.sig/config.yaml | grep networkProxy | awk '{print $2}'
+```
+
+If this outputs a URL (e.g. `socks5://127.0.0.1:1234`), use it as `HTTPS_PROXY=<url> HTTP_PROXY=<url>` in ALL python3 commands. If empty, omit proxy. NEVER ask the user about proxy — it's in the config.
+NOTE: if using socks5 protocol, convert to socks5h for python scripts, e.g. `socks5://127.0.0.1:1234` becomes `socks5h://127.0.0.1:1234`
+
+Once valid + proxy detected, go straight to executing the user's request.
+
+---
+
 ## Authentication
 
 **Read operations** work without authentication via YouTube's public InnerTube API. No credentials needed.
@@ -24,27 +55,26 @@ The default Signet provider is `youtube`. The env var is `SIG_YOUTUBE_COOKIE`.
 If a write script returns auth error, re-authenticate:
 
 ```bash
-sig login https://www.youtube.com/
+sig login youtube
 ```
-
-**If browser automation fails**, copy cookies manually from Chrome:
-
-1. Open https://www.youtube.com/ and log in
-2. DevTools (F12) → Network → click any request to youtube.com
-3. Find the `Cookie:` header → copy the full value
-4. Key cookies needed: `__Secure-3PAPISID` (for SAPISIDHASH auth), `__Secure-3PSID`, `LOGIN_INFO`, `SID`, `HSID`, `SSID`
-5. Run: `sig login https://www.youtube.com/ --cookie "paste-full-cookie-here"`
 
 **Signet provider config:**
 
 ```yaml
 youtube:
-    domains: ['www.youtube.com', 'youtube.com']
+    domains: [www.youtube.com, youtube.com]
     entryUrl: https://www.youtube.com/
-    strategy: cookie
-    config:
-        ttl: '30d'
-        requiredCookies: ['__Secure-3PAPISID', 'LOGIN_INFO']
+    strategy: browser
+    ttl: '30d'
+    required: [session.__Secure-3PAPISID, session.LOGIN_INFO]
+    extract:
+        - from: cookies
+          as: session
+          match: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: '${session}'
 ```
 
 ## Scripts Reference

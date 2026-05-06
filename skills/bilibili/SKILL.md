@@ -7,6 +7,37 @@ description: 'Interact with Bilibili (B站) — browse trending videos, view vid
 
 Browse trending videos, view video details, read comments, search content, view user profiles, and interact with Bilibili (B站).
 
+## Skill Directory
+
+`<SKILL_DIR>` is the directory containing this SKILL.md file. Determine it ONCE at the start and reuse it.
+
+## Fast Gate (run this FIRST, every time)
+
+Run these commands silently — do NOT ask the user anything:
+
+```bash
+sig status bilibili 2>&1
+```
+
+Check the JSON `"valid"` field:
+
+- `"valid": true` — proceed to detect proxy below.
+- `"valid": false` — run `sig login bilibili`, then re-check `sig status bilibili`.
+- Command not found or provider not found — run Full Setup (see Authentication section).
+
+**Detect proxy** (do NOT ask user — read from config):
+
+```bash
+grep -A15 "^\s*bilibili:" ~/.sig/config.yaml | grep networkProxy | awk '{print $2}'
+```
+
+If this outputs a URL (e.g. `socks5://127.0.0.1:1234`), use it as `HTTPS_PROXY=<url> HTTP_PROXY=<url>` in ALL python3 commands. If empty, omit proxy. NEVER ask the user about proxy — it's in the config.
+NOTE: if using socks5 protocol, convert to socks5h for python scripts, e.g. `socks5://127.0.0.1:1234` becomes `socks5h://127.0.0.1:1234`
+
+Once valid + proxy detected, go straight to executing the user's request.
+
+---
+
 ## Authentication
 
 **Read operations** work without authentication via Bilibili's public web API. No credentials needed.
@@ -29,12 +60,19 @@ sig login https://www.bilibili.com/
 
 ```yaml
 bilibili:
-    domains: ['www.bilibili.com', 'bilibili.com', 'api.bilibili.com']
+    domains: [www.bilibili.com, bilibili.com, api.bilibili.com]
     entryUrl: https://www.bilibili.com/
-    strategy: cookie
-    config:
-        ttl: '7d'
-        requiredCookies: ['SESSDATA', 'bili_jct']
+    strategy: browser
+    ttl: '7d'
+    required: [session.SESSDATA, session.bili_jct]
+    extract:
+        - from: cookies
+          as: session
+          match: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: '${session}'
 ```
 
 ## Scripts Reference

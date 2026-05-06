@@ -7,6 +7,37 @@ description: 'Interact with LinkedIn — view your profile, browse other profile
 
 View profiles, browse the feed, search jobs/posts/people, get job details, create posts, like/unlike, comment, send connections, and follow/unfollow on LinkedIn.
 
+## Skill Directory
+
+`<SKILL_DIR>` is the directory containing this SKILL.md file. Determine it ONCE at the start and reuse it.
+
+## Fast Gate (run this FIRST, every time)
+
+Run these commands silently — do NOT ask the user anything:
+
+```bash
+sig status linkedin 2>&1
+```
+
+Check the JSON `"valid"` field:
+
+- `"valid": true` — proceed to detect proxy below.
+- `"valid": false` — run `sig login linkedin`, then re-check `sig status linkedin`.
+- Command not found or provider not found — run Full Setup (see Authentication section).
+
+**Detect proxy** (do NOT ask user — read from config):
+
+```bash
+grep -A15 "^\s*linkedin:" ~/.sig/config.yaml | grep networkProxy | awk '{print $2}'
+```
+
+If this outputs a URL (e.g. `socks5://127.0.0.1:1234`), use it as `HTTPS_PROXY=<url> HTTP_PROXY=<url>` in ALL python3 commands. If empty, omit proxy. NEVER ask the user about proxy — it's in the config.
+NOTE: if using socks5 protocol, convert to socks5h for python scripts, e.g. `socks5://127.0.0.1:1234` becomes `socks5h://127.0.0.1:1234`
+
+Once valid + proxy detected, go straight to executing the user's request.
+
+---
+
 ## Authentication
 
 **All operations** require a LinkedIn session cookie containing `JSESSIONID` and `li_at`. Use `sig run` to inject it:
@@ -22,29 +53,28 @@ The default Signet provider is `linkedin`. The env var is `SIG_LINKEDIN_COOKIE`.
 If a script returns auth error, re-authenticate:
 
 ```bash
-sig login https://www.linkedin.com/login
+sig login linkedin
 ```
 
-> **Login caution:** Headless browser automation may trigger LinkedIn security challenges (CAPTCHA, phone verification, or temporary account restrictions). LinkedIn actively detects automated logins. If `sig login` fails, use the manual cookie method below.
-
-**Manual cookie setup (recommended):**
-
-1. Open https://www.linkedin.com/ and log in normally in Chrome
-2. DevTools (F12) → Application → Cookies → `https://www.linkedin.com`
-3. Find `JSESSIONID` (starts with `"ajax:..."`) and `li_at` (long session token)
-4. Construct the cookie string: `JSESSIONID="ajax:xxxxx"; li_at=yyyyy`
-5. Run: `sig login https://www.linkedin.com/login --cookie 'JSESSIONID="ajax:xxxxx"; li_at=yyyyy'`
+This opens the user's real browser via CDP (no automation markers), avoiding LinkedIn's bot detection.
 
 **Signet provider config:**
 
 ```yaml
 linkedin:
-    domains: ['www.linkedin.com', 'linkedin.com']
+    domains: [www.linkedin.com, linkedin.com]
     entryUrl: https://www.linkedin.com/login
-    strategy: cookie
-    config:
-        ttl: '30d'
-        requiredCookies: ['JSESSIONID', 'li_at']
+    strategy: browser
+    ttl: '30d'
+    required: [session.JSESSIONID, session.li_at]
+    extract:
+        - from: cookies
+          as: session
+          match: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: '${session}'
 ```
 
 ## Scripts Reference

@@ -1,4 +1,4 @@
-import type { ProviderConfig } from '../core/types.js';
+import type { ProviderConfig } from '../types/index.js';
 
 /**
  * Derive a short, human-friendly provider ID from a hostname.
@@ -58,8 +58,10 @@ export function createDefaultProvider(url: string, existingIds?: Set<string>): P
         name: hostname,
         domains: [hostname],
         entryUrl: `${parsed.protocol}//${parsed.host}/`,
-        strategy: 'cookie',
-        strategyConfig: { strategy: 'cookie' },
+        strategy: 'browser',
+        ttl: '2h',
+        extract: [{ from: 'cookies' as const, as: 'session', match: '*' }],
+        apply: [{ in: 'header' as const, name: 'Cookie', value: '${session}' }],
         autoProvisioned: true,
     };
 }

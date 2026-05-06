@@ -1,4 +1,4 @@
-import type { Credential } from '../core/types.js';
+import type { ExtractedCredentials } from '../types/index.js';
 
 export interface CredentialEnvOptions {
     expandCookies?: boolean;
@@ -9,59 +9,22 @@ export function normalizeKey(key: string): string {
     return key.toUpperCase().replace(/-/g, '_');
 }
 
+/**
+ * Convert extracted credentials (flat key-value map) to environment variables.
+ * Each key becomes SIG_<PROVIDER>_<KEY> (uppercased, dashes to underscores).
+ */
 export function credentialToEnvVars(
-    credential: Credential,
+    credentials: ExtractedCredentials,
     providerId: string,
     options: CredentialEnvOptions,
 ): Record<string, string> {
     const p = options.prefix ?? `SIG_${normalizeKey(providerId)}`;
     const env: Record<string, string> = {
         [`${p}_PROVIDER`]: providerId,
-        [`${p}_CREDENTIAL_TYPE`]: credential.type,
     };
 
-    switch (credential.type) {
-        case 'bearer': {
-            env[`${p}_TOKEN`] = credential.accessToken;
-            env[`${p}_AUTH_HEADER`] = `Bearer ${credential.accessToken}`;
-            if (credential.localStorage) {
-                for (const [k, v] of Object.entries(credential.localStorage)) {
-                    env[`${p}_LOCAL_${normalizeKey(k)}`] = v;
-                }
-            }
-            break;
-        }
-        case 'cookie': {
-            env[`${p}_COOKIE`] = credential.cookies.map((c) => `${c.name}=${c.value}`).join('; ');
-            if (options.expandCookies) {
-                for (const c of credential.cookies) {
-                    env[`${p}_COOKIE_${normalizeKey(c.name)}`] = c.value;
-                }
-            }
-            if (credential.localStorage) {
-                for (const [k, v] of Object.entries(credential.localStorage)) {
-                    env[`${p}_LOCAL_${normalizeKey(k)}`] = v;
-                }
-            }
-            break;
-        }
-        case 'api-key': {
-            env[`${p}_API_KEY`] = credential.key;
-            const header = credential.headerPrefix
-                ? `${credential.headerPrefix} ${credential.key}`
-                : credential.key;
-            env[`${p}_AUTH_HEADER`] = header;
-            break;
-        }
-        case 'basic': {
-            env[`${p}_USERNAME`] = credential.username;
-            env[`${p}_PASSWORD`] = credential.password;
-            const encoded = Buffer.from(`${credential.username}:${credential.password}`).toString(
-                'base64',
-            );
-            env[`${p}_AUTH_HEADER`] = `Basic ${encoded}`;
-            break;
-        }
+    for (const [key, value] of Object.entries(credentials)) {
+        env[`${p}_${normalizeKey(key)}`] = value;
     }
 
     return env;
