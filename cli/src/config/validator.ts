@@ -162,7 +162,7 @@ export function validateConfig(raw: Record<string, unknown>): Result<SigConfig, 
         browserDataDir: browserRaw.browserDataDir as string,
         execPath: typeof browserRaw.execPath === 'string' ? browserRaw.execPath : '',
         headlessTimeout:
-            typeof browserRaw.headlessTimeout === 'number' ? browserRaw.headlessTimeout : 30_000,
+            typeof browserRaw.headlessTimeout === 'number' ? browserRaw.headlessTimeout : 20_000,
         visibleTimeout:
             typeof browserRaw.visibleTimeout === 'number' ? browserRaw.visibleTimeout : 120_000,
         waitUntil:
