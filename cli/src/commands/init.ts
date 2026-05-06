@@ -129,7 +129,7 @@ export async function runInit(
         execPath: execPath ?? '',
         browserDataDir: displayBrowserDataDir,
         credentialsDir: displayCredentialsDir,
-        headlessTimeout: 30_000,
+        headlessTimeout: 20_000,
         visibleTimeout: 120_000,
         waitUntil: WaitUntil.LOAD,
     });
