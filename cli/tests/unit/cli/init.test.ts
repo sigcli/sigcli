@@ -145,7 +145,7 @@ describe('runInit', () => {
         expect(writtenContent).toContain('browser:');
         expect(writtenContent).toContain('storage:');
         expect(writtenContent).toContain('providers:');
-        expect(writtenContent).toContain('headlessTimeout: 30000');
+        expect(writtenContent).toContain('headlessTimeout: 20000');
         expect(writtenContent).toContain('visibleTimeout: 120000');
         expect(writtenContent).toContain('waitUntil: load');
     });
