@@ -65,16 +65,18 @@ Then retry the failed command. `sig login` runs headless browser extraction and 
 ```yaml
 v2ex:
     domains: [www.v2ex.com, v2ex.com]
-    entryUrl: https://www.v2ex.com/signin
+    entryUrl: https://www.v2ex.com/
+    validateUrl: https://www.v2ex.com/settings
     strategy: browser
+    ttl: '2h'
     extract:
         - from: cookies
-          as: session
+          as: cookie
           match: '*'
     apply:
         - in: header
           name: Cookie
-          value: '${session}'
+          value: '${cookie}'
 ```
 
 ## Scripts Reference

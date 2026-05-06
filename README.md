@@ -42,7 +42,7 @@ in your browser         -->   credentials locally          -->  on your behalf
 (any SSO/login flow)          (~/.sig/credentials/)             (sig request / sig proxy)
 ```
 
-**sig login** opens a real browser to the provider's entry URL. You log in normally — SSO, MFA, SAML, anything. Once authenticated, sig extracts credentials (cookies, localStorage tokens) based on your config's `extract[]` rules, encrypts them with AES-256-GCM, and stores them locally. When your agent needs to make a request, `apply[]` rules control how credentials are injected into HTTP headers, body, or query params.
+**sig login** opens a browser, you log in normally (SSO, MFA, anything). sig extracts credentials based on `extract[]` rules, validates them against `validateUrl` (or detects login redirects), encrypts with AES-256-GCM, and stores locally. When your agent needs a request, `apply[]` rules inject credentials into HTTP headers, body, or query params.
 
 ## Provider Configuration
 
@@ -75,19 +75,18 @@ jira-example:
           value: '${session}'
 ```
 
-### 2. Adding `required` cookies
+### 2. Public sites (`validateUrl`)
 
-Public sites set tracking cookies to **all visitors**. Without `required`, sig can't tell auth cookies from junk. Add `required` to validate:
+Public sites set tracking cookies to **all visitors**. sig can't tell auth cookies from junk using redirect detection alone. Add `validateUrl` pointing to a protected endpoint — sig probes it and accepts credentials only on 2xx:
 
 ```yaml
-bilibili:
+reddit:
     domains:
-        - www.bilibili.com
-    entryUrl: https://www.bilibili.com/
+        - www.reddit.com
+        - reddit.com
+    entryUrl: https://www.reddit.com/
+    validateUrl: https://www.reddit.com/prefs/friends
     strategy: browser
-    required:
-        - cookie.SESSDATA
-        - cookie.bili_jct
     extract:
         - from: cookies
           as: cookie
@@ -98,17 +97,16 @@ bilibili:
           value: '${cookie}'
 ```
 
-When required cookies are missing, sig falls back from headless to your real browser where you're logged in.
+sig validates extracted credentials against `validateUrl` — 401/403 means not logged in, 2xx means success.
 
-| Site        | Required Cookies               |
-| ----------- | ------------------------------ |
-| Bilibili    | `SESSDATA`, `bili_jct`         |
-| Reddit      | `reddit_session`, `token_v2`   |
-| X (Twitter) | `ct0`, `auth_token`            |
-| YouTube     | `SAPISID`, `__Secure-3PAPISID` |
-| LinkedIn    | `JSESSIONID`, `li_at`          |
-| V2EX        | `A2`                           |
-| Zhihu       | `z_c0`                         |
+| Site        | validateUrl                                            |
+| ----------- | ------------------------------------------------------ |
+| Reddit      | `https://www.reddit.com/prefs/friends`                 |
+| X (Twitter) | `https://x.com/i/api/2/notifications/all.json?count=1` |
+| LinkedIn    | `https://www.linkedin.com/voyager/api/me`              |
+| YouTube     | `https://www.youtube.com/account`                      |
+| V2EX        | `https://www.v2ex.com/settings`                        |
+| Zhihu       | `https://www.zhihu.com/api/v4/me`                      |
 
 ### 3. Multiple domains
 
@@ -120,19 +118,23 @@ x:
         - x.com
         - twitter.com
     entryUrl: https://x.com/
+    validateUrl: https://x.com/i/api/2/notifications/all.json?count=1
     strategy: browser
     networkProxy: socks5://127.0.0.1:3333
-    required:
-        - cookie.ct0
-        - cookie.auth_token
     extract:
         - from: cookies
           as: cookie
           match: '*'
+        - from: cookies
+          as: ct0
+          match: 'ct0'
     apply:
         - in: header
           name: Cookie
           value: '${cookie}'
+        - in: header
+          name: x-csrf-token
+          value: '${ct0}'
 ```
 
 ### 4. localStorage extraction (advanced)
@@ -145,9 +147,6 @@ app-slack:
         - your-org.enterprise.slack.com
     entryUrl: https://app.slack.com/client/YOUR_TEAM_ID
     strategy: browser
-    required:
-        - session.d
-        - xoxc-token
     extract:
         - from: cookies
           as: session

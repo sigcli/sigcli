@@ -63,18 +63,24 @@ This opens the user's real browser via CDP (no automation markers), avoiding Lin
 ```yaml
 linkedin:
     domains: [www.linkedin.com, linkedin.com]
-    entryUrl: https://www.linkedin.com/login
+    entryUrl: https://www.linkedin.com/feed/
+    validateUrl: https://www.linkedin.com/voyager/api/me
     strategy: browser
-    ttl: '30d'
-    required: [session.JSESSIONID, session.li_at]
+    ttl: '2h'
     extract:
         - from: cookies
-          as: session
+          as: cookie
           match: '*'
+        - from: cookies
+          as: jsessionid
+          match: 'JSESSIONID'
     apply:
         - in: header
           name: Cookie
-          value: '${session}'
+          value: '${cookie}'
+        - in: header
+          name: csrf-token
+          value: '${jsessionid}'
 ```
 
 ## Scripts Reference

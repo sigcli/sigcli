@@ -63,18 +63,18 @@ Then retry the failed command. `sig login` runs headless browser extraction and 
 ```yaml
 reddit:
     domains: [www.reddit.com, reddit.com]
-    entryUrl: https://www.reddit.com/login
+    entryUrl: https://www.reddit.com/
+    validateUrl: https://www.reddit.com/prefs/friends
     strategy: browser
-    ttl: '7d'
-    required: [session.token_v2]
+    ttl: '2h'
     extract:
         - from: cookies
-          as: session
+          as: cookie
           match: '*'
     apply:
         - in: header
           name: Cookie
-          value: '${session}'
+          value: '${cookie}'
 ```
 
 ## Scripts Reference

@@ -62,19 +62,18 @@ sig login https://www.bilibili.com/
 
 ```yaml
 bilibili:
-    domains: [www.bilibili.com, bilibili.com, api.bilibili.com]
+    domains: [www.bilibili.com]
     entryUrl: https://www.bilibili.com/
     strategy: browser
-    ttl: '7d'
-    required: [session.SESSDATA, session.bili_jct]
+    ttl: '2h'
     extract:
         - from: cookies
-          as: session
+          as: cookie
           match: '*'
     apply:
         - in: header
           name: Cookie
-          value: '${session}'
+          value: '${cookie}'
 ```
 
 ## Scripts Reference
