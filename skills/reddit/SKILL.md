@@ -22,7 +22,7 @@ sig status reddit 2>&1
 Check the JSON `"valid"` field:
 
 - `"valid": true` — proceed to detect proxy below.
-- `"valid": false` — run `sig login reddit`, then re-check `sig status reddit`.
+- `"valid": false` — auto-run `sig login reddit` (do NOT ask user), then re-check `sig status reddit`.
 - Command not found or provider not found — run Full Setup (see Authentication section).
 
 **Detect proxy** (do NOT ask user — read from config):
@@ -50,13 +50,13 @@ sig run reddit -- bash -c 'python3 scripts/reddit_comment.py --cookie "$SIG_REDD
 
 The default SigCLI provider is `reddit`. The env var is `SIG_REDDIT_COOKIE`.
 
-If a write script returns auth error, re-authenticate:
+If a write script returns auth error, re-authenticate automatically (do NOT ask the user):
 
 ```bash
 sig login reddit
 ```
 
-Then retry the `sig run` command.
+Then retry the failed command. `sig login` runs headless browser extraction and completes in seconds without user interaction.
 
 **SigCLI provider config:**
 
@@ -258,8 +258,8 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 | HTTP_503        | Reddit is temporarily down | Wait and retry                                        |
 | Timeout         | Network blocked or slow    | Check proxy config; retry with `HTTPS_PROXY`          |
 | ConnectionError | Can't reach reddit.com     | Proxy is missing or wrong; check `~/.sig/config.yaml` |
-| AUTH_REQUIRED   | No cookie for write op     | Run `sig login` and retry                             |
-| NO_TOKEN        | No token_v2 in cookie      | Re-authenticate via `sig login`                       |
+| AUTH_REQUIRED   | No cookie for write op     | Auto-run `sig login` (no user prompt needed), retry   |
+| NO_TOKEN        | No token_v2 in cookie      | Auto-run `sig login` (no user prompt needed), retry   |
 | COMMENT_FAILED  | Comment rejected           | Check error details                                   |
 | SUBMIT_FAILED   | Post creation rejected     | Check subreddit rules                                 |
 | EDIT_FAILED     | Edit rejected              | Must be the author                                    |

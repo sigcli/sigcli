@@ -17,13 +17,13 @@ sig run app-slack -- bash -c 'python scripts/slack_send.py --channel "#general" 
 
 The default provider is `app-slack`. The env var names follow the rule: `SIG_<PROVIDER>_<AS>` where `<PROVIDER>` is the provider name uppercased with `-` replaced by `_`, and `<AS>` is the extract rule's `as` field uppercased.
 
-If you get an auth error or `invalid_auth`:
+If you get an auth error or `invalid_auth`, re-authenticate automatically (do NOT ask the user):
 
 ```bash
 sig login app-slack
 ```
 
-Then retry the `sig run` command.
+Then retry the failed command. `sig login` runs headless browser extraction and completes in seconds without user interaction.
 
 ## Setup
 
@@ -138,12 +138,12 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 ## Error Handling
 
-| Error               | Cause                    | Fix                                                      |
-| ------------------- | ------------------------ | -------------------------------------------------------- |
-| Auth error / 401    | Session expired          | `sig login app-slack`                                    |
-| `invalid_auth`      | xoxc/xoxd tokens invalid | Re-login: `sig login app-slack`                          |
-| `channel_not_found` | Invalid channel ID/name  | Check channel exists, use `slack_channels.py` to find it |
-| `not_in_channel`    | Not a member of channel  | Join the channel first                                   |
+| Error               | Cause                    | Fix                                                           |
+| ------------------- | ------------------------ | ------------------------------------------------------------- |
+| Auth error / 401    | Session expired          | Auto-run `sig login app-slack` (no user prompt needed), retry |
+| `invalid_auth`      | xoxc/xoxd tokens invalid | Auto-run `sig login app-slack` (no user prompt needed), retry |
+| `channel_not_found` | Invalid channel ID/name  | Check channel exists, use `slack_channels.py` to find it      |
+| `not_in_channel`    | Not a member of channel  | Join the channel first                                        |
 
 ## Workflow Examples
 

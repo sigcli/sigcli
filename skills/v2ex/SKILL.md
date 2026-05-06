@@ -22,7 +22,7 @@ sig status v2ex 2>&1
 Check the JSON `"valid"` field:
 
 - `"valid": true` — proceed to detect proxy below.
-- `"valid": false` — run `sig login v2ex`, then re-check `sig status v2ex`.
+- `"valid": false` — auto-run `sig login v2ex` (do NOT ask user), then re-check `sig status v2ex`.
 - Command not found or provider not found — run Full Setup (see Authentication section).
 
 **Detect proxy** (do NOT ask user — read from config):
@@ -52,13 +52,13 @@ The default SigCLI provider is `v2ex`. The env var is `SIG_V2EX_COOKIE`.
 
 **Write operations** (create topic, reply, thank, favorite, follow, daily check-in, append) **require a valid session cookie**.
 
-If a script returns 403 or auth error, re-authenticate:
+If a script returns 403 or auth error, re-authenticate automatically (do NOT ask the user):
 
 ```bash
 sig login https://www.v2ex.com/
 ```
 
-Then retry the `sig run` command.
+Then retry the failed command. `sig login` runs headless browser extraction and completes in seconds without user interaction.
 
 **SigCLI provider config:**
 
@@ -245,13 +245,13 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 ## Error Handling
 
-| Error            | Cause                        | Fix                              |
-| ---------------- | ---------------------------- | -------------------------------- |
-| 403 Forbidden    | Session expired / no cookie  | Re-authenticate via `sig login`  |
-| 302 Redirect     | Not logged in                | Check cookie is valid            |
-| `ONCE_NOT_FOUND` | Failed to extract CSRF token | Session may be expired, re-login |
-| `RATE_LIMITED`   | Too many requests            | Wait and retry                   |
-| `SEARCH_ERROR`   | SOV2EX service unavailable   | Try again later                  |
+| Error            | Cause                        | Fix                                                 |
+| ---------------- | ---------------------------- | --------------------------------------------------- |
+| 403 Forbidden    | Session expired / no cookie  | Auto-run `sig login` (no user prompt needed), retry |
+| 302 Redirect     | Not logged in                | Check cookie is valid                               |
+| `ONCE_NOT_FOUND` | Failed to extract CSRF token | Session expired — auto-run `sig login`, retry       |
+| `RATE_LIMITED`   | Too many requests            | Wait and retry                                      |
+| `SEARCH_ERROR`   | SOV2EX service unavailable   | Try again later                                     |
 
 ## Workflow Examples
 
