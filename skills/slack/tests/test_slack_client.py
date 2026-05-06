@@ -38,7 +38,7 @@ def _make_sig_result(stdout=VALID_SIG_STDOUT, returncode=0, stderr=""):
 
 
 def _make_client(xoxc="xoxc-test", cookies="d=xoxd-test; other=abc"):
-    """Create a SlackClient without calling Signet."""
+    """Create a SlackClient without calling SigCLI."""
     return mod.SlackClient(xoxc, cookies)
 
 

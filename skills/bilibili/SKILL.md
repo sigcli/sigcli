@@ -48,7 +48,7 @@ Once valid + proxy detected, go straight to executing the user's request.
 sig run bilibili -- bash -c 'python3 scripts/bilibili_like.py --cookie "$SIG_BILIBILI_COOKIE" --aid 123456'
 ```
 
-The default Signet provider is `bilibili`. The env var is `SIG_BILIBILI_COOKIE`.
+The default SigCLI provider is `bilibili`. The env var is `SIG_BILIBILI_COOKIE`.
 
 If a write script returns auth error, re-authenticate:
 
@@ -56,7 +56,7 @@ If a write script returns auth error, re-authenticate:
 sig login https://www.bilibili.com/
 ```
 
-**Signet provider config:**
+**SigCLI provider config:**
 
 ```yaml
 bilibili:

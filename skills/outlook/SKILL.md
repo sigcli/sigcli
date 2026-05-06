@@ -17,13 +17,13 @@ The Graph API token lacks `Mail.Send` scope (your organization's Azure AD policy
 
 ## Authentication
 
-This skill requires a **Graph API token** from Signet. Use `sig run` to inject it as an environment variable:
+This skill requires a **Graph API token** from SigCLI. Use `sig run` to inject it as an environment variable:
 
 ```bash
 sig run ms-graph -- bash -c 'python3 scripts/outlook_messages.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --unread-only --limit 10'
 ```
 
-The default Signet provider is `ms-graph`. The env var name follows the rule: `SIG_<PROVIDER>_<AS>` where `<PROVIDER>` is the provider name uppercased with `-` replaced by `_`, and `<AS>` is the extract rule's `as` field uppercased. For ms-graph with `as: access_token`, the env var is `SIG_MS_GRAPH_ACCESS_TOKEN`.
+The default SigCLI provider is `ms-graph`. The env var name follows the rule: `SIG_<PROVIDER>_<AS>` where `<PROVIDER>` is the provider name uppercased with `-` replaced by `_`, and `<AS>` is the extract rule's `as` field uppercased. For ms-graph with `as: access_token`, the env var is `SIG_MS_GRAPH_ACCESS_TOKEN`.
 
 **Note:** `sig run` injects the raw JWT (without `Bearer` prefix). The scripts add `Bearer` themselves.
 
@@ -35,7 +35,7 @@ sig login https://teams.cloud.microsoft/v2/
 
 Then retry the `sig run` command.
 
-**Signet provider config** (already in `sigcli-auth/SKILL.md`):
+**SigCLI provider config** (already in `sigcli-auth/SKILL.md`):
 
 ```yaml
 ms-graph:

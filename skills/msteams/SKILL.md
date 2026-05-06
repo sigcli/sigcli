@@ -9,7 +9,7 @@ Send and read messages, search conversations, look up people, check calendar, ge
 
 ## Authentication
 
-This skill requires **two tokens** from Signet for full functionality. Use `sig run` to inject them as environment variables:
+This skill requires **two tokens** from SigCLI for full functionality. Use `sig run` to inject them as environment variables:
 
 **Scripts needing only Chat token** (conversations, messages, send, meetings):
 

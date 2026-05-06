@@ -48,7 +48,7 @@ Once valid + proxy detected, go straight to executing the user's request.
 sig run youtube -- bash -c 'python3 scripts/youtube_like.py --cookie "$SIG_YOUTUBE_COOKIE" --video dQw4w9WgXcQ'
 ```
 
-The default Signet provider is `youtube`. The env var is `SIG_YOUTUBE_COOKIE`.
+The default SigCLI provider is `youtube`. The env var is `SIG_YOUTUBE_COOKIE`.
 
 > **Note:** If `sig login` creates the provider as `www-youtube` (from the domain), the env var will be `SIG_WWW_YOUTUBE_COOKIE`. You can rename it: `sig rename www-youtube youtube`.
 
@@ -58,7 +58,7 @@ If a write script returns auth error, re-authenticate:
 sig login youtube
 ```
 
-**Signet provider config:**
+**SigCLI provider config:**
 
 ```yaml
 youtube:
