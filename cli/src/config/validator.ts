@@ -328,6 +328,7 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
         ...(typeof raw.name === 'string' ? { name: raw.name } : {}),
         domains: raw.domains as string[],
         entryUrl: raw.entryUrl as string,
+        ...(typeof raw.validateUrl === 'string' ? { validateUrl: raw.validateUrl } : {}),
         strategy: raw.strategy as ProviderEntry['strategy'],
         extract: raw.extract as ProviderEntry['extract'],
         apply: raw.apply as ProviderEntry['apply'],
