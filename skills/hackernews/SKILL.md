@@ -22,7 +22,7 @@ sig status hackernews 2>&1
 Check the JSON `"valid"` field:
 
 - `"valid": true` — proceed to detect proxy below.
-- `"valid": false` — run `sig login hackernews`, then re-check `sig status hackernews`.
+- `"valid": false` — auto-run `sig login hackernews` (do NOT ask user), then re-check `sig status hackernews`.
 - Command not found or provider not found — run Full Setup (see Authentication section).
 
 **Detect proxy** (do NOT ask user — read from config):
@@ -50,13 +50,13 @@ sig run hackernews -- bash -c 'python3 scripts/hn_vote.py --cookie "$SIG_HACKERN
 
 The default SigCLI provider is `hackernews`. The env var is `SIG_HACKERNEWS_COOKIE`.
 
-If a write script returns auth error, re-authenticate:
+If a write script returns auth error, re-authenticate automatically (do NOT ask the user):
 
 ```bash
 sig login hackernews
 ```
 
-Then retry the `sig run` command.
+Then retry the failed command. `sig login` runs headless browser extraction and completes in seconds without user interaction.
 
 **SigCLI provider config:**
 

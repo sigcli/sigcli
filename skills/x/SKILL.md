@@ -20,7 +20,7 @@ sig status x 2>&1
 Check the JSON `"valid"` field:
 
 - `"valid": true` — proceed to detect proxy below.
-- `"valid": false` — run `sig login x`, then re-check `sig status x`.
+- `"valid": false` — auto-run `sig login x` (do NOT ask user), then re-check `sig status x`.
 - Command not found or provider not found — run Full Setup.
 
 **Detect proxy** (do NOT ask user — read from config):
@@ -216,16 +216,16 @@ sig run x -- bash -c 'cd <SKILL_DIR> && python3 scripts/x_bookmark.py --cookie "
 
 When a command fails, follow this decision tree:
 
-| Error                    | Meaning                         | Action                                                                  |
-| ------------------------ | ------------------------------- | ----------------------------------------------------------------------- |
-| `ConnectionError`        | Can't reach x.com               | Ask user for proxy URL, then retry with `HTTPS_PROXY=<url>`             |
-| `Timeout`                | Network too slow                | Retry once. If still fails, check proxy.                                |
-| `AUTH_REQUIRED` / 401    | Cookie missing or expired       | Run `sig login x`, then re-check `sig status x`.                        |
-| `HTTP_403`               | IP blocked or query IDs stale   | Retry once (auto-refresh kicks in). If still 403, change proxy or wait. |
-| `HTTP_429`               | Rate limited                    | Wait 30 seconds, then retry.                                            |
-| `NOT_FOUND`              | User/tweet doesn't exist        | Verify the ID or username with the user.                                |
-| `POST_FAILED`            | Tweet creation failed           | Show error details to user. May be duplicate or policy violation.       |
-| Query ID / GraphQL error | Stale query IDs, refresh failed | Clear cache (restart script), retry. If persistent, bundles changed.    |
+| Error                    | Meaning                         | Action                                                                   |
+| ------------------------ | ------------------------------- | ------------------------------------------------------------------------ |
+| `ConnectionError`        | Can't reach x.com               | Ask user for proxy URL, then retry with `HTTPS_PROXY=<url>`              |
+| `Timeout`                | Network too slow                | Retry once. If still fails, check proxy.                                 |
+| `AUTH_REQUIRED` / 401    | Cookie missing or expired       | Auto-run `sig login x` (do NOT ask user), then retry the failed command. |
+| `HTTP_403`               | IP blocked or query IDs stale   | Retry once (auto-refresh kicks in). If still 403, change proxy or wait.  |
+| `HTTP_429`               | Rate limited                    | Wait 30 seconds, then retry.                                             |
+| `NOT_FOUND`              | User/tweet doesn't exist        | Verify the ID or username with the user.                                 |
+| `POST_FAILED`            | Tweet creation failed           | Show error details to user. May be duplicate or policy violation.        |
+| Query ID / GraphQL error | Stale query IDs, refresh failed | Clear cache (restart script), retry. If persistent, bundles changed.     |
 
 **Key principle**: if ANY command fails on first run, do NOT silently proceed. Diagnose using this table, fix the issue, and re-validate before continuing with the user's request.
 

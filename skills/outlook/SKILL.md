@@ -27,13 +27,13 @@ The default SigCLI provider is `ms-graph`. The env var name follows the rule: `S
 
 **Note:** `sig run` injects the raw JWT (without `Bearer` prefix). The scripts add `Bearer` themselves.
 
-If a script returns 401 or auth error, re-authenticate:
+If a script returns 401 or auth error, re-authenticate automatically (do NOT ask the user):
 
 ```bash
 sig login https://teams.cloud.microsoft/v2/
 ```
 
-Then retry the `sig run` command.
+Then retry the failed command. `sig login` runs headless browser extraction and completes in seconds without user interaction.
 
 **SigCLI provider config** (already in `sigcli-auth/SKILL.md`):
 
@@ -186,13 +186,13 @@ Note: `$orderby` is not supported with `$search` — results are returned by rel
 
 ## Error Handling
 
-| Error                 | Cause                      | Fix                                                |
-| --------------------- | -------------------------- | -------------------------------------------------- |
-| 401 Unauthorized      | Token expired              | Re-authenticate via `sig login`, get fresh token   |
-| 403 Forbidden         | Insufficient permissions   | Check Graph API permissions (Mail.Read, Mail.Send) |
-| 404 Not found         | Invalid message/folder ID  | Verify ID from a list or search                    |
-| 429 Too Many Requests | Rate limited               | Wait and retry                                     |
-| `MISSING_ARGS`        | Required arguments missing | Check script `--help`                              |
+| Error                 | Cause                      | Fix                                                 |
+| --------------------- | -------------------------- | --------------------------------------------------- |
+| 401 Unauthorized      | Token expired              | Auto-run `sig login` (no user prompt needed), retry |
+| 403 Forbidden         | Insufficient permissions   | Check Graph API permissions (Mail.Read, Mail.Send)  |
+| 404 Not found         | Invalid message/folder ID  | Verify ID from a list or search                     |
+| 429 Too Many Requests | Rate limited               | Wait and retry                                      |
+| `MISSING_ARGS`        | Required arguments missing | Check script `--help`                               |
 
 ## Workflow Examples
 
