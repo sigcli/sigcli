@@ -25,6 +25,32 @@ sig login app-slack
 
 Then retry the failed command. `sig login` runs headless browser extraction and completes in seconds without user interaction.
 
+**SigCLI provider config:**
+
+```yaml
+app-slack:
+    name: Slack
+    domains: [<your-workspace>.enterprise.slack.com]
+    entryUrl: https://app.slack.com/client/<TEAM_ID>
+    strategy: browser
+    ttl: '7d'
+    extract:
+        - from: cookies
+          as: cookie
+          match: '*'
+        - from: localStorage
+          as: xoxc-token
+          match: localConfig_v2
+          jsonPath: 'teams.<TEAM_ID>.token'
+    apply:
+        - in: header
+          name: Cookie
+          value: '${cookie}'
+        - in: header
+          name: Authorization
+          value: 'Bearer ${xoxc-token}'
+```
+
 ## Setup
 
 To configure `app-slack` as a provider, run:

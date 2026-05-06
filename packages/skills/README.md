@@ -50,21 +50,19 @@ npx @sigcli/skills --uninstall --all
 
 ## Bundled Skills
 
-| Skill           | Platform             | Capabilities                                      |
-| --------------- | -------------------- | ------------------------------------------------- |
-| **bilibili**    | Bilibili (B站)       | Browse videos, search, like, coin, favorite       |
-| **hackernews**  | Hacker News          | Browse stories, search, comment, vote, submit     |
-| **linkedin**    | LinkedIn             | View profiles/feed, search, post, connect         |
-| **msteams**     | Microsoft Teams      | Send/read messages, search, calendar, transcripts |
-| **outlook**     | Outlook              | Read/send email, search, manage folders           |
-| **reddit**      | Reddit               | Browse, search, post, comment, vote               |
-| **slack**       | Slack                | Read channels, search, send messages, reactions   |
-| **v2ex**        | V2EX                 | Browse topics, search, reply, thank               |
-| **x**           | X (Twitter)          | View/post tweets, like, retweet, follow           |
-| **xiaohongshu** | Xiaohongshu (小红书) | Browse notes, search, like, comment               |
-| **youtube**     | YouTube              | Search, browse channels, comments, like           |
-| **zhihu**       | Zhihu (知乎)         | Browse Q&A, search, view profiles                 |
-| **sigcli-auth** | —                    | Auth system docs and credential management        |
+| Skill          | Platform        | Capabilities                                      |
+| -------------- | --------------- | ------------------------------------------------- |
+| **bilibili**   | Bilibili (B站)  | Browse videos, search, like, coin, favorite       |
+| **hackernews** | Hacker News     | Browse stories, search, comment, vote, submit     |
+| **linkedin**   | LinkedIn        | View profiles/feed, search, post, connect         |
+| **msteams**    | Microsoft Teams | Send/read messages, search, calendar, transcripts |
+| **outlook**    | Outlook         | Read/send email, search, manage folders           |
+| **reddit**     | Reddit          | Browse, search, post, comment, vote               |
+| **slack**      | Slack           | Read channels, search, send messages, reactions   |
+| **v2ex**       | V2EX            | Browse topics, search, reply, thank               |
+| **x**          | X (Twitter)     | View/post tweets, like, retweet, follow           |
+| **youtube**    | YouTube         | Search, browse channels, comments, like           |
+| **zhihu**      | Zhihu (知乎)    | Browse Q&A, search, view profiles                 |
 
 ## How It Works
 
