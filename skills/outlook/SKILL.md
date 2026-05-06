@@ -43,7 +43,7 @@ ms-graph:
     domains: [graph.microsoft.com]
     entryUrl: https://teams.cloud.microsoft/v2/
     strategy: browser
-    required: [access_token]
+    ttl: '2h'
     extract:
         - from: localStorage
           as: access_token
