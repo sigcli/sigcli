@@ -48,7 +48,7 @@ Once valid + proxy detected, go straight to executing the user's request.
 sig run hackernews -- bash -c 'python3 scripts/hn_vote.py --cookie "$SIG_HACKERNEWS_COOKIE" --id 12345'
 ```
 
-The default Signet provider is `hackernews`. The env var is `SIG_HACKERNEWS_COOKIE`.
+The default SigCLI provider is `hackernews`. The env var is `SIG_HACKERNEWS_COOKIE`.
 
 If a write script returns auth error, re-authenticate:
 
@@ -58,7 +58,7 @@ sig login hackernews
 
 Then retry the `sig run` command.
 
-**Signet provider config:**
+**SigCLI provider config:**
 
 ```yaml
 hackernews:

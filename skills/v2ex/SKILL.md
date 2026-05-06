@@ -46,7 +46,7 @@ This skill uses **cookie-based authentication** for full read/write access to V2
 sig run v2ex -- bash -c 'python3 scripts/v2ex_hot.py --cookie "$SIG_V2EX_COOKIE"'
 ```
 
-The default Signet provider is `v2ex`. The env var is `SIG_V2EX_COOKIE`.
+The default SigCLI provider is `v2ex`. The env var is `SIG_V2EX_COOKIE`.
 
 **Read-only operations** (hot topics, latest, topic detail, node info, member profile, search) work **without authentication** via the public V2EX API v1. The `--cookie` argument is optional for these scripts.
 
@@ -60,7 +60,7 @@ sig login https://www.v2ex.com/
 
 Then retry the `sig run` command.
 
-**Signet provider config:**
+**SigCLI provider config:**
 
 ```yaml
 v2ex:
