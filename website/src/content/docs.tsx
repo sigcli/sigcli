@@ -449,8 +449,8 @@ sig watch add jira --auto-sync prod`}</CodeBlock>
                     <List>
                         <Li>
                             <strong>Login captures wrong cookies:</strong> Add{' '}
-                            <Code>validateUrl</Code> to your provider config pointing to a
-                            protected endpoint.
+                            <Code>validateUrl</Code> to your provider config pointing to a protected
+                            endpoint.
                         </Li>
                         <Li>
                             <strong>Site blocks headless browser:</strong> Use{' '}
