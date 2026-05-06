@@ -21,14 +21,14 @@ import { parseDuration } from '../../utils/duration.js';
 import { createNoopLogger } from '../../utils/logger.js';
 import { expandHome } from '../../utils/path.js';
 import { killProcess } from '../../utils/process-kill.js';
-import { findFreePort, waitForBrowserReady } from './browser-lifecycle.js';
+import { findFreePort, removeSingletonLock, waitForBrowserReady } from './browser-lifecycle.js';
 import { acquireBrowser, releaseBrowser } from './cdp-state.js';
 import { attachToPageTarget, connectCdpWs, type CdpWsClient } from './cdp-ws.js';
 import { CdpCookieExtractor } from './extractors/cdp-cookie.js';
 import { CdpStorageExtractor } from './extractors/cdp-storage.js';
 
 const TRACKING_COOKIE_TTL_MS = 60_000;
-const EXISTING_STATE_TIMEOUT = 5000;
+const EXISTING_STATE_TIMEOUT = 15000;
 const LOGIN_PAGE_SETTLE_MS = 5000;
 const POLL_INTERVAL_MS = 3000;
 
@@ -93,6 +93,7 @@ export class BrowserStrategy implements IStrategy {
         const args = this.headlessArgs(dataDir, port);
         args.push('about:blank');
 
+        removeSingletonLock(dataDir);
         return this.withHeadlessBrowser(
             execPath,
             args,
@@ -124,6 +125,7 @@ export class BrowserStrategy implements IStrategy {
         const args = this.headlessArgs(dataDir, port, provider.networkProxy);
         args.push(provider.entryUrl);
 
+        removeSingletonLock(dataDir);
         return this.withHeadlessBrowser(
             execPath,
             args,
