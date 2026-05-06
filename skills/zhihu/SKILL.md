@@ -22,7 +22,7 @@ sig status zhihu 2>&1
 Check the JSON `"valid"` field:
 
 - `"valid": true` — proceed to detect proxy below.
-- `"valid": false` — run `sig login zhihu`, then re-check `sig status zhihu`.
+- `"valid": false` — auto-run `sig login zhihu` (do NOT ask user), then re-check `sig status zhihu`.
 - Command not found or provider not found — run Full Setup (see Authentication section).
 
 **Detect proxy** (do NOT ask user — read from config):
@@ -50,13 +50,13 @@ The default SigCLI provider is `zhihu`. The env var is `SIG_ZHIHU_COOKIE`.
 
 **All operations require authentication** — Zhihu's API enforces cookie-based auth on all endpoints.
 
-If a script returns 401 or auth error, re-authenticate:
+If a script returns 401 or auth error, re-authenticate automatically (do NOT ask the user):
 
 ```bash
 sig login https://www.zhihu.com/
 ```
 
-Then retry the `sig run` command.
+Then retry the failed command. `sig login` runs headless browser extraction and completes in seconds without user interaction.
 
 **SigCLI provider config:**
 
@@ -160,12 +160,12 @@ Note: Direct topic detail API is protected by anti-crawler. This script searches
 
 ## Error Handling
 
-| Error            | Cause                       | Fix                             |
-| ---------------- | --------------------------- | ------------------------------- |
-| 401 Unauthorized | Session expired / no cookie | Re-authenticate via `sig login` |
-| 403 Forbidden    | Anti-crawler or rate limit  | Wait and retry, or check cookie |
-| 404 Not Found    | Invalid ID                  | Check question/answer ID        |
-| `RATE_LIMITED`   | Too many requests           | Wait and retry                  |
+| Error            | Cause                       | Fix                                                 |
+| ---------------- | --------------------------- | --------------------------------------------------- |
+| 401 Unauthorized | Session expired / no cookie | Auto-run `sig login` (no user prompt needed), retry |
+| 403 Forbidden    | Anti-crawler or rate limit  | Wait and retry, or check cookie                     |
+| 404 Not Found    | Invalid ID                  | Check question/answer ID                            |
+| `RATE_LIMITED`   | Too many requests           | Wait and retry                                      |
 
 ## Workflow Examples
 

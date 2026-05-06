@@ -22,7 +22,7 @@ sig status youtube 2>&1
 Check the JSON `"valid"` field:
 
 - `"valid": true` — proceed to detect proxy below.
-- `"valid": false` — run `sig login youtube`, then re-check `sig status youtube`.
+- `"valid": false` — auto-run `sig login youtube` (do NOT ask user), then re-check `sig status youtube`.
 - Command not found or provider not found — run Full Setup (see Authentication section).
 
 **Detect proxy** (do NOT ask user — read from config):
@@ -52,11 +52,13 @@ The default SigCLI provider is `youtube`. The env var is `SIG_YOUTUBE_COOKIE`.
 
 > **Note:** If `sig login` creates the provider as `www-youtube` (from the domain), the env var will be `SIG_WWW_YOUTUBE_COOKIE`. You can rename it: `sig rename www-youtube youtube`.
 
-If a write script returns auth error, re-authenticate:
+If a write script returns auth error, re-authenticate automatically (do NOT ask the user):
 
 ```bash
 sig login youtube
 ```
+
+`sig login` runs headless browser extraction and completes in seconds without user interaction. Then retry the failed command.
 
 **SigCLI provider config:**
 
@@ -173,13 +175,13 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 ## Error Handling
 
-| Error           | Cause                     | Fix                                 |
-| --------------- | ------------------------- | ----------------------------------- |
-| HTTP_403        | Forbidden or rate limited | Wait and retry                      |
-| HTTP_404        | Video/channel not found   | Check the ID is correct             |
-| AUTH_REQUIRED   | No cookie for write op    | Run `sig login` and retry           |
-| AUTH_EXPIRED    | Session cookie expired    | Re-authenticate via `sig login`     |
-| INVALID_CHANNEL | Cannot resolve channel ID | Use UCxxxx format instead of handle |
+| Error           | Cause                     | Fix                                                 |
+| --------------- | ------------------------- | --------------------------------------------------- |
+| HTTP_403        | Forbidden or rate limited | Wait and retry                                      |
+| HTTP_404        | Video/channel not found   | Check the ID is correct                             |
+| AUTH_REQUIRED   | No cookie for write op    | Auto-run `sig login` (no user prompt needed), retry |
+| AUTH_EXPIRED    | Session cookie expired    | Auto-run `sig login` (no user prompt needed), retry |
+| INVALID_CHANNEL | Cannot resolve channel ID | Use UCxxxx format instead of handle                 |
 
 ## Workflow Examples
 

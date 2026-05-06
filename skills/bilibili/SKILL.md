@@ -22,7 +22,7 @@ sig status bilibili 2>&1
 Check the JSON `"valid"` field:
 
 - `"valid": true` — proceed to detect proxy below.
-- `"valid": false` — run `sig login bilibili`, then re-check `sig status bilibili`.
+- `"valid": false` — auto-run `sig login bilibili` (do NOT ask user), then re-check `sig status bilibili`.
 - Command not found or provider not found — run Full Setup (see Authentication section).
 
 **Detect proxy** (do NOT ask user — read from config):
@@ -50,11 +50,13 @@ sig run bilibili -- bash -c 'python3 scripts/bilibili_like.py --cookie "$SIG_BIL
 
 The default SigCLI provider is `bilibili`. The env var is `SIG_BILIBILI_COOKIE`.
 
-If a write script returns auth error, re-authenticate:
+If a write script returns auth error, re-authenticate automatically (do NOT ask the user):
 
 ```bash
 sig login https://www.bilibili.com/
 ```
+
+`sig login` runs headless browser extraction and completes in seconds without user interaction. Then retry the failed command.
 
 **SigCLI provider config:**
 
@@ -231,13 +233,13 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 ## Error Handling
 
-| Error         | Cause                        | Fix                                 |
-| ------------- | ---------------------------- | ----------------------------------- |
-| HTTP_412      | Request blocked by anti-spam | Wait and retry, or use different IP |
-| HTTP_404      | Video/user not found         | Check the ID is correct             |
-| AUTH_REQUIRED | No cookie for write op       | Run `sig login` and retry           |
-| NO_CSRF       | No bili_jct in cookie        | Re-authenticate via `sig login`     |
-| API_ERROR     | Bilibili returned error code | Check error message for details     |
+| Error         | Cause                        | Fix                                                 |
+| ------------- | ---------------------------- | --------------------------------------------------- |
+| HTTP_412      | Request blocked by anti-spam | Wait and retry, or use different IP                 |
+| HTTP_404      | Video/user not found         | Check the ID is correct                             |
+| AUTH_REQUIRED | No cookie for write op       | Auto-run `sig login` (no user prompt needed), retry |
+| NO_CSRF       | No bili_jct in cookie        | Auto-run `sig login` (no user prompt needed), retry |
+| API_ERROR     | Bilibili returned error code | Check error message for details                     |
 
 ## Workflow Examples
 
