@@ -30,7 +30,7 @@ import { CdpStorageExtractor } from './extractors/cdp-storage.js';
 const TRACKING_COOKIE_TTL_MS = 60_000;
 const EXISTING_STATE_TIMEOUT = 5000;
 const LOGIN_PAGE_SETTLE_MS = 5000;
-const POLL_INTERVAL_MS = 2000;
+const POLL_INTERVAL_MS = 3000;
 
 interface CookieExpiry {
     name: string;

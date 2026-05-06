@@ -68,6 +68,7 @@ export class AuthManager {
                     name: entry.name ?? id,
                     domains: entry.domains,
                     entryUrl: entry.entryUrl,
+                    validateUrl: entry.validateUrl,
                     strategy: entry.strategy,
                     extract: entry.extract,
                     apply: entry.apply,

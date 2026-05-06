@@ -65,6 +65,7 @@ export interface ProviderEntry {
     name?: string;
     domains: string[];
     entryUrl: string;
+    validateUrl?: string;
     strategy: 'browser' | 'prompt';
     extract: Array<{
         from: string;
