@@ -45,19 +45,23 @@ npm install -g @sigcli/cli
 sig init
 ```
 
-### Step 2: Login to X
+### Step 2: Configure provider (if missing)
 
-```bash
-sig login x
-```
+Read `references/provider-config.yaml` and append the provider block to `~/.sig/config.yaml` under `providers:`. Do this automatically — do not ask the user to configure it manually.
 
-If the user needs a proxy for X (ask them only during first-time setup), use:
+### Step 3: Ask about proxy
+
+Ask the user if they need a proxy to access X (e.g. in regions where X is blocked). If yes, add `networkProxy: <url>` under the `x:` provider in `~/.sig/config.yaml` and use it for login:
 
 ```bash
 sig login x --network-proxy=socks5://127.0.0.1:3333
 ```
 
-Note: for socks5h proxy, use `socks5://` (not `socks5h://`) in the `--network-proxy` flag.
+If no proxy needed:
+
+```bash
+sig login x
+```
 
 After login, `x` is provisioned automatically to `~/.sig/config.yaml`.
 

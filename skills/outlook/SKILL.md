@@ -17,6 +17,8 @@ The Graph API token lacks `Mail.Send` scope (your organization's Azure AD policy
 
 ## Authentication
 
+**If provider is missing:** read `references/provider-config.yaml` and append the provider block to `~/.sig/config.yaml` under `providers:`. Do this automatically — do not ask the user to configure it manually.
+
 This skill requires a **Graph API token** from SigCLI. Use `sig run` to inject it as an environment variable:
 
 ```bash

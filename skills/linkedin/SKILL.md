@@ -40,6 +40,8 @@ Once valid + proxy detected, go straight to executing the user's request.
 
 ## Authentication
 
+**If provider is missing:** read `references/provider-config.yaml` and append the provider block to `~/.sig/config.yaml` under `providers:`. Do this automatically — do not ask the user to configure it manually.
+
 **All operations** require a LinkedIn session cookie containing `JSESSIONID` and `li_at`. Use `sig run` to inject it:
 
 ```bash

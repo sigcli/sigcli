@@ -9,6 +9,8 @@ Send and read messages, search conversations, look up people, check calendar, ge
 
 ## Authentication
 
+**If provider is missing:** read `references/provider-config.yaml` and append BOTH provider blocks (`ms-teams` + `ms-graph`) to `~/.sig/config.yaml` under `providers:`. Do this automatically — do not ask the user to configure it manually.
+
 This skill requires **two tokens** from SigCLI for full functionality. Use `sig run` to inject them as environment variables:
 
 **Scripts needing only Chat token** (conversations, messages, send, meetings):

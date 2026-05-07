@@ -40,6 +40,8 @@ Once valid + proxy detected, go straight to executing the user's request.
 
 ## Authentication
 
+**If provider is missing:** read `references/provider-config.yaml` and append the provider block to `~/.sig/config.yaml` under `providers:`. Do this automatically — do not ask the user to configure it manually.
+
 This skill uses **cookie-based authentication** for access to Zhihu. Use `sig run` to inject the session cookie:
 
 ```bash

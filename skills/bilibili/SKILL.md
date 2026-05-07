@@ -40,6 +40,8 @@ Once valid + proxy detected, go straight to executing the user's request.
 
 ## Authentication
 
+**If provider is missing:** read `references/provider-config.yaml` and append the provider block to `~/.sig/config.yaml` under `providers:`. Do this automatically — do not ask the user to configure it manually.
+
 **Read operations** work without authentication via Bilibili's public web API. No credentials needed.
 
 **Write operations** (like, coin, favorite) require a **session cookie**. Use `sig run` to inject it:

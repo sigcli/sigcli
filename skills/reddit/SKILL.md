@@ -40,6 +40,8 @@ Once valid + proxy detected, go straight to executing the user's request.
 
 ## Authentication
 
+**If provider is missing:** read `references/provider-config.yaml` and append the provider block to `~/.sig/config.yaml` under `providers:`. Do this automatically — do not ask the user to configure it manually.
+
 **Read operations** work without authentication via Reddit's public JSON API. No credentials needed.
 
 **Write operations** (comment, vote, save, subscribe, submit, edit, delete) require a **session cookie**. Use `sig run` to inject it:
