@@ -1,0 +1,25 @@
+# sigcli provider config for Zhihu
+# Add to ~/.sig/config.yaml under `providers:`
+#
+# Prerequisites:
+#   npm install -g @sigcli/cli
+#   sig init
+#
+# Login:
+#   sig login zhihu
+
+zhihu:
+    domains:
+        - www.zhihu.com
+    entryUrl: https://www.zhihu.com/
+    validateUrl: https://www.zhihu.com/api/v4/me
+    strategy: browser
+    ttl: 2h
+    extract:
+        - from: cookies
+          as: cookie
+          match: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: ${cookie}

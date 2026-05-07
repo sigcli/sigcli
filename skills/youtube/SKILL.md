@@ -11,73 +11,57 @@ Search videos, get video details, browse channels, read comments, view trending,
 
 `<SKILL_DIR>` is the directory containing this SKILL.md file. Determine it ONCE at the start and reuse it.
 
-## Fast Gate (run this FIRST, every time)
+## Setup (run FIRST — every time, before any operation)
 
-Run these commands silently — do NOT ask the user anything:
+You MUST complete this setup before running any script. Do NOT skip this step.
 
 ```bash
 sig status youtube 2>&1
 ```
 
-Check the JSON `"valid"` field:
+Check the JSON output fields `configured` and `valid`:
 
-- `"valid": true` — proceed to detect proxy below.
-- `"valid": false` — auto-run `sig login youtube` (do NOT ask user), then re-check `sig status youtube`.
-- Command not found or provider not found — run Full Setup (see Authentication section).
+- **`configured: false`** → run Provider Setup below. Do NOT proceed without completing it.
+- **`valid: false` (but configured: true)** → run `sig login youtube`, then re-check.
+- **`valid: true`** → detect proxy (see below), then execute the user's request.
 
-**Detect proxy** (do NOT ask user — read from config):
+### Provider Setup
+
+1. Read `<SKILL_DIR>/references/provider-config.yaml`
+2. Append the provider block to `~/.sig/config.yaml` under `providers:`
+3. Ask the user: "Do you need a proxy to access this site?" — if yes, add `networkProxy: <url>` under the provider in config.yaml
+4. Run `sig login youtube` (with `--network-proxy <url>` if proxy was specified)
+5. Verify: run `sig status youtube` again — must show `valid: true` before proceeding
+
+### Proxy Detection (after provider is valid)
 
 ```bash
 grep -A15 "^\s*youtube:" ~/.sig/config.yaml | grep networkProxy | awk '{print $2}'
 ```
 
-If this outputs a URL (e.g. `socks5://127.0.0.1:1234`), use it as `HTTPS_PROXY=<url> HTTP_PROXY=<url>` in ALL python3 commands. If empty, omit proxy. NEVER ask the user about proxy — it's in the config.
-NOTE: if using socks5 protocol, convert to socks5h for python scripts, e.g. `socks5://127.0.0.1:1234` becomes `socks5h://127.0.0.1:1234`
+If this outputs a URL, prefix ALL python3 commands with `HTTPS_PROXY=<url> HTTP_PROXY=<url>`.
+If using socks5, convert to socks5h for python (e.g. `socks5://...` → `socks5h://...`).
+If empty, no proxy needed.
 
-Once valid + proxy detected, go straight to executing the user's request.
+## Running Scripts
 
----
+All scripts require setup to be completed first (see above).
 
-## Authentication
-
-**Read operations** work without authentication via YouTube's public InnerTube API. No credentials needed.
-
-**Write operations** (like, subscribe) require a **session cookie** with SAPISID. Use `sig run` to inject it:
+**Read operations** — use `sig run` to inject cookie (enables authenticated features):
 
 ```bash
-sig run youtube -- bash -c 'python3 scripts/youtube_like.py --cookie "$SIG_YOUTUBE_COOKIE" --video dQw4w9WgXcQ'
+sig run youtube -- bash -c 'python3 <SKILL_DIR>/scripts/youtube_video.py --cookie "$SIG_YOUTUBE_COOKIE" --video dQw4w9WgXcQ'
 ```
 
-The default SigCLI provider is `youtube`. The env var is `SIG_YOUTUBE_COOKIE`.
-
-> **Note:** If `sig login` creates the provider as `www-youtube` (from the domain), the env var will be `SIG_WWW_YOUTUBE_COOKIE`. You can rename it: `sig rename www-youtube youtube`.
-
-If a write script returns auth error, re-authenticate automatically (do NOT ask the user):
+**Write operations** — require `sig run` (cookie is mandatory):
 
 ```bash
-sig login youtube
+sig run youtube -- bash -c 'python3 <SKILL_DIR>/scripts/youtube_like.py --cookie "$SIG_YOUTUBE_COOKIE" --video dQw4w9WgXcQ'
 ```
 
-`sig login` runs headless browser extraction and completes in seconds without user interaction. Then retry the failed command.
+Env var: `SIG_YOUTUBE_COOKIE`
 
-**SigCLI provider config:**
-
-```yaml
-youtube:
-    domains: [www.youtube.com, youtube.com]
-    entryUrl: https://www.youtube.com/
-    validateUrl: https://www.youtube.com/account
-    strategy: browser
-    ttl: '2h'
-    extract:
-        - from: cookies
-          as: cookie
-          match: '*'
-    apply:
-        - in: header
-          name: Cookie
-          value: '${cookie}'
-```
+**On auth error (401/403):** run `sig login youtube` automatically (no user prompt), then retry.
 
 ## Scripts Reference
 
@@ -187,43 +171,43 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 ### Get video details
 
-1. `python3 scripts/youtube_video.py --video dQw4w9WgXcQ`
-2. Or with URL: `python3 scripts/youtube_video.py --video "https://www.youtube.com/watch?v=dQw4w9WgXcQ"`
+1. `sig run youtube -- bash -c 'python3 <SKILL_DIR>/scripts/youtube_video.py --cookie "$SIG_YOUTUBE_COOKIE" --video dQw4w9WgXcQ'`
+2. Or with URL: `sig run youtube -- bash -c 'python3 <SKILL_DIR>/scripts/youtube_video.py --cookie "$SIG_YOUTUBE_COOKIE" --video "https://www.youtube.com/watch?v=dQw4w9WgXcQ"'`
 
 ### Search for videos
 
-1. `python3 scripts/youtube_search.py --query "python tutorial" --limit 10`
+1. `sig run youtube -- bash -c 'python3 <SKILL_DIR>/scripts/youtube_search.py --cookie "$SIG_YOUTUBE_COOKIE" --query "python tutorial" --limit 10'`
 
 ### Browse a channel
 
-1. `python3 scripts/youtube_channel.py --channel @RickAstleyYT --limit 5`
-2. Or by ID: `python3 scripts/youtube_channel.py --channel UCuAXFkgsw1L7xaCfnd5JJOw`
+1. `sig run youtube -- bash -c 'python3 <SKILL_DIR>/scripts/youtube_channel.py --cookie "$SIG_YOUTUBE_COOKIE" --channel @RickAstleyYT --limit 5'`
+2. Or by ID: `sig run youtube -- bash -c 'python3 <SKILL_DIR>/scripts/youtube_channel.py --cookie "$SIG_YOUTUBE_COOKIE" --channel UCuAXFkgsw1L7xaCfnd5JJOw'`
 
 ### Read video comments
 
-1. `python3 scripts/youtube_comments.py --video dQw4w9WgXcQ --limit 30`
+1. `sig run youtube -- bash -c 'python3 <SKILL_DIR>/scripts/youtube_comments.py --cookie "$SIG_YOUTUBE_COOKIE" --video dQw4w9WgXcQ --limit 30'`
 
 ### View trending videos
 
-1. `python3 scripts/youtube_trending.py --limit 10`
+1. `sig run youtube -- bash -c 'python3 <SKILL_DIR>/scripts/youtube_trending.py --cookie "$SIG_YOUTUBE_COOKIE" --limit 10'`
 
 ### Browse a playlist
 
-1. `python3 scripts/youtube_playlist.py --playlist PLxxxxxxxx --limit 20`
-2. Or with URL: `python3 scripts/youtube_playlist.py --playlist "https://www.youtube.com/playlist?list=PLxxxxxxxx"`
+1. `sig run youtube -- bash -c 'python3 <SKILL_DIR>/scripts/youtube_playlist.py --cookie "$SIG_YOUTUBE_COOKIE" --playlist PLxxxxxxxx --limit 20'`
+2. Or with URL: `sig run youtube -- bash -c 'python3 <SKILL_DIR>/scripts/youtube_playlist.py --cookie "$SIG_YOUTUBE_COOKIE" --playlist "https://www.youtube.com/playlist?list=PLxxxxxxxx"'`
 
 ### Like a video
 
-1. `sig run youtube -- bash -c 'python3 scripts/youtube_like.py --cookie "$SIG_YOUTUBE_COOKIE" --video dQw4w9WgXcQ'`
+1. `sig run youtube -- bash -c 'python3 <SKILL_DIR>/scripts/youtube_like.py --cookie "$SIG_YOUTUBE_COOKIE" --video dQw4w9WgXcQ'`
 
 ### Unlike a video
 
-1. `sig run youtube -- bash -c 'python3 scripts/youtube_like.py --cookie "$SIG_YOUTUBE_COOKIE" --video dQw4w9WgXcQ --action unlike'`
+1. `sig run youtube -- bash -c 'python3 <SKILL_DIR>/scripts/youtube_like.py --cookie "$SIG_YOUTUBE_COOKIE" --video dQw4w9WgXcQ --action unlike'`
 
 ### Subscribe to a channel
 
-1. `sig run youtube -- bash -c 'python3 scripts/youtube_subscribe.py --cookie "$SIG_YOUTUBE_COOKIE" --channel @RickAstleyYT'`
+1. `sig run youtube -- bash -c 'python3 <SKILL_DIR>/scripts/youtube_subscribe.py --cookie "$SIG_YOUTUBE_COOKIE" --channel @RickAstleyYT'`
 
 ### Unsubscribe from a channel
 
-1. `sig run youtube -- bash -c 'python3 scripts/youtube_subscribe.py --cookie "$SIG_YOUTUBE_COOKIE" --channel UCuAXFkgsw1L7xaCfnd5JJOw --action unsubscribe'`
+1. `sig run youtube -- bash -c 'python3 <SKILL_DIR>/scripts/youtube_subscribe.py --cookie "$SIG_YOUTUBE_COOKIE" --channel UCuAXFkgsw1L7xaCfnd5JJOw --action unsubscribe'`

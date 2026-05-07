@@ -11,73 +11,57 @@ Browse, search, read, and interact with V2EX — the creative workers' community
 
 `<SKILL_DIR>` is the directory containing this SKILL.md file. Determine it ONCE at the start and reuse it.
 
-## Fast Gate (run this FIRST, every time)
+## Setup (run FIRST — every time, before any operation)
 
-Run these commands silently — do NOT ask the user anything:
+You MUST complete this setup before running any script. Do NOT skip this step.
 
 ```bash
 sig status v2ex 2>&1
 ```
 
-Check the JSON `"valid"` field:
+Check the JSON output fields `configured` and `valid`:
 
-- `"valid": true` — proceed to detect proxy below.
-- `"valid": false` — auto-run `sig login v2ex` (do NOT ask user), then re-check `sig status v2ex`.
-- Command not found or provider not found — run Full Setup (see Authentication section).
+- **`configured: false`** → run Provider Setup below. Do NOT proceed without completing it.
+- **`valid: false` (but configured: true)** → run `sig login v2ex`, then re-check.
+- **`valid: true`** → detect proxy (see below), then execute the user's request.
 
-**Detect proxy** (do NOT ask user — read from config):
+### Provider Setup
+
+1. Read `<SKILL_DIR>/references/provider-config.yaml`
+2. Append the provider block to `~/.sig/config.yaml` under `providers:`
+3. Ask the user: "Do you need a proxy to access this site?" — if yes, add `networkProxy: <url>` under the provider in config.yaml
+4. Run `sig login v2ex` (with `--network-proxy <url>` if proxy was specified)
+5. Verify: run `sig status v2ex` again — must show `valid: true` before proceeding
+
+### Proxy Detection (after provider is valid)
 
 ```bash
 grep -A15 "^\s*v2ex:" ~/.sig/config.yaml | grep networkProxy | awk '{print $2}'
 ```
 
-If this outputs a URL (e.g. `socks5://127.0.0.1:1234`), use it as `HTTPS_PROXY=<url> HTTP_PROXY=<url>` in ALL python3 commands. If empty, omit proxy. NEVER ask the user about proxy — it's in the config.
-NOTE: if using socks5 protocol, convert to socks5h for python scripts, e.g. `socks5://127.0.0.1:1234` becomes `socks5h://127.0.0.1:1234`
+If this outputs a URL, prefix ALL python3 commands with `HTTPS_PROXY=<url> HTTP_PROXY=<url>`.
+If using socks5, convert to socks5h for python (e.g. `socks5://...` → `socks5h://...`).
+If empty, no proxy needed.
 
-Once valid + proxy detected, go straight to executing the user's request.
+## Running Scripts
 
----
+All scripts require setup to be completed first (see above).
 
-## Authentication
-
-This skill uses **cookie-based authentication** for full read/write access to V2EX. Use `sig run` to inject the session cookie:
-
-```bash
-sig run v2ex -- bash -c 'python3 scripts/v2ex_hot.py --cookie "$SIG_V2EX_COOKIE"'
-```
-
-The default SigCLI provider is `v2ex`. The env var is `SIG_V2EX_COOKIE`.
-
-**Read-only operations** (hot topics, latest, topic detail, node info, member profile, search) work **without authentication** via the public V2EX API v1. The `--cookie` argument is optional for these scripts.
-
-**Write operations** (create topic, reply, thank, favorite, follow, daily check-in, append) **require a valid session cookie**.
-
-If a script returns 403 or auth error, re-authenticate automatically (do NOT ask the user):
+**Read operations** — use `sig run` to inject cookie (enables authenticated features):
 
 ```bash
-sig login https://www.v2ex.com/
+sig run v2ex -- bash -c 'python3 <SKILL_DIR>/scripts/v2ex_hot.py --cookie "$SIG_V2EX_COOKIE"'
 ```
 
-Then retry the failed command. `sig login` runs headless browser extraction and completes in seconds without user interaction.
+**Write operations** — require `sig run` (cookie is mandatory):
 
-**SigCLI provider config:**
-
-```yaml
-v2ex:
-    domains: [www.v2ex.com, v2ex.com]
-    entryUrl: https://www.v2ex.com/
-    validateUrl: https://www.v2ex.com/settings
-    strategy: browser
-    ttl: '2h'
-    extract:
-        - from: cookies
-          as: cookie
-          match: '*'
-    apply:
-        - in: header
-          name: Cookie
-          value: '${cookie}'
+```bash
+sig run v2ex -- bash -c 'python3 <SKILL_DIR>/scripts/v2ex_reply.py --cookie "$SIG_V2EX_COOKIE" --topic-id 12345 --content "Nice post!"'
 ```
+
+Env var: `SIG_V2EX_COOKIE`
+
+**On auth error (401/403):** run `sig login v2ex` automatically (no user prompt), then retry.
 
 ## Scripts Reference
 
@@ -259,36 +243,36 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 ### Browse hot topics
 
-1. `sig run v2ex -- bash -c 'python3 scripts/v2ex_hot.py --cookie "$SIG_V2EX_COOKIE"'`
+1. `sig run v2ex -- bash -c 'python3 <SKILL_DIR>/scripts/v2ex_hot.py --cookie "$SIG_V2EX_COOKIE"'`
 
 ### Read a specific topic and its replies
 
-1. `sig run v2ex -- bash -c 'python3 scripts/v2ex_topic.py --cookie "$SIG_V2EX_COOKIE" --id 12345 --page 1'`
+1. `sig run v2ex -- bash -c 'python3 <SKILL_DIR>/scripts/v2ex_topic.py --cookie "$SIG_V2EX_COOKIE" --id 12345 --page 1'`
 
 ### Search for topics
 
-1. `python3 scripts/v2ex_search.py --query "Docker 部署" --size 10`
+1. `python3 <SKILL_DIR>/scripts/v2ex_search.py --query "Docker 部署" --size 10`
 
 ### Create a new topic
 
 1. **Show title/body/node to user and get confirmation**
-2. `sig run v2ex -- bash -c 'python3 scripts/v2ex_create.py --cookie "$SIG_V2EX_COOKIE" --node python --title "Question about asyncio" --content "How do I..."'`
+2. `sig run v2ex -- bash -c 'python3 <SKILL_DIR>/scripts/v2ex_create.py --cookie "$SIG_V2EX_COOKIE" --node python --title "Question about asyncio" --content "How do I..."'`
 
 ### Reply to a topic
 
-1. Read the topic first: `sig run v2ex -- bash -c 'python3 scripts/v2ex_topic.py --cookie "$SIG_V2EX_COOKIE" --id 12345'`
+1. Read the topic first: `sig run v2ex -- bash -c 'python3 <SKILL_DIR>/scripts/v2ex_topic.py --cookie "$SIG_V2EX_COOKIE" --id 12345'`
 2. **Show reply to user and get confirmation**
-3. `sig run v2ex -- bash -c 'python3 scripts/v2ex_reply.py --cookie "$SIG_V2EX_COOKIE" --topic-id 12345 --content "I think you should..."'`
+3. `sig run v2ex -- bash -c 'python3 <SKILL_DIR>/scripts/v2ex_reply.py --cookie "$SIG_V2EX_COOKIE" --topic-id 12345 --content "I think you should..."'`
 
 ### Check notifications
 
-1. `sig run v2ex -- bash -c 'python3 scripts/v2ex_notifications.py --cookie "$SIG_V2EX_COOKIE"'`
+1. `sig run v2ex -- bash -c 'python3 <SKILL_DIR>/scripts/v2ex_notifications.py --cookie "$SIG_V2EX_COOKIE"'`
 
 ### Daily check-in
 
-1. `sig run v2ex -- bash -c 'python3 scripts/v2ex_daily.py --cookie "$SIG_V2EX_COOKIE"'`
+1. `sig run v2ex -- bash -c 'python3 <SKILL_DIR>/scripts/v2ex_daily.py --cookie "$SIG_V2EX_COOKIE"'`
 
 ### Follow a member
 
-1. Look up member: `sig run v2ex -- bash -c 'python3 scripts/v2ex_member.py --cookie "$SIG_V2EX_COOKIE" --username livid'`
-2. Follow: `sig run v2ex -- bash -c 'python3 scripts/v2ex_follow.py --cookie "$SIG_V2EX_COOKIE" --action follow --id 1'`
+1. Look up member: `sig run v2ex -- bash -c 'python3 <SKILL_DIR>/scripts/v2ex_member.py --cookie "$SIG_V2EX_COOKIE" --username livid'`
+2. Follow: `sig run v2ex -- bash -c 'python3 <SKILL_DIR>/scripts/v2ex_follow.py --cookie "$SIG_V2EX_COOKIE" --action follow --id 1'`

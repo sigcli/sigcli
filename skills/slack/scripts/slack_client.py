@@ -75,13 +75,13 @@ def get_slack_credentials() -> tuple[str, str]:
     Returns:
         Tuple of (xoxc_token, cookie_string). Either may be empty string.
     """
-    cookie_string = os.environ.get("SIG_APP_SLACK_SESSION", "")
+    cookie_string = os.environ.get("SIG_APP_SLACK_COOKIE", "")
     xoxc = os.environ.get("SIG_APP_SLACK_XOXC_TOKEN", "")
 
     if cookie_string and xoxc:
         raw_d = _parse_cookie_value(cookie_string, "d")
         if not raw_d:
-            raise RuntimeError("Cookie 'd' not found in SIG_APP_SLACK_SESSION")
+            raise RuntimeError("Cookie 'd' not found in SIG_APP_SLACK_COOKIE")
 
     return xoxc, cookie_string
 
