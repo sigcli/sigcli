@@ -19,6 +19,7 @@ import { buildUserAgent } from './http.js';
  *   - not all extract rules produced values → false
  *   - 401/403 → false
  *   - 3xx redirect to login URL → false
+ *   - 2xx with JS redirect body (< 4KB) → false
  *   - 2xx → true
  *   - network error → true (optimistic)
  */
@@ -27,7 +28,6 @@ export async function validate(
     credentials: ExtractedCredentials,
 ): Promise<boolean> {
     if (!credentials || Object.keys(credentials).length === 0) return false;
-
     if (!provider.extract.every((rule) => !!credentials[rule.as])) return false;
 
     const url = provider.validateUrl ?? provider.entryUrl;
@@ -47,18 +47,28 @@ export async function validate(
             signal: AbortSignal.timeout(10_000),
         });
 
-        if (res.status === 401 || res.status === 403) return false;
-
-        if (res.status >= 300 && res.status < 400) {
-            if (provider.validateUrl) return false;
-            const location = (res.headers.get('location') ?? '').toLowerCase();
-            return !LOGIN_URL_PATTERNS.some((p) => location.includes(p));
-        }
-
-        return true;
+        return isValidResponse(res, provider);
     } catch {
         return true;
     }
+}
+
+async function isValidResponse(
+    res: Awaited<ReturnType<typeof fetch>>,
+    provider: ProviderConfig,
+): Promise<boolean> {
+    if (res.status === 401 || res.status === 403) return false;
+
+    if (res.status >= 300 && res.status < 400) {
+        if (provider.validateUrl) return false;
+        const location = (res.headers.get('location') ?? '').toLowerCase();
+        return !LOGIN_URL_PATTERNS.some((p) => location.includes(p));
+    }
+
+    const body = await res.text().catch(() => '');
+    if (body && body.length < 4096 && hasJsRedirect(body)) return false;
+
+    return true;
 }
 
 /**
@@ -89,6 +99,17 @@ export function getExpiresAt(stored: StoredCredential, provider: ProviderConfig)
         }
     }
     return null;
+}
+
+const JS_REDIRECT_PATTERNS = [
+    /window\.location\s*[=.]/i,
+    /document\.location\s*[=.]/i,
+    /location\.(?:href|replace|assign)\s*[=(]/i,
+    /<meta\s+http-equiv\s*=\s*["']?refresh["']?/i,
+];
+
+function hasJsRedirect(body: string): boolean {
+    return JS_REDIRECT_PATTERNS.some((re) => re.test(body));
 }
 
 function createProxyDispatcher(proxy: string): Dispatcher {
