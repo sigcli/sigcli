@@ -7,45 +7,42 @@ description: 'Interact with Microsoft Teams — send and read messages, search c
 
 Send and read messages, search conversations, look up people, check calendar, get meeting transcripts, and manage chats via Microsoft Teams.
 
-## Authentication
+## Setup (run FIRST — every time, before any operation)
 
-This skill requires **two tokens** from SigCLI for full functionality. Use `sig run` to inject them as environment variables:
-
-**Scripts needing only Chat token** (conversations, messages, send, meetings):
+You MUST complete this setup before running any script. Do NOT skip this step.
 
 ```bash
-sig run ms-teams -- bash -c 'python scripts/teams_conversations.py --token "$SIG_MS_TEAMS_ACCESS_TOKEN" --search "standup"'
+sig status ms-teams 2>&1
+sig status ms-graph 2>&1
 ```
 
-**Scripts needing only Graph token** (calendar, people):
+Check the JSON output fields `configured` and `valid` for BOTH providers:
+
+- **`configured: false`** → run Provider Setup below. Do NOT proceed without completing it.
+- **`valid: false` (but configured: true)** → run `sig login ms-teams`, then re-check.
+- **`valid: true`** → detect proxy (see below), then execute the user's request.
+
+### Provider Setup
+
+1. Read `<SKILL_DIR>/references/provider-config.yaml`
+2. Append BOTH provider blocks (`ms-teams` and `ms-graph`) to `~/.sig/config.yaml` under `providers:`
+3. Ask the user: "Do you need a proxy to access this site?" — if yes, add `networkProxy: <url>` under each provider in config.yaml
+4. Run `sig login ms-teams` (with `--network-proxy <url>` if proxy was specified) — this covers both providers
+5. Verify: run `sig status ms-teams` and `sig status ms-graph` again — both must show `valid: true` before proceeding
+
+### Proxy Detection (after provider is valid)
 
 ```bash
-sig run ms-graph -- bash -c 'python scripts/teams_calendar.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --range today'
+grep -A15 "^\s*ms-teams:" ~/.sig/config.yaml | grep networkProxy | awk '{print $2}'
 ```
 
-**Scripts needing both tokens** (chat, members):
+If this outputs a URL, prefix ALL python3 commands with `HTTPS_PROXY=<url> HTTP_PROXY=<url>`.
+If using socks5, convert to socks5h for python (e.g. `socks5://...` → `socks5h://...`).
+If empty, no proxy needed.
 
-```bash
-sig run ms-teams ms-graph -- bash -c 'python scripts/teams_chat.py --token "$SIG_MS_TEAMS_ACCESS_TOKEN" --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --query "John Smith" --region apac'
-```
+## Running Scripts
 
-The env var names follow the rule: `SIG_<PROVIDER>_<AS>` where `<PROVIDER>` is the provider name uppercased with `-` replaced by `_`, and `<AS>` is the extract rule's `as` field uppercased. For ms-teams/ms-graph with `as: access_token`, the env vars are `SIG_MS_TEAMS_ACCESS_TOKEN` and `SIG_MS_GRAPH_ACCESS_TOKEN`.
-
-**Note:** `sig run` injects the raw JWT (without `Bearer` prefix). The scripts add `Bearer` themselves.
-
-If a script returns 401 or auth error, re-authenticate automatically (do NOT ask the user):
-
-```bash
-sig login https://teams.cloud.microsoft/v2/
-```
-
-Then retry the failed command. `sig login` runs headless browser extraction and completes in seconds without user interaction.
-
-**Which token for which script:**
-
-- Chat API token (`--token`): conversations, messages, send, chat, members, meetings
-- Graph API token (`--graph-token`): calendar, people
-- Both tokens: chat (needs Graph for user lookup), members (needs Graph for name resolution)
+All scripts require setup to be completed first (see above).
 
 ## User Profile & Region Configuration
 
