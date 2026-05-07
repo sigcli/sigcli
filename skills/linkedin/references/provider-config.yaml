@@ -1,0 +1,32 @@
+# sigcli provider config for LinkedIn
+# Add to ~/.sig/config.yaml under `providers:`
+#
+# Prerequisites:
+#   npm install -g @sigcli/cli
+#   sig init
+#
+# Login:
+#   sig login linkedin
+
+linkedin:
+    domains:
+        - www.linkedin.com
+        - linkedin.com
+    entryUrl: https://www.linkedin.com/feed/
+    validateUrl: https://www.linkedin.com/voyager/api/me
+    strategy: browser
+    ttl: 2h
+    extract:
+        - from: cookies
+          as: cookie
+          match: '*'
+        - from: cookies
+          as: jsessionid
+          match: JSESSIONID
+    apply:
+        - in: header
+          name: Cookie
+          value: ${cookie}
+        - in: header
+          name: csrf-token
+          value: ${jsessionid}

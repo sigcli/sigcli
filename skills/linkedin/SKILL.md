@@ -11,77 +11,41 @@ View profiles, browse the feed, search jobs/posts/people, get job details, creat
 
 `<SKILL_DIR>` is the directory containing this SKILL.md file. Determine it ONCE at the start and reuse it.
 
-## Fast Gate (run this FIRST, every time)
+## Setup (run FIRST — every time, before any operation)
 
-Run these commands silently — do NOT ask the user anything:
+You MUST complete this setup before running any script. Do NOT skip this step.
 
 ```bash
 sig status linkedin 2>&1
 ```
 
-Check the JSON `"valid"` field:
+Check the JSON output fields `configured` and `valid`:
 
-- `"valid": true` — proceed to detect proxy below.
-- `"valid": false` — auto-run `sig login linkedin` (do NOT ask user), then re-check `sig status linkedin`.
-- Command not found or provider not found — run Full Setup (see Authentication section).
+- **`configured: false`** → run Provider Setup below. Do NOT proceed without completing it.
+- **`valid: false` (but configured: true)** → run `sig login linkedin`, then re-check.
+- **`valid: true`** → detect proxy (see below), then execute the user's request.
 
-**Detect proxy** (do NOT ask user — read from config):
+### Provider Setup
+
+1. Read `<SKILL_DIR>/references/provider-config.yaml`
+2. Append the provider block to `~/.sig/config.yaml` under `providers:`
+3. Ask the user: "Do you need a proxy to access this site?" — if yes, add `networkProxy: <url>` under the provider in config.yaml
+4. Run `sig login linkedin` (with `--network-proxy <url>` if proxy was specified)
+5. Verify: run `sig status linkedin` again — must show `valid: true` before proceeding
+
+### Proxy Detection (after provider is valid)
 
 ```bash
 grep -A15 "^\s*linkedin:" ~/.sig/config.yaml | grep networkProxy | awk '{print $2}'
 ```
 
-If this outputs a URL (e.g. `socks5://127.0.0.1:1234`), use it as `HTTPS_PROXY=<url> HTTP_PROXY=<url>` in ALL python3 commands. If empty, omit proxy. NEVER ask the user about proxy — it's in the config.
-NOTE: if using socks5 protocol, convert to socks5h for python scripts, e.g. `socks5://127.0.0.1:1234` becomes `socks5h://127.0.0.1:1234`
+If this outputs a URL, prefix ALL python3 commands with `HTTPS_PROXY=<url> HTTP_PROXY=<url>`.
+If using socks5, convert to socks5h for python (e.g. `socks5://...` → `socks5h://...`).
+If empty, no proxy needed.
 
-Once valid + proxy detected, go straight to executing the user's request.
+## Running Scripts
 
----
-
-## Authentication
-
-**All operations** require a LinkedIn session cookie containing `JSESSIONID` and `li_at`. Use `sig run` to inject it:
-
-```bash
-sig run linkedin -- bash -c 'python3 scripts/linkedin_me.py --cookie "$SIG_LINKEDIN_COOKIE"'
-```
-
-The default SigCLI provider is `linkedin`. The env var is `SIG_LINKEDIN_COOKIE`.
-
-> **Note:** If `sig login` creates the provider as `www-linkedin` (from the domain), the env var will be `SIG_WWW_LINKEDIN_COOKIE`. You can rename it: `sig rename www-linkedin linkedin`.
-
-If a script returns auth error, re-authenticate automatically (do NOT ask the user):
-
-```bash
-sig login linkedin
-```
-
-This opens the user's real browser via CDP (no automation markers), avoiding LinkedIn's bot detection. Then retry the failed command.
-
-**SigCLI provider config:**
-
-```yaml
-linkedin:
-    domains: [www.linkedin.com, linkedin.com]
-    entryUrl: https://www.linkedin.com/feed/
-    validateUrl: https://www.linkedin.com/voyager/api/me
-    strategy: browser
-    ttl: '2h'
-    extract:
-        - from: cookies
-          as: cookie
-          match: '*'
-        - from: cookies
-          as: jsessionid
-          match: 'JSESSIONID'
-    apply:
-        - in: header
-          name: Cookie
-          value: '${cookie}'
-        - in: header
-          name: csrf-token
-          value: '${jsessionid}'
-```
+All scripts require setup to be completed first (see above).
 
 ## Scripts Reference
 

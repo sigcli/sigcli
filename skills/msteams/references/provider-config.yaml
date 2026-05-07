@@ -1,0 +1,45 @@
+# sigcli provider config for Microsoft Teams
+# Add BOTH providers to ~/.sig/config.yaml under `providers:`
+#
+# Prerequisites:
+#   npm install -g @sigcli/cli
+#   sig init
+#
+# Login (one login covers both providers):
+#   sig login ms-teams
+
+ms-teams:
+    name: Microsoft Teams
+    domains:
+        - teams.cloud.microsoft
+    entryUrl: https://teams.cloud.microsoft/v2/
+    strategy: browser
+    ttl: 2h
+    extract:
+        - from: localStorage
+          as: access_token
+          match: '*|accesstoken|*ic3.teams.office.com*'
+          jsonPath: secret
+          expiresJsonPath: expiresOn
+    apply:
+        - in: header
+          name: Authorization
+          value: Bearer ${access_token}
+
+ms-graph:
+    name: Microsoft Graph
+    domains:
+        - graph.microsoft.com
+    entryUrl: https://teams.cloud.microsoft/v2/
+    strategy: browser
+    ttl: 2h
+    extract:
+        - from: localStorage
+          as: access_token
+          match: '*|accesstoken|*graph.microsoft.com*'
+          jsonPath: secret
+          expiresJsonPath: expiresOn
+    apply:
+        - in: header
+          name: Authorization
+          value: Bearer ${access_token}

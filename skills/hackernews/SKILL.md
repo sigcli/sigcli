@@ -11,74 +11,61 @@ Browse, search, and read Hacker News stories, comments, and user profiles.
 
 `<SKILL_DIR>` is the directory containing this SKILL.md file. Determine it ONCE at the start and reuse it.
 
-## Fast Gate (run this FIRST, every time)
+## Setup (run FIRST — every time, before any operation)
 
-Run these commands silently — do NOT ask the user anything:
+You MUST complete this setup before running any script. Do NOT skip this step.
 
 ```bash
 sig status hackernews 2>&1
 ```
 
-Check the JSON `"valid"` field:
+Check the JSON output fields `configured` and `valid`:
 
-- `"valid": true` — proceed to detect proxy below.
-- `"valid": false` — auto-run `sig login hackernews` (do NOT ask user), then re-check `sig status hackernews`.
-- Command not found or provider not found — run Full Setup (see Authentication section).
+- **`configured: false`** → run Provider Setup below. Do NOT proceed without completing it.
+- **`valid: false` (but configured: true)** → run `sig login hackernews`, then re-check.
+- **`valid: true`** → detect proxy (see below), then execute the user's request.
 
-**Detect proxy** (do NOT ask user — read from config):
+### Provider Setup
+
+1. Read `<SKILL_DIR>/references/provider-config.yaml`
+2. Append the provider block to `~/.sig/config.yaml` under `providers:`
+3. Ask the user: "Do you need a proxy to access this site?" — if yes, add `networkProxy: <url>` under the provider in config.yaml
+4. Run `sig login hackernews` (with `--network-proxy <url>` if proxy was specified)
+5. Verify: run `sig status hackernews` again — must show `valid: true` before proceeding
+
+### Proxy Detection (after provider is valid)
 
 ```bash
 grep -A15 "^\s*hackernews:" ~/.sig/config.yaml | grep networkProxy | awk '{print $2}'
 ```
 
-If this outputs a URL (e.g. `socks5://127.0.0.1:1234`), use it as `HTTPS_PROXY=<url> HTTP_PROXY=<url>` in ALL python3 commands. If empty, omit proxy. NEVER ask the user about proxy — it's in the config.
-NOTE: if using socks5 protocol, convert to socks5h for python scripts, e.g. `socks5://127.0.0.1:1234` becomes `socks5h://127.0.0.1:1234`
+If this outputs a URL, prefix ALL python3 commands with `HTTPS_PROXY=<url> HTTP_PROXY=<url>`.
+If using socks5, convert to socks5h for python (e.g. `socks5://...` → `socks5h://...`).
+If empty, no proxy needed.
 
-Once valid + proxy detected, go straight to executing the user's request.
+## Running Scripts
 
----
+All scripts require setup to be completed first (see above).
 
-## Authentication
-
-**Read operations** work without authentication. All Hacker News Firebase and Algolia APIs are public.
-
-**Write operations** (submit, comment, vote) require a **session cookie**. Use `sig run` to inject it:
+**Read operations** — use `sig run` to inject cookie (enables authenticated features like vote status):
 
 ```bash
-sig run hackernews -- bash -c 'python3 scripts/hn_vote.py --cookie "$SIG_HACKERNEWS_COOKIE" --id 12345'
+sig run hackernews -- bash -c 'python3 <SKILL_DIR>/scripts/hn_top.py --cookie "$SIG_HACKERNEWS_COOKIE" --limit 10'
 ```
 
-The default SigCLI provider is `hackernews`. The env var is `SIG_HACKERNEWS_COOKIE`.
-
-If a write script returns auth error, re-authenticate automatically (do NOT ask the user):
+**Write operations** — require `sig run` (cookie is mandatory):
 
 ```bash
-sig login hackernews
+sig run hackernews -- bash -c 'python3 <SKILL_DIR>/scripts/hn_vote.py --cookie "$SIG_HACKERNEWS_COOKIE" --id 12345'
 ```
 
-Then retry the failed command. `sig login` runs headless browser extraction and completes in seconds without user interaction.
+Env var: `SIG_HACKERNEWS_COOKIE`
 
-**SigCLI provider config:**
-
-```yaml
-hackernews:
-    domains: [news.ycombinator.com]
-    entryUrl: https://news.ycombinator.com/
-    strategy: browser
-    ttl: '2h'
-    extract:
-        - from: cookies
-          as: cookie
-          match: '*'
-    apply:
-        - in: header
-          name: Cookie
-          value: '${cookie}'
-```
+**On auth error (401/403):** run `sig login hackernews` automatically (no user prompt), then retry.
 
 ## Scripts Reference
 
-All scripts are in this skill's `scripts/` directory. Run via Bash tool.
+All scripts are in `<SKILL_DIR>/scripts/`. Run via Bash tool.
 
 ### Read Operations
 
@@ -198,15 +185,15 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 ## Key Concepts
 
-**Item types** -- Hacker News items have a `type` field: `story`, `comment`, `job`, `poll`, `pollopt`. Stories have `title`, `url`, `score`, and `descendants` (total comment count). Comments have `text` and `parent`.
+**Item types** — Hacker News items have a `type` field: `story`, `comment`, `job`, `poll`, `pollopt`. Stories have `title`, `url`, `score`, and `descendants` (total comment count). Comments have `text` and `parent`.
 
-**Item IDs** -- Numeric IDs found in URLs like `news.ycombinator.com/item?id=12345`. Get IDs from top/new/best/search results, then use with `hn_item.py`.
+**Item IDs** — Numeric IDs found in URLs like `news.ycombinator.com/item?id=12345`. Get IDs from top/new/best/search results, then use with `hn_item.py`.
 
-**Comment trees** -- Comments are nested via the `kids` array. `hn_item.py` recursively fetches comment trees up to `--depth` levels. Each comment includes `replies` for nested children.
+**Comment trees** — Comments are nested via the `kids` array. `hn_item.py` recursively fetches comment trees up to `--depth` levels. Each comment includes `replies` for nested children.
 
-**Story categories** -- Use `hn_ask.py` for Ask HN, `hn_show.py` for Show HN, `hn_jobs.py` for job postings.
+**Story categories** — Use `hn_ask.py` for Ask HN, `hn_show.py` for Show HN, `hn_jobs.py` for job postings.
 
-**Algolia search** -- `hn_search.py` uses the Algolia HN Search API for full-text search with filtering by type, author, and minimum points.
+**Algolia search** — `hn_search.py` uses the Algolia HN Search API for full-text search with filtering by type, author, and minimum points.
 
 ## Error Handling
 
@@ -221,46 +208,30 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 ### Browse top stories
 
-1. `python3 scripts/hn_top.py --limit 10`
+1. `python3 <SKILL_DIR>/scripts/hn_top.py --limit 10`
 
 ### Read a specific story and its comments
 
-1. `python3 scripts/hn_item.py --id 12345 --depth 3 --comments-limit 30`
+1. `python3 <SKILL_DIR>/scripts/hn_item.py --id 12345 --depth 3 --comments-limit 30`
 
 ### Search for topics
 
-1. `python3 scripts/hn_search.py --query "Rust programming" --type story --limit 10`
+1. `python3 <SKILL_DIR>/scripts/hn_search.py --query "Rust programming" --type story --limit 10`
 
 ### Look up a user
 
-1. `python3 scripts/hn_user.py --username pg --include-submissions`
-
-### Browse Ask HN posts
-
-1. `python3 scripts/hn_ask.py --limit 20`
-
-### Browse Show HN posts
-
-1. `python3 scripts/hn_show.py --limit 20`
-
-### Browse job postings
-
-1. `python3 scripts/hn_jobs.py --limit 10`
-
-### Find high-scoring stories by an author
-
-1. `python3 scripts/hn_search.py --query "" --author dang --points-min 100 --sort date`
+1. `python3 <SKILL_DIR>/scripts/hn_user.py --username pg --include-submissions`
 
 ### Submit a story
 
 1. **Show title/URL to user and get confirmation**
-2. `sig run hackernews -- bash -c 'python3 scripts/hn_submit.py --cookie "$SIG_HACKERNEWS_COOKIE" --title "My Post" --url "https://example.com"'`
+2. `sig run hackernews -- bash -c 'python3 <SKILL_DIR>/scripts/hn_submit.py --cookie "$SIG_HACKERNEWS_COOKIE" --title "My Post" --url "https://example.com"'`
 
 ### Comment on a story
 
 1. **Show comment text to user and get confirmation**
-2. `sig run hackernews -- bash -c 'python3 scripts/hn_comment.py --cookie "$SIG_HACKERNEWS_COOKIE" --parent 12345 --text "Great article!"'`
+2. `sig run hackernews -- bash -c 'python3 <SKILL_DIR>/scripts/hn_comment.py --cookie "$SIG_HACKERNEWS_COOKIE" --parent 12345 --text "Great article!"'`
 
 ### Upvote a story
 
-1. `sig run hackernews -- bash -c 'python3 scripts/hn_vote.py --cookie "$SIG_HACKERNEWS_COOKIE" --id 12345'`
+1. `sig run hackernews -- bash -c 'python3 <SKILL_DIR>/scripts/hn_vote.py --cookie "$SIG_HACKERNEWS_COOKIE" --id 12345'`

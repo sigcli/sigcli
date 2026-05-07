@@ -1,0 +1,26 @@
+# sigcli provider config for V2EX
+# Add to ~/.sig/config.yaml under `providers:`
+#
+# Prerequisites:
+#   npm install -g @sigcli/cli
+#   sig init
+#
+# Login:
+#   sig login v2ex
+
+v2ex:
+    domains:
+        - www.v2ex.com
+        - v2ex.com
+    entryUrl: https://www.v2ex.com/
+    validateUrl: https://www.v2ex.com/settings
+    strategy: browser
+    ttl: 2h
+    extract:
+        - from: cookies
+          as: cookie
+          match: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: ${cookie}

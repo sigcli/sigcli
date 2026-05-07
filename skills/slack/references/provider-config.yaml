@@ -1,0 +1,38 @@
+# sigcli provider config for Slack
+# Add to ~/.sig/config.yaml under `providers:`
+#
+# Prerequisites:
+#   npm install -g @sigcli/cli
+#   sig init
+#
+# Login:
+#   sig login app-slack
+#
+# NOTE: entryUrl must point to a specific workspace (/client/<TEAM_ID>),
+# NOT the root URL. The root shows a workspace picker where localStorage
+# is not populated. Enterprise Grid orgs start with "E", regular with "T".
+# To find yours: open Slack in browser → URL is https://app.slack.com/client/<TEAM_ID>/...
+
+app-slack:
+    name: Slack
+    domains:
+        - <your-workspace>.slack.com
+    entryUrl: https://app.slack.com/client/<your-team-id>
+    validateUrl: https://<your-workspace>.slack.com/ssb/redirect
+    strategy: browser
+    ttl: 7d
+    extract:
+        - from: cookies
+          as: cookie
+          match: '*'
+        - from: localStorage
+          as: xoxc-token
+          match: localConfig_v2
+          jsonPath: teams.<your-team-id>.token
+    apply:
+        - in: header
+          name: Cookie
+          value: ${cookie}
+        - in: header
+          name: Authorization
+          value: Bearer ${xoxc-token}

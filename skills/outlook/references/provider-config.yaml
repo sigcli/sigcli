@@ -1,0 +1,27 @@
+# sigcli provider config for Outlook (Microsoft Graph API)
+# Add to ~/.sig/config.yaml under `providers:`
+#
+# Prerequisites:
+#   npm install -g @sigcli/cli
+#   sig init
+#
+# Login (via Teams portal — grants Mail.Read and Mail.ReadWrite scopes):
+#   sig login ms-graph
+
+ms-graph:
+    name: Microsoft Graph
+    domains:
+        - graph.microsoft.com
+    entryUrl: https://teams.cloud.microsoft/v2/
+    strategy: browser
+    ttl: 2h
+    extract:
+        - from: localStorage
+          as: access_token
+          match: '*|accesstoken|*graph.microsoft.com*'
+          jsonPath: secret
+          expiresJsonPath: expiresOn
+    apply:
+        - in: header
+          name: Authorization
+          value: Bearer ${access_token}
