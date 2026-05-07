@@ -1,0 +1,29 @@
+# sigcli provider config for Reddit
+# Add to ~/.sig/config.yaml under `providers:`
+#
+# Prerequisites:
+#   npm install -g @sigcli/cli
+#   sig init
+#
+# Login:
+#   sig login reddit
+#
+# NOTE: Reddit is a public site — anonymous visitors get tracking cookies.
+# validateUrl lets sigcli distinguish authenticated cookies from anonymous ones.
+
+reddit:
+    domains:
+        - www.reddit.com
+        - reddit.com
+    entryUrl: https://www.reddit.com/
+    validateUrl: https://www.reddit.com/prefs/friends
+    strategy: browser
+    ttl: 2h
+    extract:
+        - from: cookies
+          as: cookie
+          match: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: ${cookie}

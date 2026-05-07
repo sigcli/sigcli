@@ -40,7 +40,6 @@ npx @sigcli/skills --uninstall         # Uninstall
 
 | Skill         | Platform     | Read                            | Write                       | Auth   |
 | ------------- | ------------ | ------------------------------- | --------------------------- | ------ |
-| `sigcli-auth` | Auth         | Strategy guide, error recovery  | —                           | —      |
 | `outlook`     | Email        | Inbox, search, folders          | Send, reply, forward        | OAuth2 |
 | `msteams`     | Chat         | Messages, channels, calendar    | Send messages               | OAuth2 |
 | `slack`       | Chat         | Channels, search, users         | Send messages, reactions    | Cookie |

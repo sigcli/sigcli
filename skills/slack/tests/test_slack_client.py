@@ -71,7 +71,7 @@ class TestParseCookieValue:
 
 class TestGetSlackCredentials:
     def test_happy_path(self, monkeypatch):
-        monkeypatch.setenv("SIG_APP_SLACK_SESSION", "d=xoxd-fake%2Ftoken; other=abc")
+        monkeypatch.setenv("SIG_APP_SLACK_COOKIE", "d=xoxd-fake%2Ftoken; other=abc")
         monkeypatch.setenv("SIG_APP_SLACK_XOXC_TOKEN", "xoxc-fake-token-123")
         xoxc, cookies = mod.get_slack_credentials()
         assert xoxc == "xoxc-fake-token-123"
@@ -80,7 +80,7 @@ class TestGetSlackCredentials:
 
     def test_missing_env_vars_returns_empty(self, monkeypatch):
         """When no env vars are set, returns empty strings (proxy mode supported)."""
-        monkeypatch.delenv("SIG_APP_SLACK_SESSION", raising=False)
+        monkeypatch.delenv("SIG_APP_SLACK_COOKIE", raising=False)
         monkeypatch.delenv("SIG_APP_SLACK_XOXC_TOKEN", raising=False)
         xoxc, cookies = mod.get_slack_credentials()
         assert xoxc == ""
@@ -88,20 +88,20 @@ class TestGetSlackCredentials:
 
     def test_missing_xoxc_returns_empty(self, monkeypatch):
         """When xoxc is missing, returns empty strings (proxy mode supported)."""
-        monkeypatch.setenv("SIG_APP_SLACK_SESSION", "d=xoxd-fake%2Ftoken")
+        monkeypatch.setenv("SIG_APP_SLACK_COOKIE", "d=xoxd-fake%2Ftoken")
         monkeypatch.delenv("SIG_APP_SLACK_XOXC_TOKEN", raising=False)
         xoxc, cookies = mod.get_slack_credentials()
         assert xoxc == ""
 
     def test_missing_cookie_returns_empty(self, monkeypatch):
         """When cookie is missing, returns empty strings (proxy mode supported)."""
-        monkeypatch.delenv("SIG_APP_SLACK_SESSION", raising=False)
+        monkeypatch.delenv("SIG_APP_SLACK_COOKIE", raising=False)
         monkeypatch.setenv("SIG_APP_SLACK_XOXC_TOKEN", "xoxc-good")
         xoxc, cookies = mod.get_slack_credentials()
         assert cookies == ""
 
     def test_missing_d_cookie_raises(self, monkeypatch):
-        monkeypatch.setenv("SIG_APP_SLACK_SESSION", "other=abc")
+        monkeypatch.setenv("SIG_APP_SLACK_COOKIE", "other=abc")
         monkeypatch.setenv("SIG_APP_SLACK_XOXC_TOKEN", "xoxc-good")
         with pytest.raises(RuntimeError, match="Cookie 'd' not found"):
             mod.get_slack_credentials()
