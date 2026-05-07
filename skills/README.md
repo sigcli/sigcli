@@ -38,20 +38,19 @@ npx @sigcli/skills --uninstall         # Uninstall
 
 ## Available Skills
 
-| Skill         | Platform     | Read                            | Write                       | Auth   |
-| ------------- | ------------ | ------------------------------- | --------------------------- | ------ |
-| `outlook`     | Email        | Inbox, search, folders          | Send, reply, forward        | OAuth2 |
-| `msteams`     | Chat         | Messages, channels, calendar    | Send messages               | OAuth2 |
-| `slack`       | Chat         | Channels, search, users         | Send messages, reactions    | Cookie |
-| `v2ex`        | Forum        | Hot, search, topics, users      | Post, reply, favorite       | Cookie |
-| `zhihu`       | Q&A          | Hot, search, answers, users     | Read-only (anti-crawler)    | Cookie |
-| `reddit`      | Forum        | Hot, search, posts, users       | Post, comment, vote, save   | Cookie |
-| `bilibili`    | Video        | Hot, ranking, search, subtitles | Like, coin, favorite        | Cookie |
-| `youtube`     | Video        | Search, channels, comments      | Like, subscribe             | Cookie |
-| `x`           | Social       | Profiles, tweets, trending      | Post, like, retweet, follow | Cookie |
-| `xiaohongshu` | Social       | Notes, search, feed, users      | Like, collect, comment      | Cookie |
-| `hackernews`  | Forum        | Top, ask, show, jobs, search    | Submit, comment, vote       | Cookie |
-| `linkedin`    | Professional | Profiles, feed, jobs, search    | Post, like, comment, follow | Cookie |
+| Skill        | Platform     | Read                            | Write                       | Auth   |
+| ------------ | ------------ | ------------------------------- | --------------------------- | ------ |
+| `outlook`    | Email        | Inbox, search, folders          | Send, reply, forward        | OAuth2 |
+| `msteams`    | Chat         | Messages, channels, calendar    | Send messages               | OAuth2 |
+| `slack`      | Chat         | Channels, search, users         | Send messages, reactions    | Cookie |
+| `v2ex`       | Forum        | Hot, search, topics, users      | Post, reply, favorite       | Cookie |
+| `zhihu`      | Q&A          | Hot, search, answers, users     | Read-only (anti-crawler)    | Cookie |
+| `reddit`     | Forum        | Hot, search, posts, users       | Post, comment, vote, save   | Cookie |
+| `bilibili`   | Video        | Hot, ranking, search, subtitles | Like, coin, favorite        | Cookie |
+| `youtube`    | Video        | Search, channels, comments      | Like, subscribe             | Cookie |
+| `x`          | Social       | Profiles, tweets, trending      | Post, like, retweet, follow | Cookie |
+| `hackernews` | Forum        | Top, ask, show, jobs, search    | Submit, comment, vote       | Cookie |
+| `linkedin`   | Professional | Profiles, feed, jobs, search    | Post, like, comment, follow | Cookie |
 
 ## Build Your Own
 
