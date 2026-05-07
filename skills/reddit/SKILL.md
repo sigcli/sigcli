@@ -11,79 +11,57 @@ Browse subreddits, read posts and comments, search content, view user profiles, 
 
 `<SKILL_DIR>` is the directory containing this SKILL.md file. Determine it ONCE at the start and reuse it.
 
-## Fast Gate (run this FIRST, every time)
+## Setup (run FIRST — every time, before any operation)
 
-Run these commands silently — do NOT ask the user anything:
+You MUST complete this setup before running any script. Do NOT skip this step.
 
 ```bash
 sig status reddit 2>&1
 ```
 
-Check the JSON `"valid"` field:
+Check the JSON output fields `configured` and `valid`:
 
-- `"valid": true` — proceed to detect proxy below.
-- `"valid": false` — auto-run `sig login reddit` (do NOT ask user), then re-check `sig status reddit`.
-- Command not found or provider not found — run Full Setup (see Authentication section).
+- **`configured: false`** → run Provider Setup below. Do NOT proceed without completing it.
+- **`valid: false` (but configured: true)** → run `sig login reddit`, then re-check.
+- **`valid: true`** → detect proxy (see below), then execute the user's request.
 
-**Detect proxy** (do NOT ask user — read from config):
+### Provider Setup
+
+1. Read `<SKILL_DIR>/references/provider-config.yaml`
+2. Append the provider block to `~/.sig/config.yaml` under `providers:`
+3. Ask the user: "Do you need a proxy to access this site?" — if yes, add `networkProxy: <url>` under the provider in config.yaml
+4. Run `sig login reddit` (with `--network-proxy <url>` if proxy was specified)
+5. Verify: run `sig status reddit` again — must show `valid: true` before proceeding
+
+### Proxy Detection (after provider is valid)
 
 ```bash
 grep -A15 "^\s*reddit:" ~/.sig/config.yaml | grep networkProxy | awk '{print $2}'
 ```
 
-If this outputs a URL (e.g. `socks5://127.0.0.1:1234`), use it as `HTTPS_PROXY=<url> HTTP_PROXY=<url>` in ALL python3 commands. If empty, omit proxy. NEVER ask the user about proxy — it's in the config.
-NOTE: if using socks5 protocol, convert to socks5h for python scripts, e.g. `socks5://127.0.0.1:1234` becomes `socks5h://127.0.0.1:1234`
+If this outputs a URL, prefix ALL python3 commands with `HTTPS_PROXY=<url> HTTP_PROXY=<url>`.
+If using socks5, convert to socks5h for python (e.g. `socks5://...` → `socks5h://...`).
+If empty, no proxy needed.
 
-Once valid + proxy detected, go straight to executing the user's request.
+## Running Scripts
 
----
+All scripts require setup to be completed first (see above).
 
-## Authentication
-
-**ALWAYS configure the provider first.** Run `sig providers` — if the provider is not listed:
-
-1. Read `references/provider-config.yaml` and append the block to `~/.sig/config.yaml` under `providers:`
-2. Ask the user if they need a proxy to access this site (if yes, add `networkProxy: <url>` under the provider)
-3. Run `sig login <provider>` (with `--network-proxy` if proxy was specified)
-
-Do this automatically before any operation — never skip because reads may work without auth.
-
-**Read operations** work without authentication via Reddit's public JSON API. No credentials needed.
-
-**Write operations** (comment, vote, save, subscribe, submit, edit, delete) require a **session cookie**. Use `sig run` to inject it:
+**Read operations** — use `sig run` to inject cookie (enables authenticated features):
 
 ```bash
-sig run reddit -- bash -c 'python3 scripts/reddit_comment.py --cookie "$SIG_REDDIT_COOKIE" --parent t3_1abc --text "Great post!"'
+sig run reddit -- bash -c 'python3 <SKILL_DIR>/scripts/reddit_hot.py --cookie "$SIG_REDDIT_COOKIE" --subreddit programming --limit 10'
 ```
 
-The default SigCLI provider is `reddit`. The env var is `SIG_REDDIT_COOKIE`.
-
-If a write script returns auth error, re-authenticate automatically (do NOT ask the user):
+**Write operations** — require `sig run` (cookie is mandatory):
 
 ```bash
-sig login reddit
+sig run reddit -- bash -c 'python3 <SKILL_DIR>/scripts/reddit_comment.py --cookie "$SIG_REDDIT_COOKIE" --parent t3_1abc --text "Great post!"'
 ```
 
-Then retry the failed command. `sig login` runs headless browser extraction and completes in seconds without user interaction.
+Env var: `SIG_REDDIT_COOKIE`
 
-**SigCLI provider config:**
-
-```yaml
-reddit:
-    domains: [www.reddit.com, reddit.com]
-    entryUrl: https://www.reddit.com/
-    validateUrl: https://www.reddit.com/prefs/friends
-    strategy: browser
-    ttl: '2h'
-    extract:
-        - from: cookies
-          as: cookie
-          match: '*'
-    apply:
-        - in: header
-          name: Cookie
-          value: '${cookie}'
-```
+**On auth error (401/403):** run `sig login reddit` automatically (no user prompt), then retry.
 
 ## Scripts Reference
 
@@ -274,49 +252,47 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 ## Workflow Examples
 
-All commands below assume you've detected proxy via Fast Gate. If `networkProxy` is set, prefix ALL python3 commands with `HTTPS_PROXY=<proxy> HTTP_PROXY=<proxy>`. For socks5 proxies, use `socks5h://` in the env var.
-
 ### Browse hot posts
 
-1. `cd <SKILL_DIR> && HTTPS_PROXY=<proxy> HTTP_PROXY=<proxy> python3 scripts/reddit_hot.py --subreddit programming --limit 10`
-2. Get next page: `python3 scripts/reddit_hot.py --subreddit programming --limit 10 --after t3_xxx`
+1. `sig run reddit -- bash -c 'python3 <SKILL_DIR>/scripts/reddit_hot.py --cookie "$SIG_REDDIT_COOKIE" --subreddit programming --limit 10'`
+2. Get next page: `sig run reddit -- bash -c 'python3 <SKILL_DIR>/scripts/reddit_hot.py --cookie "$SIG_REDDIT_COOKIE" --subreddit programming --limit 10 --after t3_xxx'`
 
 ### Browse popular posts
 
-1. `python3 scripts/reddit_popular.py --limit 10`
+1. `sig run reddit -- bash -c 'python3 <SKILL_DIR>/scripts/reddit_popular.py --cookie "$SIG_REDDIT_COOKIE" --limit 10'`
 
 ### Find top posts of the week
 
-1. `python3 scripts/reddit_top.py --subreddit python --time week --limit 10`
+1. `sig run reddit -- bash -c 'python3 <SKILL_DIR>/scripts/reddit_top.py --cookie "$SIG_REDDIT_COOKIE" --subreddit python --time week --limit 10'`
 
 ### Read a post with comments
 
-1. `python3 scripts/reddit_post.py --id 1k2x3y --comments-limit 30 --sort top`
-2. Or use a full URL: `python3 scripts/reddit_post.py --id "https://www.reddit.com/r/python/comments/1k2x3y/..." --sort best`
+1. `sig run reddit -- bash -c 'python3 <SKILL_DIR>/scripts/reddit_post.py --cookie "$SIG_REDDIT_COOKIE" --id 1k2x3y --comments-limit 30 --sort top'`
+2. Or use a full URL: `sig run reddit -- bash -c 'python3 <SKILL_DIR>/scripts/reddit_post.py --cookie "$SIG_REDDIT_COOKIE" --id "https://www.reddit.com/r/python/comments/1k2x3y/..." --sort best'`
 
 ### Search for a topic
 
-1. `python3 scripts/reddit_search.py --query "machine learning" --sort top --time month`
+1. `sig run reddit -- bash -c 'python3 <SKILL_DIR>/scripts/reddit_search.py --cookie "$SIG_REDDIT_COOKIE" --query "machine learning" --sort top --time month'`
 
 ### Create a post
 
 1. **Show title/body to user and get confirmation**
-2. `sig run reddit -- bash -c 'python3 scripts/reddit_submit.py --cookie "$SIG_REDDIT_COOKIE" --subreddit test --title "My Post" --text "Hello world"'`
+2. `sig run reddit -- bash -c 'python3 <SKILL_DIR>/scripts/reddit_submit.py --cookie "$SIG_REDDIT_COOKIE" --subreddit test --title "My Post" --text "Hello world"'`
 
 ### Edit or delete a post
 
-1. Edit: `sig run reddit -- bash -c 'python3 scripts/reddit_manage.py --cookie "$SIG_REDDIT_COOKIE" --id t3_abc123 --action edit --text "Updated content"'`
-2. Delete: `sig run reddit -- bash -c 'python3 scripts/reddit_manage.py --cookie "$SIG_REDDIT_COOKIE" --id t3_abc123 --action delete'`
+1. Edit: `sig run reddit -- bash -c 'python3 <SKILL_DIR>/scripts/reddit_manage.py --cookie "$SIG_REDDIT_COOKIE" --id t3_abc123 --action edit --text "Updated content"'`
+2. Delete: `sig run reddit -- bash -c 'python3 <SKILL_DIR>/scripts/reddit_manage.py --cookie "$SIG_REDDIT_COOKIE" --id t3_abc123 --action delete'`
 
 ### Post a comment
 
 1. **Show comment text to user and get confirmation**
-2. `sig run reddit -- bash -c 'python3 scripts/reddit_comment.py --cookie "$SIG_REDDIT_COOKIE" --parent t3_1k2x3y --text "Great post!"'`
+2. `sig run reddit -- bash -c 'python3 <SKILL_DIR>/scripts/reddit_comment.py --cookie "$SIG_REDDIT_COOKIE" --parent t3_1k2x3y --text "Great post!"'`
 
 ### Upvote a post
 
-1. `sig run reddit -- bash -c 'python3 scripts/reddit_vote.py --cookie "$SIG_REDDIT_COOKIE" --id t3_1k2x3y --direction up'`
+1. `sig run reddit -- bash -c 'python3 <SKILL_DIR>/scripts/reddit_vote.py --cookie "$SIG_REDDIT_COOKIE" --id t3_1k2x3y --direction up'`
 
 ### Subscribe to a subreddit
 
-1. `sig run reddit -- bash -c 'python3 scripts/reddit_subscribe.py --cookie "$SIG_REDDIT_COOKIE" --subreddit python'`
+1. `sig run reddit -- bash -c 'python3 <SKILL_DIR>/scripts/reddit_subscribe.py --cookie "$SIG_REDDIT_COOKIE" --subreddit python'`

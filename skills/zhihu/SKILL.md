@@ -11,79 +11,51 @@ Browse, search, read, and interact with Zhihu — China's largest Q&A platform.
 
 `<SKILL_DIR>` is the directory containing this SKILL.md file. Determine it ONCE at the start and reuse it.
 
-## Fast Gate (run this FIRST, every time)
+## Setup (run FIRST — every time, before any operation)
 
-Run these commands silently — do NOT ask the user anything:
+You MUST complete this setup before running any script. Do NOT skip this step.
 
 ```bash
 sig status zhihu 2>&1
 ```
 
-Check the JSON `"valid"` field:
+Check the JSON output fields `configured` and `valid`:
 
-- `"valid": true` — proceed to detect proxy below.
-- `"valid": false` — auto-run `sig login zhihu` (do NOT ask user), then re-check `sig status zhihu`.
-- Command not found or provider not found — run Full Setup (see Authentication section).
+- **`configured: false`** → run Provider Setup below. Do NOT proceed without completing it.
+- **`valid: false` (but configured: true)** → run `sig login zhihu`, then re-check.
+- **`valid: true`** → detect proxy (see below), then execute the user's request.
 
-**Detect proxy** (do NOT ask user — read from config):
+### Provider Setup
+
+1. Read `<SKILL_DIR>/references/provider-config.yaml`
+2. Append the provider block to `~/.sig/config.yaml` under `providers:`
+3. Ask the user: "Do you need a proxy to access this site?" — if yes, add `networkProxy: <url>` under the provider in config.yaml
+4. Run `sig login zhihu` (with `--network-proxy <url>` if proxy was specified)
+5. Verify: run `sig status zhihu` again — must show `valid: true` before proceeding
+
+### Proxy Detection (after provider is valid)
 
 ```bash
 grep -A15 "^\s*zhihu:" ~/.sig/config.yaml | grep networkProxy | awk '{print $2}'
 ```
 
-If this outputs a URL (e.g. `socks5://127.0.0.1:1234`), use it as `HTTPS_PROXY=<url> HTTP_PROXY=<url>` in ALL python3 commands. If empty, omit proxy. NEVER ask the user about proxy — it's in the config.
-NOTE: if using socks5 protocol, convert to socks5h for python scripts, e.g. `socks5://127.0.0.1:1234` becomes `socks5h://127.0.0.1:1234`
+If this outputs a URL, prefix ALL python3 commands with `HTTPS_PROXY=<url> HTTP_PROXY=<url>`.
+If using socks5, convert to socks5h for python (e.g. `socks5://...` → `socks5h://...`).
+If empty, no proxy needed.
 
-Once valid + proxy detected, go straight to executing the user's request.
+## Running Scripts
 
----
+All scripts require setup to be completed first (see above).
 
-## Authentication
-
-**ALWAYS configure the provider first.** Run `sig providers` — if the provider is not listed:
-
-1. Read `references/provider-config.yaml` and append the block to `~/.sig/config.yaml` under `providers:`
-2. Ask the user if they need a proxy to access this site (if yes, add `networkProxy: <url>` under the provider)
-3. Run `sig login <provider>` (with `--network-proxy` if proxy was specified)
-
-Do this automatically before any operation — never skip because reads may work without auth.
-
-This skill uses **cookie-based authentication** for access to Zhihu. Use `sig run` to inject the session cookie:
+**All operations** — use `sig run` to inject cookie (required for all Zhihu endpoints):
 
 ```bash
-sig run zhihu -- bash -c 'python3 scripts/zhihu_hot.py --cookie "$SIG_ZHIHU_COOKIE"'
+sig run zhihu -- bash -c 'python3 <SKILL_DIR>/scripts/zhihu_hot.py --cookie "$SIG_ZHIHU_COOKIE" --limit 10'
 ```
 
-The default SigCLI provider is `zhihu`. The env var is `SIG_ZHIHU_COOKIE`.
+Env var: `SIG_ZHIHU_COOKIE`
 
-**All operations require authentication** — Zhihu's API enforces cookie-based auth on all endpoints.
-
-If a script returns 401 or auth error, re-authenticate automatically (do NOT ask the user):
-
-```bash
-sig login https://www.zhihu.com/
-```
-
-Then retry the failed command. `sig login` runs headless browser extraction and completes in seconds without user interaction.
-
-**SigCLI provider config:**
-
-```yaml
-zhihu:
-    domains: [www.zhihu.com]
-    entryUrl: https://www.zhihu.com/
-    validateUrl: https://www.zhihu.com/api/v4/me
-    strategy: browser
-    ttl: '2h'
-    extract:
-        - from: cookies
-          as: cookie
-          match: '*'
-    apply:
-        - in: header
-          name: Cookie
-          value: '${cookie}'
-```
+**On auth error (401/403):** run `sig login zhihu` automatically (no user prompt), then retry.
 
 ## Scripts Reference
 
@@ -179,20 +151,20 @@ Note: Direct topic detail API is protected by anti-crawler. This script searches
 
 ### Browse hot questions
 
-1. `sig run zhihu -- bash -c 'python3 scripts/zhihu_hot.py --cookie "$SIG_ZHIHU_COOKIE" --limit 10'`
+1. `sig run zhihu -- bash -c 'python3 <SKILL_DIR>/scripts/zhihu_hot.py --cookie "$SIG_ZHIHU_COOKIE" --limit 10'`
 
 ### Read a question and its answers
 
-1. `sig run zhihu -- bash -c 'python3 scripts/zhihu_question.py --cookie "$SIG_ZHIHU_COOKIE" --id 20010554 --answers-limit 5'`
+1. `sig run zhihu -- bash -c 'python3 <SKILL_DIR>/scripts/zhihu_question.py --cookie "$SIG_ZHIHU_COOKIE" --id 20010554 --answers-limit 5'`
 
 ### Search for content
 
-1. `sig run zhihu -- bash -c 'python3 scripts/zhihu_search.py --cookie "$SIG_ZHIHU_COOKIE" --query "machine learning" --type general --limit 10'`
+1. `sig run zhihu -- bash -c 'python3 <SKILL_DIR>/scripts/zhihu_search.py --cookie "$SIG_ZHIHU_COOKIE" --query "machine learning" --type general --limit 10'`
 
 ### View a user profile
 
-1. `sig run zhihu -- bash -c 'python3 scripts/zhihu_member.py --cookie "$SIG_ZHIHU_COOKIE" --url-token zhang-san --include-answers'`
+1. `sig run zhihu -- bash -c 'python3 <SKILL_DIR>/scripts/zhihu_member.py --cookie "$SIG_ZHIHU_COOKIE" --url-token zhang-san --include-answers'`
 
 ### Search topics
 
-1. `sig run zhihu -- bash -c 'python3 scripts/zhihu_topic.py --cookie "$SIG_ZHIHU_COOKIE" --query "Python" --limit 5'`
+1. `sig run zhihu -- bash -c 'python3 <SKILL_DIR>/scripts/zhihu_topic.py --cookie "$SIG_ZHIHU_COOKIE" --query "Python" --limit 5'`

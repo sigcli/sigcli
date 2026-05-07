@@ -7,41 +7,41 @@ description: 'Interact with Slack — read channels, search messages, check unre
 
 Read channels, search messages, check unreads, send messages, manage reactions, and look up users via Slack.
 
-## Authentication
+## Setup (run FIRST — every time, before any operation)
 
-**ALWAYS configure the provider first.** Run `sig providers` — if the provider is not listed:
-
-1. Read `references/provider-config.yaml` and append the block to `~/.sig/config.yaml` under `providers:`
-2. Ask the user if they need a proxy to access this site (if yes, add `networkProxy: <url>` under the provider)
-3. Run `sig login <provider>` (with `--network-proxy` if proxy was specified)
-
-Do this automatically before any operation — never skip because reads may work without auth.
-
-Use `sig run` to inject credentials as environment variables. The shared `slack_client.py` reads `SIG_APP_SLACK_COOKIE` and `SIG_APP_SLACK_XOXC_TOKEN` from the environment.
+You MUST complete this setup before running any script. Do NOT skip this step.
 
 ```bash
-sig run app-slack -- bash -c 'python scripts/slack_send.py --channel "#general" --message "Hello"'
+sig status app-slack 2>&1
 ```
 
-The default provider is `app-slack`. The env var names follow the rule: `SIG_<PROVIDER>_<AS>` where `<PROVIDER>` is the provider name uppercased with `-` replaced by `_`, and `<AS>` is the extract rule's `as` field uppercased.
+Check the JSON output fields `configured` and `valid`:
 
-If you get an auth error or `invalid_auth`, re-authenticate automatically (do NOT ask the user):
+- **`configured: false`** → run Provider Setup below. Do NOT proceed without completing it.
+- **`valid: false` (but configured: true)** → run `sig login app-slack`, then re-check.
+- **`valid: true`** → detect proxy (see below), then execute the user's request.
+
+### Provider Setup
+
+1. Read `<SKILL_DIR>/references/provider-config.yaml`
+2. Append the provider block to `~/.sig/config.yaml` under `providers:`
+3. Ask the user: "Do you need a proxy to access this site?" — if yes, add `networkProxy: <url>` under the provider in config.yaml
+4. Run `sig login app-slack` (with `--network-proxy <url>` if proxy was specified)
+5. Verify: run `sig status app-slack` again — must show `valid: true` before proceeding
+
+### Proxy Detection (after provider is valid)
 
 ```bash
-sig login app-slack
+grep -A15 "^\s*app-slack:" ~/.sig/config.yaml | grep networkProxy | awk '{print $2}'
 ```
 
-Then retry the failed command. `sig login` runs headless browser extraction and completes in seconds without user interaction.
+If this outputs a URL, prefix ALL python3 commands with `HTTPS_PROXY=<url> HTTP_PROXY=<url>`.
+If using socks5, convert to socks5h for python (e.g. `socks5://...` → `socks5h://...`).
+If empty, no proxy needed.
 
-## Setup
+## Running Scripts
 
-To configure `app-slack` as a provider, run:
-
-```bash
-sig init
-```
-
-When prompted for the workspace URL, enter your Slack workspace URL (e.g. `https://<your-workspace>.slack.com`).
+All scripts require setup to be completed first (see above).
 
 ## Scripts Reference
 

@@ -15,56 +15,41 @@ The Graph API token lacks `Mail.Send` scope (your organization's Azure AD policy
 - `outlook_reply.py` creates a reply/forward draft — user clicks Send in Outlook
 - The draft's `webLink` opens directly in Outlook Web for quick sending
 
-## Authentication
+## Setup (run FIRST — every time, before any operation)
 
-**ALWAYS configure the provider first.** Run `sig providers` — if the provider is not listed:
-
-1. Read `references/provider-config.yaml` and append the block to `~/.sig/config.yaml` under `providers:`
-2. Ask the user if they need a proxy to access this site (if yes, add `networkProxy: <url>` under the provider)
-3. Run `sig login <provider>` (with `--network-proxy` if proxy was specified)
-
-Do this automatically before any operation — never skip because reads may work without auth.
-
-This skill requires a **Graph API token** from SigCLI. Use `sig run` to inject it as an environment variable:
+You MUST complete this setup before running any script. Do NOT skip this step.
 
 ```bash
-sig run ms-graph -- bash -c 'python3 scripts/outlook_messages.py --graph-token "$SIG_MS_GRAPH_ACCESS_TOKEN" --unread-only --limit 10'
+sig status ms-graph 2>&1
 ```
 
-The default SigCLI provider is `ms-graph`. The env var name follows the rule: `SIG_<PROVIDER>_<AS>` where `<PROVIDER>` is the provider name uppercased with `-` replaced by `_`, and `<AS>` is the extract rule's `as` field uppercased. For ms-graph with `as: access_token`, the env var is `SIG_MS_GRAPH_ACCESS_TOKEN`.
+Check the JSON output fields `configured` and `valid`:
 
-**Note:** `sig run` injects the raw JWT (without `Bearer` prefix). The scripts add `Bearer` themselves.
+- **`configured: false`** → run Provider Setup below. Do NOT proceed without completing it.
+- **`valid: false` (but configured: true)** → run `sig login ms-graph`, then re-check.
+- **`valid: true`** → detect proxy (see below), then execute the user's request.
 
-If a script returns 401 or auth error, re-authenticate automatically (do NOT ask the user):
+### Provider Setup
+
+1. Read `<SKILL_DIR>/references/provider-config.yaml`
+2. Append the provider block to `~/.sig/config.yaml` under `providers:`
+3. Ask the user: "Do you need a proxy to access this site?" — if yes, add `networkProxy: <url>` under the provider in config.yaml
+4. Run `sig login ms-graph` (with `--network-proxy <url>` if proxy was specified)
+5. Verify: run `sig status ms-graph` again — must show `valid: true` before proceeding
+
+### Proxy Detection (after provider is valid)
 
 ```bash
-sig login https://teams.cloud.microsoft/v2/
+grep -A15 "^\s*ms-graph:" ~/.sig/config.yaml | grep networkProxy | awk '{print $2}'
 ```
 
-Then retry the failed command. `sig login` runs headless browser extraction and completes in seconds without user interaction.
+If this outputs a URL, prefix ALL python3 commands with `HTTPS_PROXY=<url> HTTP_PROXY=<url>`.
+If using socks5, convert to socks5h for python (e.g. `socks5://...` → `socks5h://...`).
+If empty, no proxy needed.
 
-**SigCLI provider config** (see `references/provider-config.yaml`):
+## Running Scripts
 
-```yaml
-ms-graph:
-    name: Microsoft Graph
-    domains: [graph.microsoft.com]
-    entryUrl: https://teams.cloud.microsoft/v2/
-    strategy: browser
-    ttl: '2h'
-    extract:
-        - from: localStorage
-          as: access_token
-          match: '*|accesstoken|*graph.microsoft.com*'
-          jsonPath: secret
-          expiresJsonPath: expiresOn
-    apply:
-        - in: header
-          name: Authorization
-          value: 'Bearer ${access_token}'
-```
-
-No separate Outlook-specific provider is needed — the Graph API token covers all mail endpoints. The token is extracted from Teams portal localStorage after you log in at the entry URL.
+All scripts require setup to be completed first (see above).
 
 ## Scripts Reference
 
