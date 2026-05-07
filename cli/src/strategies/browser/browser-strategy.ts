@@ -209,11 +209,22 @@ export class BrowserStrategy implements IStrategy {
     ): Promise<ExtractionResult | null> {
         const deadline = Date.now() + timeout;
         let loginPageSince: number | null = null;
+        const entryHostname = new URL(provider.entryUrl).hostname;
 
         await this.waitForPageReady(cdp, deadline);
 
         while (Date.now() < deadline) {
             const sessionId = await attachToPageTarget(cdp).catch(() => null);
+            const url = await this.getPageUrl(cdp, sessionId);
+
+            if (this.isOffDomain(url, entryHostname)) {
+                this.logger.info(`${provider.id}: waiting for redirect back to ${entryHostname}`);
+                if (sessionId)
+                    await cdp.send('Target.detachFromTarget', { sessionId }).catch(() => {});
+                await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+                continue;
+            }
+
             const [credentials, expiry] = await this.runExtractors(cdp, provider);
 
             if (await validate(provider, credentials)) {
@@ -222,7 +233,6 @@ export class BrowserStrategy implements IStrategy {
             }
 
             if (exitOnLoginPage) {
-                const url = await this.getPageUrl(cdp, sessionId);
                 loginPageSince = this.checkLoginPageSettled(
                     url,
                     provider.loginUrlPatterns,
@@ -329,6 +339,15 @@ export class BrowserStrategy implements IStrategy {
             });
         });
         if (!browser.killed) killProcess(browser);
+    }
+
+    private isOffDomain(url: string, entryHostname: string): boolean {
+        if (!url) return false;
+        try {
+            return new URL(url).hostname !== entryHostname;
+        } catch {
+            return false;
+        }
     }
 
     private checkLoginPageSettled(
