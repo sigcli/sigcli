@@ -1,0 +1,24 @@
+# sigcli provider config for Bilibili
+# Add to ~/.sig/config.yaml under `providers:`
+#
+# Prerequisites:
+#   npm install -g @sigcli/cli
+#   sig init
+#
+# Login:
+#   sig login bilibili
+
+bilibili:
+    domains:
+        - www.bilibili.com
+    entryUrl: https://www.bilibili.com/
+    strategy: browser
+    ttl: 2h
+    extract:
+        - from: cookies
+          as: cookie
+          match: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: ${cookie}

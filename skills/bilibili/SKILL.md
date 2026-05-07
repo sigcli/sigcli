@@ -11,70 +11,57 @@ Browse trending videos, view video details, read comments, search content, view 
 
 `<SKILL_DIR>` is the directory containing this SKILL.md file. Determine it ONCE at the start and reuse it.
 
-## Fast Gate (run this FIRST, every time)
+## Setup (run FIRST — every time, before any operation)
 
-Run these commands silently — do NOT ask the user anything:
+You MUST complete this setup before running any script. Do NOT skip this step.
 
 ```bash
 sig status bilibili 2>&1
 ```
 
-Check the JSON `"valid"` field:
+Check the JSON output fields `configured` and `valid`:
 
-- `"valid": true` — proceed to detect proxy below.
-- `"valid": false` — auto-run `sig login bilibili` (do NOT ask user), then re-check `sig status bilibili`.
-- Command not found or provider not found — run Full Setup (see Authentication section).
+- **`configured: false`** → run Provider Setup below. Do NOT proceed without completing it.
+- **`valid: false` (but configured: true)** → run `sig login bilibili`, then re-check.
+- **`valid: true`** → detect proxy (see below), then execute the user's request.
 
-**Detect proxy** (do NOT ask user — read from config):
+### Provider Setup
+
+1. Read `<SKILL_DIR>/references/provider-config.yaml`
+2. Append the provider block to `~/.sig/config.yaml` under `providers:`
+3. Ask the user: "Do you need a proxy to access this site?" — if yes, add `networkProxy: <url>` under the provider in config.yaml
+4. Run `sig login bilibili` (with `--network-proxy <url>` if proxy was specified)
+5. Verify: run `sig status bilibili` again — must show `valid: true` before proceeding
+
+### Proxy Detection (after provider is valid)
 
 ```bash
 grep -A15 "^\s*bilibili:" ~/.sig/config.yaml | grep networkProxy | awk '{print $2}'
 ```
 
-If this outputs a URL (e.g. `socks5://127.0.0.1:1234`), use it as `HTTPS_PROXY=<url> HTTP_PROXY=<url>` in ALL python3 commands. If empty, omit proxy. NEVER ask the user about proxy — it's in the config.
-NOTE: if using socks5 protocol, convert to socks5h for python scripts, e.g. `socks5://127.0.0.1:1234` becomes `socks5h://127.0.0.1:1234`
+If this outputs a URL, prefix ALL python3 commands with `HTTPS_PROXY=<url> HTTP_PROXY=<url>`.
+If using socks5, convert to socks5h for python (e.g. `socks5://...` → `socks5h://...`).
+If empty, no proxy needed.
 
-Once valid + proxy detected, go straight to executing the user's request.
+## Running Scripts
 
----
+All scripts require setup to be completed first (see above).
 
-## Authentication
-
-**Read operations** work without authentication via Bilibili's public web API. No credentials needed.
-
-**Write operations** (like, coin, favorite) require a **session cookie**. Use `sig run` to inject it:
+**Read operations** — use `sig run` to inject cookie (enables authenticated features):
 
 ```bash
-sig run bilibili -- bash -c 'python3 scripts/bilibili_like.py --cookie "$SIG_BILIBILI_COOKIE" --aid 123456'
+sig run bilibili -- bash -c 'python3 <SKILL_DIR>/scripts/bilibili_hot.py --cookie "$SIG_BILIBILI_COOKIE" --limit 10'
 ```
 
-The default SigCLI provider is `bilibili`. The env var is `SIG_BILIBILI_COOKIE`.
-
-If a write script returns auth error, re-authenticate automatically (do NOT ask the user):
+**Write operations** — require `sig run` (cookie is mandatory):
 
 ```bash
-sig login https://www.bilibili.com/
+sig run bilibili -- bash -c 'python3 <SKILL_DIR>/scripts/bilibili_like.py --cookie "$SIG_BILIBILI_COOKIE" --aid 123456'
 ```
 
-`sig login` runs headless browser extraction and completes in seconds without user interaction. Then retry the failed command.
+Env var: `SIG_BILIBILI_COOKIE`
 
-**SigCLI provider config:**
-
-```yaml
-bilibili:
-    domains: [www.bilibili.com]
-    entryUrl: https://www.bilibili.com/
-    strategy: browser
-    ttl: '2h'
-    extract:
-        - from: cookies
-          as: cookie
-          match: '*'
-    apply:
-        - in: header
-          name: Cookie
-          value: '${cookie}'
-```
+**On auth error (401/403):** run `sig login bilibili` automatically (no user prompt), then retry.
 
 ## Scripts Reference
 
@@ -244,57 +231,57 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 
 ### Browse hot videos
 
-1. `python3 scripts/bilibili_hot.py --limit 10`
-2. Next page: `python3 scripts/bilibili_hot.py --limit 10 --page 2`
+1. `sig run bilibili -- bash -c 'python3 <SKILL_DIR>/scripts/bilibili_hot.py --cookie "$SIG_BILIBILI_COOKIE" --limit 10'`
+2. Next page: `sig run bilibili -- bash -c 'python3 <SKILL_DIR>/scripts/bilibili_hot.py --cookie "$SIG_BILIBILI_COOKIE" --limit 10 --page 2'`
 
 ### Get video details
 
-1. `python3 scripts/bilibili_video.py --bvid BV1xx411c7mD`
+1. `sig run bilibili -- bash -c 'python3 <SKILL_DIR>/scripts/bilibili_video.py --cookie "$SIG_BILIBILI_COOKIE" --bvid BV1xx411c7mD'`
 
 ### Search for videos
 
-1. `python3 scripts/bilibili_search.py --keyword "machine learning" --limit 10`
+1. `sig run bilibili -- bash -c 'python3 <SKILL_DIR>/scripts/bilibili_search.py --cookie "$SIG_BILIBILI_COOKIE" --keyword "machine learning" --limit 10'`
 
 ### Search for users
 
-1. `python3 scripts/bilibili_search.py --keyword "username" --type user`
+1. `sig run bilibili -- bash -c 'python3 <SKILL_DIR>/scripts/bilibili_search.py --cookie "$SIG_BILIBILI_COOKIE" --keyword "username" --type user'`
 
 ### Read video comments
 
-1. `python3 scripts/bilibili_comments.py --bvid BV1xx411c7mD --limit 20`
+1. `sig run bilibili -- bash -c 'python3 <SKILL_DIR>/scripts/bilibili_comments.py --cookie "$SIG_BILIBILI_COOKIE" --bvid BV1xx411c7mD --limit 20'`
 
 ### View ranking
 
-1. `python3 scripts/bilibili_ranking.py --category music --limit 10`
+1. `sig run bilibili -- bash -c 'python3 <SKILL_DIR>/scripts/bilibili_ranking.py --cookie "$SIG_BILIBILI_COOKIE" --category music --limit 10'`
 
 ### Like a video
 
-1. Get the aid: `python3 scripts/bilibili_video.py --bvid BV1xx411c7mD` (check the `aid` field)
-2. `sig run bilibili -- bash -c 'python3 scripts/bilibili_like.py --cookie "$SIG_BILIBILI_COOKIE" --aid 123456'`
+1. Get the aid: `sig run bilibili -- bash -c 'python3 <SKILL_DIR>/scripts/bilibili_video.py --cookie "$SIG_BILIBILI_COOKIE" --bvid BV1xx411c7mD'` (check the `aid` field)
+2. `sig run bilibili -- bash -c 'python3 <SKILL_DIR>/scripts/bilibili_like.py --cookie "$SIG_BILIBILI_COOKIE" --aid 123456'`
 
 ### Give coins
 
 1. **Confirm with user first — coins are non-refundable**
-2. `sig run bilibili -- bash -c 'python3 scripts/bilibili_coin.py --cookie "$SIG_BILIBILI_COOKIE" --aid 123456 --multiply 1'`
+2. `sig run bilibili -- bash -c 'python3 <SKILL_DIR>/scripts/bilibili_coin.py --cookie "$SIG_BILIBILI_COOKIE" --aid 123456 --multiply 1'`
 
 ### Add to favorites
 
-1. `sig run bilibili -- bash -c 'python3 scripts/bilibili_favorite.py --cookie "$SIG_BILIBILI_COOKIE" --aid 123456 --folder-id 100'`
+1. `sig run bilibili -- bash -c 'python3 <SKILL_DIR>/scripts/bilibili_favorite.py --cookie "$SIG_BILIBILI_COOKIE" --aid 123456 --folder-id 100'`
 
 ### View my profile
 
-1. `sig run bilibili -- bash -c 'python3 scripts/bilibili_me.py --cookie "$SIG_BILIBILI_COOKIE"'`
+1. `sig run bilibili -- bash -c 'python3 <SKILL_DIR>/scripts/bilibili_me.py --cookie "$SIG_BILIBILI_COOKIE"'`
 
 ### Browse dynamic feed
 
-1. `sig run bilibili -- bash -c 'python3 scripts/bilibili_dynamic.py --cookie "$SIG_BILIBILI_COOKIE" --limit 10'`
-2. Next page: `sig run bilibili -- bash -c 'python3 scripts/bilibili_dynamic.py --cookie "$SIG_BILIBILI_COOKIE" --offset TOKEN'`
+1. `sig run bilibili -- bash -c 'python3 <SKILL_DIR>/scripts/bilibili_dynamic.py --cookie "$SIG_BILIBILI_COOKIE" --limit 10'`
+2. Next page: `sig run bilibili -- bash -c 'python3 <SKILL_DIR>/scripts/bilibili_dynamic.py --cookie "$SIG_BILIBILI_COOKIE" --offset TOKEN'`
 
 ### View watch history
 
-1. `sig run bilibili -- bash -c 'python3 scripts/bilibili_history.py --cookie "$SIG_BILIBILI_COOKIE" --limit 20'`
+1. `sig run bilibili -- bash -c 'python3 <SKILL_DIR>/scripts/bilibili_history.py --cookie "$SIG_BILIBILI_COOKIE" --limit 20'`
 
 ### Get video subtitles
 
-1. `python3 scripts/bilibili_subtitle.py --bvid BV1xx411c7mD`
-2. Choose language: `python3 scripts/bilibili_subtitle.py --bvid BV1xx411c7mD --lang en-US`
+1. `sig run bilibili -- bash -c 'python3 <SKILL_DIR>/scripts/bilibili_subtitle.py --cookie "$SIG_BILIBILI_COOKIE" --bvid BV1xx411c7mD'`
+2. Choose language: `sig run bilibili -- bash -c 'python3 <SKILL_DIR>/scripts/bilibili_subtitle.py --cookie "$SIG_BILIBILI_COOKIE" --bvid BV1xx411c7mD --lang en-US'`

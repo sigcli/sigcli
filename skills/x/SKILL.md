@@ -9,102 +9,41 @@ description: 'Interact with X (Twitter) — view profiles, read tweets and threa
 
 `<SKILL_DIR>` is the directory containing this SKILL.md file. To find it, look at the path where this skill was loaded from. It is typically `~/.claude/skills/x` (installed) or wherever this file lives. Determine it ONCE at the start and reuse it.
 
-## Fast Gate (run this FIRST, every time)
+## Setup (run FIRST — every time, before any operation)
 
-Run these two commands silently — do NOT ask the user anything:
+You MUST complete this setup before running any script. Do NOT skip this step.
 
 ```bash
 sig status x 2>&1
 ```
 
-Check the JSON `"valid"` field:
+Check the JSON output fields `configured` and `valid`:
 
-- `"valid": true` — proceed to detect proxy below.
-- `"valid": false` — auto-run `sig login x` (do NOT ask user), then re-check `sig status x`.
-- Command not found or provider not found — run Full Setup.
+- **`configured: false`** → run Provider Setup below. Do NOT proceed without completing it.
+- **`valid: false` (but configured: true)** → run `sig login x`, then re-check.
+- **`valid: true`** → detect proxy (see below), then execute the user's request.
 
-**Detect proxy** (do NOT ask user — read from config):
+### Provider Setup
+
+1. Read `<SKILL_DIR>/references/provider-config.yaml`
+2. Append the provider block to `~/.sig/config.yaml` under `providers:`
+3. Ask the user: "Do you need a proxy to access this site?" — if yes, add `networkProxy: <url>` under the provider in config.yaml
+4. Run `sig login x` (with `--network-proxy <url>` if proxy was specified)
+5. Verify: run `sig status x` again — must show `valid: true` before proceeding
+
+### Proxy Detection (after provider is valid)
 
 ```bash
 grep -A15 "^\s*x:" ~/.sig/config.yaml | grep networkProxy | awk '{print $2}'
 ```
 
-If this outputs a URL (e.g. `socks5://127.0.0.1:1234`), use it as `HTTPS_PROXY=<url> HTTP_PROXY=<url>` in ALL python3 commands. If empty, omit proxy. NEVER ask the user about proxy — it's in the config.
-NOTE: if using socks5 protocol, convert to socks5h for python scripts, e.g. `socks5://127.0.0.1:1234` becomes `socks5h://127.0.0.1:1234`
-
-Once valid + proxy detected, go straight to executing the user's request.
-
----
-
-## Full Setup (only when Fast Gate fails — sig not found or provider not configured)
-
-### Step 1: Install sig (if missing)
-
-```bash
-npm install -g @sigcli/cli
-sig init
-```
-
-### Step 2: Login to X
-
-```bash
-sig login x
-```
-
-If the user needs a proxy for X (ask them only during first-time setup), use:
-
-```bash
-sig login x --network-proxy=socks5://127.0.0.1:3333
-```
-
-Note: for socks5h proxy, use `socks5://` (not `socks5h://`) in the `--network-proxy` flag.
-
-After login, `x` is provisioned automatically to `~/.sig/config.yaml`.
-
-### Step 3: Install Python dependencies
-
-Ensure deps are installed for the SAME python3 that `sig run` will use:
-
-```bash
-sig run x -- bash -c 'python3 -m pip install -r <SKILL_DIR>/requirements.txt'
-```
-
-This guarantees the packages land in the correct python environment. If already installed, this is a no-op.
-
-### Step 4: Validate (confirms auth + network + query IDs)
-
-```bash
-sig run x -- bash -c 'cd <SKILL_DIR> && HTTPS_PROXY=<proxy> HTTP_PROXY=<proxy> python3 scripts/x_user.py --username x'
-```
-
-- If **succeeds** (JSON with user data): done. Query IDs are now cached to disk for 1 hour.
-- If **connection error**: proxy is wrong. Ask user for correct proxy URL.
-- If **HTTP 403**: query IDs stale and auto-refresh failed. Retry once. If persistent, wait and try later.
-
----
+If this outputs a URL, prefix ALL python3 commands with `HTTPS_PROXY=<url> HTTP_PROXY=<url>`.
+If using socks5, convert to socks5h for python (e.g. `socks5://...` → `socks5h://...`).
+If empty, no proxy needed.
 
 ## Running Scripts
 
-**Working directory**: All commands must run from THIS skill's directory (the folder containing this SKILL.md). Use `cd` in the bash command to ensure this.
-
-**Pattern for ALL scripts:**
-
-```bash
-sig run x -- bash -c 'cd <SKILL_DIR> && [HTTPS_PROXY=<proxy> HTTP_PROXY=<proxy>] python3 scripts/<script>.py [args]'
-```
-
-Where:
-
-- `<SKILL_DIR>` is the absolute path to this skill's folder. Determine it once at the start of the conversation by finding where this SKILL.md lives.
-- `<proxy>` is the `networkProxy` value from `~/.sig/config.yaml` (detected in Fast Gate). Omit if none configured.
-
-Rules:
-
-- ALWAYS include the proxy env vars if `networkProxy` is set in the provider config. The scripts make their own HTTP calls and do NOT inherit the provider's networkProxy setting.
-- Read scripts use the cookie internally (no `--cookie` arg needed).
-- Write scripts require `--cookie "$SIG_X_COOKIE"` explicitly.
-- Screen names: always without `@` (use `elonmusk` not `@elonmusk`).
-- Tweet IDs: accept bare ID (`12345`) or full URL (`https://x.com/user/status/12345`).
+All scripts require setup to be completed first (see above).
 
 ---
 
