@@ -7,19 +7,35 @@
 #
 # Login:
 #   sig login x
+#
+# Notes:
+#   - validateUrl uses the notifications API which returns 401/403 without
+#     a valid auth cookie + ct0 CSRF token. The old /settings URL returned
+#     200 with a SPA shell even for guest cookies, bypassing validation.
+#   - The Bearer token is X's public app-level token (not user-specific).
+#   - networkProxy is required in regions where X is blocked.
 
 x:
     domains:
         - x.com
-    entryUrl: https://x.com/home
-    validateUrl: https://x.com/settings
+        - twitter.com
+    entryUrl: https://x.com/
+    validateUrl: https://x.com/i/api/2/notifications/all.json?count=1
     strategy: browser
-    ttl: 2h
     extract:
         - from: cookies
           as: cookie
           match: '*'
+        - from: cookies
+          as: ct0
+          match: 'ct0'
     apply:
         - in: header
           name: Cookie
-          value: ${cookie}
+          value: '${cookie}'
+        - in: header
+          name: x-csrf-token
+          value: '${ct0}'
+        - in: header
+          name: authorization
+          value: 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA'
