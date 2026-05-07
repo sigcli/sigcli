@@ -40,7 +40,13 @@ Once valid + proxy detected, go straight to executing the user's request.
 
 ## Authentication
 
-**If provider is missing:** read `references/provider-config.yaml` and append the provider block to `~/.sig/config.yaml` under `providers:`. Do this automatically — do not ask the user to configure it manually.
+**ALWAYS configure the provider first.** Run `sig providers` — if the provider is not listed:
+
+1. Read `references/provider-config.yaml` and append the block to `~/.sig/config.yaml` under `providers:`
+2. Ask the user if they need a proxy to access this site (if yes, add `networkProxy: <url>` under the provider)
+3. Run `sig login <provider>` (with `--network-proxy` if proxy was specified)
+
+Do this automatically before any operation — never skip because reads may work without auth.
 
 This skill uses **cookie-based authentication** for full read/write access to V2EX. Use `sig run` to inject the session cookie:
 

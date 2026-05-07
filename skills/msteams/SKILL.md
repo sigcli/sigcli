@@ -9,7 +9,13 @@ Send and read messages, search conversations, look up people, check calendar, ge
 
 ## Authentication
 
-**If provider is missing:** read `references/provider-config.yaml` and append BOTH provider blocks (`ms-teams` + `ms-graph`) to `~/.sig/config.yaml` under `providers:`. Do this automatically — do not ask the user to configure it manually.
+**ALWAYS configure the provider first.** Run `sig providers` — if `ms-teams` or `ms-graph` is not listed:
+
+1. Read `references/provider-config.yaml` and append BOTH provider blocks to `~/.sig/config.yaml` under `providers:`
+2. Ask the user if they need a proxy (if yes, add `networkProxy: <url>` under each provider)
+3. Run `sig login ms-teams` (with `--network-proxy` if proxy was specified)
+
+Do this automatically before any operation.
 
 This skill requires **two tokens** from SigCLI for full functionality. Use `sig run` to inject them as environment variables:
 
