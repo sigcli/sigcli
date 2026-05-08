@@ -13,7 +13,7 @@ v2ex:
         - www.v2ex.com
         - v2ex.com
     entryUrl: https://www.v2ex.com/
-    validateUrl: https://www.v2ex.com/settings
+    validateUrl: https://www.v2ex.com/notifications
     strategy: browser
     ttl: 2h
     extract:
