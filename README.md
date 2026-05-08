@@ -105,7 +105,7 @@ sig validates extracted credentials against `validateUrl` — 401/403 means not 
 | X (Twitter) | `https://x.com/i/api/2/notifications/all.json?count=1` |
 | LinkedIn    | `https://www.linkedin.com/voyager/api/me`              |
 | YouTube     | `https://www.youtube.com/account`                      |
-| V2EX        | `https://www.v2ex.com/settings`                        |
+| V2EX        | `https://www.v2ex.com/notifications`                   |
 | Zhihu       | `https://www.zhihu.com/api/v4/me`                      |
 
 ### 3. Multiple domains
