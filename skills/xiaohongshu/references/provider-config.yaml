@@ -1,0 +1,38 @@
+# sigcli provider config for Xiaohongshu (小红书)
+# Add to ~/.sig/config.yaml under `providers:`
+#
+# Prerequisites:
+#   npm install -g @sigcli/cli
+#   sig init
+#
+# Login:
+#   sig login xiaohongshu
+#
+# Notes:
+#   - a1 cookie is used as signing salt for x-s/x-s-common headers
+#   - web_session cookie is the auth session token
+#   - No validateUrl because XHS API requires signed headers which
+#     sigcli's validator cannot generate. Validation relies on
+#     extract rules requiring web_session to be present.
+
+xiaohongshu:
+    domains:
+        - xiaohongshu.com
+        - www.xiaohongshu.com
+        - edith.xiaohongshu.com
+    entryUrl: https://www.xiaohongshu.com/
+    strategy: browser
+    extract:
+        - from: cookies
+          as: cookie
+          match: '*'
+        - from: cookies
+          as: a1
+          match: 'a1'
+        - from: cookies
+          as: web_session
+          match: 'web_session'
+    apply:
+        - in: header
+          name: Cookie
+          value: '${cookie}'

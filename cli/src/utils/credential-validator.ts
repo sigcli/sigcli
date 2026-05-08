@@ -1,4 +1,4 @@
-import { fetch } from 'undici';
+import { fetch, ProxyAgent, Socks5ProxyAgent, type Dispatcher } from 'undici';
 
 import {
     HttpHeader,
@@ -9,7 +9,7 @@ import {
 } from '../types/index.js';
 import { ApplyEngine } from '../apply/apply-engine.js';
 import { parseDuration } from './duration.js';
-import { buildUserAgent, createProxyDispatcher } from './http.js';
+import { buildUserAgent } from './http.js';
 
 /**
  * Validate credentials by probing validateUrl ?? entryUrl.
@@ -17,7 +17,7 @@ import { buildUserAgent, createProxyDispatcher } from './http.js';
  * Rules:
  *   - empty credentials → false
  *   - not all extract rules produced values → false
- *   - 401/403 → false
+ *   - 401/403/406 → false
  *   - 3xx redirect to login URL → false
  *   - 2xx with JS redirect body (< 4KB) → false
  *   - 2xx → true
@@ -35,7 +35,9 @@ export async function validate(
 
     try {
         const headers = ApplyEngine.applyRules(provider.apply, credentials).headers;
-        const dispatcher = createProxyDispatcher(provider.networkProxy);
+        const dispatcher = provider.networkProxy
+            ? createProxyDispatcher(provider.networkProxy)
+            : undefined;
 
         const res = await fetch(url, {
             method: 'GET',
@@ -45,39 +47,26 @@ export async function validate(
             signal: AbortSignal.timeout(10_000),
         });
 
-        const body = await res.text().catch(() => '');
-        const resHeaders: Record<string, string | undefined> = {
-            location: res.headers.get('location') ?? undefined,
-        };
-        return isAuthenticatedResponse(
-            { status: res.status, body, headers: resHeaders },
-            !!provider.validateUrl,
-        );
+        return isValidResponse(res, provider);
     } catch {
         return true;
     }
 }
 
-export interface HttpResponse {
-    status: number;
-    body: string;
-    headers: Record<string, string | undefined>;
-}
-
-/**
- * Check if an HTTP response indicates valid authentication.
- * Shared by validate() probe and sig request reauth logic.
- */
-export function isAuthenticatedResponse(res: HttpResponse, validateUrl?: boolean): boolean {
-    if (res.status === 401 || res.status === 403) return false;
+async function isValidResponse(
+    res: Awaited<ReturnType<typeof fetch>>,
+    provider: ProviderConfig,
+): Promise<boolean> {
+    if (res.status === 401 || res.status === 403 || res.status === 406) return false;
 
     if (res.status >= 300 && res.status < 400) {
-        if (validateUrl) return false;
-        const location = (res.headers['location'] ?? '').toLowerCase();
+        if (provider.validateUrl) return false;
+        const location = (res.headers.get('location') ?? '').toLowerCase();
         return !LOGIN_URL_PATTERNS.some((p) => location.includes(p));
     }
 
-    if (res.body && res.body.length < 4096 && hasJsRedirect(res.body)) return false;
+    const body = await res.text().catch(() => '');
+    if (body && body.length < 4096 && hasJsRedirect(body)) return false;
 
     return true;
 }
@@ -121,4 +110,11 @@ const JS_REDIRECT_PATTERNS = [
 
 function hasJsRedirect(body: string): boolean {
     return JS_REDIRECT_PATTERNS.some((re) => re.test(body));
+}
+
+function createProxyDispatcher(proxy: string): Dispatcher {
+    if (proxy.startsWith('socks5://') || proxy.startsWith('socks://')) {
+        return new Socks5ProxyAgent(proxy);
+    }
+    return new ProxyAgent(proxy);
 }
