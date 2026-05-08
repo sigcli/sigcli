@@ -33,9 +33,10 @@ export class CdpStorageExtractor implements IBrowserExtractor {
                     const raw = dlv(parsed, rule.expiresJsonPath);
                     if (raw != null) {
                         expiresAt = this.toIsoTimestamp(raw);
+                        if (expiresAt && new Date(expiresAt).getTime() < Date.now()) return null;
                     }
                 } catch {
-                    // ignore parse errors
+                    /* ignore parse errors */
                 }
             }
 
