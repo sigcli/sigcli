@@ -53,6 +53,16 @@ export async function validate(
     }
 }
 
+/**
+ * Check if an HTTP response indicates valid authentication.
+ * Shared by validate() probe and sig request reauth logic.
+ */
+export function isAuthenticatedResponse(status: number, body: string): boolean {
+    if (status === 401 || status === 403) return false;
+    if (body && body.length < 4096 && hasJsRedirect(body)) return false;
+    return true;
+}
+
 async function isValidResponse(
     res: Awaited<ReturnType<typeof fetch>>,
     provider: ProviderConfig,
@@ -108,7 +118,7 @@ const JS_REDIRECT_PATTERNS = [
     /<meta\s+http-equiv\s*=\s*["']?refresh["']?/i,
 ];
 
-export function hasJsRedirect(body: string): boolean {
+function hasJsRedirect(body: string): boolean {
     return JS_REDIRECT_PATTERNS.some((re) => re.test(body));
 }
 
