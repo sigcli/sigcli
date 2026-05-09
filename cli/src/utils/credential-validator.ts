@@ -1,4 +1,4 @@
-import { fetch, ProxyAgent, Socks5ProxyAgent, type Dispatcher } from 'undici';
+import { fetch } from 'undici';
 
 import {
     HttpHeader,
@@ -9,7 +9,7 @@ import {
 } from '../types/index.js';
 import { ApplyEngine } from '../apply/apply-engine.js';
 import { parseDuration } from './duration.js';
-import { buildUserAgent } from './http.js';
+import { buildUserAgent, createProxyDispatcher } from './http.js';
 
 /**
  * Validate credentials by probing validateUrl ?? entryUrl.
@@ -35,9 +35,7 @@ export async function validate(
 
     try {
         const headers = ApplyEngine.applyRules(provider.apply, credentials).headers;
-        const dispatcher = provider.networkProxy
-            ? createProxyDispatcher(provider.networkProxy)
-            : undefined;
+        const dispatcher = createProxyDispatcher(provider.networkProxy);
 
         const res = await fetch(url, {
             method: 'GET',
@@ -47,26 +45,39 @@ export async function validate(
             signal: AbortSignal.timeout(10_000),
         });
 
-        return isValidResponse(res, provider);
+        const body = await res.text().catch(() => '');
+        const resHeaders: Record<string, string | undefined> = {
+            location: res.headers.get('location') ?? undefined,
+        };
+        return isAuthenticatedResponse(
+            { status: res.status, body, headers: resHeaders },
+            !!provider.validateUrl,
+        );
     } catch {
         return true;
     }
 }
 
-async function isValidResponse(
-    res: Awaited<ReturnType<typeof fetch>>,
-    provider: ProviderConfig,
-): Promise<boolean> {
+export interface HttpResponse {
+    status: number;
+    body: string;
+    headers: Record<string, string | undefined>;
+}
+
+/**
+ * Check if an HTTP response indicates valid authentication.
+ * Shared by validate() probe and sig request reauth logic.
+ */
+export function isAuthenticatedResponse(res: HttpResponse, validateUrl?: boolean): boolean {
     if (res.status === 401 || res.status === 403) return false;
 
     if (res.status >= 300 && res.status < 400) {
-        if (provider.validateUrl) return false;
-        const location = (res.headers.get('location') ?? '').toLowerCase();
+        if (validateUrl) return false;
+        const location = (res.headers['location'] ?? '').toLowerCase();
         return !LOGIN_URL_PATTERNS.some((p) => location.includes(p));
     }
 
-    const body = await res.text().catch(() => '');
-    if (body && body.length < 4096 && hasJsRedirect(body)) return false;
+    if (res.body && res.body.length < 4096 && hasJsRedirect(res.body)) return false;
 
     return true;
 }
@@ -110,11 +121,4 @@ const JS_REDIRECT_PATTERNS = [
 
 function hasJsRedirect(body: string): boolean {
     return JS_REDIRECT_PATTERNS.some((re) => re.test(body));
-}
-
-function createProxyDispatcher(proxy: string): Dispatcher {
-    if (proxy.startsWith('socks5://') || proxy.startsWith('socks://')) {
-        return new Socks5ProxyAgent(proxy);
-    }
-    return new ProxyAgent(proxy);
 }
