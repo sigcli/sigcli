@@ -79,7 +79,7 @@ async function executeWithReauth(
 
     let parsed = await toParseResponse(response);
 
-    if (!isAuthenticatedResponse(parsed.status, parsed.body)) {
+    if (!isAuthenticatedResponse(parsed)) {
         auth.logger.info(`request: response failed auth check, re-authenticating...`);
         const reauth = await auth.getExtractedCreds(provider.id, { force: true });
         if (isOk(reauth)) {

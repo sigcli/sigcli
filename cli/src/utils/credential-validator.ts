@@ -48,41 +48,38 @@ export async function validate(
         });
 
         const body = await res.text().catch(() => '');
+        const resHeaders: Record<string, string | undefined> = {
+            location: res.headers.get('location') ?? undefined,
+        };
         return isAuthenticatedResponse(
-            res.status,
-            body,
-            {
-                location: res.headers.get('location') ?? undefined,
-            },
-            { validateUrl: !!provider.validateUrl },
+            { status: res.status, body, headers: resHeaders },
+            !!provider.validateUrl,
         );
     } catch {
         return true;
     }
 }
 
+export interface HttpResponse {
+    status: number;
+    body: string;
+    headers: Record<string, string | undefined>;
+}
+
 /**
  * Check if an HTTP response indicates valid authentication.
  * Shared by validate() probe and sig request reauth logic.
- *
- * When validateUrl is set, any 3xx is treated as invalid.
- * When not set, 3xx is only invalid if Location points to a login URL.
  */
-export function isAuthenticatedResponse(
-    status: number,
-    body: string,
-    headers?: { location?: string },
-    options?: { validateUrl?: boolean },
-): boolean {
-    if (status === 401 || status === 403) return false;
+export function isAuthenticatedResponse(res: HttpResponse, validateUrl?: boolean): boolean {
+    if (res.status === 401 || res.status === 403) return false;
 
-    if (status >= 300 && status < 400 && headers?.location !== undefined) {
-        if (options?.validateUrl) return false;
-        const location = (headers.location ?? '').toLowerCase();
+    if (res.status >= 300 && res.status < 400) {
+        if (validateUrl) return false;
+        const location = (res.headers['location'] ?? '').toLowerCase();
         return !LOGIN_URL_PATTERNS.some((p) => location.includes(p));
     }
 
-    if (body && body.length < 4096 && hasJsRedirect(body)) return false;
+    if (res.body && res.body.length < 4096 && hasJsRedirect(res.body)) return false;
 
     return true;
 }
