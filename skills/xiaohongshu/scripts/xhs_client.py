@@ -1,33 +1,33 @@
 #!/usr/bin/env python3
-"""Xiaohongshu API client with CDP-based request signing.
+"""Xiaohongshu API client using headless browser + CDP Fetch intercept.
 
-Uses a headless browser (shared browser-data with sigcli) to call
-XHS's internal signing function window._webmsxyw(uri, data).
+Architecture:
+- Starts headless browser sharing sigcli's browser-data (has login state)
+- Navigates to XHS pages to trigger API calls with proper signing
+- Intercepts API responses via CDP Fetch domain
+- For SSR pages (note detail, user profile), extracts from __INITIAL_STATE__
+
+This approach is immune to signing algorithm changes since XHS's own
+frontend handles all anti-bot headers (x-s, x-t, x-s-common, x-rap-param).
 """
 
 import asyncio
+import base64
 import json
 import os
-import random
-import string
+import socket
 import subprocess
 import time
 from typing import Any, Dict, Optional
-
-import requests
+from urllib.parse import quote
 
 try:
     import websockets
 except ImportError:
     websockets = None
 
-API_BASE = "https://edith.xiaohongshu.com"
-USER_AGENT = (
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
-)
-BROWSER_DATA_DIR = os.path.expanduser("~/.sig/browser-data-xhs-sign")
-XHS_URL = "https://www.xiaohongshu.com/"
+BROWSER_DATA_DIR = os.path.expanduser("~/.sig/browser-data")
+XHS_BASE = "https://www.xiaohongshu.com"
 
 
 class XhsApiError(Exception):
@@ -38,13 +38,92 @@ class XhsApiError(Exception):
 
 
 class XhsClient:
-    """Xiaohongshu API client using CDP for signing."""
+    """Xiaohongshu client using headless browser navigation + response interception."""
 
     def __init__(self):
-        self._cookie = ""
         self._ws_url = ""
-        self._browser_pid = None
+        self._browser_proc = None
         self._port = None
+
+    def connect(self):
+        """Start headless browser and connect via CDP."""
+        if not websockets:
+            raise XhsApiError(-1, "Missing dependency: pip install websockets")
+        self._start_browser()
+        self._ws_url = self._get_ws_url()
+        # Remove service worker (interferes with Fetch intercept)
+        asyncio.run(self._remove_service_worker())
+
+    def close(self):
+        """Stop browser."""
+        if self._browser_proc:
+            self._browser_proc.terminate()
+            try:
+                self._browser_proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self._browser_proc.kill()
+            self._browser_proc = None
+
+    # =========================================================================
+    # Public API
+    # =========================================================================
+
+    def search_notes(self, keyword: str, sort: str = "general") -> Dict[str, Any]:
+        """Search notes by keyword."""
+        url = f"{XHS_BASE}/search_result?keyword={quote(keyword)}&source=web_search_result_note"
+        if sort != "general":
+            url += f"&sort={sort}"
+
+        data = asyncio.run(self._navigate_and_intercept(url, "*search/notes*"))
+        if not data:
+            raise XhsApiError(-1, "Failed to intercept search response")
+        if data.get("code") != 0:
+            raise XhsApiError(data.get("code", -1), data.get("msg", ""))
+
+        items = data.get("data", {}).get("items", [])
+        notes = []
+        for item in items:
+            card = item.get("note_card", {})
+            user = card.get("user", {})
+            interact = card.get("interact_info", {})
+            notes.append({
+                "id": card.get("note_id", item.get("id", "")),
+                "title": card.get("display_title", ""),
+                "type": card.get("type", ""),
+                "author": user.get("nickname", ""),
+                "author_id": user.get("user_id", ""),
+                "likes": interact.get("liked_count", "0"),
+                "cover": card.get("cover", {}).get("url", ""),
+            })
+        return {"count": len(notes), "notes": notes}
+
+    def get_note(self, note_id: str) -> Dict[str, Any]:
+        """Get note detail (SSR - extract from page state)."""
+        url = f"{XHS_BASE}/explore/{note_id}"
+        state = asyncio.run(self._navigate_and_extract_state(url, self._extract_note_js(note_id)))
+        if not state:
+            raise XhsApiError(-1, f"Failed to load note {note_id}")
+        return state
+
+    def get_user(self, user_id: str) -> Dict[str, Any]:
+        """Get user profile (SSR - extract from page state)."""
+        url = f"{XHS_BASE}/user/profile/{user_id}"
+        state = asyncio.run(self._navigate_and_extract_state(url, self._extract_user_js()))
+        if not state:
+            raise XhsApiError(-1, f"Failed to load user {user_id}")
+        return state
+
+    def get_comments(self, note_id: str) -> Dict[str, Any]:
+        """Get note comments (extracted from page state after navigation)."""
+        url = f"{XHS_BASE}/explore/{note_id}"
+        state = asyncio.run(self._navigate_and_extract_state(url, self._extract_comments_js(note_id)))
+        if not state:
+            raise XhsApiError(-1, f"Failed to load comments for {note_id}")
+        return state
+
+    # =========================================================================
+    # Browser management
+    # =========================================================================
 
     def _find_browser(self) -> str:
         paths = [
@@ -58,8 +137,6 @@ class XhsClient:
         raise XhsApiError(-1, "No Chrome/Edge/Chromium found")
 
     def _start_browser(self):
-        """Start headless browser sharing sigcli's browser-data."""
-        import socket
         s = socket.socket()
         s.bind(("127.0.0.1", 0))
         self._port = s.getsockname()[1]
@@ -74,19 +151,18 @@ class XhsClient:
             "--disable-gpu",
             "--no-first-run",
             "--no-default-browser-check",
-            XHS_URL,
+            f"{XHS_BASE}/explore",
         ]
-        self._browser_pid = subprocess.Popen(
+        self._browser_proc = subprocess.Popen(
             args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-        ).pid
-        # Wait for CDP ready
-        time.sleep(5)
+        )
+        time.sleep(6)
 
     def _get_ws_url(self) -> str:
-        for _ in range(10):
+        import requests
+        for _ in range(15):
             try:
-                resp = requests.get(f"http://127.0.0.1:{self._port}/json", timeout=2)
-                pages = resp.json()
+                pages = requests.get(f"http://127.0.0.1:{self._port}/json", timeout=2).json()
                 for p in pages:
                     if "xiaohongshu" in p.get("url", ""):
                         return p["webSocketDebuggerUrl"]
@@ -94,145 +170,152 @@ class XhsClient:
                 time.sleep(0.5)
         raise XhsApiError(-1, "Cannot connect to browser CDP")
 
-    def _stop_browser(self):
-        if self._browser_pid:
-            try:
-                os.kill(self._browser_pid, 9)
-            except ProcessLookupError:
-                pass
-            self._browser_pid = None
-
-    async def _cdp_sign(self, ws_url: str, uri: str, data: Optional[str] = None) -> Dict[str, str]:
-        """Call window._webmsxyw via CDP to get signing headers."""
-        async with websockets.connect(ws_url, max_size=10 * 1024 * 1024) as ws:
-            # Wait for signing function to be available
-            for _ in range(10):
-                check = {"id": 99, "method": "Runtime.evaluate", "params": {"expression": "typeof window._webmsxyw", "returnByValue": True}}
-                await ws.send(json.dumps(check))
-                resp = json.loads(await ws.recv())
-                if resp.get("result", {}).get("result", {}).get("value") == "function":
-                    break
-                await asyncio.sleep(1)
-            else:
-                raise XhsApiError(-1, "Signing function not available after waiting")
-
-            js_uri = uri.replace("'", "\\'")
-            if data:
-                js_data = data.replace("\\", "\\\\").replace("'", "\\'")
-                expr = f"JSON.stringify(window._webmsxyw('{js_uri}', '{js_data}'))"
-            else:
-                expr = f"JSON.stringify(window._webmsxyw('{js_uri}', undefined))"
-
-            msg = {"id": 1, "method": "Runtime.evaluate", "params": {"expression": expr, "returnByValue": True, "awaitPromise": True}}
+    async def _remove_service_worker(self):
+        async with websockets.connect(self._ws_url, max_size=50 * 1024 * 1024) as ws:
+            js = "navigator.serviceWorker.getRegistrations().then(rs => {rs.forEach(r => r.unregister()); return rs.length})"
+            msg = {"id": 1, "method": "Runtime.evaluate", "params": {"expression": js, "awaitPromise": True, "returnByValue": True}}
             await ws.send(json.dumps(msg))
-            resp = json.loads(await ws.recv())
-
-            result = resp.get("result", {}).get("result", {})
-            if result.get("subtype") == "error" or not result.get("value"):
-                raise XhsApiError(-1, f"Signing failed: {result.get('description', 'unknown')}")
-
-            signs = json.loads(result["value"])
-            return {
-                "x-s": signs.get("X-s", ""),
-                "x-t": str(signs.get("X-t", "")),
-                "x-s-common": signs.get("X-s-common", ""),
-            }
-
-    async def _inject_cookies(self, ws_url: str, cookie_str: str):
-        """Inject cookies into the browser page so signing function has context."""
-        async with websockets.connect(ws_url, max_size=10 * 1024 * 1024) as ws:
-            for part in cookie_str.split("; "):
-                if "=" not in part:
-                    continue
-                name, value = part.split("=", 1)
-                msg = {
-                    "id": 1,
-                    "method": "Network.setCookie",
-                    "params": {
-                        "name": name.strip(),
-                        "value": value.strip(),
-                        "domain": ".xiaohongshu.com",
-                        "path": "/",
-                    },
-                }
-                await ws.send(json.dumps(msg))
-                await ws.recv()
-            # Reload page so JS picks up the cookies
-            msg = {"id": 2, "method": "Page.reload", "params": {}}
-            await ws.send(json.dumps(msg))
+            await ws.recv()
+            # Reload page so SW removal takes effect
+            await ws.send(json.dumps({"id": 2, "method": "Page.reload", "params": {}}))
             await ws.recv()
             await asyncio.sleep(3)
 
-    async def _cdp_cookies(self, ws_url: str) -> str:
-        """Get cookies from browser via CDP."""
-        async with websockets.connect(ws_url, max_size=10 * 1024 * 1024) as ws:
-            msg = {"id": 1, "method": "Network.getCookies", "params": {"urls": ["https://www.xiaohongshu.com", "https://edith.xiaohongshu.com"]}}
-            await ws.send(json.dumps(msg))
-            resp = json.loads(await ws.recv())
-            cookies = resp.get("result", {}).get("cookies", [])
-            return "; ".join(f"{c['name']}={c['value']}" for c in cookies)
+    # =========================================================================
+    # CDP operations
+    # =========================================================================
 
-    def _sign(self, uri: str, data: Optional[str] = None) -> Dict[str, str]:
-        """Synchronous wrapper for CDP signing."""
-        return asyncio.run(self._cdp_sign(self._ws_url, uri, data))
+    async def _navigate_and_intercept(self, url: str, pattern: str, timeout: float = 12) -> Optional[Dict]:
+        """Navigate to URL and intercept matching API response."""
+        async with websockets.connect(self._ws_url, max_size=50 * 1024 * 1024) as ws:
+            await ws.send(json.dumps({"id": 1, "method": "Fetch.enable", "params": {"patterns": [{"urlPattern": pattern, "requestStage": "Response"}]}}))
+            await ws.recv()
 
-    def _cookies(self) -> str:
-        """Synchronous wrapper for getting cookies."""
-        return asyncio.run(self._cdp_cookies(self._ws_url))
+            await ws.send(json.dumps({"id": 2, "method": "Page.navigate", "params": {"url": url}}))
+            await ws.recv()
 
-    def connect(self, cookie: str = ""):
-        """Start browser and connect. Pass cookie from sig run env."""
-        if not websockets:
-            raise XhsApiError(-1, "websockets package required: pip install websockets")
-        if not cookie:
-            cookie = os.environ.get("SIG_XIAOHONGSHU_COOKIE", "")
-        if not cookie:
-            raise XhsApiError(-1, "AUTH_REQUIRED: no cookie provided")
-        self._cookie = cookie
-        self._start_browser()
-        self._ws_url = self._get_ws_url()
-        # Inject cookies into the headless browser so _webmsxyw works
-        asyncio.run(self._inject_cookies(self._ws_url, cookie))
+            result = None
+            start = asyncio.get_event_loop().time()
+            while asyncio.get_event_loop().time() - start < timeout:
+                try:
+                    msg = await asyncio.wait_for(ws.recv(), timeout=1)
+                    data = json.loads(msg)
+                    if data.get("method") == "Fetch.requestPaused":
+                        req_id = data["params"]["requestId"]
+                        await ws.send(json.dumps({"id": 3, "method": "Fetch.getResponseBody", "params": {"requestId": req_id}}))
+                        body_msg = json.loads(await ws.recv())
+                        body = body_msg.get("result", {}).get("body", "")
+                        if body_msg.get("result", {}).get("base64Encoded") and body:
+                            body = base64.b64decode(body).decode("utf-8")
+                        if body:
+                            result = json.loads(body)
+                        await ws.send(json.dumps({"id": 4, "method": "Fetch.continueResponse", "params": {"requestId": req_id}}))
+                        await ws.recv()
+                        break
+                except asyncio.TimeoutError:
+                    continue
 
-    def close(self):
-        self._stop_browser()
+            await ws.send(json.dumps({"id": 5, "method": "Fetch.disable", "params": {}}))
+            await ws.recv()
+            return result
 
-    def get(self, uri: str) -> Dict[str, Any]:
-        """Signed GET request."""
-        signs = self._sign(uri, None)
-        headers = {
-            "User-Agent": USER_AGENT,
-            "Origin": "https://www.xiaohongshu.com",
-            "Referer": "https://www.xiaohongshu.com/",
-            "Accept": "application/json, text/plain, */*",
-            "Cookie": self._cookie,
-            **signs,
-        }
-        resp = requests.get(f"{API_BASE}{uri}", headers=headers, timeout=15)
-        return self._handle_response(resp)
+    async def _navigate_and_extract_state(self, url: str, js_expression: str, timeout: float = 8) -> Optional[Dict]:
+        """Navigate to URL and extract data from __INITIAL_STATE__."""
+        async with websockets.connect(self._ws_url, max_size=50 * 1024 * 1024) as ws:
+            await ws.send(json.dumps({"id": 1, "method": "Page.navigate", "params": {"url": url}}))
+            await ws.recv()
 
-    def post(self, uri: str, data: Dict) -> Dict[str, Any]:
-        """Signed POST request."""
-        body = json.dumps(data, separators=(",", ":"), ensure_ascii=False)
-        signs = self._sign(uri, body)
-        headers = {
-            "User-Agent": USER_AGENT,
-            "Content-Type": "application/json;charset=UTF-8",
-            "Origin": "https://www.xiaohongshu.com",
-            "Referer": "https://www.xiaohongshu.com/",
-            "Cookie": self._cookie,
-            **signs,
-        }
-        resp = requests.post(f"{API_BASE}{uri}", headers=headers, data=body, timeout=15)
-        return self._handle_response(resp)
+            for _ in range(int(timeout * 2)):
+                await asyncio.sleep(0.5)
+                msg = {"id": 2, "method": "Runtime.evaluate", "params": {"expression": js_expression, "returnByValue": True}}
+                await ws.send(json.dumps(msg))
+                resp = json.loads(await ws.recv())
+                val = resp.get("result", {}).get("result", {}).get("value", "")
+                if val:
+                    return json.loads(val)
+            return None
 
-    def _handle_response(self, resp: requests.Response) -> Dict[str, Any]:
-        if resp.status_code == 461:
-            raise XhsApiError(461, "Signature rejected")
-        if resp.status_code == 406:
-            raise XhsApiError(406, "Request blocked (missing or invalid signature)")
-        resp.raise_for_status()
-        result = resp.json()
-        if not result.get("success") and result.get("code", 0) != 0:
-            raise XhsApiError(result.get("code", -1), result.get("msg", "Unknown error"))
-        return result
+    # =========================================================================
+    # State extraction JS
+    # =========================================================================
+
+    @staticmethod
+    def _extract_note_js(note_id: str) -> str:
+        return (
+            "(function() {"
+            "  var state = window.__INITIAL_STATE__;"
+            "  if (!state || !state.note) return '';"
+            "  var map = state.note.noteDetailMap;"
+            "  var id = state.note.currentNoteId || '" + note_id + "';"
+            "  if (!map || !map[id]) return '';"
+            "  var n = map[id].note;"
+            "  if (!n) return '';"
+            "  return JSON.stringify({"
+            "    id: n.noteId || id,"
+            "    title: n.title || '',"
+            "    desc: n.desc || '',"
+            "    type: n.type || '',"
+            "    likes: n.interactInfo?.likedCount || '0',"
+            "    collects: n.interactInfo?.collectedCount || '0',"
+            "    comments_count: n.interactInfo?.commentCount || '0',"
+            "    shares: n.interactInfo?.shareCount || '0',"
+            "    author: n.user?.nickname || '',"
+            "    author_id: n.user?.userId || '',"
+            "    tags: (n.tagList || []).map(function(t){return t.name}).slice(0, 10),"
+            "    images: (n.imageList || []).map(function(i){return i.urlDefault || i.url || ''}).slice(0, 9),"
+            "    time: n.time || '',"
+            "  });"
+            "})()"
+        )
+
+    @staticmethod
+    def _extract_user_js() -> str:
+        return (
+            "(function() {"
+            "  var state = window.__INITIAL_STATE__;"
+            "  if (!state || !state.user) return '';"
+            "  var u = state.user.userPageData;"
+            "  if (!u) return '';"
+            "  var info = u.basicInfo || {};"
+            "  var inter = u.interactions || [];"
+            "  return JSON.stringify({"
+            "    id: info.userId || '',"
+            "    nickname: info.nickname || '',"
+            "    desc: info.desc || '',"
+            "    gender: info.gender || '',"
+            "    ip_location: info.ipLocation || '',"
+            "    red_id: info.redId || '',"
+            "    follows: inter[0]?.count || '0',"
+            "    fans: inter[1]?.count || '0',"
+            "    notes_count: inter[2]?.count || '0',"
+            "    liked_count: inter[3]?.count || '0',"
+            "  });"
+            "})()"
+        )
+
+    @staticmethod
+    def _extract_comments_js(note_id: str) -> str:
+        return (
+            "(function() {"
+            "  var state = window.__INITIAL_STATE__;"
+            "  if (!state || !state.note) return '';"
+            "  var map = state.note.noteDetailMap;"
+            "  var id = state.note.currentNoteId || '" + note_id + "';"
+            "  if (!map || !map[id]) return '';"
+            "  var comments = map[id].comments || [];"
+            "  if (!comments.length) return '';"
+            "  return JSON.stringify({"
+            "    note_id: id,"
+            "    count: comments.length,"
+            "    comments: comments.slice(0, 20).map(function(c) {"
+            "      return {"
+            "        id: c.id || '',"
+            "        user: c.userInfo?.nickname || '',"
+            "        content: c.content || '',"
+            "        likes: c.likeCount || 0,"
+            "        time: c.createTime || '',"
+            "      };"
+            "    }),"
+            "  });"
+            "})()"
+        )
