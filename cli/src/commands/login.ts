@@ -1,27 +1,9 @@
-import { isErr, isOk, type ProviderConfig } from '../types/index.js';
-import { addProviderToConfig } from '../config/loader.js';
-import type { ProviderEntry } from '../config/schema.js';
+import { isErr, isOk } from '../types/index.js';
 import { ExitCode } from '../utils/exit-codes.js';
 import { formatJson } from '../utils/formatters.js';
+import { persistIfAutoProvisioned } from '../utils/provider-persist.js';
 import { AuditAction, AuditStatus, logAuditEvent } from '../audit/audit-log.js';
 import type { AuthManager } from '../auth-manager.js';
-
-/** Convert runtime ProviderConfig to the YAML ProviderEntry format. */
-function toProviderEntry(pc: ProviderConfig): ProviderEntry {
-    return {
-        ...(pc.name !== pc.id ? { name: pc.name } : {}),
-        domains: pc.domains,
-        entryUrl: pc.entryUrl,
-        strategy: pc.strategy as ProviderEntry['strategy'],
-        extract: pc.extract,
-        apply: pc.apply,
-        ...(pc.required?.length ? { required: pc.required } : {}),
-        ...(pc.cookiePaths?.length ? { cookiePaths: pc.cookiePaths } : {}),
-        ...(pc.ttl ? { ttl: pc.ttl } : {}),
-        ...(pc.networkProxy ? { networkProxy: pc.networkProxy } : {}),
-        ...(pc.loginMode ? { loginMode: pc.loginMode } : {}),
-    };
-}
 
 export async function runLogin(
     positionals: string[],
@@ -109,9 +91,7 @@ export async function runLogin(
     }
 
     // Persist auto-provisioned provider to config.yaml after successful auth
-    if (provider.autoProvisioned) {
-        await addProviderToConfig(provider.id, toProviderEntry(provider));
-    }
+    await persistIfAutoProvisioned(provider);
 
     const status = await auth.getStatus(provider.id);
     await logAuditEvent({
