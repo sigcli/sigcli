@@ -59,7 +59,10 @@ export class BrowserStrategy implements IStrategy {
         this.extractors.set('localStorage', new CdpStorageExtractor());
     }
 
-    async extract(provider: ProviderConfig): Promise<Result<ExtractionResult, AuthError>> {
+    async extract(
+        provider: ProviderConfig,
+        _context?: import('../../types/interfaces/strategy.js').ExtractionContext,
+    ): Promise<Result<ExtractionResult, AuthError>> {
         const mode = provider.loginMode ?? 'auto';
         this.logger.info(`${provider.id}: extract mode=${mode}`);
 

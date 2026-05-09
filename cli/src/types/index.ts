@@ -12,6 +12,7 @@ export type {
     AuthDiagnostics,
     ExtractRule,
     ApplyRule,
+    ExchangeConfig,
 } from './types.js';
 
 export { ok, err, isOk, isErr } from './result.js';
@@ -58,7 +59,7 @@ export {
 } from './constants.js';
 export type { WaitUntilValue, OutputFormatValue } from './constants.js';
 
-export type { IStrategy, ExtractedCredentials } from './interfaces/strategy.js';
+export type { IStrategy, ExtractedCredentials, ExtractionContext } from './interfaces/strategy.js';
 export type { IBrowserExtractor } from './interfaces/browser-extractor.js';
 export type { IStorage } from './interfaces/storage.js';
 export type { IProviderRegistry } from './interfaces/provider.js';

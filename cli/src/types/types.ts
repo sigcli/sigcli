@@ -23,19 +23,26 @@ export interface ApplyRule {
     action?: 'set' | 'append' | 'remove'; // Default: 'set'
 }
 
+export interface ExchangeConfig {
+    grant_type: string;
+    scopes?: string[];
+    as: string;
+}
+
 export interface ProviderConfig {
     id: string;
     name: string;
     domains: string[]; // Exact or glob: ["*.example.com", "api.example.com"]
     entryUrl: string; // Starting URL for browser auth
     validateUrl?: string; // Protected URL for credential validation (defaults to entryUrl)
-    strategy: string; // Strategy name: "browser" | "prompt"
+    strategy: string; // Strategy name: "browser" | "prompt" | "oauth2"
     autoProvisioned?: boolean; // True if created by auto-provision (not from config file)
     networkProxy?: string; // Browser network proxy, e.g. "socks5://127.0.0.1:1080"
     loginMode?: 'headless' | 'visible' | 'auto'; // Browser login mode
 
     extract: ExtractRule[];
     apply: ApplyRule[];
+    exchange?: ExchangeConfig;
     required?: string[];
     cookiePaths?: string[];
     ttl?: string;

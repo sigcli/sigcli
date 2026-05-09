@@ -66,7 +66,7 @@ export interface ProviderEntry {
     domains: string[];
     entryUrl: string;
     validateUrl?: string;
-    strategy: 'browser' | 'prompt';
+    strategy: 'browser' | 'prompt' | 'oauth2';
     extract: Array<{
         from: string;
         as: string;
@@ -75,6 +75,11 @@ export interface ProviderEntry {
         expiresJsonPath?: string;
     }>;
     apply: Array<{ in: string; name: string; value: string; action?: 'set' | 'append' | 'remove' }>;
+    exchange?: {
+        grant_type: string;
+        scopes?: string[];
+        as: string;
+    };
     required?: string[];
     cookiePaths?: string[];
     ttl?: string;

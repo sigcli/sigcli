@@ -55,8 +55,16 @@ export async function runLogin(
         auth.providerRegistry.register(provider);
     }
 
-    // Step 3: Check browser availability for browser-based strategies
-    if (!auth.browserAvailable && provider.strategy === 'browser') {
+    // Step 3: --strategy override (for auto-provisioned providers)
+    if (typeof flags.strategy === 'string' && provider.autoProvisioned) {
+        provider.strategy = flags.strategy;
+    }
+
+    // Step 4: Parse --set key=value pairs
+    const setValues = parseSetFlags(flags);
+
+    // Step 5: Check browser availability for browser-based strategies
+    if (!auth.browserAvailable && provider.strategy === 'browser' && !setValues) {
         process.stderr.write(
             `Browser is not available on this machine.\n` +
                 `Provider "${provider.name}" uses "${provider.strategy}" strategy which requires a browser.\n\n` +
@@ -71,12 +79,13 @@ export async function runLogin(
         return;
     }
 
-    // Step 4: Authenticate (3-phase cascade: no-nav → headless → visible)
+    // Step 6: Authenticate
     process.stderr.write(`[sig] Authenticating with "${provider.name}"...\n`);
     const result = await auth.getExtractedCreds(provider.id, {
         force: true,
         ...(networkProxy !== undefined ? { networkProxy } : {}),
         ...(loginMode !== undefined ? { loginMode } : {}),
+        ...(setValues ? { setValues } : {}),
     });
     if (!isOk(result)) {
         await logAuditEvent({
@@ -109,4 +118,29 @@ export async function runLogin(
             ...(status.expiresAt ? { expiresAt: status.expiresAt } : {}),
         }) + '\n',
     );
+}
+
+/**
+ * Parse --set flags into a key-value map.
+ * Accepts: --set key=value (single or repeated)
+ */
+function parseSetFlags(
+    flags: Record<string, string | boolean | string[]>,
+): Record<string, string> | undefined {
+    const raw = flags['set'];
+    if (!raw) return undefined;
+
+    const entries = Array.isArray(raw) ? raw : typeof raw === 'string' ? [raw] : [];
+    if (entries.length === 0) return undefined;
+
+    const result: Record<string, string> = {};
+    for (const entry of entries) {
+        const eqIdx = entry.indexOf('=');
+        if (eqIdx === -1) continue;
+        const key = entry.slice(0, eqIdx);
+        const value = entry.slice(eqIdx + 1);
+        if (key) result[key] = value;
+    }
+
+    return Object.keys(result).length > 0 ? result : undefined;
 }

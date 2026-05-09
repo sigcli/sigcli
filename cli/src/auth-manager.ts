@@ -22,6 +22,7 @@ import { CachedStorage } from './storage/cached-storage.js';
 import { DirectoryStorage } from './storage/directory-storage.js';
 import { loadEncryptionKey } from './crypto/encryption.js';
 import { BrowserStrategy } from './strategies/browser/index.js';
+import { OAuth2Strategy } from './strategies/oauth2/index.js';
 import { PromptStrategy } from './strategies/prompt/index.js';
 import { ApplyEngine, type ApplyResult } from './apply/apply-engine.js';
 import { parseDuration } from './utils/duration.js';
@@ -72,6 +73,7 @@ export class AuthManager {
                     strategy: entry.strategy,
                     extract: entry.extract,
                     apply: entry.apply,
+                    exchange: entry.exchange,
                     networkProxy: entry.networkProxy,
                     loginMode: entry.loginMode,
                     required: entry.required,
@@ -97,6 +99,7 @@ export class AuthManager {
             manager.registerStrategy(new BrowserStrategy(config.browser, undefined, log));
         }
         manager.registerStrategy(new PromptStrategy());
+        manager.registerStrategy(new OAuth2Strategy());
 
         return manager;
     }
@@ -120,7 +123,12 @@ export class AuthManager {
      */
     public async getExtractedCreds(
         providerId: string,
-        options: { force?: boolean; networkProxy?: string; loginMode?: string } = {},
+        options: {
+            force?: boolean;
+            networkProxy?: string;
+            loginMode?: string;
+            setValues?: Record<string, string>;
+        } = {},
     ): Promise<Result<ExtractedCredentials, AuthError>> {
         const provider = this.providers.get(providerId);
         if (!provider) return err(new ProviderNotFoundError(providerId));
@@ -137,7 +145,7 @@ export class AuthManager {
         if (options.loginMode)
             effectiveProvider.loginMode = options.loginMode as ProviderConfig['loginMode'];
 
-        return this.authenticate(effectiveProvider);
+        return this.authenticate(effectiveProvider, options.setValues);
     }
 
     /**
@@ -268,6 +276,7 @@ export class AuthManager {
 
     private async authenticate(
         provider: ProviderConfig,
+        setValues?: Record<string, string>,
     ): Promise<Result<ExtractedCredentials, AuthError>> {
         const strategy = this.strategies.get(provider.strategy);
         if (!strategy) {
@@ -279,7 +288,8 @@ export class AuthManager {
         this.logger.info(`${provider.id}: authenticating via ${provider.strategy}`);
         const startTime = Date.now();
 
-        const extractResult = await strategy.extract(provider);
+        const context = setValues ? { setValues } : undefined;
+        const extractResult = await strategy.extract(provider, context);
         if (!isOk(extractResult)) {
             this.logger.error(`${provider.id}: auth failed — ${extractResult.error.message}`);
             return extractResult;

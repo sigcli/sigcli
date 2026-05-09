@@ -18,6 +18,7 @@ export type {
     AuthDiagnostics,
     ExtractRule,
     ApplyRule,
+    ExchangeConfig,
 } from './types/index.js';
 
 // Result type
@@ -49,7 +50,7 @@ export {
 // Interfaces
 export type { IStorage } from './types/index.js';
 export type { IProviderRegistry } from './types/index.js';
-export type { IStrategy, ExtractedCredentials } from './types/index.js';
+export type { IStrategy, ExtractedCredentials, ExtractionContext } from './types/index.js';
 export type { IBrowserExtractor } from './types/index.js';
 
 // Apply engine
@@ -62,6 +63,7 @@ export { BrowserStrategy } from './strategies/browser/index.js';
 export { BrowserStrategy as BrowserSource } from './strategies/browser/index.js';
 export { PromptStrategy } from './strategies/prompt/index.js';
 export { PromptStrategy as PromptSource } from './strategies/prompt/index.js';
+export { OAuth2Strategy } from './strategies/oauth2/index.js';
 export { CdpCookieExtractor } from './strategies/browser/index.js';
 export { CdpStorageExtractor } from './strategies/browser/index.js';
 export { StrategyRegistry } from './strategies/registry.js';
