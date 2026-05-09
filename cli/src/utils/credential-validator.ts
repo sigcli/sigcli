@@ -47,7 +47,15 @@ export async function validate(
             signal: AbortSignal.timeout(10_000),
         });
 
-        return isValidResponse(res, provider);
+        const body = await res.text().catch(() => '');
+        return isAuthenticatedResponse(
+            res.status,
+            body,
+            {
+                location: res.headers.get('location') ?? undefined,
+            },
+            { validateUrl: !!provider.validateUrl },
+        );
     } catch {
         return true;
     }
@@ -56,26 +64,24 @@ export async function validate(
 /**
  * Check if an HTTP response indicates valid authentication.
  * Shared by validate() probe and sig request reauth logic.
+ *
+ * When validateUrl is set, any 3xx is treated as invalid.
+ * When not set, 3xx is only invalid if Location points to a login URL.
  */
-export function isAuthenticatedResponse(status: number, body: string): boolean {
+export function isAuthenticatedResponse(
+    status: number,
+    body: string,
+    headers?: { location?: string },
+    options?: { validateUrl?: boolean },
+): boolean {
     if (status === 401 || status === 403) return false;
-    if (body && body.length < 4096 && hasJsRedirect(body)) return false;
-    return true;
-}
 
-async function isValidResponse(
-    res: Awaited<ReturnType<typeof fetch>>,
-    provider: ProviderConfig,
-): Promise<boolean> {
-    if (res.status === 401 || res.status === 403) return false;
-
-    if (res.status >= 300 && res.status < 400) {
-        if (provider.validateUrl) return false;
-        const location = (res.headers.get('location') ?? '').toLowerCase();
+    if (status >= 300 && status < 400 && headers?.location !== undefined) {
+        if (options?.validateUrl) return false;
+        const location = (headers.location ?? '').toLowerCase();
         return !LOGIN_URL_PATTERNS.some((p) => location.includes(p));
     }
 
-    const body = await res.text().catch(() => '');
     if (body && body.length < 4096 && hasJsRedirect(body)) return false;
 
     return true;
