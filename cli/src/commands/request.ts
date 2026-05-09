@@ -1,5 +1,6 @@
 import { HttpHeader, isErr, isOk, type ProviderConfig } from '../types/index.js';
 import type { ApplyResult } from '../apply/apply-engine.js';
+import { hasJsRedirect } from '../utils/credential-validator.js';
 import { ExitCode } from '../utils/exit-codes.js';
 import { formatJson } from '../utils/formatters.js';
 import { buildUserAgent } from '../utils/http.js';
@@ -76,16 +77,21 @@ async function executeWithReauth(
     // Persist auto-provisioned provider after first successful credential fetch
     await persistIfAutoProvisioned(provider);
 
-    if (!response.ok) {
-        auth.logger.info(`request: non-2xx (${response.status}), re-authenticating...`);
+    let parsed = await toParseResponse(response);
+
+    const needsReauth = !parsed.ok || (parsed.body.length < 4096 && hasJsRedirect(parsed.body));
+    if (needsReauth) {
+        const reason = !parsed.ok ? `non-2xx (${parsed.status})` : '200 with JS redirect body';
+        auth.logger.info(`request: ${reason}, re-authenticating...`);
         const reauth = await auth.getExtractedCreds(provider.id, { force: true });
         if (isOk(reauth)) {
             response = await authenticatedFetch(url, params, provider, auth);
             auth.logger.info(`request (retry): ${response.status} ${response.statusText}`);
+            parsed = await toParseResponse(response);
         }
     }
 
-    return toParseResponse(response);
+    return parsed;
 }
 
 async function authenticatedFetch(

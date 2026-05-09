@@ -108,7 +108,7 @@ const JS_REDIRECT_PATTERNS = [
     /<meta\s+http-equiv\s*=\s*["']?refresh["']?/i,
 ];
 
-function hasJsRedirect(body: string): boolean {
+export function hasJsRedirect(body: string): boolean {
     return JS_REDIRECT_PATTERNS.some((re) => re.test(body));
 }
 
