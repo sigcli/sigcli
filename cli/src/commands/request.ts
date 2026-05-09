@@ -1,9 +1,11 @@
+import { fetch, type Response as UndiciResponse } from 'undici';
+
 import { HttpHeader, isErr, isOk, type ProviderConfig } from '../types/index.js';
 import type { ApplyResult } from '../apply/apply-engine.js';
 import { isAuthenticatedResponse } from '../utils/credential-validator.js';
 import { ExitCode } from '../utils/exit-codes.js';
 import { formatJson } from '../utils/formatters.js';
-import { buildUserAgent } from '../utils/http.js';
+import { buildUserAgent, createProxyDispatcher } from '../utils/http.js';
 import { persistIfAutoProvisioned } from '../utils/provider-persist.js';
 import { AuditAction, AuditStatus, logAuditEvent } from '../audit/audit-log.js';
 import type { AuthManager } from '../auth-manager.js';
@@ -97,7 +99,7 @@ async function authenticatedFetch(
     params: RequestParams,
     provider: ProviderConfig,
     auth: AuthManager,
-): Promise<Response> {
+): Promise<UndiciResponse> {
     const credResult = await auth.getExtractedCreds(provider.id);
     if (!isOk(credResult)) {
         throw new CredentialError(credResult.error.message, credResult.error.code);
@@ -107,13 +109,12 @@ async function authenticatedFetch(
     const headers = buildHeaders(params, applied);
     const finalUrl = applyQueryParams(url, applied);
     const finalBody = applyBodyModifications(params.body, headers, applied);
+    const dispatcher = createProxyDispatcher(provider.networkProxy);
+    const body =
+        finalBody && ['POST', 'PUT', 'PATCH'].includes(params.method) ? finalBody : undefined;
 
-    const fetchOptions: RequestInit = { method: params.method, headers };
-    if (finalBody && ['POST', 'PUT', 'PATCH'].includes(params.method)) {
-        fetchOptions.body = finalBody;
-    }
-
-    return fetch(finalUrl, fetchOptions);
+    const res = await fetch(finalUrl, { method: params.method, headers, body, dispatcher });
+    return res;
 }
 
 // ---------------------------------------------------------------------------
@@ -206,7 +207,7 @@ function applyBodyModifications(
 // Output formatting
 // ---------------------------------------------------------------------------
 
-async function toParseResponse(response: Response): Promise<ParsedResponse> {
+async function toParseResponse(response: UndiciResponse): Promise<ParsedResponse> {
     const rawBody = await response.text();
     let body: string;
     try {

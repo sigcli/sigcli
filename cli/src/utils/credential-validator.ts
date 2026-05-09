@@ -1,4 +1,4 @@
-import { fetch, ProxyAgent, Socks5ProxyAgent, type Dispatcher } from 'undici';
+import { fetch } from 'undici';
 
 import {
     HttpHeader,
@@ -9,7 +9,7 @@ import {
 } from '../types/index.js';
 import { ApplyEngine } from '../apply/apply-engine.js';
 import { parseDuration } from './duration.js';
-import { buildUserAgent } from './http.js';
+import { buildUserAgent, createProxyDispatcher } from './http.js';
 
 /**
  * Validate credentials by probing validateUrl ?? entryUrl.
@@ -35,9 +35,7 @@ export async function validate(
 
     try {
         const headers = ApplyEngine.applyRules(provider.apply, credentials).headers;
-        const dispatcher = provider.networkProxy
-            ? createProxyDispatcher(provider.networkProxy)
-            : undefined;
+        const dispatcher = createProxyDispatcher(provider.networkProxy);
 
         const res = await fetch(url, {
             method: 'GET',
@@ -123,11 +121,4 @@ const JS_REDIRECT_PATTERNS = [
 
 function hasJsRedirect(body: string): boolean {
     return JS_REDIRECT_PATTERNS.some((re) => re.test(body));
-}
-
-function createProxyDispatcher(proxy: string): Dispatcher {
-    if (proxy.startsWith('socks5://') || proxy.startsWith('socks://')) {
-        return new Socks5ProxyAgent(proxy);
-    }
-    return new ProxyAgent(proxy);
 }
