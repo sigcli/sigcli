@@ -20,15 +20,6 @@ import { createProxyDispatcher } from '../../utils/http.js';
  *
  * Config (provider.oauth2):   tokenUrl, scopes
  * Secrets (storedCredential.oauth2): clientId, clientSecret
- *
- * POST to tokenUrl:
- *   Authorization: Basic base64(clientId:clientSecret)
- *   Content-Type: application/x-www-form-urlencoded
- *   Body: grant_type=client_credentials [&scope=<scopes>]
- *
- * Returns access_token + computes expiresAt from expires_in if present.
- * Preserves oauth2 clientId/clientSecret in the returned ExtractionResult
- * so auth-manager can persist them alongside the new token.
  */
 class OAuth2Strategy implements IStrategy {
     readonly name = 'oauth2';
@@ -73,8 +64,7 @@ class OAuth2Strategy implements IStrategy {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
                 body: body.toString(),
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-                ...(dispatcher ? { dispatcher: dispatcher as any } : {}),
+                ...(dispatcher ? { dispatcher } : {}),
             });
         } catch (e: unknown) {
             return err(
@@ -85,6 +75,26 @@ class OAuth2Strategy implements IStrategy {
             );
         }
 
+        if (response.status === 401) {
+            return err(new RefreshError(provider.id, 'invalid client credentials (401)'));
+        }
+
+        if (!response.ok) {
+            let errDesc = `HTTP ${response.status}`;
+            try {
+                const text = await response.text();
+                const json = JSON.parse(text) as Record<string, unknown>;
+                if (typeof json.error_description === 'string') {
+                    errDesc = json.error_description;
+                } else if (typeof json.error === 'string') {
+                    errDesc = json.error;
+                }
+            } catch {
+                // body not JSON — use HTTP status as error description
+            }
+            return err(new RefreshError(provider.id, errDesc));
+        }
+
         let json: Record<string, unknown>;
         try {
             const text = await response.text();
@@ -93,20 +103,6 @@ class OAuth2Strategy implements IStrategy {
             return err(
                 new RefreshError(provider.id, 'unexpected response format from token endpoint'),
             );
-        }
-
-        if (response.status === 401) {
-            return err(new RefreshError(provider.id, 'invalid client credentials (401)'));
-        }
-
-        if (!response.ok) {
-            const errDesc =
-                typeof json.error_description === 'string'
-                    ? json.error_description
-                    : typeof json.error === 'string'
-                      ? json.error
-                      : `HTTP ${response.status}`;
-            return err(new RefreshError(provider.id, errDesc));
         }
 
         const accessToken = json.access_token;
@@ -122,7 +118,6 @@ class OAuth2Strategy implements IStrategy {
         return ok({
             credentials: { access_token: accessToken },
             ...(expiresAt ? { expiresAt } : {}),
-            oauth2: { clientId, clientSecret },
         });
     }
 }

@@ -11,7 +11,6 @@ export type ExtractedCredentials = Record<string, string>;
 export interface ExtractionResult {
     credentials: ExtractedCredentials;
     expiresAt?: string;
-    oauth2?: { clientId: string; clientSecret: string };
 }
 
 /**

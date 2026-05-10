@@ -80,22 +80,6 @@ export class DirectoryStorage implements IStorage {
     async delete(providerId: string): Promise<void> {
         const filePath = this.filePathFor(providerId);
         try {
-            // For OAuth2 providers, preserve the oauth2 field (clientId/secret) on logout
-            // so the next sig get can silently re-exchange without prompting.
-            const existing = await this.get(providerId);
-            if (existing?.oauth2) {
-                const cleared: StoredCredential = {
-                    providerId: existing.providerId,
-                    strategy: existing.strategy,
-                    updatedAt: new Date().toISOString(),
-                    values: {},
-                    oauth2: existing.oauth2,
-                };
-                await this.set(providerId, cleared);
-                this.logger.info(`storage: cleared values (preserved oauth2) ${providerId}`);
-                return;
-            }
-
             await fs.unlink(filePath);
             this.logger.info(`storage: delete ${providerId}`);
         } catch (e: unknown) {
@@ -104,6 +88,20 @@ export class DirectoryStorage implements IStorage {
             }
             throw new StorageError('delete', (e as Error).message);
         }
+    }
+
+    async clearValues(providerId: string): Promise<void> {
+        const existing = await this.get(providerId);
+        if (!existing) return;
+        const cleared: StoredCredential = {
+            providerId: existing.providerId,
+            strategy: existing.strategy,
+            updatedAt: new Date().toISOString(),
+            values: {},
+            ...(existing.oauth2 ? { oauth2: existing.oauth2 } : {}),
+        };
+        await this.set(providerId, cleared);
+        this.logger.info(`storage: cleared values (preserved oauth2) ${providerId}`);
     }
 
     async list(): Promise<StoredEntry[]> {

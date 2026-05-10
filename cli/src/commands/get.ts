@@ -93,8 +93,12 @@ export async function runGet(
     }
 
     // Apply credential rules to get headers
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const provider = resolved ?? auth.providerRegistry.get(providerId)!;
+    const provider = resolved ?? auth.providerRegistry.get(providerId);
+    if (!provider) {
+        process.stderr.write(`Error: No provider found for "${providerId}".\n`);
+        process.exitCode = ExitCode.PROVIDER_NOT_FOUND;
+        return;
+    }
     const { headers } = auth.applyExtractedCreds(provider.apply, credentials);
     const noRedaction = flags['no-redaction'] === true;
     await logAuditEvent({
@@ -119,11 +123,11 @@ export async function runGet(
     const secrets = noRedaction ? [] : extractSensitiveValues(credentials);
     const redact = (text: string): string => (noRedaction ? text : redactOutput(text, secrets));
 
-    // Read stored credential for oauth2 field (used in --no-redaction output)
-    const storedCred =
+    // Read oauth2 credentials for --no-redaction output
+    const oauth2Creds =
         noRedaction && provider.strategy === 'oauth2'
-            ? await auth.storage.get(providerId)
-            : undefined;
+            ? await auth.getOAuth2Credentials(providerId)
+            : null;
 
     const format = (flags.format as string) ?? OutputFormat.JSON;
     switch (format) {
@@ -136,10 +140,10 @@ export async function runGet(
                 provider: providerId,
                 headers: redactedHeaders,
             };
-            if (storedCred?.oauth2) {
+            if (oauth2Creds) {
                 output['oauth2'] = {
-                    clientId: storedCred.oauth2.clientId,
-                    clientSecret: storedCred.oauth2.clientSecret,
+                    clientId: oauth2Creds.clientId,
+                    clientSecret: oauth2Creds.clientSecret,
                 };
             }
             process.stdout.write(formatJson(output) + '\n');

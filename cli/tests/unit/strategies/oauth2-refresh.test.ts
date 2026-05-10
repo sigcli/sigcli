@@ -96,7 +96,7 @@ async function simulateGetExtractedCreds(
         updatedAt: new Date().toISOString(),
         values: extractResult.value.credentials,
         ...(extractResult.value.expiresAt ? { expiresAt: extractResult.value.expiresAt } : {}),
-        ...(extractResult.value.oauth2 ? { oauth2: extractResult.value.oauth2 } : {}),
+        ...(stored?.oauth2 ? { oauth2: stored.oauth2 } : {}),
     };
     await storage.set(provider.id, newStored);
 

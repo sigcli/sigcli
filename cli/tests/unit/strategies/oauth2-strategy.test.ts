@@ -112,10 +112,6 @@ describe('OAuth2Strategy', () => {
         expect(isOk(result)).toBe(true);
         if (isOk(result)) {
             expect(result.value.credentials.access_token).toBe('tok-abc123');
-            expect(result.value.oauth2).toEqual({
-                clientId: 'client-id',
-                clientSecret: 'client-secret',
-            });
             expect(result.value.expiresAt).toBeUndefined();
         }
     });

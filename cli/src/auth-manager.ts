@@ -217,6 +217,22 @@ export class AuthManager {
         await this.storage.delete(providerId);
     }
 
+    async logout(providerId: string): Promise<void> {
+        const provider = this.providers.get(providerId);
+        if (provider?.strategy === 'oauth2') {
+            await this.storage.clearValues(providerId);
+        } else {
+            await this.storage.delete(providerId);
+        }
+    }
+
+    async getOAuth2Credentials(
+        providerId: string,
+    ): Promise<{ clientId: string; clientSecret: string } | null> {
+        const stored = await this.storage.get(providerId);
+        return stored?.oauth2 ?? null;
+    }
+
     async clearAll(): Promise<void> {
         await this.storage.clear();
     }
@@ -282,7 +298,8 @@ export class AuthManager {
         this.logger.info(`${provider.id}: authenticating via ${provider.strategy}`);
         const startTime = Date.now();
 
-        const existingStored = await this.storage.get(provider.id);
+        const existingStored =
+            provider.strategy === 'oauth2' ? await this.storage.get(provider.id) : null;
         const extractResult = await strategy.extract(provider, existingStored ?? undefined);
         if (!isOk(extractResult)) {
             this.logger.error(`${provider.id}: auth failed — ${extractResult.error.message}`);
@@ -295,7 +312,7 @@ export class AuthManager {
             updatedAt: new Date().toISOString(),
             values: extractResult.value.credentials,
             ...(extractResult.value.expiresAt ? { expiresAt: extractResult.value.expiresAt } : {}),
-            ...(extractResult.value.oauth2 ? { oauth2: extractResult.value.oauth2 } : {}),
+            ...(existingStored?.oauth2 ? { oauth2: existingStored.oauth2 } : {}),
         };
         await this.storage.set(provider.id, storedEntry);
 

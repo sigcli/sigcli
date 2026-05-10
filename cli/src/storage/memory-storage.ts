@@ -19,6 +19,17 @@ export class MemoryStorage implements IStorage {
         this.store.delete(providerId);
     }
 
+    async clearValues(providerId: string): Promise<void> {
+        const existing = this.store.get(providerId);
+        if (!existing) return;
+        this.store.set(providerId, {
+            ...existing,
+            values: {},
+            expiresAt: undefined,
+            updatedAt: new Date().toISOString(),
+        });
+    }
+
     async list(): Promise<StoredEntry[]> {
         return Array.from(this.store.entries()).map(([providerId, stored]) => ({
             providerId,
