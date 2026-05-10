@@ -1,4 +1,4 @@
-import { isErr, isOk } from '../types/index.js';
+import { isErr, isOk, type ProviderConfig } from '../types/index.js';
 import { ExitCode } from '../utils/exit-codes.js';
 import { formatJson } from '../utils/formatters.js';
 import { persistIfAutoProvisioned } from '../utils/provider-persist.js';
@@ -10,23 +10,44 @@ export async function runLogin(
     flags: Record<string, string | boolean | string[]>,
     auth: AuthManager,
 ): Promise<void> {
-    const url = positionals[0];
-    if (!url) {
-        process.stderr.write('Usage: sig login <provider|url>\n');
+    const input = positionals[0];
+    if (!input) {
+        process.stderr.write('Usage: sig login <provider|url|name>\n');
         process.exitCode = ExitCode.GENERAL_ERROR;
         return;
     }
 
-    // Step 1: Resolve provider (auto-provision if URL)
-    const resolved = auth.resolveProvider(url);
+    const strategyFlag = typeof flags.strategy === 'string' ? flags.strategy : undefined;
+
+    // Step 1: Resolve provider (auto-provision if URL, or by name when --strategy given)
+    const resolved = auth.resolveProvider(input);
+    let provider: ProviderConfig;
+
     if (isErr(resolved)) {
-        process.stderr.write(
-            `Error: No provider found matching "${url}". Run "sig providers" to see configured providers.\n`,
-        );
-        process.exitCode = ExitCode.GENERAL_ERROR;
-        return;
+        if (!strategyFlag) {
+            process.stderr.write(
+                `Error: No provider found matching "${input}". Run "sig providers" to see configured providers.\n`,
+            );
+            process.exitCode = ExitCode.GENERAL_ERROR;
+            return;
+        }
+        // Auto-provision by name when --strategy is given
+        provider = {
+            id: input,
+            name: input,
+            domains: [],
+            entryUrl: '',
+            strategy: strategyFlag,
+            extract: [],
+            apply: [],
+            autoProvisioned: true,
+        };
+        auth.providerRegistry.register(provider);
+        auth.logger.info(`auto-provisioned "${input}" with strategy=${strategyFlag}`);
+    } else {
+        provider = resolved.value;
     }
-    const provider = resolved.value;
+
     auth.logger.info(`login: provider="${provider.id}" strategy=${provider.strategy}`);
 
     const networkProxy =
@@ -56,14 +77,25 @@ export async function runLogin(
     }
 
     // Step 3: --strategy override (for auto-provisioned providers)
-    if (typeof flags.strategy === 'string' && provider.autoProvisioned) {
-        provider.strategy = flags.strategy;
+    if (strategyFlag && provider.autoProvisioned) {
+        provider.strategy = strategyFlag;
     }
 
     // Step 4: Parse --set key=value pairs
     const setValues = parseSetFlags(flags);
 
-    // Step 5: Check browser availability for browser-based strategies
+    // Step 5: Auto-configure extract/exchange/apply for oauth2 when auto-provisioned
+    if (provider.strategy === 'oauth2' && provider.autoProvisioned && !provider.exchange) {
+        provider.extract = [
+            { from: 'prompt', as: 'client_id', match: 'client_id' },
+            { from: 'prompt', as: 'client_secret', match: 'client_secret' },
+            { from: 'prompt', as: 'token_url', match: 'token_url' },
+        ];
+        provider.exchange = { grant_type: 'client_credentials', as: 'access_token' };
+        provider.apply = [{ in: 'header', name: 'Authorization', value: 'Bearer ${access_token}' }];
+    }
+
+    // Step 6: Check browser availability for browser-based strategies
     if (!auth.browserAvailable && provider.strategy === 'browser' && !setValues) {
         process.stderr.write(
             `Browser is not available on this machine.\n` +
