@@ -80,12 +80,20 @@ const HELP = `sig — authenticate once, use everywhere
 Usage: sig <command> [options]
 
 Authentication:
-  login [provider]|[url --as <id>]  Authenticate via browser
-    --as <id>                       Custom provider ID for auto-provisioned
-    --force                         Skip stored credentials, force re-auth
-    --mode <mode>                   Login mode: headless|visible|auto (default: auto)
-    --network-proxy <url>           Browser proxy (e.g. socks5://127.0.0.1:1080)
-  logout [provider]                 Clear credentials (all if none specified)
+  login <provider|url|name>          Authenticate a provider
+    --strategy <type>                Strategy: browser|prompt|oauth2
+    --set <key>=<value>              Set credential value (repeatable, skips prompts)
+    --as <id>                        Custom provider ID for auto-provisioned
+    --mode <mode>                    Login mode: headless|visible|auto (default: auto)
+    --network-proxy <url>            Browser proxy (e.g. socks5://127.0.0.1:1080)
+  logout [provider]                  Clear credentials (all if none specified)
+
+  Examples:
+    sig login mysite.com                          Browser SSO (auto-provision)
+    sig login my-api --strategy oauth2 \\
+      --set client_id=x --set client_secret=y \\
+      --set token_url=https://auth.example.com/token
+    sig login github --set token=ghp_xxx          PAT with --set bypass
 
 Credentials (most → least secure):
   proxy start [--port 8080]    Start MITM proxy daemon (credentials never leave proxy process)
