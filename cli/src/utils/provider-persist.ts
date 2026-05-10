@@ -9,15 +9,23 @@ export function toProviderEntry(pc: ProviderConfig): ProviderEntry {
     return {
         ...(pc.name !== pc.id ? { name: pc.name } : {}),
         domains: pc.domains,
-        entryUrl: pc.entryUrl,
+        ...(pc.entryUrl ? { entryUrl: pc.entryUrl } : {}),
         strategy: pc.strategy as ProviderEntry['strategy'],
-        extract: pc.extract,
+        ...(pc.extract.length > 0 ? { extract: pc.extract } : {}),
         apply: pc.apply,
         ...(pc.required?.length ? { required: pc.required } : {}),
         ...(pc.cookiePaths?.length ? { cookiePaths: pc.cookiePaths } : {}),
         ...(pc.ttl ? { ttl: pc.ttl } : {}),
         ...(pc.networkProxy ? { networkProxy: pc.networkProxy } : {}),
         ...(pc.loginMode ? { loginMode: pc.loginMode } : {}),
+        ...(pc.oauth2
+            ? {
+                  oauth2: {
+                      tokenUrl: pc.oauth2.tokenUrl,
+                      ...(pc.oauth2.scopes?.length ? { scopes: pc.oauth2.scopes } : {}),
+                  },
+              }
+            : {}),
     };
 }
 
