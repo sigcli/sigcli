@@ -1,4 +1,4 @@
-import { isErr, isOk, type ProviderConfig } from '../types/index.js';
+import { isOk, type ProviderConfig } from '../types/index.js';
 import { ExitCode } from '../utils/exit-codes.js';
 import { formatJson } from '../utils/formatters.js';
 import { persistIfAutoProvisioned } from '../utils/provider-persist.js';
@@ -18,107 +18,39 @@ export async function runLogin(
     }
 
     const strategyFlag = typeof flags.strategy === 'string' ? flags.strategy : undefined;
-
-    // Step 1: Resolve provider (auto-provision if URL, or by name when --strategy given)
-    const resolved = auth.resolveProvider(input);
-    let provider: ProviderConfig;
-
-    if (isErr(resolved)) {
-        if (!strategyFlag) {
-            process.stderr.write(
-                `Error: No provider found matching "${input}". Run "sig providers" to see configured providers.\n`,
-            );
-            process.exitCode = ExitCode.GENERAL_ERROR;
-            return;
-        }
-        // Auto-provision by name when --strategy is given
-        provider = {
-            id: input,
-            name: input,
-            domains: [],
-            entryUrl: '',
-            strategy: strategyFlag,
-            extract: [],
-            apply: [],
-            autoProvisioned: true,
-        };
-        auth.providerRegistry.register(provider);
-        auth.logger.info(`auto-provisioned "${input}" with strategy=${strategyFlag}`);
-    } else {
-        provider = resolved.value;
-    }
-
-    auth.logger.info(`login: provider="${provider.id}" strategy=${provider.strategy}`);
-
-    const networkProxy =
-        typeof flags['network-proxy'] === 'string' ? flags['network-proxy'] : undefined;
-    const loginMode =
-        typeof flags['mode'] === 'string'
-            ? (flags['mode'] as 'headless' | 'visible' | 'auto')
-            : undefined;
-
-    // Apply networkProxy to auto-provisioned providers so it persists in config
-    if (networkProxy !== undefined && provider.autoProvisioned) {
-        provider.networkProxy = networkProxy;
-    }
-    // Apply loginMode to auto-provisioned providers so it persists in config
-    if (loginMode !== undefined && provider.autoProvisioned) {
-        provider.loginMode = loginMode;
-    }
-
-    // Step 2: --as <id>: rename the auto-provisioned provider
-    if (typeof flags.as === 'string') {
-        const oldId = provider.id;
-        provider.id = flags.as;
-        if (provider.name === oldId) {
-            provider.name = flags.as;
-        }
-        auth.providerRegistry.register(provider);
-    }
-
-    // Step 3: --strategy override (for auto-provisioned providers)
-    if (strategyFlag && provider.autoProvisioned) {
-        provider.strategy = strategyFlag;
-    }
-
-    // Step 4: Parse --set key=value pairs
     const setValues = parseSetFlags(flags);
 
-    // Step 5: Auto-configure extract/exchange/apply for oauth2 when auto-provisioned
-    if (provider.strategy === 'oauth2' && provider.autoProvisioned && !provider.exchange) {
-        provider.extract = [
-            { from: 'prompt', as: 'client_id', match: 'client_id' },
-            { from: 'prompt', as: 'client_secret', match: 'client_secret' },
-            { from: 'prompt', as: 'token_url', match: 'token_url' },
-        ];
-        provider.exchange = { grant_type: 'client_credentials', as: 'access_token' };
-        provider.apply = [{ in: 'header', name: 'Authorization', value: 'Bearer ${access_token}' }];
-    }
-
-    // Step 6: Check browser availability for browser-based strategies
-    if (!auth.browserAvailable && provider.strategy === 'browser' && !setValues) {
+    // Resolve or auto-provision provider
+    const provider = resolveOrProvision(input, strategyFlag, auth);
+    if (!provider) {
         process.stderr.write(
-            `Browser is not available on this machine.\n` +
-                `Provider "${provider.name}" uses "${provider.strategy}" strategy which requires a browser.\n\n` +
-                `Alternatives:\n` +
-                `  sig sync pull              Pull credentials from a machine with a browser\n\n` +
-                `To set up sync:\n` +
-                `  1. On a machine with a browser: sig login <url>\n` +
-                `  2. Then: sig remote add <name> <this-host>\n` +
-                `  3. Then: sig sync push <name>\n`,
+            `Error: No provider found matching "${input}". Run "sig providers" to see configured providers.\n`,
         );
         process.exitCode = ExitCode.GENERAL_ERROR;
         return;
     }
 
-    // Step 6: Authenticate
+    applyFlags(provider, flags);
+
+    // Check browser availability
+    if (!auth.browserAvailable && provider.strategy === 'browser' && !setValues) {
+        process.stderr.write(
+            `Browser is not available on this machine.\n` +
+                `Provider "${provider.name}" uses browser strategy which requires a browser.\n\n` +
+                `Alternatives:\n` +
+                `  sig sync pull              Pull credentials from a machine with a browser\n`,
+        );
+        process.exitCode = ExitCode.GENERAL_ERROR;
+        return;
+    }
+
+    // Authenticate
     process.stderr.write(`[sig] Authenticating with "${provider.name}"...\n`);
     const result = await auth.getExtractedCreds(provider.id, {
         force: true,
-        ...(networkProxy !== undefined ? { networkProxy } : {}),
-        ...(loginMode !== undefined ? { loginMode } : {}),
         ...(setValues ? { setValues } : {}),
     });
+
     if (!isOk(result)) {
         await logAuditEvent({
             action: AuditAction.LOGIN,
@@ -131,7 +63,6 @@ export async function runLogin(
         return;
     }
 
-    // Persist auto-provisioned provider to config.yaml after successful auth
     await persistIfAutoProvisioned(provider);
 
     const status = await auth.getStatus(provider.id);
@@ -150,6 +81,68 @@ export async function runLogin(
             ...(status.expiresAt ? { expiresAt: status.expiresAt } : {}),
         }) + '\n',
     );
+}
+
+function resolveOrProvision(
+    input: string,
+    strategyFlag: string | undefined,
+    auth: AuthManager,
+): ProviderConfig | null {
+    const resolved = auth.resolveProvider(input);
+    if (isOk(resolved)) return resolved.value;
+
+    if (!strategyFlag) return null;
+
+    const provider = createProviderByName(input, strategyFlag);
+    auth.providerRegistry.register(provider);
+    auth.logger.info(`auto-provisioned "${input}" with strategy=${strategyFlag}`);
+    return provider;
+}
+
+function createProviderByName(name: string, strategy: string): ProviderConfig {
+    const provider: ProviderConfig = {
+        id: name,
+        name,
+        domains: [],
+        entryUrl: '',
+        strategy,
+        extract: [],
+        apply: [],
+        autoProvisioned: true,
+    };
+
+    if (strategy === 'oauth2') {
+        provider.extract = [
+            { from: 'prompt', as: 'client_id', match: 'client_id' },
+            { from: 'prompt', as: 'client_secret', match: 'client_secret' },
+            { from: 'prompt', as: 'token_url', match: 'token_url' },
+        ];
+        provider.exchange = { grant_type: 'client_credentials', as: 'access_token' };
+        provider.apply = [{ in: 'header', name: 'Authorization', value: 'Bearer ${access_token}' }];
+    }
+
+    return provider;
+}
+
+function applyFlags(
+    provider: ProviderConfig,
+    flags: Record<string, string | boolean | string[]>,
+): void {
+    if (!provider.autoProvisioned) return;
+
+    if (typeof flags['network-proxy'] === 'string') {
+        provider.networkProxy = flags['network-proxy'];
+    }
+    if (typeof flags['mode'] === 'string') {
+        provider.loginMode = flags['mode'] as ProviderConfig['loginMode'];
+    }
+    if (typeof flags.strategy === 'string') {
+        provider.strategy = flags.strategy;
+    }
+    if (typeof flags.as === 'string') {
+        provider.name = flags.as;
+        provider.id = flags.as;
+    }
 }
 
 /**

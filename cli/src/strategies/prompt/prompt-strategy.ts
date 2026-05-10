@@ -1,17 +1,13 @@
-import * as readline from 'node:readline';
-
 import {
-    err,
-    ManualSetupRequired,
     ok,
     type AuthError,
-    type ExtractedCredentials,
     type ExtractionContext,
     type IStrategy,
     type ProviderConfig,
     type Result,
 } from '../../types/index.js';
 import type { ExtractionResult } from '../../types/interfaces/strategy.js';
+import { collectInputs } from '../collect-inputs.js';
 
 /**
  * PromptStrategy — asks the user for input interactively.
@@ -27,39 +23,8 @@ export class PromptStrategy implements IStrategy {
         provider: ProviderConfig,
         context?: ExtractionContext,
     ): Promise<Result<ExtractionResult, AuthError>> {
-        const credentials: ExtractedCredentials = {};
-        const setValues = context?.setValues;
-
-        // If all values are pre-filled, skip interactive prompting entirely
-        const needsPrompt = provider.extract.some((rule) => setValues?.[rule.match] === undefined);
-
-        const rl = needsPrompt
-            ? readline.createInterface({ input: process.stdin, output: process.stderr })
-            : null;
-
-        try {
-            for (const rule of provider.extract) {
-                const preSet = setValues?.[rule.match];
-                if (preSet !== undefined) {
-                    credentials[rule.as] = preSet;
-                    continue;
-                }
-                const answer = await this.ask(rl!, rule.match);
-                if (!answer) {
-                    return err(new ManualSetupRequired(rule.as, rule.match));
-                }
-                credentials[rule.as] = answer;
-            }
-        } finally {
-            rl?.close();
-        }
-
-        return ok({ credentials });
-    }
-
-    private ask(rl: readline.Interface, prompt: string): Promise<string> {
-        return new Promise((resolve) => {
-            rl.question(`${prompt}: `, resolve);
-        });
+        const result = await collectInputs(provider, context);
+        if (!result.ok) return result;
+        return ok({ credentials: result.value });
     }
 }

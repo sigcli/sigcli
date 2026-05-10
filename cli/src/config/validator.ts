@@ -235,39 +235,33 @@ export function validateConfig(raw: Record<string, unknown>): Result<SigConfig, 
 
 function validateProviderEntry(id: string, raw: Record<string, unknown>): string[] {
     const errors: string[] = [];
-    const strategy = typeof raw.strategy === 'string' ? raw.strategy : '';
-    const isBrowserStrategy = BROWSER_ONLY_STRATEGIES.includes(strategy);
 
-    // domains and entryUrl are required only for browser strategy
-    if (isBrowserStrategy) {
-        if (!Array.isArray(raw.domains) || raw.domains.length === 0) {
-            errors.push(`Provider "${id}": missing required field "domains" (non-empty array)`);
-        } else {
-            for (const d of raw.domains) {
-                if (typeof d !== 'string') {
-                    errors.push(`Provider "${id}": domains must be strings`);
-                    break;
-                }
-            }
-        }
-
-        if (typeof raw.entryUrl !== 'string' || raw.entryUrl.length === 0) {
-            errors.push(`Provider "${id}": missing required field "entryUrl"`);
-        }
-    } else {
-        // Non-browser: domains is optional but must be valid if present
-        if (raw.domains !== undefined && !Array.isArray(raw.domains)) {
-            errors.push(`Provider "${id}": "domains" must be an array`);
-        }
-    }
-
-    // Validate strategy
+    // Validate strategy first — other checks depend on it
     if (!raw.strategy || typeof raw.strategy !== 'string') {
         errors.push(`Provider "${id}": missing required field "strategy"`);
-    } else if (!VALID_STRATEGIES.includes(raw.strategy)) {
+        return errors; // Cannot validate further without knowing strategy
+    }
+    if (!VALID_STRATEGIES.includes(raw.strategy)) {
         errors.push(
             `Provider "${id}": invalid strategy "${raw.strategy}". Valid: ${VALID_STRATEGIES.join(', ')}`,
         );
+        return errors;
+    }
+
+    const isBrowser = BROWSER_ONLY_STRATEGIES.includes(raw.strategy);
+
+    // domains and entryUrl: required for browser, optional for others
+    if (isBrowser) {
+        if (!Array.isArray(raw.domains) || raw.domains.length === 0) {
+            errors.push(`Provider "${id}": missing required field "domains" (non-empty array)`);
+        } else if (raw.domains.some((d: unknown) => typeof d !== 'string')) {
+            errors.push(`Provider "${id}": domains must be strings`);
+        }
+        if (typeof raw.entryUrl !== 'string' || raw.entryUrl.length === 0) {
+            errors.push(`Provider "${id}": missing required field "entryUrl"`);
+        }
+    } else if (raw.domains !== undefined && !Array.isArray(raw.domains)) {
+        errors.push(`Provider "${id}": "domains" must be an array`);
     }
 
     // Validate extract array
