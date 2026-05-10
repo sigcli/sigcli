@@ -21,6 +21,7 @@ interface ProviderFile {
     updatedAt: string;
     expiresAt?: string;
     values: Record<string, string>;
+    oauth2?: { clientId: string; clientSecret: string };
 }
 
 /**
@@ -67,6 +68,7 @@ export class DirectoryStorage implements IStorage {
             updatedAt: credential.updatedAt,
             ...(credential.expiresAt ? { expiresAt: credential.expiresAt } : {}),
             values: credential.values,
+            ...(credential.oauth2 ? { oauth2: credential.oauth2 } : {}),
         };
 
         await this.withLock(filePath, async () => {
@@ -86,6 +88,20 @@ export class DirectoryStorage implements IStorage {
             }
             throw new StorageError('delete', (e as Error).message);
         }
+    }
+
+    async clearValues(providerId: string): Promise<void> {
+        const existing = await this.get(providerId);
+        if (!existing) return;
+        const cleared: StoredCredential = {
+            providerId: existing.providerId,
+            strategy: existing.strategy,
+            updatedAt: new Date().toISOString(),
+            values: {},
+            ...(existing.oauth2 ? { oauth2: existing.oauth2 } : {}),
+        };
+        await this.set(providerId, cleared);
+        this.logger.info(`storage: cleared values (preserved oauth2) ${providerId}`);
     }
 
     async list(): Promise<StoredEntry[]> {
@@ -192,6 +208,9 @@ export class DirectoryStorage implements IStorage {
             updatedAt: (raw.updatedAt as string) ?? new Date().toISOString(),
             ...(raw.expiresAt ? { expiresAt: raw.expiresAt as string } : {}),
             values,
+            ...(raw.oauth2
+                ? { oauth2: raw.oauth2 as { clientId: string; clientSecret: string } }
+                : {}),
         };
     }
 
@@ -202,6 +221,7 @@ export class DirectoryStorage implements IStorage {
             updatedAt: data.updatedAt,
             ...(data.expiresAt ? { expiresAt: data.expiresAt } : {}),
             values: data.values,
+            ...(data.oauth2 ? { oauth2: data.oauth2 } : {}),
         };
     }
 
