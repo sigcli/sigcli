@@ -17,7 +17,8 @@ import type {
     WatchProviderEntry,
 } from './schema.js';
 
-const VALID_STRATEGIES: readonly string[] = ['browser', 'prompt'];
+const VALID_STRATEGIES: readonly string[] = ['browser', 'prompt', 'oauth2'];
+const BROWSER_ONLY_STRATEGIES: readonly string[] = ['browser'];
 const VALID_WAIT_UNTIL: readonly string[] = [
     WaitUntil.LOAD,
     WaitUntil.NETWORK_IDLE,
@@ -234,20 +235,30 @@ export function validateConfig(raw: Record<string, unknown>): Result<SigConfig, 
 
 function validateProviderEntry(id: string, raw: Record<string, unknown>): string[] {
     const errors: string[] = [];
+    const strategy = typeof raw.strategy === 'string' ? raw.strategy : '';
+    const isBrowserStrategy = BROWSER_ONLY_STRATEGIES.includes(strategy);
 
-    if (!Array.isArray(raw.domains) || raw.domains.length === 0) {
-        errors.push(`Provider "${id}": missing required field "domains" (non-empty array)`);
-    } else {
-        for (const d of raw.domains) {
-            if (typeof d !== 'string') {
-                errors.push(`Provider "${id}": domains must be strings`);
-                break;
+    // domains and entryUrl are required only for browser strategy
+    if (isBrowserStrategy) {
+        if (!Array.isArray(raw.domains) || raw.domains.length === 0) {
+            errors.push(`Provider "${id}": missing required field "domains" (non-empty array)`);
+        } else {
+            for (const d of raw.domains) {
+                if (typeof d !== 'string') {
+                    errors.push(`Provider "${id}": domains must be strings`);
+                    break;
+                }
             }
         }
-    }
 
-    if (typeof raw.entryUrl !== 'string' || raw.entryUrl.length === 0) {
-        errors.push(`Provider "${id}": missing required field "entryUrl"`);
+        if (typeof raw.entryUrl !== 'string' || raw.entryUrl.length === 0) {
+            errors.push(`Provider "${id}": missing required field "entryUrl"`);
+        }
+    } else {
+        // Non-browser: domains is optional but must be valid if present
+        if (raw.domains !== undefined && !Array.isArray(raw.domains)) {
+            errors.push(`Provider "${id}": "domains" must be an array`);
+        }
     }
 
     // Validate strategy
@@ -326,12 +337,15 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
 function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
     return {
         ...(typeof raw.name === 'string' ? { name: raw.name } : {}),
-        domains: raw.domains as string[],
-        entryUrl: raw.entryUrl as string,
+        domains: Array.isArray(raw.domains) ? (raw.domains as string[]) : [],
+        entryUrl: typeof raw.entryUrl === 'string' ? raw.entryUrl : '',
         ...(typeof raw.validateUrl === 'string' ? { validateUrl: raw.validateUrl } : {}),
         strategy: raw.strategy as ProviderEntry['strategy'],
         extract: raw.extract as ProviderEntry['extract'],
         apply: raw.apply as ProviderEntry['apply'],
+        ...(raw.exchange && typeof raw.exchange === 'object'
+            ? { exchange: raw.exchange as ProviderEntry['exchange'] }
+            : {}),
         ...(Array.isArray(raw.required) ? { required: raw.required } : {}),
         ...(Array.isArray(raw.cookiePaths) ? { cookiePaths: raw.cookiePaths } : {}),
         ...(typeof raw.ttl === 'string' ? { ttl: raw.ttl } : {}),
