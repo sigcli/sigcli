@@ -37,6 +37,14 @@ const SET_VALUES = {
     token_url: 'https://auth.example.com/token',
 };
 
+/** Helper: mock a successful token response */
+function mockTokenResponse(json: Record<string, unknown>) {
+    mockFetch.mockResolvedValue({
+        ok: true,
+        text: async () => JSON.stringify(json),
+    });
+}
+
 describe('OAuth2Strategy', () => {
     let strategy: InstanceType<typeof OAuth2Strategy>;
 
@@ -60,10 +68,7 @@ describe('OAuth2Strategy', () => {
     });
 
     it('collects values from --set and performs token exchange', async () => {
-        mockFetch.mockResolvedValue({
-            ok: true,
-            json: async () => ({ access_token: 'tok_123', expires_in: 3600 }),
-        });
+        mockTokenResponse({ access_token: 'tok_123', expires_in: 3600 });
 
         const provider = makeProvider();
         const result = await strategy.extract(provider, { setValues: SET_VALUES });
@@ -93,11 +98,23 @@ describe('OAuth2Strategy', () => {
         }
     });
 
-    it('returns error when response has no access_token', async () => {
+    it('returns error when response is not valid JSON', async () => {
         mockFetch.mockResolvedValue({
             ok: true,
-            json: async () => ({ token_type: 'bearer' }),
+            text: async () => '<!DOCTYPE html><html>error</html>',
         });
+
+        const provider = makeProvider();
+        const result = await strategy.extract(provider, { setValues: SET_VALUES });
+
+        expect(isErr(result)).toBe(true);
+        if (isErr(result)) {
+            expect(result.error.message).toContain('invalid JSON');
+        }
+    });
+
+    it('returns error when response has no access_token', async () => {
+        mockTokenResponse({ token_type: 'bearer' });
 
         const provider = makeProvider();
         const result = await strategy.extract(provider, { setValues: SET_VALUES });
@@ -120,11 +137,13 @@ describe('OAuth2Strategy', () => {
         }
     });
 
-    it('sends correct body params including scopes', async () => {
+    it('sends correct body params and Basic auth header', async () => {
         let capturedBody = '';
+        let capturedHeaders: Record<string, string> = {};
         mockFetch.mockImplementation(async (_url: string, opts: any) => {
             capturedBody = opts.body;
-            return { ok: true, json: async () => ({ access_token: 'tok_scoped' }) };
+            capturedHeaders = opts.headers;
+            return { ok: true, text: async () => JSON.stringify({ access_token: 'tok' }) };
         });
 
         const provider = makeProvider();
@@ -132,16 +151,16 @@ describe('OAuth2Strategy', () => {
 
         const params = new URLSearchParams(capturedBody);
         expect(params.get('grant_type')).toBe('client_credentials');
-        expect(params.get('client_id')).toBe('my-id');
-        expect(params.get('client_secret')).toBe('my-secret');
         expect(params.get('scope')).toBe('read write');
+        expect(params.has('client_id')).toBe(false);
+        expect(params.has('client_secret')).toBe(false);
+
+        const expectedBasic = Buffer.from('my-id:my-secret').toString('base64');
+        expect(capturedHeaders['Authorization']).toBe(`Basic ${expectedBasic}`);
     });
 
     it('omits expiresAt when expires_in is not in response', async () => {
-        mockFetch.mockResolvedValue({
-            ok: true,
-            json: async () => ({ access_token: 'tok_no_exp' }),
-        });
+        mockTokenResponse({ access_token: 'tok_no_exp' });
 
         const provider = makeProvider();
         const result = await strategy.extract(provider, { setValues: SET_VALUES });
@@ -156,7 +175,7 @@ describe('OAuth2Strategy', () => {
         let capturedBody = '';
         mockFetch.mockImplementation(async (_url: string, opts: any) => {
             capturedBody = opts.body;
-            return { ok: true, json: async () => ({ access_token: 'tok' }) };
+            return { ok: true, text: async () => JSON.stringify({ access_token: 'tok' }) };
         });
 
         const provider = makeProvider({

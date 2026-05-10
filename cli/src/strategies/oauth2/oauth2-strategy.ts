@@ -79,7 +79,16 @@ export class OAuth2Strategy implements IStrategy {
             );
         }
 
-        const json = (await res.json()) as Record<string, unknown>;
+        const text = await res.text();
+        let json: Record<string, unknown>;
+        try {
+            json = JSON.parse(text);
+        } catch {
+            return err(
+                new ConfigError(`Token endpoint returned invalid JSON: ${text.slice(0, 200)}`),
+            );
+        }
+
         const accessToken = json['access_token'];
         if (typeof accessToken !== 'string') {
             return err(new ConfigError('Token response missing "access_token" field'));
