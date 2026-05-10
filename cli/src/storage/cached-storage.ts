@@ -45,6 +45,11 @@ export class CachedStorage implements IStorage {
         await this.inner.delete(providerId);
     }
 
+    async clearValues(providerId: string): Promise<void> {
+        this.invalidate(providerId);
+        await this.inner.clearValues(providerId);
+    }
+
     async list(): Promise<StoredEntry[]> {
         if (this.listCache && Date.now() < this.listCache.expiresAt) {
             return this.listCache.entries;

@@ -62,6 +62,7 @@ export { BrowserStrategy } from './strategies/browser/index.js';
 export { BrowserStrategy as BrowserSource } from './strategies/browser/index.js';
 export { PromptStrategy } from './strategies/prompt/index.js';
 export { PromptStrategy as PromptSource } from './strategies/prompt/index.js';
+export { OAuth2Strategy } from './strategies/oauth2/index.js';
 export { CdpCookieExtractor } from './strategies/browser/index.js';
 export { CdpStorageExtractor } from './strategies/browser/index.js';
 export { StrategyRegistry } from './strategies/registry.js';

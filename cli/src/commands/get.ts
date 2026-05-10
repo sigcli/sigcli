@@ -93,7 +93,12 @@ export async function runGet(
     }
 
     // Apply credential rules to get headers
-    const provider = resolved ?? auth.providerRegistry.get(providerId)!;
+    const provider = resolved ?? auth.providerRegistry.get(providerId);
+    if (!provider) {
+        process.stderr.write(`Error: No provider found for "${providerId}".\n`);
+        process.exitCode = ExitCode.PROVIDER_NOT_FOUND;
+        return;
+    }
     const { headers } = auth.applyExtractedCreds(provider.apply, credentials);
     const noRedaction = flags['no-redaction'] === true;
     await logAuditEvent({
@@ -118,6 +123,12 @@ export async function runGet(
     const secrets = noRedaction ? [] : extractSensitiveValues(credentials);
     const redact = (text: string): string => (noRedaction ? text : redactOutput(text, secrets));
 
+    // Read oauth2 credentials for --no-redaction output
+    const oauth2Creds =
+        noRedaction && provider.strategy === 'oauth2'
+            ? await auth.getOAuth2Credentials(providerId)
+            : null;
+
     const format = (flags.format as string) ?? OutputFormat.JSON;
     switch (format) {
         case OutputFormat.JSON: {
@@ -125,10 +136,16 @@ export async function runGet(
             for (const [k, v] of Object.entries(headers)) {
                 redactedHeaders[k] = redact(v);
             }
-            const output = {
+            const output: Record<string, unknown> = {
                 provider: providerId,
                 headers: redactedHeaders,
             };
+            if (oauth2Creds) {
+                output['oauth2'] = {
+                    clientId: oauth2Creds.clientId,
+                    clientSecret: oauth2Creds.clientSecret,
+                };
+            }
             process.stdout.write(formatJson(output) + '\n');
             break;
         }

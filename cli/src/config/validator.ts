@@ -17,7 +17,7 @@ import type {
     WatchProviderEntry,
 } from './schema.js';
 
-const VALID_STRATEGIES: readonly string[] = ['browser', 'prompt'];
+const VALID_STRATEGIES: readonly string[] = ['browser', 'prompt', 'oauth2'];
 const VALID_WAIT_UNTIL: readonly string[] = [
     WaitUntil.LOAD,
     WaitUntil.NETWORK_IDLE,
@@ -246,11 +246,7 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
         }
     }
 
-    if (typeof raw.entryUrl !== 'string' || raw.entryUrl.length === 0) {
-        errors.push(`Provider "${id}": missing required field "entryUrl"`);
-    }
-
-    // Validate strategy
+    // Validate strategy first so we can use it for conditional checks below
     if (!raw.strategy || typeof raw.strategy !== 'string') {
         errors.push(`Provider "${id}": missing required field "strategy"`);
     } else if (!VALID_STRATEGIES.includes(raw.strategy)) {
@@ -259,10 +255,31 @@ function validateProviderEntry(id: string, raw: Record<string, unknown>): string
         );
     }
 
-    // Validate extract array
-    if (!Array.isArray(raw.extract)) {
+    const isOauth2 = raw.strategy === 'oauth2';
+
+    // entryUrl is required for browser/prompt strategies; optional for oauth2
+    if (!isOauth2 && (typeof raw.entryUrl !== 'string' || raw.entryUrl.length === 0)) {
+        errors.push(`Provider "${id}": missing required field "entryUrl"`);
+    }
+
+    // oauth2.tokenUrl is required when strategy is oauth2
+    if (isOauth2) {
+        if (!raw.oauth2 || typeof raw.oauth2 !== 'object') {
+            errors.push(
+                `Provider "${id}": strategy "oauth2" requires an "oauth2" section with "tokenUrl"`,
+            );
+        } else {
+            const o = raw.oauth2 as Record<string, unknown>;
+            if (typeof o.tokenUrl !== 'string' || o.tokenUrl.trim() === '') {
+                errors.push(`Provider "${id}": oauth2.tokenUrl is required`);
+            }
+        }
+    }
+
+    // Validate extract array — optional for oauth2 (strategy handles extraction internally)
+    if (!isOauth2 && !Array.isArray(raw.extract)) {
         errors.push(`Provider "${id}": missing required field "extract" (array)`);
-    } else {
+    } else if (Array.isArray(raw.extract)) {
         for (let i = 0; i < raw.extract.length; i++) {
             const rule = raw.extract[i] as Record<string, unknown>;
             if (!rule || typeof rule !== 'object') {
@@ -327,15 +344,25 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
     return {
         ...(typeof raw.name === 'string' ? { name: raw.name } : {}),
         domains: raw.domains as string[],
-        entryUrl: raw.entryUrl as string,
+        ...(typeof raw.entryUrl === 'string' ? { entryUrl: raw.entryUrl } : {}),
         ...(typeof raw.validateUrl === 'string' ? { validateUrl: raw.validateUrl } : {}),
         strategy: raw.strategy as ProviderEntry['strategy'],
-        extract: raw.extract as ProviderEntry['extract'],
+        ...(Array.isArray(raw.extract) ? { extract: raw.extract as ProviderEntry['extract'] } : {}),
         apply: raw.apply as ProviderEntry['apply'],
         ...(Array.isArray(raw.required) ? { required: raw.required } : {}),
         ...(Array.isArray(raw.cookiePaths) ? { cookiePaths: raw.cookiePaths } : {}),
         ...(typeof raw.ttl === 'string' ? { ttl: raw.ttl } : {}),
         ...(typeof raw.networkProxy === 'string' ? { networkProxy: raw.networkProxy } : {}),
+        ...(raw.oauth2 && typeof raw.oauth2 === 'object'
+            ? {
+                  oauth2: {
+                      tokenUrl: (raw.oauth2 as Record<string, unknown>).tokenUrl as string,
+                      ...(Array.isArray((raw.oauth2 as Record<string, unknown>).scopes)
+                          ? { scopes: (raw.oauth2 as Record<string, unknown>).scopes as string[] }
+                          : {}),
+                  },
+              }
+            : {}),
         ...(Array.isArray(raw.loginUrlPatterns)
             ? { loginUrlPatterns: raw.loginUrlPatterns as string[] }
             : {}),
