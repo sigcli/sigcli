@@ -80,11 +80,16 @@ const HELP = `sig — authenticate once, use everywhere
 Usage: sig <command> [options]
 
 Authentication:
-  login [provider]|[url --as <id>]  Authenticate via browser
+  login [provider]|[url --as <id>]  Authenticate via browser or OAuth2
     --as <id>                       Custom provider ID for auto-provisioned
+    --strategy <name>               Auth strategy: browser (default) | oauth2
+    --token-url <url>               OAuth2 token endpoint
+    --client-id <id>                OAuth2 client ID
+    --client-secret <secret>        OAuth2 client secret
+    --scope <scopes>                OAuth2 scopes (space-separated)
     --force                         Skip stored credentials, force re-auth
     --mode <mode>                   Login mode: headless|visible|auto (default: auto)
-    --network-proxy <url>           Browser proxy (e.g. socks5://127.0.0.1:1080)
+    --network-proxy <url>           Proxy for browser or token requests
   logout [provider]                 Clear credentials (all if none specified)
 
 Credentials (most → least secure):

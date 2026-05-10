@@ -25,9 +25,33 @@ sig request https://jira.example.com/rest/api/2/myself
 sig request https://jira.example.com/rest/api/2/search --method POST --body '{"jql":"assignee=currentUser()"}'
 ```
 
+## OAuth2 / API Tokens
+
+For APIs that use OAuth2 Client Credentials (no browser needed):
+
+```bash
+sig login https://oauth-mock.mock.beeceptor.com \
+  --strategy oauth2 \
+  --token-url https://oauth-mock.mock.beeceptor.com/oauth/token/google \
+  --client-id test-client \
+  --client-secret test-secret
+```
+
+This mock server accepts any client_id/secret and returns a JWT token. After setup:
+
+```bash
+sig status oauth-mock                # check token status
+sig get oauth-mock --no-redaction    # see raw Bearer token
+sig logout oauth-mock                # clear token (keeps secrets)
+sig get oauth-mock                   # auto-refreshes using stored credentials
+```
+
+Configure once, then all commands work the same as browser-based providers — `sig get`, `sig run`, `sig proxy` all inject the Bearer token automatically.
+
 ## Why sig
 
 - **Browser SSO** — signs in through a real browser. Works with any website, any login flow.
+- **OAuth2 Client Credentials** — configure once, sig manages token exchange, expiry, and silent refresh. No browser needed.
 - **Encrypted at rest** — AES-256-GCM encryption. Every access is audit-logged.
 - **Declarative config** — define what to extract (cookies, localStorage, tokens) and how to apply them to requests.
 - **Multi-provider** — inject credentials from multiple systems in a single command.

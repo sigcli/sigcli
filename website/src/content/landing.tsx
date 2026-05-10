@@ -164,10 +164,10 @@ export function LandingPage() {
                             opacity: 0.82,
                         }}
                     >
-                        The authentication layer for AI agents and scripts. Login once via browser
-                        SSO, then any tool can access your work systems — Jira, Slack, wikis, APIs —
-                        without storing passwords. Credentials are encrypted at rest and injected on
-                        demand.
+                        The authentication layer for AI agents and scripts. Authenticate via browser
+                        SSO or OAuth2 Client Credentials, then any tool can access your work systems
+                        — Jira, Slack, wikis, APIs — without storing passwords. Credentials are
+                        encrypted at rest and injected on demand.
                     </p>
                 </section>
 
