@@ -29,7 +29,7 @@ Check the JSON output fields `configured` and `valid`:
 
 1. Read `<SKILL_DIR>/references/provider-config.yaml`
 2. Append the provider block to `~/.sig/config.yaml` under `providers:`
-3. Ask the user: "Do you need a proxy to access this site?" — if yes, add `networkProxy: <url>` under the provider in config.yaml
+3. IMPORTANT! ASK THE USER: "Do you need a proxy to access this site?" — if yes, add `networkProxy: <url>` under the provider in config.yaml
 4. Run `sig login youtube` (with `--network-proxy <url>` if proxy was specified)
 5. Verify: run `sig status youtube` again — must show `valid: true` before proceeding
 

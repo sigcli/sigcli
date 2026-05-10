@@ -29,10 +29,11 @@ export interface ProviderConfig {
     domains: string[]; // Exact or glob: ["*.example.com", "api.example.com"]
     entryUrl: string; // Starting URL for browser auth
     validateUrl?: string; // Protected URL for credential validation (defaults to entryUrl)
-    strategy: string; // Strategy name: "browser" | "prompt"
+    strategy: string; // Strategy name: "browser" | "prompt" | "oauth2"
     autoProvisioned?: boolean; // True if created by auto-provision (not from config file)
     networkProxy?: string; // Browser network proxy, e.g. "socks5://127.0.0.1:1080"
     loginMode?: 'headless' | 'visible' | 'auto'; // Browser login mode
+    oauth2?: { tokenUrl: string; scopes?: string[] }; // OAuth2 client credentials config
 
     extract: ExtractRule[];
     apply: ApplyRule[];
@@ -53,6 +54,7 @@ export interface StoredCredential {
     updatedAt: string; // ISO timestamp
     expiresAt?: string; // ISO timestamp — computed from cookie expiry
     values: Record<string, string>; // Renamed from 'credentials', narrowed from 'unknown'
+    oauth2?: { clientId: string; clientSecret: string }; // OAuth2 client credentials (encrypted at rest)
 }
 
 export interface StoredEntry {

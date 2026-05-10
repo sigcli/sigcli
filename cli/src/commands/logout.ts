@@ -11,7 +11,7 @@ export async function runLogout(
     if (providerId) {
         const resolved = auth.providerRegistry.resolveFlexible(providerId);
         const resolvedId = resolved?.id ?? providerId;
-        await auth.clearCredentials(resolvedId);
+        await auth.logout(resolvedId);
         await logAuditEvent({
             action: AuditAction.LOGOUT,
             status: AuditStatus.SUCCESS,

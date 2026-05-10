@@ -18,6 +18,13 @@ export interface IStorage {
     /** Delete stored credential for a provider. No-op if not found. */
     delete(providerId: string): Promise<void>;
 
+    /**
+     * Zero out values and expiresAt for a provider while preserving oauth2 secrets.
+     * Used for oauth2 logout so the next sig get can silently re-exchange.
+     * No-op if not found.
+     */
+    clearValues(providerId: string): Promise<void>;
+
     /** List all stored entries (summary, not full credentials). */
     list(): Promise<StoredEntry[]>;
 
