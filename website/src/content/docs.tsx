@@ -78,6 +78,28 @@ export const pageContent = {
             prefix: '└ ',
         }),
 
+        tocItem('#oauth2', 'OAuth2 Client Credentials'),
+        tocItem('#oauth2-quick-start', 'Quick start', {
+            level: 1,
+            parent: '#oauth2',
+            prefix: '├ ',
+        }),
+        tocItem('#oauth2-how-it-works', 'How it works', {
+            level: 1,
+            parent: '#oauth2',
+            prefix: '├ ',
+        }),
+        tocItem('#oauth2-config', 'Configuration', {
+            level: 1,
+            parent: '#oauth2',
+            prefix: '├ ',
+        }),
+        tocItem('#oauth2-commands', 'Commands', {
+            level: 1,
+            parent: '#oauth2',
+            prefix: '└ ',
+        }),
+
         tocItem('#remote-sync', 'Remote & Sync'),
         tocItem('#remote-setup', 'Setup', { level: 1, parent: '#remote-sync', prefix: '├ ' }),
         tocItem('#auto-refresh', 'Auto-refresh', {
@@ -392,6 +414,118 @@ providers:
                 <P>
                     <strong>Tip:</strong> Use <Code>sig login &lt;url&gt; --as my-name</Code> to
                     pick a custom provider ID instead of the auto-generated one.
+                </P>
+            ),
+        },
+
+        /* ── OAuth2 Client Credentials ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="oauth2" level={1}>
+                        OAuth2 Client Credentials
+                    </SectionHeading>
+                    <P>
+                        For APIs that use OAuth2 Client Credentials grant — no browser needed.
+                        Configure client_id and client_secret once, sig manages token exchange,
+                        expiry tracking, and silent refresh automatically.
+                    </P>
+
+                    <SectionHeading id="oauth2-quick-start" level={2}>
+                        Quick start
+                    </SectionHeading>
+                    <CodeBlock lang="bash">{`sig login https://api.example.com \\
+  --strategy oauth2 \\
+  --token-url https://auth.example.com/oauth/token \\
+  --client-id my-client \\
+  --client-secret my-secret \\
+  --scope "read write"`}</CodeBlock>
+                    <P>
+                        Or interactively — just pass <Code>--strategy oauth2</Code> and sig prompts
+                        for the rest:
+                    </P>
+                    <CodeBlock lang="bash">{`sig login https://api.example.com --strategy oauth2
+# Prompts: Token URL, Client ID, Client Secret, Scopes`}</CodeBlock>
+                    <P>After setup, all commands work automatically:</P>
+                    <CodeBlock lang="bash">{`sig get my-provider           # Bearer token (auto-refreshes if expired)
+sig request https://api.example.com/data   # Injects Authorization header
+sig run my-provider -- curl https://api.example.com/data`}</CodeBlock>
+
+                    <SectionHeading id="oauth2-how-it-works" level={2}>
+                        How it works
+                    </SectionHeading>
+                    <CodeBlock lang="bash">{`First login:
+  1. Store client_id + client_secret (encrypted at rest)
+  2. POST to token endpoint → receive access_token
+  3. Store access_token with TTL
+  4. Write provider config to ~/.sig/config.yaml
+
+Daily use (sig get / sig request):
+  1. Check stored access_token
+  2. If valid → inject Bearer header
+  3. If expired → silent re-exchange using stored secrets
+  4. No user interaction needed`}</CodeBlock>
+
+                    <SectionHeading id="oauth2-config" level={2}>
+                        Configuration
+                    </SectionHeading>
+                    <P>
+                        After first login, config.yaml stores non-sensitive settings. Secrets live in
+                        the encrypted credential store:
+                    </P>
+                    <CodeBlock lang="yaml">{`# ~/.sig/config.yaml (non-sensitive)
+my-api:
+  domains:
+    - api.example.com
+  strategy: oauth2
+  oauth2:
+    tokenUrl: https://auth.example.com/oauth/token
+    scopes:
+      - read
+      - write
+  apply:
+    - in: header
+      name: Authorization
+      value: Bearer \${access_token}`}</CodeBlock>
+                    <P>
+                        Client ID and secret are stored only in the encrypted credential store —
+                        never in config.yaml.
+                    </P>
+
+                    <SectionHeading id="oauth2-commands" level={2}>
+                        Commands
+                    </SectionHeading>
+                    <CodeBlock lang="bash">{`# Check status
+sig status my-provider
+
+# Force refresh (re-exchange token)
+sig login my-provider --force
+
+# Update client secret
+sig login my-provider --client-secret new-secret
+
+# Logout (clears token, keeps secrets for next refresh)
+sig logout my-provider
+
+# Remove everything (config + credentials)
+sig remove my-provider --force`}</CodeBlock>
+                </>
+            ),
+            aside: (
+                <P>
+                    <strong>OAuth2 flags:</strong>
+                    <br />
+                    <Code>--strategy oauth2</Code> — select strategy
+                    <br />
+                    <Code>--token-url</Code> — token endpoint
+                    <br />
+                    <Code>--client-id</Code> — client ID
+                    <br />
+                    <Code>--client-secret</Code> — client secret
+                    <br />
+                    <Code>--scope</Code> — space-separated scopes
+                    <br />
+                    <Code>--network-proxy</Code> — proxy for token requests
                 </P>
             ),
         },

@@ -25,9 +25,27 @@ sig request https://jira.example.com/rest/api/2/myself
 sig request https://jira.example.com/rest/api/2/search --method POST --body '{"jql":"assignee=currentUser()"}'
 ```
 
+## OAuth2 / API Tokens
+
+For APIs that use OAuth2 Client Credentials (no browser needed):
+
+```bash
+sig login https://api.example.com \
+  --strategy oauth2 \
+  --token-url https://auth.example.com/oauth/token \
+  --client-id <id> \
+  --client-secret <secret>
+
+# Token managed automatically — exchange, expiry, silent refresh:
+sig request https://api.example.com/data
+```
+
+Configure once, then all commands work the same as browser-based providers — `sig get`, `sig run`, `sig proxy` all inject the Bearer token automatically.
+
 ## Why sig
 
 - **Browser SSO** — signs in through a real browser. Works with any website, any login flow.
+- **OAuth2 Client Credentials** — configure once, sig manages token exchange, expiry, and silent refresh. No browser needed.
 - **Encrypted at rest** — AES-256-GCM encryption. Every access is audit-logged.
 - **Declarative config** — define what to extract (cookies, localStorage, tokens) and how to apply them to requests.
 - **Multi-provider** — inject credentials from multiple systems in a single command.
