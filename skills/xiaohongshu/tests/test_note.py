@@ -161,20 +161,7 @@ def test_get_note_not_found(mock_jitter):
 
 
 def test_xsec_token_required():
-    """xhs_note.py requires --xsec-token argument."""
-    import subprocess
-    import sys
-
-    script = str(mod.__file__) if hasattr(mod, "__file__") else ""
-    # We test that argparse enforces the required argument by calling get_note
-    # with empty token - it should still work (server would reject, but function doesn't validate)
-    # The actual enforcement is in argparse (--xsec-token required=True)
-    # So we test the argparse level
-    result = subprocess.run(
-        [sys.executable, "-c", "import argparse; exit(0)"],
-        capture_output=True,
-    )
-    # Verify the parser has required=True for --xsec-token by inspecting the module
+    """xhs_note.py requires --xsec-token argument (enforced by argparse)."""
     import inspect
     source = inspect.getsource(mod.main)
     assert 'required=True' in source

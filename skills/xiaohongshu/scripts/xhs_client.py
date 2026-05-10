@@ -189,9 +189,11 @@ class XhsClient:
         except Exception as e:
             raise XhsApiError("SIGN_FAILED", f"Signing failed: {e}. Try: pip install --upgrade xhshow")
         url = f"{XHS_API}{path}"
-        headers = {**sign_headers, "cookie": self.cookie_str}
         # Compact JSON with no spaces, utf-8 encoded — required by XHS signature verification
         body = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        # x-rap-param required for business APIs (search, feed, interactions)
+        rap_param = generate_x_rap_param(path, body.decode("utf-8"))
+        headers = {**sign_headers, "cookie": self.cookie_str, "x-rap-param": rap_param}
         return self._request("POST", url, headers=headers, content=body)
 
     def require_auth(self):

@@ -129,7 +129,7 @@ All scripts are in this skill's `scripts/` directory. Run via Bash tool.
 ```
 --user-id ID         User ID (required)
 --cursor CURSOR      Pagination cursor from previous response
---limit N            Max notes (default: 20)
+--limit N            Max notes (default: 30)
 ```
 
 ### xhs_homefeed.py

@@ -25,6 +25,8 @@ def post_comment(
 ) -> dict:
     """Post a comment (or reply to an existing comment) on a note."""
     client.require_auth()
+    if not content.strip():
+        raise XhsApiError("INVALID_INPUT", "Comment content cannot be empty")
     payload = {
         "note_id": note_id,
         "content": content,
