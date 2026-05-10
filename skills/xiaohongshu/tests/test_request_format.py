@@ -33,7 +33,16 @@ BROWSER_WEB_SESSION = "040069b09862f412a80400ca35384b10a8cdf0"
 BROWSER_WEB_ID = "cf4e7cef0a539df8074b107b20815897"
 
 # The exact body sent by browser (compact JSON, no spaces)
-BROWSER_BODY = '{"keyword":"小红书 skill","page":1,"page_size":20,"search_id":"2gclhivgjcirc17sd14ii","sort":"general","note_type":0,"ext_flags":[],"filters":[{"tags":["general"],"type":"sort_type"},{"tags":["不限"],"type":"filter_note_type"},{"tags":["不限"],"type":"filter_note_time"},{"tags":["不限"],"type":"filter_note_range"},{"tags":["不限"],"type":"filter_pos_distance"}],"geo":"","image_formats":["jpg","webp","avif"]}'
+BROWSER_BODY = (
+    '{"keyword":"小红书 skill","page":1,"page_size":20,"search_id":"2gclhivgjcirc17sd14ii",'
+    '"sort":"general","note_type":0,"ext_flags":[],'
+    '"filters":[{"tags":["general"],"type":"sort_type"},'
+    '{"tags":["不限"],"type":"filter_note_type"},'
+    '{"tags":["不限"],"type":"filter_note_time"},'
+    '{"tags":["不限"],"type":"filter_note_range"},'
+    '{"tags":["不限"],"type":"filter_pos_distance"}],'
+    '"geo":"","image_formats":["jpg","webp","avif"]}'
+)
 
 # Headers the browser sends (subset that matters for API acceptance)
 BROWSER_REQUIRED_HEADERS = {
