@@ -112,13 +112,19 @@ def fetch_item(item_id):
 
 
 def fetch_items(ids, limit=30):
-    """Fetch item IDs list, then fetch each item in detail up to *limit*."""
-    items = []
-    for item_id in ids[:limit]:
-        data = fetch_item(item_id)
-        if data:
-            items.append(parse_item(data))
-    return items
+    """Fetch item IDs concurrently, return parsed items up to *limit*."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    ids = ids[:limit]
+    results = [None] * len(ids)
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        futures = {pool.submit(fetch_item, id_): i for i, id_ in enumerate(ids)}
+        for f in futures:
+            idx = futures[f]
+            data = f.result()
+            if data:
+                results[idx] = parse_item(data)
+    return [r for r in results if r]
 
 
 def parse_item(item):
