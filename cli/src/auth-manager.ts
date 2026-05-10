@@ -129,7 +129,11 @@ export class AuthManager {
         if (!provider) return err(new ProviderNotFoundError(providerId));
 
         if (options.force) {
-            await this.storage.delete(providerId);
+            if (provider.strategy === 'oauth2') {
+                await this.storage.clearValues(providerId);
+            } else {
+                await this.storage.delete(providerId);
+            }
         }
 
         const cached = await this.getCached(provider);
