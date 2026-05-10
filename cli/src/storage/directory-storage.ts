@@ -21,6 +21,7 @@ interface ProviderFile {
     updatedAt: string;
     expiresAt?: string;
     values: Record<string, string>;
+    oauth2?: { clientId: string; clientSecret: string };
 }
 
 /**
@@ -67,6 +68,7 @@ export class DirectoryStorage implements IStorage {
             updatedAt: credential.updatedAt,
             ...(credential.expiresAt ? { expiresAt: credential.expiresAt } : {}),
             values: credential.values,
+            ...(credential.oauth2 ? { oauth2: credential.oauth2 } : {}),
         };
 
         await this.withLock(filePath, async () => {
@@ -78,6 +80,22 @@ export class DirectoryStorage implements IStorage {
     async delete(providerId: string): Promise<void> {
         const filePath = this.filePathFor(providerId);
         try {
+            // For OAuth2 providers, preserve the oauth2 field (clientId/secret) on logout
+            // so the next sig get can silently re-exchange without prompting.
+            const existing = await this.get(providerId);
+            if (existing?.oauth2) {
+                const cleared: StoredCredential = {
+                    providerId: existing.providerId,
+                    strategy: existing.strategy,
+                    updatedAt: new Date().toISOString(),
+                    values: {},
+                    oauth2: existing.oauth2,
+                };
+                await this.set(providerId, cleared);
+                this.logger.info(`storage: cleared values (preserved oauth2) ${providerId}`);
+                return;
+            }
+
             await fs.unlink(filePath);
             this.logger.info(`storage: delete ${providerId}`);
         } catch (e: unknown) {
@@ -192,6 +210,9 @@ export class DirectoryStorage implements IStorage {
             updatedAt: (raw.updatedAt as string) ?? new Date().toISOString(),
             ...(raw.expiresAt ? { expiresAt: raw.expiresAt as string } : {}),
             values,
+            ...(raw.oauth2
+                ? { oauth2: raw.oauth2 as { clientId: string; clientSecret: string } }
+                : {}),
         };
     }
 
@@ -202,6 +223,7 @@ export class DirectoryStorage implements IStorage {
             updatedAt: data.updatedAt,
             ...(data.expiresAt ? { expiresAt: data.expiresAt } : {}),
             values: data.values,
+            ...(data.oauth2 ? { oauth2: data.oauth2 } : {}),
         };
     }
 

@@ -64,22 +64,23 @@ export interface SigConfig {
 export interface ProviderEntry {
     name?: string;
     domains: string[];
-    entryUrl: string;
+    entryUrl?: string; // Required for browser/prompt; optional for oauth2 (no browser navigation needed)
     validateUrl?: string;
-    strategy: 'browser' | 'prompt';
-    extract: Array<{
+    strategy: 'browser' | 'prompt' | 'oauth2';
+    extract?: Array<{
         from: string;
         as: string;
         match: string;
         jsonPath?: string;
         expiresJsonPath?: string;
-    }>;
+    }>; // Required for browser/prompt; optional for oauth2 (strategy handles extraction internally)
     apply: Array<{ in: string; name: string; value: string; action?: 'set' | 'append' | 'remove' }>;
     required?: string[];
     cookiePaths?: string[];
     ttl?: string;
     networkProxy?: string;
     loginMode?: 'headless' | 'visible' | 'auto';
+    oauth2?: { tokenUrl: string; scopes?: string[] };
 
     loginUrlPatterns?: string[];
     waitUntil?: WaitUntilValue;
