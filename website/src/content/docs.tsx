@@ -470,8 +470,8 @@ Daily use (sig get / sig request):
                         Configuration
                     </SectionHeading>
                     <P>
-                        After first login, config.yaml stores non-sensitive settings. Secrets live in
-                        the encrypted credential store:
+                        After first login, config.yaml stores non-sensitive settings. Secrets live
+                        in the encrypted credential store:
                     </P>
                     <CodeBlock lang="yaml">{`# ~/.sig/config.yaml (non-sensitive)
 my-api:
