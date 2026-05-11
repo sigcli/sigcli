@@ -1,0 +1,10 @@
+{
+    "version": 2,
+    "providerId": "my-jira",
+    "strategy": "browser",
+    "updatedAt": "2026-05-11T10:00:00.000Z",
+    "expiresAt": "2026-05-12T10:00:00.000Z",
+    "values": {
+        "cookie": "sid=abc123; csrf=xyz789"
+    }
+}
