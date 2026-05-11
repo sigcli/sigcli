@@ -74,6 +74,14 @@ describe('validate — JS redirect detection', () => {
         expect(result).toBe(false);
     });
 
+    it('rejects 200 with bare location= assignment (SAP approuter)', async () => {
+        const body = `<html><head><script>document.cookie="sig=x;path=/;";location="https://sso.example.com/oauth/authorize"</script></head></html>`;
+        mockFetch.mockResolvedValue(mockResponse(200, body) as any);
+
+        const result = await validate(makeProvider(), { cookie: 'session=abc' });
+        expect(result).toBe(false);
+    });
+
     it('accepts 200 with large body even if it contains window.location', async () => {
         const body = 'x'.repeat(4096) + `<script>window.location.href = '/home';</script>`;
         mockFetch.mockResolvedValue(mockResponse(200, body) as any);
