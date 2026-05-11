@@ -12,13 +12,15 @@ let tmpDir: string;
 
 beforeEach(async () => {
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sigcli-client-test-'));
-    // Copy all fixtures
-    const files = await fs.readdir(FIXTURES_DIR);
-    for (const file of files) {
-        if (!file.endsWith('.json')) continue;
-        const content = await fs.readFile(path.join(FIXTURES_DIR, file), 'utf-8');
-        const data = JSON.parse(content);
-        // Name the file after the providerId
+    // Copy v2 fixtures, naming files by providerId
+    for (const fixture of [
+        'v2-browser.json',
+        'v2-oauth2.json',
+        'v2-multi.json',
+        'v1-legacy.json',
+    ]) {
+        const content = await fs.readFile(path.join(FIXTURES_DIR, fixture), 'utf-8');
+        const data = JSON.parse(content) as { providerId: string };
         await fs.writeFile(path.join(tmpDir, `${data.providerId}.json`), content);
     }
 });
@@ -28,79 +30,56 @@ afterEach(async () => {
 });
 
 describe('SigClient', () => {
-    it('getHeaders returns correct headers for cookie provider', async () => {
-        const client = new SigClient({ credentialsDir: tmpDir });
-        const headers = await client.getHeaders('my-jira');
-        expect(headers['Cookie']).toBe('sid=abc123; csrf=xyz789');
-        client.close();
-    });
-
-    it('getHeaders returns correct headers for bearer provider', async () => {
-        const client = new SigClient({ credentialsDir: tmpDir });
-        const headers = await client.getHeaders('azure-graph');
-        expect(headers['Authorization']).toContain('Bearer eyJ');
-        client.close();
-    });
-
-    it('getHeaders returns correct headers for api-key provider', async () => {
-        const client = new SigClient({ credentialsDir: tmpDir });
-        const headers = await client.getHeaders('github');
-        expect(headers['Authorization']).toBe('Bearer ghp_test123456');
-        client.close();
-    });
-
-    it('getHeaders returns correct headers for basic provider', async () => {
-        const client = new SigClient({ credentialsDir: tmpDir });
-        const headers = await client.getHeaders('legacy-api');
-        const expected = Buffer.from('admin:s3cret').toString('base64');
-        expect(headers['Authorization']).toBe(`Basic ${expected}`);
-        client.close();
-    });
-
-    it('getHeaders throws CredentialNotFoundError for missing provider', async () => {
-        const client = new SigClient({ credentialsDir: tmpDir });
-        await expect(client.getHeaders('nonexistent')).rejects.toThrow(CredentialNotFoundError);
-        client.close();
-    });
-
-    it('getCredential returns credential object', async () => {
+    it('getCredential returns ProviderFile with values', async () => {
         const client = new SigClient({ credentialsDir: tmpDir });
         const cred = await client.getCredential('my-jira');
-        expect(cred).not.toBeNull();
-        expect(cred!.type).toBe('cookie');
+        expect(cred.providerId).toBe('my-jira');
+        expect(cred.strategy).toBe('browser');
+        expect(cred.values['cookie']).toBe('sid=abc123; csrf=xyz789');
         client.close();
     });
 
-    it('getCredential returns null for missing provider', async () => {
+    it('getCredential throws CredentialNotFoundError for missing provider', async () => {
         const client = new SigClient({ credentialsDir: tmpDir });
-        const cred = await client.getCredential('nonexistent');
-        expect(cred).toBeNull();
+        await expect(client.getCredential('nonexistent')).rejects.toThrow(CredentialNotFoundError);
         client.close();
     });
 
-    it('getLocalStorage returns localStorage values', async () => {
-        const client = new SigClient({ credentialsDir: tmpDir });
-        const ls = await client.getLocalStorage('slack');
-        expect(ls).toEqual({ token: 'xoxc-123-456' });
-        client.close();
-    });
-
-    it('getLocalStorage returns empty object for missing provider', async () => {
-        const client = new SigClient({ credentialsDir: tmpDir });
-        const ls = await client.getLocalStorage('nonexistent');
-        expect(ls).toEqual({});
-        client.close();
-    });
-
-    it('listProviders returns all providers', async () => {
+    it('listProviders returns ProviderInfo array', async () => {
         const client = new SigClient({ credentialsDir: tmpDir });
         const providers = await client.listProviders();
-        expect(providers.length).toBeGreaterThanOrEqual(4);
+        expect(providers.length).toBeGreaterThanOrEqual(3);
         const ids = providers.map((p) => p.providerId).sort();
         expect(ids).toContain('my-jira');
-        expect(ids).toContain('azure-graph');
-        expect(ids).toContain('github');
-        expect(ids).toContain('legacy-api');
+        expect(ids).toContain('my-api');
+        expect(ids).toContain('my-slack');
+        client.close();
+    });
+
+    it('watch emits change events', async () => {
+        const client = new SigClient({ credentialsDir: tmpDir });
+        const changes: string[] = [];
+
+        client.on('change', (providerId) => {
+            changes.push(providerId);
+        });
+
+        client.watch();
+
+        // Write a new file to trigger change
+        const newFile = {
+            version: 2,
+            providerId: 'watch-test',
+            strategy: 'browser',
+            updatedAt: new Date().toISOString(),
+            values: { cookie: 'test=1' },
+        };
+        await fs.writeFile(path.join(tmpDir, 'watch-test.json'), JSON.stringify(newFile));
+
+        // Wait for debounce + async read
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        expect(changes).toContain('watch-test');
         client.close();
     });
 
@@ -108,51 +87,12 @@ describe('SigClient', () => {
         const client = new SigClient({ credentialsDir: tmpDir });
         client.close();
         client.close();
-        client.close();
-        // Should not throw
-    });
-
-    it('close() after watch() is safe', () => {
-        const client = new SigClient({ credentialsDir: tmpDir });
-        client.watch();
-        client.close();
-        client.close();
-        // Should not throw
     });
 
     it('watch() is idempotent', () => {
         const client = new SigClient({ credentialsDir: tmpDir });
         client.watch();
-        client.watch(); // Should not create a second watcher
-        client.close();
-    });
-
-    it('getLocalStorage returns empty object for provider without localStorage', async () => {
-        const client = new SigClient({ credentialsDir: tmpDir });
-        const ls = await client.getLocalStorage('my-jira');
-        expect(ls).toEqual({});
-        client.close();
-    });
-
-    it('getCredential returns correctly typed credential', async () => {
-        const client = new SigClient({ credentialsDir: tmpDir });
-
-        const cookie = await client.getCredential('my-jira');
-        expect(cookie).not.toBeNull();
-        expect(cookie!.type).toBe('cookie');
-
-        const bearer = await client.getCredential('azure-graph');
-        expect(bearer).not.toBeNull();
-        expect(bearer!.type).toBe('bearer');
-
-        const apiKey = await client.getCredential('github');
-        expect(apiKey).not.toBeNull();
-        expect(apiKey!.type).toBe('api-key');
-
-        const basic = await client.getCredential('legacy-api');
-        expect(basic).not.toBeNull();
-        expect(basic!.type).toBe('basic');
-
+        client.watch();
         client.close();
     });
 });

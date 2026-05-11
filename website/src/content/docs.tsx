@@ -109,6 +109,10 @@ export const pageContent = {
         }),
 
         tocItem('#troubleshooting', 'Troubleshooting'),
+
+        tocItem('#sdks', 'SDKs'),
+        tocItem('#sdk-typescript', 'TypeScript', { level: 1, parent: '#sdks', prefix: '├ ' }),
+        tocItem('#sdk-python', 'Python', { level: 1, parent: '#sdks', prefix: '└ ' }),
     ] as FlatTocItem[],
 
     hero: (
@@ -610,6 +614,84 @@ sig watch add jira --auto-sync prod`}</CodeBlock>
                         Add <Code>--verbose</Code> to any command for detailed error output.
                     </P>
                 </>
+            ),
+        },
+        /* ── SDKs ── */
+        {
+            content: (
+                <>
+                    <SectionHeading id="sdks" level={1}>
+                        SDKs
+                    </SectionHeading>
+                    <P>
+                        Lightweight read-only SDKs for consuming credentials stored by the CLI. No
+                        browser, no config — just read the encrypted credential files and use the
+                        values in your code.
+                    </P>
+                    <CodeBlock lang="bash">{`npm install @sigcli/sdk    # TypeScript/Node
+pip install sigcli-sdk     # Python`}</CodeBlock>
+
+                    <SectionHeading id="sdk-typescript" level={2}>
+                        TypeScript
+                    </SectionHeading>
+                    <CodeBlock lang="typescript">{`import { SigClient, applyRules } from '@sigcli/sdk'
+
+const client = new SigClient()
+
+// Get credential (read + decrypt)
+const cred = await client.getCredential('my-jira')
+console.log(cred.values)  // { cookie: "sid=abc; csrf=xyz" }
+
+// Apply template rules to get HTTP headers
+const { headers } = applyRules(cred.values, [
+  { in: 'header', name: 'Cookie', value: '\${cookie}' }
+])
+// headers = { Cookie: "sid=abc; csrf=xyz" }
+
+// List all stored credentials
+const providers = await client.listProviders()
+
+// Watch for credential changes
+client.on('change', (providerId, credential) => {
+  console.log(providerId, 'updated:', credential.values)
+})
+client.watch()`}</CodeBlock>
+
+                    <SectionHeading id="sdk-python" level={2}>
+                        Python
+                    </SectionHeading>
+                    <CodeBlock lang="python">{`from sigcli_sdk import SigClient, apply_rules, ApplyRule
+
+client = SigClient()
+
+# Get credential (read + decrypt)
+cred = client.get_credential("my-jira")
+print(cred.values)  # {"cookie": "sid=abc; csrf=xyz"}
+
+# Apply template rules to get HTTP headers
+rules = [ApplyRule(in_="header", name="Cookie", value="\${cookie}")]
+result = apply_rules(cred.values, rules)
+# result.headers == {"Cookie": "sid=abc; csrf=xyz"}
+
+# Use with requests
+import requests
+response = requests.get("https://jira.example.com/rest/api/2/myself",
+                        headers=result.headers)
+
+# List all stored credentials
+for p in client.list_providers():
+    print(f"{p.providerId} ({p.strategy})")`}</CodeBlock>
+                </>
+            ),
+            aside: (
+                <P>
+                    <strong>SDK design:</strong>
+                    <br />
+                    The SDK reads credential files that the CLI writes to{' '}
+                    <Code>~/.sig/credentials/</Code>. It handles AES-256-GCM decryption
+                    transparently. Use <Code>applyRules</Code> to replicate the CLI's template
+                    interpolation (<Code>{'${key}'}</Code> syntax).
+                </P>
             ),
         },
     ] as EditorialSection[],
