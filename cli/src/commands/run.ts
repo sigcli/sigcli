@@ -6,6 +6,7 @@ import { credentialToEnvVars } from '../utils/credential-env.js';
 import { ExitCode } from '../utils/exit-codes.js';
 import { killProcess } from '../utils/process-kill.js';
 import { extractSensitiveValues, redactOutput } from '../utils/redact.js';
+import { restrictFileWindows } from '../utils/restrict-windows.js';
 import { AuditAction, AuditStatus, logAuditEvent } from '../audit/audit-log.js';
 import type { AuthManager } from '../auth-manager.js';
 
@@ -101,6 +102,7 @@ export async function runRun(
                     .join('\n') + '\n';
         }
         writeFileSync(mount, content, { encoding: 'utf8', mode: 0o600 });
+        restrictFileWindows(mount).catch(() => {});
     }
 
     await logAuditEvent({
