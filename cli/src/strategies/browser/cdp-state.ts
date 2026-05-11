@@ -358,19 +358,37 @@ async function findOrphanPortUnix(dataDir: string, logger: ILogger): Promise<num
 }
 
 async function findOrphanPortWindows(dataDir: string, logger: ILogger): Promise<number | null> {
+    const escapedDir = dataDir.replace(/\\/g, '\\\\');
+
+    // Try wmic first (available on Windows 10 / Server 2022 and earlier)
     try {
         const output = execSync(
-            `wmic process where "CommandLine like '%--user-data-dir=${dataDir.replace(/\\/g, '\\\\')}%'" get CommandLine /format:list`,
+            `wmic process where "CommandLine like '%--user-data-dir=${escapedDir}%'" get CommandLine /format:list`,
             { encoding: 'utf-8', timeout: 5000 },
         );
         const match = output.match(/--remote-debugging-port=(\d+)/);
         if (match) {
             const port = parseInt(match[1], 10);
-            logger.info(`found orphan CDP port ${port} from process list`);
+            logger.info(`found orphan CDP port ${port} from wmic`);
             return port;
         }
     } catch {
-        // No matching process
+        // wmic unavailable or no match — try PowerShell fallback
+        try {
+            const psCmd = `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*--user-data-dir=${escapedDir}*' } | Select-Object -ExpandProperty CommandLine`;
+            const output = execSync(`powershell -NoProfile -Command "${psCmd}"`, {
+                encoding: 'utf-8',
+                timeout: 10000,
+            });
+            const match = output.match(/--remote-debugging-port=(\d+)/);
+            if (match) {
+                const port = parseInt(match[1], 10);
+                logger.info(`found orphan CDP port ${port} from PowerShell`);
+                return port;
+            }
+        } catch {
+            // No matching process on either method
+        }
     }
     return null;
 }
@@ -400,14 +418,32 @@ async function getPidForPort(port: number): Promise<number | null> {
 
 async function killOrphanByDataDir(dataDir: string, logger: ILogger): Promise<void> {
     if (process.platform === 'win32') {
+        const escapedDir = dataDir.replace(/\\/g, '\\\\');
+        let killed = false;
+
+        // Try wmic first
         try {
             execSync(
-                `wmic process where "CommandLine like '%--user-data-dir=${dataDir.replace(/\\/g, '\\\\')}%'" call terminate`,
+                `wmic process where "CommandLine like '%--user-data-dir=${escapedDir}%'" call terminate`,
                 { stdio: 'ignore', timeout: 5000 },
             );
             logger.info(`killed orphan browser via wmic`);
+            killed = true;
         } catch {
-            logger.warn(`failed to kill orphan via wmic`);
+            // wmic unavailable — try PowerShell fallback
+        }
+
+        if (!killed) {
+            try {
+                const psCmd = `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*--user-data-dir=${escapedDir}*' } | Invoke-CimMethod -MethodName Terminate`;
+                execSync(`powershell -NoProfile -Command "${psCmd}"`, {
+                    stdio: 'ignore',
+                    timeout: 10000,
+                });
+                logger.info(`killed orphan browser via PowerShell`);
+            } catch {
+                logger.warn(`failed to kill orphan browser`);
+            }
         }
     } else {
         try {
