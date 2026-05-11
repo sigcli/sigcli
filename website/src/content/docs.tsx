@@ -624,9 +624,9 @@ sig watch add jira --auto-sync prod`}</CodeBlock>
                         SDKs
                     </SectionHeading>
                     <P>
-                        Lightweight read-only SDKs for consuming credentials stored by the CLI.
-                        No browser, no config — just read the encrypted credential files and use
-                        the values in your code.
+                        Lightweight read-only SDKs for consuming credentials stored by the CLI. No
+                        browser, no config — just read the encrypted credential files and use the
+                        values in your code.
                     </P>
                     <CodeBlock lang="bash">{`npm install @sigcli/sdk    # TypeScript/Node
 pip install sigcli-sdk     # Python`}</CodeBlock>
