@@ -116,6 +116,7 @@ const JS_REDIRECT_PATTERNS = [
     /window\.location\s*[=.]/i,
     /document\.location\s*[=.]/i,
     /location\.(?:href|replace|assign)\s*[=(]/i,
+    /[;}\s]location\s*=\s*["'`]/i,
     /<meta\s+http-equiv\s*=\s*["']?refresh["']?/i,
 ];
 
