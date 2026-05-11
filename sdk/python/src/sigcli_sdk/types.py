@@ -1,64 +1,36 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Any, Literal, Optional, Sequence, Union
-
-@dataclass(frozen=True)
-class Cookie:
-    name: str
-    value: str
-    domain: str
-    path: str
-    expires: float
-    httpOnly: bool
-    secure: bool
-    sameSite: Optional[str] = None
-
-@dataclass(frozen=True)
-class CookieCredential:
-    type: Literal["cookie"]
-    cookies: Sequence[Cookie]
-    obtainedAt: str
-    localStorage: dict[str, str] = field(default_factory=dict)
-
-@dataclass(frozen=True)
-class BearerCredential:
-    type: Literal["bearer"]
-    accessToken: str
-    refreshToken: Optional[str] = None
-    expiresAt: Optional[str] = None
-    scopes: Optional[Sequence[str]] = None
-    tokenEndpoint: Optional[str] = None
-    localStorage: dict[str, str] = field(default_factory=dict)
-
-@dataclass(frozen=True)
-class ApiKeyCredential:
-    type: Literal["api-key"]
-    key: str
-    headerName: str
-    headerPrefix: Optional[str] = None
-
-@dataclass(frozen=True)
-class BasicCredential:
-    type: Literal["basic"]
-    username: str
-    password: str
-
-Credential = Union[CookieCredential, BearerCredential, ApiKeyCredential, BasicCredential]
+from typing import Literal, Optional
 
 @dataclass(frozen=True)
 class ProviderFile:
-    version: int
+    """On-disk credential file (v2 format)."""
     providerId: str
-    credential: Credential
     strategy: str
     updatedAt: str
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-CredentialType = Literal["cookie", "bearer", "api-key", "basic"]
+    values: dict[str, str] = field(default_factory=dict)
+    expiresAt: Optional[str] = None
+    oauth2: Optional[dict[str, str]] = None
 
 @dataclass(frozen=True)
 class ProviderInfo:
+    """Lightweight provider summary."""
     providerId: str
-    credentialType: CredentialType
     strategy: str
     updatedAt: str
+    expiresAt: Optional[str] = None
+
+@dataclass(frozen=True)
+class ApplyRule:
+    """Apply rule for template interpolation (mirrors CLI config)."""
+    in_: Literal["header", "query", "body"]
+    name: str
+    value: str  # Template: "Bearer ${token}", "${cookie}"
+    action: Optional[Literal["set", "append", "remove"]] = None
+
+@dataclass(frozen=True)
+class ApplyResult:
+    """Result of applying rules to credential values."""
+    headers: dict[str, str] = field(default_factory=dict)
+    query: Optional[dict[str, str]] = None
+    body: Optional[dict[str, str]] = None

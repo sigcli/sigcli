@@ -1,0 +1,14 @@
+{
+    "version": 2,
+    "providerId": "my-api",
+    "strategy": "oauth2",
+    "updatedAt": "2026-05-11T10:00:00.000Z",
+    "expiresAt": "2026-05-11T11:00:00.000Z",
+    "values": {
+        "access_token": "eyJhbGciOiJIUzI1NiIs"
+    },
+    "oauth2": {
+        "clientId": "client123",
+        "clientSecret": "secret456"
+    }
+}

@@ -1,18 +1,8 @@
 export { SigClient } from './client.js';
 export type { SigClientOptions, SigClientEvents } from './client.js';
-export { formatHeaders, extractLocalStorage } from './formatter.js';
+export { applyRules } from './formatter.js';
+export type { ProviderFile, ProviderInfo, ApplyRule, ApplyResult } from './types.js';
+export { CredentialWatcher } from './watcher.js';
 export { readProviderFile, listProviderFiles } from './reader.js';
-export { CredentialNotFoundError, CredentialParseError, SigSdkError } from './errors.js';
-export { decrypt, isEncryptedEnvelope, loadEncryptionKey } from './crypto.js';
-export type { EncryptedEnvelope } from './crypto.js';
-export type {
-    Credential,
-    CookieCredential,
-    BearerCredential,
-    ApiKeyCredential,
-    BasicCredential,
-    CredentialType,
-    Cookie,
-    ProviderFile,
-    ProviderInfo,
-} from './types.js';
+export { decrypt, loadEncryptionKey, isEncryptedEnvelope } from './crypto.js';
+export { SigSdkError, CredentialNotFoundError, CredentialParseError } from './errors.js';

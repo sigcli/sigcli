@@ -1,0 +1,10 @@
+{
+    "version": 2,
+    "providerId": "my-slack",
+    "strategy": "browser",
+    "updatedAt": "2026-05-11T10:00:00.000Z",
+    "values": {
+        "cookie": "d=xoxd-xxx",
+        "token": "xoxc-123-456"
+    }
+}

@@ -1,39 +1,53 @@
-import type { Credential } from './types.js';
+import type { ApplyResult, ApplyRule } from './types.js';
 
 /**
- * Convert a credential into HTTP headers.
- * Matches sigcli's strategy.applyToRequest() logic exactly.
+ * Apply template rules to credential values.
+ * Template syntax: ${key} is replaced with values[key] (empty string if missing).
  */
-export function formatHeaders(credential: Credential): Record<string, string> {
-    switch (credential.type) {
-        case 'cookie': {
-            return { Cookie: credential.cookies.map((c) => `${c.name}=${c.value}`).join('; ') };
-        }
-        case 'bearer': {
-            return { Authorization: `Bearer ${credential.accessToken}` };
-        }
-        case 'api-key': {
-            const value = credential.headerPrefix
-                ? `${credential.headerPrefix} ${credential.key}`
-                : credential.key;
-            return { [credential.headerName]: value };
-        }
-        case 'basic': {
-            const encoded = Buffer.from(`${credential.username}:${credential.password}`).toString(
-                'base64',
-            );
-            return { Authorization: `Basic ${encoded}` };
+export function applyRules(values: Record<string, string>, rules: ApplyRule[]): ApplyResult {
+    const headers: Record<string, string> = {};
+    let query: Record<string, string> | undefined;
+    let body: Record<string, string> | undefined;
+
+    for (const rule of rules) {
+        const action = rule.action ?? 'set';
+        const interpolated = interpolate(rule.value, values);
+
+        if (rule.in === 'header') {
+            if (action === 'remove') {
+                delete headers[rule.name];
+            } else if (action === 'append') {
+                const existing = headers[rule.name];
+                headers[rule.name] = existing ? `${existing}; ${interpolated}` : interpolated;
+            } else {
+                headers[rule.name] = interpolated;
+            }
+        } else if (rule.in === 'query') {
+            if (!query) query = {};
+            if (action === 'remove') {
+                delete query[rule.name];
+            } else if (action === 'append') {
+                const existing = query[rule.name];
+                query[rule.name] = existing ? `${existing}; ${interpolated}` : interpolated;
+            } else {
+                query[rule.name] = interpolated;
+            }
+        } else if (rule.in === 'body') {
+            if (!body) body = {};
+            if (action === 'remove') {
+                delete body[rule.name];
+            } else if (action === 'append') {
+                const existing = body[rule.name];
+                body[rule.name] = existing ? `${existing}; ${interpolated}` : interpolated;
+            } else {
+                body[rule.name] = interpolated;
+            }
         }
     }
+
+    return { headers, ...(query ? { query } : {}), ...(body ? { body } : {}) };
 }
 
-/**
- * Extract localStorage values from a credential.
- * Only cookie and bearer credentials can have localStorage.
- */
-export function extractLocalStorage(credential: Credential): Record<string, string> {
-    if (credential.type === 'cookie' || credential.type === 'bearer') {
-        return { ...(credential.localStorage ?? {}) };
-    }
-    return {};
+function interpolate(template: string, values: Record<string, string>): string {
+    return template.replace(/\$\{([^}]+)\}/g, (_, key) => values[key] ?? '');
 }
