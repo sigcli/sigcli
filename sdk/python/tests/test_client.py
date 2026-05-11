@@ -1,110 +1,65 @@
 import json
 import shutil
+import threading
+import time
 from pathlib import Path
 import pytest
 from sigcli_sdk.client import SigClient
 from sigcli_sdk.errors import CredentialNotFoundError
+from sigcli_sdk.types import ProviderFile
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
-def setup_fixtures(tmp_path: Path) -> None:
-    for fp in FIXTURES_DIR.glob("*.json"):
-        data = json.loads(fp.read_text())
-        target = tmp_path / f"{data['providerId']}.json"
-        shutil.copy(fp, target)
+def copy_fixture(name: str, target_dir: Path, target_name: str | None = None) -> None:
+    src = FIXTURES_DIR / name
+    data = json.loads(src.read_text())
+    dest = target_dir / (target_name or name)
+    shutil.copy(src, dest)
+    return data
 
 
-def test_get_headers_cookie(tmp_path: Path):
-    setup_fixtures(tmp_path)
-    client = SigClient(credentials_dir=tmp_path)
-    headers = client.get_headers("my-jira")
-    assert headers["Cookie"] == "sid=abc123; csrf=xyz789"
-    client.close()
+def setup_v2_fixtures(tmp_path: Path) -> None:
+    for name in ["v2_browser.json", "v2_oauth2.json", "v2_multi.json"]:
+        src = FIXTURES_DIR / name
+        data = json.loads(src.read_text())
+        dest = tmp_path / f"{data['providerId']}.json"
+        shutil.copy(src, dest)
 
 
-def test_get_headers_bearer(tmp_path: Path):
-    setup_fixtures(tmp_path)
-    client = SigClient(credentials_dir=tmp_path)
-    headers = client.get_headers("azure-graph")
-    assert "Bearer eyJ" in headers["Authorization"]
-    client.close()
-
-
-def test_get_headers_apikey(tmp_path: Path):
-    setup_fixtures(tmp_path)
-    client = SigClient(credentials_dir=tmp_path)
-    headers = client.get_headers("github")
-    assert headers["Authorization"] == "Bearer ghp_test123456"
-    client.close()
-
-
-def test_get_headers_basic(tmp_path: Path):
-    setup_fixtures(tmp_path)
-    client = SigClient(credentials_dir=tmp_path)
-    headers = client.get_headers("legacy-api")
-    import base64
-    expected = base64.b64encode(b"admin:s3cret").decode()
-    assert headers["Authorization"] == f"Basic {expected}"
-    client.close()
-
-
-def test_get_headers_not_found(tmp_path: Path):
-    client = SigClient(credentials_dir=tmp_path)
-    with pytest.raises(CredentialNotFoundError):
-        client.get_headers("nonexistent")
-    client.close()
-
-
-def test_get_credential(tmp_path: Path):
-    setup_fixtures(tmp_path)
+def test_get_credential_returns_provider_file(tmp_path: Path):
+    setup_v2_fixtures(tmp_path)
     client = SigClient(credentials_dir=tmp_path)
     cred = client.get_credential("my-jira")
-    assert cred is not None
-    assert cred.type == "cookie"
+    assert isinstance(cred, ProviderFile)
+    assert cred.providerId == "my-jira"
+    assert cred.values == {"cookie": "sid=abc123; csrf=xyz789"}
+    assert cred.expiresAt == "2026-05-12T10:00:00.000Z"
     client.close()
 
 
 def test_get_credential_not_found(tmp_path: Path):
     client = SigClient(credentials_dir=tmp_path)
-    cred = client.get_credential("nonexistent")
-    assert cred is None
+    with pytest.raises(CredentialNotFoundError):
+        client.get_credential("nonexistent")
     client.close()
 
 
-def test_get_local_storage(tmp_path: Path):
-    setup_fixtures(tmp_path)
-    client = SigClient(credentials_dir=tmp_path)
-    ls = client.get_local_storage("slack")
-    assert ls == {"token": "xoxc-123-456"}
-    client.close()
-
-
-def test_get_local_storage_not_found(tmp_path: Path):
-    client = SigClient(credentials_dir=tmp_path)
-    ls = client.get_local_storage("nonexistent")
-    assert ls == {}
-    client.close()
-
-
-def test_list_providers(tmp_path: Path):
-    setup_fixtures(tmp_path)
+def test_list_providers_returns_provider_info(tmp_path: Path):
+    setup_v2_fixtures(tmp_path)
     client = SigClient(credentials_dir=tmp_path)
     providers = client.list_providers()
-    assert len(providers) >= 4
+    assert len(providers) == 3
     ids = sorted(p.providerId for p in providers)
-    assert "my-jira" in ids
-    assert "azure-graph" in ids
-    assert "github" in ids
-    assert "legacy-api" in ids
+    assert ids == ["my-api", "my-jira", "my-slack"]
     client.close()
 
 
 def test_context_manager(tmp_path: Path):
-    setup_fixtures(tmp_path)
+    setup_v2_fixtures(tmp_path)
     with SigClient(credentials_dir=tmp_path) as client:
-        headers = client.get_headers("my-jira")
-        assert "Cookie" in headers
+        cred = client.get_credential("my-jira")
+        assert cred.providerId == "my-jira"
 
 
 def test_close_multiple_times(tmp_path: Path):
@@ -116,7 +71,7 @@ def test_close_multiple_times(tmp_path: Path):
 
 
 def test_close_after_watch(tmp_path: Path):
-    setup_fixtures(tmp_path)
+    setup_v2_fixtures(tmp_path)
     client = SigClient(credentials_dir=tmp_path)
     client.watch()
     client.close()
@@ -125,39 +80,39 @@ def test_close_after_watch(tmp_path: Path):
 
 
 def test_watch_is_idempotent(tmp_path: Path):
-    setup_fixtures(tmp_path)
+    setup_v2_fixtures(tmp_path)
     client = SigClient(credentials_dir=tmp_path)
     client.watch()
     client.watch()  # Should not create a second watcher
     client.close()
 
 
-def test_get_local_storage_empty_for_provider_without_localstorage(tmp_path: Path):
-    setup_fixtures(tmp_path)
+def test_watch_callbacks_receive_provider_id_and_provider_file(tmp_path: Path):
+    received: list[tuple[str, ProviderFile]] = []
+    event = threading.Event()
+
+    def on_change(provider_id: str, pf: ProviderFile) -> None:
+        received.append((provider_id, pf))
+        event.set()
+
     client = SigClient(credentials_dir=tmp_path)
-    ls = client.get_local_storage("my-jira")
-    assert ls == {}
-    client.close()
+    client.on_change(on_change)
+    client.watch()
 
+    # Write a v2 file
+    data = {
+        "version": 2,
+        "providerId": "test-watch",
+        "strategy": "browser",
+        "updatedAt": "2026-05-11T10:00:00.000Z",
+        "values": {"cookie": "session=abc"},
+    }
+    (tmp_path / "test-watch.json").write_text(json.dumps(data))
+    event.wait(timeout=3)
 
-def test_get_credential_returns_correct_types(tmp_path: Path):
-    setup_fixtures(tmp_path)
-    client = SigClient(credentials_dir=tmp_path)
-
-    cookie = client.get_credential("my-jira")
-    assert cookie is not None
-    assert cookie.type == "cookie"
-
-    bearer = client.get_credential("azure-graph")
-    assert bearer is not None
-    assert bearer.type == "bearer"
-
-    api_key = client.get_credential("github")
-    assert api_key is not None
-    assert api_key.type == "api-key"
-
-    basic = client.get_credential("legacy-api")
-    assert basic is not None
-    assert basic.type == "basic"
-
+    assert len(received) >= 1
+    provider_id, pf = received[0]
+    assert provider_id == "test-watch"
+    assert isinstance(pf, ProviderFile)
+    assert pf.values == {"cookie": "session=abc"}
     client.close()

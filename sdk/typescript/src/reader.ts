@@ -41,11 +41,21 @@ export async function readProviderFile(
             const key = await getEncryptionKey();
             parsed = JSON.parse(decrypt(parsed, key));
         }
-        const data = parsed as ProviderFile;
-        if (!data.version || !data.providerId || !data.credential) {
+        const data = parsed as Record<string, unknown>;
+        if (!data['providerId']) {
             throw new Error('Missing required fields');
         }
-        return data;
+        const values = (data['values'] ?? data['credentials'] ?? {}) as Record<string, string>;
+        return {
+            providerId: data['providerId'] as string,
+            strategy: (data['strategy'] as string) ?? '',
+            updatedAt: (data['updatedAt'] as string) ?? '',
+            ...(data['expiresAt'] !== undefined ? { expiresAt: data['expiresAt'] as string } : {}),
+            values,
+            ...(data['oauth2'] !== undefined
+                ? { oauth2: data['oauth2'] as ProviderFile['oauth2'] }
+                : {}),
+        };
     } catch (e) {
         if (e instanceof CredentialNotFoundError) throw e;
         throw new CredentialParseError(filePath, e instanceof Error ? e : undefined);
@@ -72,13 +82,15 @@ export async function listProviderFiles(
                 const key = await getEncryptionKey();
                 parsed = JSON.parse(decrypt(parsed, key));
             }
-            const data = parsed as ProviderFile;
-            if (data.providerId && data.credential) {
+            const data = parsed as Record<string, unknown>;
+            if (data['providerId'] && (data['values'] || data['credentials'])) {
                 results.push({
-                    providerId: data.providerId,
-                    credentialType: data.credential.type,
-                    strategy: data.strategy,
-                    updatedAt: data.updatedAt,
+                    providerId: data['providerId'] as string,
+                    strategy: (data['strategy'] as string) ?? '',
+                    updatedAt: (data['updatedAt'] as string) ?? '',
+                    ...(data['expiresAt'] !== undefined
+                        ? { expiresAt: data['expiresAt'] as string }
+                        : {}),
                 });
             }
         } catch {
