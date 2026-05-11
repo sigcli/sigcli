@@ -15,6 +15,7 @@ import {
 
 import type { ILogger } from '../types/index.js';
 import { createNoopLogger } from '../utils/logger.js';
+import { restrictFileWindows } from '../utils/restrict-windows.js';
 
 cryptoProvider.set(webcrypto as Crypto);
 
@@ -103,6 +104,7 @@ export class CaManager {
 
         const keyDer = await webcrypto.subtle.exportKey('pkcs8', keys.privateKey);
         await writeFile(keyPath, bufToPem('EC PRIVATE KEY', keyDer), { mode: 0o400 });
+        await restrictFileWindows(keyPath);
         await writeFile(crtPath, cert.toString('pem'), { mode: 0o644 });
 
         this.caCert = cert;
