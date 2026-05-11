@@ -20,18 +20,6 @@ xiaohongshu:
         - from: cookies
           as: cookie
           match: '*'
-        - from: cookies
-          as: a1
-          match: 'a1'
-        - from: cookies
-          as: web_session
-          match: 'web_session'
-        - from: cookies
-          as: webId
-          match: 'webId'
-        - from: localStorage
-          as: b1
-          match: 'b1'
     apply:
         - in: header
           name: Cookie

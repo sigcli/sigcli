@@ -123,13 +123,9 @@ sig run xiaohongshu -- bash -c 'python3 XhsSkills/skills/xhs-apis/scripts/xhs_ap
 
 When using `sig run xiaohongshu`, the following environment variables are injected:
 
-| Variable                      | Description                          |
-| ----------------------------- | ------------------------------------ |
-| `SIG_XIAOHONGSHU_COOKIE`      | Full cookie string for API requests  |
-| `SIG_XIAOHONGSHU_A1`          | a1 cookie value (used in signing)    |
-| `SIG_XIAOHONGSHU_WEB_SESSION` | Login session identifier             |
-| `SIG_XIAOHONGSHU_WEBID`       | Browser/device identifier            |
-| `SIG_XIAOHONGSHU_B1`          | Device fingerprint from localStorage |
+| Variable                 | Description                         |
+| ------------------------ | ----------------------------------- |
+| `SIG_XIAOHONGSHU_COOKIE` | Full cookie string for API requests |
 
 ## Error Handling
 
