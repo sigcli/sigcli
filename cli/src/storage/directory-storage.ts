@@ -12,6 +12,7 @@ import {
 } from '../types/index.js';
 import { decrypt, encrypt, isEncryptedEnvelope } from '../crypto/encryption.js';
 import { createNoopLogger } from '../utils/logger.js';
+import { restrictFileWindows } from '../utils/restrict-windows.js';
 import { sanitizeId } from '../utils/sanitize.js';
 
 interface ProviderFile {
@@ -233,6 +234,7 @@ export class DirectoryStorage implements IStorage {
             const content = JSON.stringify(envelope, null, 2);
             await fs.writeFile(tmpPath, content, { encoding: 'utf-8', mode: 0o600 });
             await fs.rename(tmpPath, filePath);
+            await restrictFileWindows(filePath);
         } catch (e: unknown) {
             await fs.unlink(tmpPath).catch(() => {});
             throw new StorageError('write', (e as Error).message);
