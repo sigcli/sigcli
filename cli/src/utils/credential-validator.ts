@@ -11,13 +11,15 @@ import { ApplyEngine } from '../apply/apply-engine.js';
 import { parseDuration } from './duration.js';
 import { buildUserAgent, createProxyDispatcher } from './http.js';
 
+const AUTH_FAILURE_STATUSES = [401, 403, 406, 429];
+
 /**
  * Validate credentials by probing validateUrl ?? entryUrl.
  *
  * Rules:
  *   - empty credentials → false
  *   - not all extract rules produced values → false
- *   - 401/403 → false
+ *   - 401/403/406/429 → false
  *   - 3xx redirect to login URL → false
  *   - 2xx with JS redirect body (< 4KB) → false
  *   - 2xx → true
@@ -69,7 +71,7 @@ export interface HttpResponse {
  * Shared by validate() probe and sig request reauth logic.
  */
 export function isAuthenticatedResponse(res: HttpResponse, validateUrl?: boolean): boolean {
-    if (res.status === 401 || res.status === 403) return false;
+    if (AUTH_FAILURE_STATUSES.includes(res.status)) return false;
 
     if (res.status >= 300 && res.status < 400) {
         if (validateUrl) return false;
