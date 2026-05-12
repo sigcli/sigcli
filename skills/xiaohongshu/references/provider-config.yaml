@@ -1,0 +1,26 @@
+# sigcli provider config for Xiaohongshu (Little Red Book)
+# Add to ~/.sig/config.yaml under `providers:`
+#
+# Prerequisites:
+#   npm install -g @sigcli/cli
+#   sig init
+#
+# Login:
+#   sig login xiaohongshu
+
+xiaohongshu:
+    domains:
+        - www.xiaohongshu.com
+        - edith.xiaohongshu.com
+    entryUrl: https://www.xiaohongshu.com/explore
+    validateUrl: https://www.xiaohongshu.com/notifications
+    strategy: browser
+    ttl: 2h
+    extract:
+        - from: cookies
+          as: cookie
+          match: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: ${cookie}
