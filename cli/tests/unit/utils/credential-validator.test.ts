@@ -118,6 +118,20 @@ describe('validate — JS redirect detection', () => {
         expect(result).toBe(false);
     });
 
+    it('rejects 406 response (not acceptable)', async () => {
+        mockFetch.mockResolvedValue(mockResponse(406, 'Not Acceptable') as any);
+
+        const result = await validate(makeProvider(), { cookie: 'session=abc' });
+        expect(result).toBe(false);
+    });
+
+    it('rejects 429 response (incomplete credentials)', async () => {
+        mockFetch.mockResolvedValue(mockResponse(429, 'Too Many Requests') as any);
+
+        const result = await validate(makeProvider(), { cookie: 'session=abc' });
+        expect(result).toBe(false);
+    });
+
     it('rejects 3xx redirect to login URL', async () => {
         mockFetch.mockResolvedValue(
             mockResponse(302, '', { location: 'https://example.com/login?next=/' }) as any,
