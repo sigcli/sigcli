@@ -33,9 +33,27 @@ sig status douyin-live
 # Both should show: valid: true
 ```
 
-## Usage
+## Usage with DouYin_Spider
 
-### Get cookies
+Once cookies are obtained, use [DouYin_Spider](https://github.com/cv-cat/DouYin_Spider) for data scraping and livestream monitoring:
+
+```bash
+# Install DouYin_Spider
+git clone https://github.com/cv-cat/DouYin_Spider.git
+cd DouYin_Spider
+pip install -r requirements.txt && npm install
+
+# Write cookies to .env
+echo "DY_COOKIES='$(sig get douyin --no-redaction --format value)'" > .env
+echo "DY_LIVE_COOKIES='$(sig get douyin-live --no-redaction --format value)'" >> .env
+
+# Run
+python main.py              # Data scraping
+python dy_live/server.py    # Livestream monitoring
+python dy_apis/douyin_recv_msg.py  # Private message receiving
+```
+
+## Get cookies
 
 ```bash
 # www.douyin.com cookie (for scraping)
@@ -43,20 +61,6 @@ sig get douyin --no-redaction --format value
 
 # live.douyin.com cookie (for livestream)
 sig get douyin-live --no-redaction --format value
-```
-
-### Export for tools (e.g. DouYin_Spider)
-
-```bash
-export DY_COOKIES=$(sig get douyin --no-redaction --format value)
-export DY_LIVE_COOKIES=$(sig get douyin-live --no-redaction --format value)
-```
-
-### Write to .env file
-
-```bash
-echo "DY_COOKIES='$(sig get douyin --no-redaction --format value)'" > .env
-echo "DY_LIVE_COOKIES='$(sig get douyin-live --no-redaction --format value)'" >> .env
 ```
 
 ## Validation
