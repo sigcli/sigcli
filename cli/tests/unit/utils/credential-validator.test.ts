@@ -141,3 +141,63 @@ describe('validate — JS redirect detection', () => {
         expect(result).toBe(false);
     });
 });
+
+describe('validate — validateRule custom expression', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('uses validateRule when present (JSON body, authenticated)', async () => {
+        const body = '{"status_code":0,"notice_count":[]}';
+        mockFetch.mockResolvedValue(mockResponse(200, body) as any);
+        const provider = makeProvider({
+            validateUrl: 'https://x.com/api',
+            validateRule: 'res.body.status_code === 0',
+        });
+        expect(await validate(provider, { cookie: 'a=b' })).toBe(true);
+    });
+
+    it('rejects when validateRule returns false', async () => {
+        const body = '{"status_code":8,"status_msg":"用户未登录"}';
+        mockFetch.mockResolvedValue(mockResponse(200, body) as any);
+        const provider = makeProvider({
+            validateUrl: 'https://x.com/api',
+            validateRule: 'res.body.status_code === 0',
+        });
+        expect(await validate(provider, { cookie: 'a=b' })).toBe(false);
+    });
+
+    it('validateRule overrides built-in logic (200 normally passes)', async () => {
+        const body = '{"error":true}';
+        mockFetch.mockResolvedValue(mockResponse(200, body) as any);
+        const provider = makeProvider({
+            validateUrl: 'https://x.com/api',
+            validateRule: '!res.body.error',
+        });
+        expect(await validate(provider, { cookie: 'a=b' })).toBe(false);
+    });
+
+    it('fails closed on expression error', async () => {
+        const body = 'not json';
+        mockFetch.mockResolvedValue(mockResponse(200, body) as any);
+        const provider = makeProvider({
+            validateUrl: 'https://x.com/api',
+            validateRule: 'res.body.nonexistent.deep === 1',
+        });
+        expect(await validate(provider, { cookie: 'a=b' })).toBe(false);
+    });
+
+    it('works with string body check', async () => {
+        const body = '<html>Login required</html>';
+        mockFetch.mockResolvedValue(mockResponse(200, body) as any);
+        const provider = makeProvider({
+            validateUrl: 'https://x.com/page',
+            validateRule: '!res.body.includes("Login required")',
+        });
+        expect(await validate(provider, { cookie: 'a=b' })).toBe(false);
+    });
+});
