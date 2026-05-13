@@ -61,6 +61,7 @@ storage:
 #     # loginUrlPatterns:                   # Optional: custom URL patterns to detect login pages
 #     #   - /login
 #     #   - /auth/sso
+#     # validateRule: "res.body.status_code === 0"  # Optional: JS expression for custom login detection
 #     # required:                        # Optional: wait for specific cookies
 #     #   - session.my_cookie
 providers: {}
