@@ -1,0 +1,52 @@
+# sigcli provider configs for Douyin (抖音)
+# Add to ~/.sig/config.yaml under `providers:`
+#
+# DouYin_Spider requires TWO separate cookies:
+#   DY_COOKIES     — from www.douyin.com (data scraping)
+#   DY_LIVE_COOKIES — from live.douyin.com (livestream monitoring)
+#
+# Login:
+#   sig login douyin
+#   sig login douyin-live
+#
+# Usage with DouYin_Spider:
+#   export DY_COOKIES=$(sig get douyin --no-redaction --format value)
+#   export DY_LIVE_COOKIES=$(sig get douyin-live --no-redaction --format value)
+#   python main.py            # scraping
+#   python dy_live/server.py  # livestream
+
+douyin:
+    domains:
+        - www.douyin.com
+    entryUrl: https://www.douyin.com
+    validateUrl: https://www.douyin.com/aweme/v1/web/notice/count/
+    validateRule: 'res.body.status_code === 0'
+    strategy: browser
+    loginMode: visible
+    ttl: 2h
+    extract:
+        - from: cookies
+          as: cookie
+          match: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: ${cookie}
+
+douyin-live:
+    domains:
+        - live.douyin.com
+    entryUrl: https://live.douyin.com
+    validateUrl: https://www.douyin.com/aweme/v1/web/notice/count/
+    validateRule: 'res.body.status_code === 0'
+    strategy: browser
+    loginMode: visible
+    ttl: 2h
+    extract:
+        - from: cookies
+          as: cookie
+          match: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: ${cookie}
