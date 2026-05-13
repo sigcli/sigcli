@@ -82,6 +82,7 @@ export class AuthManager {
 
                     loginUrlPatterns: entry.loginUrlPatterns,
                     waitUntil: entry.waitUntil,
+                    validateRule: entry.validateRule,
                 }) as ProviderConfig,
         );
 

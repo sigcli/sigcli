@@ -84,4 +84,5 @@ export interface ProviderEntry {
 
     loginUrlPatterns?: string[];
     waitUntil?: WaitUntilValue;
+    validateRule?: string;
 }
