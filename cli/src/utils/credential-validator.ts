@@ -138,6 +138,7 @@ function hasJsRedirect(body: string): boolean {
 }
 
 function evalValidateRule(rule: string, res: HttpResponse): boolean {
+    if (rule.length > 512) return false;
     try {
         let body: unknown = res.body;
         try {
@@ -150,7 +151,7 @@ function evalValidateRule(rule: string, res: HttpResponse): boolean {
         Object.freeze(sandbox);
         return !!runInNewContext(`(${rule})`, sandbox, { timeout: 1000 });
     } catch {
-        // Expression error → optimistic (same as network error behavior)
-        return true;
+        // Fail-closed: expression error means validation fails
+        return false;
     }
 }

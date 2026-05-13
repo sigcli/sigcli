@@ -181,14 +181,14 @@ describe('validate — validateRule custom expression', () => {
         expect(await validate(provider, { cookie: 'a=b' })).toBe(false);
     });
 
-    it('falls back to true on expression error', async () => {
+    it('fails closed on expression error', async () => {
         const body = 'not json';
         mockFetch.mockResolvedValue(mockResponse(200, body) as any);
         const provider = makeProvider({
             validateUrl: 'https://x.com/api',
             validateRule: 'res.body.nonexistent.deep === 1',
         });
-        expect(await validate(provider, { cookie: 'a=b' })).toBe(true);
+        expect(await validate(provider, { cookie: 'a=b' })).toBe(false);
     });
 
     it('works with string body check', async () => {
