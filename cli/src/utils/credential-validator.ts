@@ -1,3 +1,4 @@
+import { runInNewContext } from 'node:vm';
 import { fetch } from 'undici';
 
 import {
@@ -144,10 +145,10 @@ function evalValidateRule(rule: string, res: HttpResponse): boolean {
         } catch {
             /* keep as string */
         }
-        const evalRes = { status: res.status, body, headers: res.headers };
-        // eslint-disable-next-line @typescript-eslint/no-implied-eval
-        const fn = new Function('res', `return (${rule});`) as (r: typeof evalRes) => unknown;
-        return !!fn(evalRes);
+        const sandbox = Object.create(null) as Record<string, unknown>;
+        sandbox.res = Object.freeze({ status: res.status, body, headers: res.headers });
+        Object.freeze(sandbox);
+        return !!runInNewContext(`(${rule})`, sandbox, { timeout: 1000 });
     } catch {
         // Expression error → optimistic (same as network error behavior)
         return true;
