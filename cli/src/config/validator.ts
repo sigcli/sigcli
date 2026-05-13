@@ -369,5 +369,6 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
         ...(typeof raw.waitUntil === 'string'
             ? { waitUntil: raw.waitUntil as ProviderEntry['waitUntil'] }
             : {}),
+        ...(typeof raw.validateRule === 'string' ? { validateRule: raw.validateRule } : {}),
     };
 }

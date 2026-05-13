@@ -42,6 +42,7 @@ export interface ProviderConfig {
     ttl?: string;
     loginUrlPatterns?: string[];
     waitUntil?: string;
+    validateRule?: string; // JS expression evaluated against response: "res.body.status_code === 0"
 }
 
 // ============================================================================

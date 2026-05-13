@@ -54,6 +54,7 @@ export async function validate(
         return isAuthenticatedResponse(
             { status: res.status, body, headers: resHeaders },
             !!provider.validateUrl,
+            provider.validateRule,
         );
     } catch {
         return true;
@@ -70,7 +71,16 @@ export interface HttpResponse {
  * Check if an HTTP response indicates valid authentication.
  * Shared by validate() probe and sig request reauth logic.
  */
-export function isAuthenticatedResponse(res: HttpResponse, validateUrl?: boolean): boolean {
+export function isAuthenticatedResponse(
+    res: HttpResponse,
+    validateUrl?: boolean,
+    validateRule?: string,
+): boolean {
+    // Custom rule overrides all built-in logic
+    if (validateRule) {
+        return evalValidateRule(validateRule, res);
+    }
+
     if (AUTH_FAILURE_STATUSES.includes(res.status)) return false;
 
     if (res.status >= 300 && res.status < 400) {
@@ -124,4 +134,22 @@ const JS_REDIRECT_PATTERNS = [
 
 function hasJsRedirect(body: string): boolean {
     return JS_REDIRECT_PATTERNS.some((re) => re.test(body));
+}
+
+function evalValidateRule(rule: string, res: HttpResponse): boolean {
+    try {
+        let body: unknown = res.body;
+        try {
+            body = JSON.parse(res.body);
+        } catch {
+            /* keep as string */
+        }
+        const evalRes = { status: res.status, body, headers: res.headers };
+        // eslint-disable-next-line @typescript-eslint/no-implied-eval
+        const fn = new Function('res', `return (${rule});`) as (r: typeof evalRes) => unknown;
+        return !!fn(evalRes);
+    } catch {
+        // Expression error → optimistic (same as network error behavior)
+        return true;
+    }
 }
