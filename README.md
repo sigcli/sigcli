@@ -3,7 +3,7 @@
 **Sign in your way. AI works on your behalf.**
 
 <p align="center">
-  <img src="website/public/demo.gif" alt="sig demo" width="720" />
+  <img src="website/public/demo-v2.gif" alt="sig demo" width="720" />
 </p>
 
 AI agents need access to your work systems — Jira, wikis, calendars, internal APIs. But passing credentials through shell history, environment variables, and agent context windows is a security nightmare.
@@ -66,7 +66,7 @@ in your browser         -->   credentials locally          -->  on your behalf
 (any SSO/login flow)          (~/.sig/credentials/)             (sig request / sig proxy)
 ```
 
-**sig login** opens a browser, you log in normally (SSO, MFA, anything). sig extracts credentials based on `extract[]` rules, validates them against `validateUrl` (or detects login redirects), encrypts with AES-256-GCM, and stores locally. When your agent needs a request, `apply[]` rules inject credentials into HTTP headers, body, or query params.
+**sig login** opens a browser, you log in normally (SSO, MFA, anything). sig extracts credentials based on `extract[]` rules, validates them against `validateUrl` or `validateRule` (or detects login redirects), encrypts with AES-256-GCM, and stores locally. When your agent needs a request, `apply[]` rules inject credentials into HTTP headers, body, or query params.
 
 ## Provider Configuration
 
@@ -99,9 +99,11 @@ jira-example:
           value: '${session}'
 ```
 
-### 2. Public sites (`validateUrl`)
+### 2. Public sites (`validateUrl` + `validateRule`)
 
-Public sites set tracking cookies to **all visitors**. sig can't tell auth cookies from junk using redirect detection alone. Add `validateUrl` pointing to a protected endpoint — sig probes it and accepts credentials only on 2xx:
+Public sites set tracking cookies to **all visitors**. sig can't tell auth cookies from junk using redirect detection alone. Use `validateUrl`, `validateRule`, or both:
+
+**`validateUrl`** — point to a protected endpoint. sig probes it and accepts credentials only on 2xx:
 
 ```yaml
 reddit:
@@ -131,6 +133,49 @@ sig validates extracted credentials against `validateUrl` — 401/403 means not 
 | YouTube     | `https://www.youtube.com/account`                      |
 | V2EX        | `https://www.v2ex.com/notifications`                   |
 | Zhihu       | `https://www.zhihu.com/api/v4/me`                      |
+
+**`validateRule`** — a JS expression for APIs that return 200 even when unauthenticated (e.g. with an error code in the JSON body). Use alone or together with `validateUrl`:
+
+```yaml
+douyin:
+    domains:
+        - www.douyin.com
+    entryUrl: https://www.douyin.com
+    validateUrl: https://www.douyin.com/aweme/v1/web/notice/count/
+    validateRule: 'res.body.status_code === 0'
+    strategy: browser
+    extract:
+        - from: cookies
+          as: cookie
+          match: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: '${cookie}'
+```
+
+`validateRule` is a JavaScript expression with access to `res` (the validation response):
+
+| Field         | Type                     | Description                                  |
+| ------------- | ------------------------ | -------------------------------------------- |
+| `res.status`  | `number`                 | HTTP status code                             |
+| `res.body`    | `object \| string`       | Parsed JSON body (or raw string if not JSON) |
+| `res.headers` | `Record<string, string>` | Response headers                             |
+
+The expression must return a truthy value for credentials to be accepted. Examples:
+
+```yaml
+# API returns { "status_code": 0 } on success
+validateRule: 'res.body.status_code === 0'
+
+# API returns { "logged_in": true }
+validateRule: 'res.body.logged_in === true'
+
+# Accept any 2xx that isn't an error page
+validateRule: 'res.status >= 200 && res.status < 300 && !res.body.error'
+```
+
+When `validateRule` is set, it **overrides** the built-in status-code and redirect detection logic entirely.
 
 ### 3. Multiple domains
 

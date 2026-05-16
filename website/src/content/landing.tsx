@@ -1,7 +1,5 @@
 'use client';
 
-import { TerminalAnimation } from '../components/terminal-animation';
-
 export function LandingPage() {
     return (
         <div
@@ -138,8 +136,17 @@ export function LandingPage() {
                     >
                         Authenticate Once. Use Everywhere.
                     </p>
-                    <div className="max-w-2xl mx-auto text-left">
-                        <TerminalAnimation />
+                    <div className="max-w-2xl mx-auto">
+                        <div
+                            className="rounded-lg overflow-hidden"
+                            style={{ border: '1px solid var(--page-border)' }}
+                        >
+                            <img
+                                src="/demo-v2.gif"
+                                alt="sig demo: authenticate once, use everywhere"
+                                style={{ width: '100%', display: 'block' }}
+                            />
+                        </div>
                     </div>
                 </section>
 
