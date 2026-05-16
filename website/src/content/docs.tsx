@@ -57,12 +57,27 @@ export const pageContent = {
         tocItem('#sig-get', 'sig get', { level: 1, parent: '#using-credentials', prefix: '└ ' }),
 
         tocItem('#configuration', 'Configuration'),
-        tocItem('#config-file', 'config.yaml', {
+        tocItem('#progressive-setup', 'Progressive setup', {
             level: 1,
             parent: '#configuration',
             prefix: '├ ',
         }),
-        tocItem('#adding-provider', 'Adding a provider', {
+        tocItem('#step-1-auto-provision', 'Step 1: Auto-provision', {
+            level: 1,
+            parent: '#configuration',
+            prefix: '├ ',
+        }),
+        tocItem('#step-2-validate-url', 'Step 2: validateUrl', {
+            level: 1,
+            parent: '#configuration',
+            prefix: '├ ',
+        }),
+        tocItem('#step-3-validate-rule', 'Step 3: validateRule', {
+            level: 1,
+            parent: '#configuration',
+            prefix: '├ ',
+        }),
+        tocItem('#verify-setup', 'Verify your setup', {
             level: 1,
             parent: '#configuration',
             prefix: '├ ',
@@ -72,7 +87,7 @@ export const pageContent = {
             parent: '#configuration',
             prefix: '├ ',
         }),
-        tocItem('#public-sites', 'Public sites (validateUrl)', {
+        tocItem('#multiple-domains', 'Multiple domains', {
             level: 1,
             parent: '#configuration',
             prefix: '└ ',
@@ -300,63 +315,160 @@ sig get jira --format header          # HTTP header format`}</CodeBlock>
                         Configuration
                     </SectionHeading>
 
-                    <SectionHeading id="config-file" level={2}>
-                        config.yaml
+                    <SectionHeading id="progressive-setup" level={2}>
+                        Progressive setup
                     </SectionHeading>
                     <P>
-                        Everything lives in <Code>~/.sig/config.yaml</Code>. Running{' '}
-                        <Code>sig login &lt;url&gt;</Code> auto-creates provider entries, so most
-                        users never edit this file manually.
+                        sig uses a 3-step escalation approach. Start with the simplest path — add
+                        config only when needed:
                     </P>
-                    <CodeBlock lang="yaml">{`# ~/.sig/config.yaml
-version: 2
-mode: browser
+                    <CodeBlock lang="bash">{`Step 1: sig login <url>       ← works for 80% of sites (SSO, enterprise)
+Step 2: add validateUrl       ← needed for public sites with tracking cookies
+Step 3: add validateRule      ← needed for non-standard login detection`}</CodeBlock>
+                    <P>
+                        At each step, run <Code>sig status</Code> to check if your credentials are
+                        valid. If valid — you're done. If not — escalate to the next step.
+                    </P>
 
-browser:
-  execPath: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
-  browserDataDir: ~/.sig/browser-data
-
-storage:
-  credentialsDir: ~/.sig/credentials
-
-providers:
-  jira:
-    domains:
-      - jira.example.com
-    entryUrl: https://jira.example.com/
-    strategy: browser
-    ttl: 10d
-    extract:
-      - from: cookies
-        as: session
-        match: "*"
-    apply:
-      - in: header
-        name: Cookie
-        value: "\${session}"`}</CodeBlock>
-
-                    <SectionHeading id="adding-provider" level={2}>
-                        Adding a provider
+                    <SectionHeading id="step-1-auto-provision" level={2}>
+                        Step 1: Auto-provision
                     </SectionHeading>
                     <P>
-                        The easiest way: just <Code>sig login &lt;url&gt;</Code> — sig auto-creates
-                        config. For manual setup, add a provider entry with these fields:
+                        For most sites, just login. sig opens a browser, you authenticate normally,
+                        and it auto-creates config + captures credentials:
                     </P>
-                    <CodeBlock lang="yaml">{`my-service:
-  domains: [example.com]        # which URLs this provider handles
-  entryUrl: https://example.com/  # URL opened for login
-  validateUrl: https://example.com/api/me  # optional: protected endpoint to verify credentials
-  strategy: browser             # use browser to authenticate
-  loginMode: auto               # optional: auto (default) | headless | visible
-  ttl: 12h                      # how long credentials are valid
+                    <CodeBlock lang="bash">{`sig login https://jira.example.com
+sig status
+# ✓ jira-example: valid (expires in 2h)`}</CodeBlock>
+                    <P>
+                        That's it. If <Code>sig status</Code> shows <strong>valid</strong>, you're
+                        done. sig auto-generated this config for you:
+                    </P>
+                    <CodeBlock lang="yaml">{`# ~/.sig/config.yaml (auto-generated)
+jira-example:
+  domains: [jira.example.com]
+  entryUrl: https://jira.example.com/
+  strategy: browser
   extract:
-    - from: cookies             # what to capture (cookies or localStorage)
-      as: session               # name for the captured value
-      match: "*"                # which cookies (* = all)
+    - { from: cookies, as: cookie, match: '*' }
   apply:
-    - in: header                # how to inject into requests
-      name: Cookie
-      value: "\${session}"       # reference the extracted value`}</CodeBlock>
+    - { in: header, name: Cookie, value: '\${cookie}' }`}</CodeBlock>
+                    <P>
+                        <strong>When to escalate:</strong> <Code>sig status</Code> shows
+                        "expired" or "invalid" right after login, or <Code>sig request</Code>{' '}
+                        returns 401/403.
+                    </P>
+
+                    <SectionHeading id="step-2-validate-url" level={2}>
+                        Step 2: Add validateUrl
+                    </SectionHeading>
+                    <P>
+                        Public sites (Reddit, X, LinkedIn…) set tracking cookies to{' '}
+                        <strong>all visitors</strong> — even before login. sig can't distinguish
+                        auth cookies from junk using redirect detection alone.
+                    </P>
+                    <P>
+                        <strong>Fix:</strong> Add <Code>validateUrl</Code> — a protected endpoint
+                        that returns 401/403 when not logged in:
+                    </P>
+                    <CodeBlock lang="yaml">{`reddit:
+  domains: [www.reddit.com, reddit.com]
+  entryUrl: https://www.reddit.com/
+  validateUrl: https://www.reddit.com/prefs/friends  # returns 403 if not logged in
+  strategy: browser
+  extract:
+    - { from: cookies, as: cookie, match: '*' }
+  apply:
+    - { in: header, name: Cookie, value: '\${cookie}' }`}</CodeBlock>
+                    <P>Then re-login and verify:</P>
+                    <CodeBlock lang="bash">{`sig login reddit --force     # re-authenticate with new config
+sig status reddit            # ✓ reddit: valid`}</CodeBlock>
+                    <P>
+                        <strong>How to find a validateUrl:</strong> Open DevTools → Network tab →
+                        find any API endpoint that returns 401/403 when logged out.
+                    </P>
+                    <CodeBlock lang="bash">{`# Common validateUrl patterns:
+Reddit      https://www.reddit.com/prefs/friends
+X (Twitter) https://x.com/i/api/2/notifications/all.json?count=1
+LinkedIn    https://www.linkedin.com/voyager/api/me
+YouTube     https://www.youtube.com/account
+V2EX        https://www.v2ex.com/notifications
+Zhihu       https://www.zhihu.com/api/v4/me`}</CodeBlock>
+                    <P>
+                        <strong>When to escalate:</strong> <Code>sig status</Code> still shows
+                        invalid even with a validateUrl — the endpoint returns 200 regardless of
+                        auth state.
+                    </P>
+
+                    <SectionHeading id="step-3-validate-rule" level={2}>
+                        Step 3: Add validateRule
+                    </SectionHeading>
+                    <P>
+                        Some sites always return 200 (SPAs with client-side auth) or use
+                        non-standard signals. Use <Code>validateRule</Code> — a JS expression
+                        evaluated against the HTTP response:
+                    </P>
+                    <CodeBlock lang="yaml">{`internal-app:
+  domains: [app.example.com]
+  entryUrl: https://app.example.com/
+  validateUrl: https://app.example.com/api/me
+  validateRule: 'res.status === 200 && res.body.authenticated === true'
+  strategy: browser
+  extract:
+    - { from: cookies, as: cookie, match: '*' }
+  apply:
+    - { in: header, name: Cookie, value: '\${cookie}' }`}</CodeBlock>
+                    <P>
+                        The <Code>res</Code> object has:{' '}
+                        <Code>{'{ status, body, headers }'}</Code>. Body is auto-parsed as JSON
+                        if possible.
+                    </P>
+                    <CodeBlock lang="yaml">{`# More validateRule examples:
+
+# Check a specific header
+validateRule: 'res.headers["x-user-id"] !== undefined'
+
+# Check response contains user data
+validateRule: 'res.status === 200 && res.body.user != null'
+
+# Only accept 200 (reject any redirect)
+validateRule: 'res.status === 200'`}</CodeBlock>
+
+                    <SectionHeading id="verify-setup" level={2}>
+                        Verify your setup
+                    </SectionHeading>
+                    <P>
+                        After configuring a provider, use these commands to confirm everything
+                        works:
+                    </P>
+                    <CodeBlock lang="bash">{`# 1. Check credential status
+sig status my-provider
+# ✓ my-provider: valid (expires in 2h)    ← you're good
+# ✗ my-provider: expired                  ← re-login needed
+# ✗ my-provider: invalid                  ← config needs tuning (Step 2/3)
+
+# 2. Test a real request
+sig request https://my-service.example.com/api/me
+# 200 OK = working
+# 401/403 = credentials not valid, escalate to next step
+
+# 3. Check overall health
+sig doctor`}</CodeBlock>
+                    <P>
+                        <strong>Decision flowchart:</strong>
+                    </P>
+                    <CodeBlock lang="bash">{`sig login <url> → sig status
+     │
+     ├─ ✓ valid → Done! Use sig request / run / proxy
+     │
+     └─ ✗ invalid right after login
+            │
+            ├─ Public site? → Add validateUrl (Step 2)
+            │       │
+            │       ├─ ✓ valid → Done!
+            │       └─ ✗ still invalid → Add validateRule (Step 3)
+            │
+            └─ SSO site? → Try: sig login <url> --mode visible`}</CodeBlock>
 
                     <SectionHeading id="localstorage" level={2}>
                         localStorage tokens
@@ -386,32 +498,27 @@ providers:
       name: Authorization
       value: "Bearer \${xoxc-token}"`}</CodeBlock>
 
-                    <SectionHeading id="public-sites" level={2}>
-                        Public sites (validateUrl)
+                    <SectionHeading id="multiple-domains" level={2}>
+                        Multiple domains
                     </SectionHeading>
                     <P>
-                        Public sites set tracking cookies to all visitors. Add{' '}
-                        <Code>validateUrl</Code> pointing to a protected endpoint so sig can
-                        distinguish auth cookies from anonymous ones:
+                        Some sites use multiple domains (e.g. x.com migrated from twitter.com).
+                        List all domains so sig captures cookies from both:
                     </P>
-                    <CodeBlock lang="yaml">{`reddit:
-  domains: [www.reddit.com, reddit.com]
-  entryUrl: https://www.reddit.com/
-  validateUrl: https://www.reddit.com/prefs/friends
+                    <CodeBlock lang="yaml">{`x:
+  domains: [x.com, twitter.com]
+  entryUrl: https://x.com/
+  validateUrl: https://x.com/i/api/2/notifications/all.json?count=1
   strategy: browser
   extract:
-    - from: cookies
-      as: cookie
-      match: "*"
+    - { from: cookies, as: cookie, match: '*' }
+    - { from: cookies, as: ct0, match: ct0 }
   apply:
+    - { in: header, name: Cookie, value: '\${cookie}' }
+    - { in: header, name: x-csrf-token, value: '\${ct0}' }
     - in: header
-      name: Cookie
-      value: "\${cookie}"`}</CodeBlock>
-                    <P>
-                        sig probes <Code>validateUrl</Code> with extracted credentials — 2xx means
-                        logged in, 401/403 means not. SSO sites don't need this — redirect detection
-                        works automatically.
-                    </P>
+      name: authorization
+      value: 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA'`}</CodeBlock>
                 </>
             ),
             aside: (

@@ -70,58 +70,70 @@ in your browser         -->   credentials locally          -->  on your behalf
 
 ## Provider Configuration
 
-Most enterprise/SSO sites work with zero config. Public sites need a bit more. Here's the progression from simple to advanced:
+sig uses a progressive approach — start simple, add config only if needed:
 
-### 1. Zero config (auto-provision)
+```
+Step 1: sig login <url>           ← works for 80% of sites (SSO, enterprise)
+Step 2: add validateUrl           ← needed for public sites with tracking cookies
+Step 3: add validateRule          ← needed for non-standard login detection
+```
 
-For SSO-protected internal tools, just run:
+### Step 1: Just Login (auto-provision)
+
+For most sites, just run:
 
 ```bash
 sig login https://jira.example.com
+sig status                            # ✓ jira-example: valid (expires in 2h)
 ```
 
-sig opens a real browser, you log in, and it writes config automatically:
+That's it. sig opens a browser, you log in, and it auto-creates config + captures credentials. Verify with `sig status` — if it shows **valid**, you're done.
+
+<details>
+<summary>What sig auto-generates</summary>
 
 ```yaml
 # ~/.sig/config.yaml (auto-generated)
 jira-example:
-    domains:
-        - jira.example.com
+    domains: [jira.example.com]
     entryUrl: https://jira.example.com/
     strategy: browser
     extract:
-        - from: cookies
-          as: session
-          match: '*'
+        - { from: cookies, as: cookie, match: '*' }
     apply:
-        - in: header
-          name: Cookie
-          value: '${session}'
+        - { in: header, name: Cookie, value: '${cookie}' }
 ```
 
-### 2. Public sites (`validateUrl`)
+</details>
 
-Public sites set tracking cookies to **all visitors**. sig can't tell auth cookies from junk using redirect detection alone. Add `validateUrl` pointing to a protected endpoint — sig probes it and accepts credentials only on 2xx:
+**When to move to Step 2:** `sig status` shows "expired" or "invalid" right after login, or `sig request <url>` returns 401/403.
+
+### Step 2: Add `validateUrl`
+
+Public sites (Reddit, X, LinkedIn…) set tracking cookies to **all visitors** — even before login. sig can't distinguish auth cookies from junk using redirect detection alone.
+
+**Fix:** Add `validateUrl` — a protected endpoint that returns 401/403 when not logged in:
 
 ```yaml
 reddit:
-    domains:
-        - www.reddit.com
-        - reddit.com
+    domains: [www.reddit.com, reddit.com]
     entryUrl: https://www.reddit.com/
-    validateUrl: https://www.reddit.com/prefs/friends
+    validateUrl: https://www.reddit.com/prefs/friends # ← returns 403 if not logged in
     strategy: browser
     extract:
-        - from: cookies
-          as: cookie
-          match: '*'
+        - { from: cookies, as: cookie, match: '*' }
     apply:
-        - in: header
-          name: Cookie
-          value: '${cookie}'
+        - { in: header, name: Cookie, value: '${cookie}' }
 ```
 
-sig validates extracted credentials against `validateUrl` — 401/403 means not logged in, 2xx means success.
+Then re-login and verify:
+
+```bash
+sig login reddit --force              # re-authenticate with new config
+sig status reddit                     # ✓ reddit: valid
+```
+
+**How to find a validateUrl:** Open DevTools → Network tab → find any API endpoint that returns 401/403 when you're logged out. Common patterns:
 
 | Site        | validateUrl                                            |
 | ----------- | ------------------------------------------------------ |
@@ -132,66 +144,111 @@ sig validates extracted credentials against `validateUrl` — 401/403 means not 
 | V2EX        | `https://www.v2ex.com/notifications`                   |
 | Zhihu       | `https://www.zhihu.com/api/v4/me`                      |
 
-### 3. Multiple domains
+**When to move to Step 3:** `sig status` still shows invalid even with a validateUrl — the endpoint returns 200/3xx regardless of auth state.
 
-Some sites use multiple domains (e.g. x.com migrated from twitter.com). List all domains so sig captures cookies from both:
+### Step 3: Add `validateRule`
+
+Some sites always return 200 (SPAs with client-side auth) or use non-standard signals. Use `validateRule` — a JS expression evaluated against the HTTP response:
 
 ```yaml
-x:
-    domains:
-        - x.com
-        - twitter.com
-    entryUrl: https://x.com/
-    validateUrl: https://x.com/i/api/2/notifications/all.json?count=1
+internal-app:
+    domains: [app.example.com]
+    entryUrl: https://app.example.com/
+    validateUrl: https://app.example.com/api/me
+    validateRule: 'res.status === 200 && res.body.authenticated === true'
     strategy: browser
-    networkProxy: socks5://127.0.0.1:3333
     extract:
-        - from: cookies
-          as: cookie
-          match: '*'
-        - from: cookies
-          as: ct0
-          match: 'ct0'
+        - { from: cookies, as: cookie, match: '*' }
     apply:
-        - in: header
-          name: Cookie
-          value: '${cookie}'
-        - in: header
-          name: x-csrf-token
-          value: '${ct0}'
-        - in: header
-          name: authorization
-          value: 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA'
+        - { in: header, name: Cookie, value: '${cookie}' }
 ```
 
-### 4. localStorage extraction (advanced)
+The `res` object has: `{ status, body, headers }`. Body is auto-parsed as JSON if possible.
 
-Some apps store tokens in localStorage instead of cookies. Use `from: localStorage` with `match` (key pattern) and `jsonPath` (nested field):
+**More examples:**
+
+```yaml
+# Check a specific header
+validateRule: 'res.headers["x-user-id"] !== undefined'
+
+# Check response body contains username
+validateRule: 'res.status === 200 && res.body.user != null'
+
+# Reject redirect responses (SPA that 302s to /login)
+validateRule: 'res.status === 200'
+```
+
+### Decision Flowchart
+
+```
+sig login <url> → sig status
+       │
+       ├─ ✓ valid → Done! Use sig request / sig run / sig proxy
+       │
+       └─ ✗ invalid/expired immediately after login
+              │
+              ├─ Is it a public site? → Add validateUrl (Step 2)
+              │         │
+              │         ├─ ✓ valid → Done!
+              │         └─ ✗ still invalid → Add validateRule (Step 3)
+              │
+              └─ Is it an SSO site? → Try: sig login <url> --mode visible
+```
+
+### Advanced: localStorage & Multiple Domains
+
+<details>
+<summary>localStorage extraction</summary>
+
+Some apps store tokens in localStorage instead of cookies:
 
 ```yaml
 app-slack:
-    domains:
-        - your-org.enterprise.slack.com
+    domains: [your-org.enterprise.slack.com]
     entryUrl: https://app.slack.com/client/YOUR_TEAM_ID
     strategy: browser
     extract:
-        - from: cookies
-          as: session
-          match: '*'
-        - from: localStorage
-          as: xoxc-token
-          match: localConfig_v2
-          jsonPath: teams.YOUR_TEAM_ID.token
+        - { from: cookies, as: session, match: '*' }
+        - {
+              from: localStorage,
+              as: xoxc-token,
+              match: localConfig_v2,
+              jsonPath: 'teams.YOUR_TEAM_ID.token',
+          }
     apply:
-        - in: header
-          name: Cookie
-          value: '${session}'
-        - in: header
-          name: Authorization
-          value: 'Bearer ${xoxc-token}'
+        - { in: header, name: Cookie, value: '${session}' }
+        - { in: header, name: Authorization, value: 'Bearer ${xoxc-token}' }
 ```
 
-Full guide with debugging tips at **[sigcli.ai](https://sigcli.ai)**.
+</details>
+
+<details>
+<summary>Multiple domains</summary>
+
+Sites that use multiple domains (e.g. x.com + twitter.com):
+
+```yaml
+x:
+    domains: [x.com, twitter.com]
+    entryUrl: https://x.com/
+    validateUrl: https://x.com/i/api/2/notifications/all.json?count=1
+    strategy: browser
+    extract:
+        - { from: cookies, as: cookie, match: '*' }
+        - { from: cookies, as: ct0, match: ct0 }
+    apply:
+        - { in: header, name: Cookie, value: '${cookie}' }
+        - { in: header, name: x-csrf-token, value: '${ct0}' }
+        - {
+              in: header,
+              name: authorization,
+              value: 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
+          }
+```
+
+</details>
+
+Full guide at **[sigcli.ai](https://sigcli.ai)**.
 
 ## AI Agent Skills
 
