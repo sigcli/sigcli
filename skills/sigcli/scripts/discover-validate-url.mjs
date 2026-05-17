@@ -13,7 +13,6 @@
  *   - Node.js 22+ (native WebSocket)
  *   - sig must be initialized (~/.sig/config.yaml exists with browser config)
  */
-
 import { spawn } from 'child_process';
 import { readFileSync } from 'fs';
 import { homedir } from 'os';
@@ -39,7 +38,9 @@ try {
     if (execMatch) execPath = execMatch[1].trim();
     const dataMatch = config.match(/browserDataDir:\s*['"]?([^'"\n]+)/);
     if (dataMatch) dataDir = dataMatch[1].replace('~', homedir()).trim();
-} catch { /* use defaults */ }
+} catch {
+    /* use defaults */
+}
 
 // --- Helpers ---
 function createCDP(wsUrl) {
@@ -57,27 +58,26 @@ function createCDP(wsUrl) {
 
     const send = (method, params = {}) => {
         const msgId = id++;
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             pending[msgId] = resolve;
             ws.send(JSON.stringify({ id: msgId, method, params }));
         });
     };
 
-    const ready = new Promise(r => ws.addEventListener('open', r));
+    const ready = new Promise((r) => ws.addEventListener('open', r));
     return { ws, send, ready };
 }
 
 // --- Main ---
 console.log(`[1/5] Launching browser → ${TARGET_URL}`);
-const proc = spawn(execPath, [
-    `--remote-debugging-port=${PORT}`,
-    `--user-data-dir=${dataDir}`,
-    '--no-first-run',
-    TARGET_URL
-], { stdio: 'ignore', detached: true });
+const proc = spawn(
+    execPath,
+    [`--remote-debugging-port=${PORT}`, `--user-data-dir=${dataDir}`, '--no-first-run', TARGET_URL],
+    { stdio: 'ignore', detached: true },
+);
 proc.unref();
 
-await new Promise(r => setTimeout(r, 4000));
+await new Promise((r) => setTimeout(r, 4000));
 
 // Connect CDP
 let pages;
@@ -89,8 +89,11 @@ try {
     process.exit(1);
 }
 
-const page = pages.find(p => p.url.includes(DOMAIN)) || pages[0];
-if (!page) { console.error('No matching page found'); process.exit(1); }
+const page = pages.find((p) => p.url.includes(DOMAIN)) || pages[0];
+if (!page) {
+    console.error('No matching page found');
+    process.exit(1);
+}
 
 const { ws, send, ready } = createCDP(page.webSocketDebuggerUrl);
 await ready;
@@ -104,9 +107,14 @@ ws.addEventListener('message', (event) => {
     const msg = JSON.parse(event.data);
     if (msg.method === 'Network.requestWillBeSent') {
         const r = msg.params.request;
-        if (r.method === 'GET' && r.url.includes(DOMAIN) &&
-            (r.url.includes('/rest/') || r.url.includes('/api/') ||
-             r.url.includes('/graphql') || r.url.includes('/ajax/'))) {
+        if (
+            r.method === 'GET' &&
+            r.url.includes(DOMAIN) &&
+            (r.url.includes('/rest/') ||
+                r.url.includes('/api/') ||
+                r.url.includes('/graphql') ||
+                r.url.includes('/ajax/'))
+        ) {
             const path = new URL(r.url).pathname;
             if (!apiRequests.has(path)) {
                 apiRequests.set(path, { url: r.url.split('?')[0], status: null });
@@ -115,7 +123,13 @@ ws.addEventListener('message', (event) => {
     }
     if (msg.method === 'Network.responseReceived') {
         const url = msg.params.response.url;
-        const path = (() => { try { return new URL(url).pathname; } catch { return null; } })();
+        const path = (() => {
+            try {
+                return new URL(url).pathname;
+            } catch {
+                return null;
+            }
+        })();
         if (path && apiRequests.has(path)) {
             apiRequests.get(path).status = msg.params.response.status;
         }
@@ -124,7 +138,7 @@ ws.addEventListener('message', (event) => {
 
 console.log(`[2/5] Observing API requests (waiting 8s for page load)...`);
 await send('Page.reload');
-await new Promise(r => setTimeout(r, 8000));
+await new Promise((r) => setTimeout(r, 8000));
 
 console.log(`\n--- Discovered GET API endpoints ---`);
 for (const [path, entry] of apiRequests) {
@@ -178,7 +192,10 @@ const testNoCookie = `
     return JSON.stringify(results);
 })()`;
 
-const evalResult2 = await send('Runtime.evaluate', { expression: testNoCookie, awaitPromise: true });
+const evalResult2 = await send('Runtime.evaluate', {
+    expression: testNoCookie,
+    awaitPromise: true,
+});
 const withoutCookie = JSON.parse(evalResult2.result?.result?.value || '{}');
 
 console.log('\n--- Without cookies (simulating logged out) ---');
@@ -197,7 +214,9 @@ for (const path of paths) {
 
     if (before.status !== after.status) {
         console.log(`\n✓ CANDIDATE: ${path}`);
-        console.log(`  Status differs: ${before.status} (no cookie) vs ${after.status} (with cookie)`);
+        console.log(
+            `  Status differs: ${before.status} (no cookie) vs ${after.status} (with cookie)`,
+        );
         if (before.status === 401 || before.status === 403) {
             console.log(`  → Use as validateUrl (returns ${before.status} without auth)`);
         } else if (before.status >= 300 && before.status < 400) {
@@ -221,5 +240,9 @@ if (!found) {
 
 console.log('\n[5/5] Done. Closing browser.');
 ws.close();
-try { process.kill(-proc.pid); } catch { proc.kill(); }
+try {
+    process.kill(-proc.pid);
+} catch {
+    proc.kill();
+}
 process.exit(0);
