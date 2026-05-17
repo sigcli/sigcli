@@ -68,18 +68,6 @@ export const ProxySubcommand = {
 } as const;
 
 /**
- * Page load wait conditions for browser navigation.
- */
-export const WaitUntil = {
-    LOAD: 'load',
-    NETWORK_IDLE: 'networkidle',
-    DOM_CONTENT_LOADED: 'domcontentloaded',
-    COMMIT: 'commit',
-} as const;
-
-export type WaitUntilValue = (typeof WaitUntil)[keyof typeof WaitUntil];
-
-/**
  * Credential type discriminators matching the Credential union.
  */
 export const CredentialTypeName = {

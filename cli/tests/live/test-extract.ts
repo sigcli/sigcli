@@ -9,7 +9,6 @@
 import { ApplyEngine } from '../../src/apply/apply-engine.js';
 import { loadConfig } from '../../src/config/loader.js';
 import { BrowserStrategy } from '../../src/strategies/browser/index.js';
-import { checkRequired } from '../../src/strategies/browser/required-checker.js';
 import type { ApplyRule, ExtractRule } from '../../src/types/extract.js';
 import { isOk } from '../../src/types/result.js';
 
@@ -21,8 +20,6 @@ const TEST_PROVIDERS: Record<
         entryUrl: string;
         source: 'browser';
         ttl?: string;
-        required?: string[];
-        cookiePaths?: string[];
         networkProxy?: string;
         extract: ExtractRule[];
         apply: ApplyRule[];
@@ -41,7 +38,6 @@ const TEST_PROVIDERS: Record<
         entryUrl: 'https://wiki.one.int.sap/',
         source: 'browser',
         ttl: '12h',
-        cookiePaths: ['/wiki'],
         extract: [{ from: 'cookies', name: 'session', key: '*' }],
         apply: [{ in: 'header', name: 'Cookie', value: '${session}' }],
     },
@@ -144,7 +140,6 @@ async function main() {
     console.log(`Domains: ${provider.domains.join(', ')}`);
     console.log(`Entry URL: ${provider.entryUrl}`);
     console.log(`Extract rules: ${provider.extract.length}`);
-    if (provider.required) console.log(`Required: ${provider.required.join(', ')}`);
     console.log('');
 
     const browserSource = new BrowserStrategy({
@@ -157,8 +152,6 @@ async function main() {
         entryUrl: provider.entryUrl,
         domains: provider.domains,
         networkProxy: provider.networkProxy,
-        cookiePaths: provider.cookiePaths,
-        required: provider.required,
         timeout: 120000,
     });
 
@@ -172,16 +165,6 @@ async function main() {
     for (const [name, value] of Object.entries(credentials)) {
         const display = value.length > 80 ? value.slice(0, 80) + '...' : value;
         console.log(`  ${name}: ${display}`);
-    }
-
-    // Check required
-    if (provider.required) {
-        const unmet = checkRequired(provider.required, credentials);
-        if (unmet.length > 0) {
-            console.log(`\n⚠ Unmet requirements: ${unmet.join(', ')}`);
-        } else {
-            console.log('\n✓ All requirements met');
-        }
     }
 
     // Apply rules

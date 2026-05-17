@@ -13,8 +13,6 @@ export function toProviderEntry(pc: ProviderConfig): ProviderEntry {
         strategy: pc.strategy as ProviderEntry['strategy'],
         ...(pc.extract.length > 0 ? { extract: pc.extract } : {}),
         apply: pc.apply,
-        ...(pc.required?.length ? { required: pc.required } : {}),
-        ...(pc.cookiePaths?.length ? { cookiePaths: pc.cookiePaths } : {}),
         ...(pc.ttl ? { ttl: pc.ttl } : {}),
         ...(pc.networkProxy ? { networkProxy: pc.networkProxy } : {}),
         ...(pc.loginMode ? { loginMode: pc.loginMode } : {}),

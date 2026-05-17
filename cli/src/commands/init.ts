@@ -10,7 +10,6 @@ import os from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
 
-import { WaitUntil } from '../types/index.js';
 import { generateConfigYaml } from '../config/generator.js';
 import { getConfigPath } from '../config/loader.js';
 import { loadEncryptionKey } from '../crypto/encryption.js';
@@ -131,7 +130,6 @@ export async function runInit(
         credentialsDir: displayCredentialsDir,
         headlessTimeout: 20_000,
         visibleTimeout: 120_000,
-        waitUntil: WaitUntil.LOAD,
     });
 
     // Create directories

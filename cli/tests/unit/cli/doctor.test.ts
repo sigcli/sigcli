@@ -67,7 +67,6 @@ function validConfig(overrides: Partial<SigConfig> = {}): SigConfig {
             execPath: '/usr/bin/google-chrome',
             headlessTimeout: 30_000,
             visibleTimeout: 120_000,
-            waitUntil: 'load',
         },
         storage: {
             credentialsDir: '/tmp/test-credentials',
