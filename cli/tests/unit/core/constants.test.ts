@@ -13,9 +13,7 @@ import {
     RemoteSubcommand,
     SIG_DIR,
     SyncSubcommand,
-    WaitUntil,
     WatchSubcommand,
-    type WaitUntilValue,
 } from '../../../src/types/constants.js';
 
 describe('constants', () => {
@@ -97,27 +95,6 @@ describe('constants', () => {
 
         it('has exactly 4 subcommands', () => {
             expect(Object.keys(ProxySubcommand)).toHaveLength(4);
-        });
-    });
-
-    describe('WaitUntil', () => {
-        it('has all page-load wait conditions', () => {
-            expect(WaitUntil.LOAD).toBe('load');
-            expect(WaitUntil.NETWORK_IDLE).toBe('networkidle');
-            expect(WaitUntil.DOM_CONTENT_LOADED).toBe('domcontentloaded');
-            expect(WaitUntil.COMMIT).toBe('commit');
-        });
-
-        it('has exactly 4 values', () => {
-            expect(Object.keys(WaitUntil)).toHaveLength(4);
-        });
-
-        it('WaitUntilValue type accepts all WaitUntil values', () => {
-            const load: WaitUntilValue = WaitUntil.LOAD;
-            const idle: WaitUntilValue = WaitUntil.NETWORK_IDLE;
-            const dom: WaitUntilValue = WaitUntil.DOM_CONTENT_LOADED;
-            const commit: WaitUntilValue = WaitUntil.COMMIT;
-            expect([load, idle, dom, commit]).toHaveLength(4);
         });
     });
 

@@ -147,7 +147,6 @@ describe('runInit', () => {
         expect(writtenContent).toContain('providers:');
         expect(writtenContent).toContain('headlessTimeout: 20000');
         expect(writtenContent).toContain('visibleTimeout: 120000');
-        expect(writtenContent).toContain('waitUntil: load');
     });
 
     // ---- generates config at correct path ----

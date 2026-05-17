@@ -75,13 +75,10 @@ export class AuthManager {
                     apply: entry.apply,
                     networkProxy: entry.networkProxy,
                     loginMode: entry.loginMode,
-                    required: entry.required,
-                    cookiePaths: entry.cookiePaths,
                     ttl: entry.ttl,
                     oauth2: entry.oauth2,
 
                     loginUrlPatterns: entry.loginUrlPatterns,
-                    waitUntil: entry.waitUntil,
                     validateRule: entry.validateRule,
                 }) as ProviderConfig,
         );

@@ -184,7 +184,6 @@ export class SyncEngine {
                         execPath: '',
                         headlessTimeout: 30000,
                         visibleTimeout: 120000,
-                        waitUntil: 'load',
                     },
                     storage: {
                         credentialsDir: '~/.sig/credentials',
@@ -218,7 +217,6 @@ export class SyncEngine {
                             execPath: '',
                             headlessTimeout: 30000,
                             visibleTimeout: 120000,
-                            waitUntil: 'load',
                         }),
                     );
                 }

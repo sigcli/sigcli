@@ -3,8 +3,6 @@
  * All config lives in ~/.sig/config.yaml — no cascade, no env vars.
  */
 
-import type { WaitUntilValue } from '../types/index.js';
-
 // ============================================================================
 // Top-level Config Sections
 // ============================================================================
@@ -14,7 +12,6 @@ export interface BrowserConfig {
     execPath: string;
     headlessTimeout: number;
     visibleTimeout: number;
-    waitUntil: WaitUntilValue;
 }
 
 export interface StorageConfig {
@@ -75,14 +72,11 @@ export interface ProviderEntry {
         expiresJsonPath?: string;
     }>; // Required for browser/prompt; optional for oauth2 (strategy handles extraction internally)
     apply: Array<{ in: string; name: string; value: string; action?: 'set' | 'append' | 'remove' }>;
-    required?: string[];
-    cookiePaths?: string[];
     ttl?: string;
     networkProxy?: string;
     loginMode?: 'headless' | 'visible' | 'auto';
     oauth2?: { tokenUrl: string; scopes?: string[] };
 
     loginUrlPatterns?: string[];
-    waitUntil?: WaitUntilValue;
     validateRule?: string;
 }

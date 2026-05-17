@@ -6,7 +6,7 @@
  * extract and apply must be arrays of rule objects.
  */
 
-import { ConfigError, err, ok, WaitUntil, type AuthError, type Result } from '../types/index.js';
+import { ConfigError, err, ok, type AuthError, type Result } from '../types/index.js';
 import type {
     BrowserConfig,
     ProviderEntry,
@@ -18,12 +18,6 @@ import type {
 } from './schema.js';
 
 const VALID_STRATEGIES: readonly string[] = ['browser', 'prompt', 'oauth2'];
-const VALID_WAIT_UNTIL: readonly string[] = [
-    WaitUntil.LOAD,
-    WaitUntil.NETWORK_IDLE,
-    WaitUntil.DOM_CONTENT_LOADED,
-    WaitUntil.COMMIT,
-];
 
 /**
  * Validate a raw config object parsed from YAML.
@@ -50,12 +44,6 @@ export function validateConfig(raw: Record<string, unknown>): Result<SigConfig, 
         }
         if (browser.visibleTimeout !== undefined && typeof browser.visibleTimeout !== 'number') {
             errors.push('browser.visibleTimeout must be a number');
-        }
-        if (
-            browser.waitUntil !== undefined &&
-            !VALID_WAIT_UNTIL.includes(browser.waitUntil as string)
-        ) {
-            errors.push(`browser.waitUntil must be one of: ${VALID_WAIT_UNTIL.join(', ')}`);
         }
     }
 
@@ -165,10 +153,6 @@ export function validateConfig(raw: Record<string, unknown>): Result<SigConfig, 
             typeof browserRaw.headlessTimeout === 'number' ? browserRaw.headlessTimeout : 20_000,
         visibleTimeout:
             typeof browserRaw.visibleTimeout === 'number' ? browserRaw.visibleTimeout : 120_000,
-        waitUntil:
-            typeof browserRaw.waitUntil === 'string'
-                ? (browserRaw.waitUntil as BrowserConfig['waitUntil'])
-                : WaitUntil.LOAD,
     };
 
     const storageRaw = raw.storage as Record<string, unknown>;
@@ -349,8 +333,6 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
         strategy: raw.strategy as ProviderEntry['strategy'],
         ...(Array.isArray(raw.extract) ? { extract: raw.extract as ProviderEntry['extract'] } : {}),
         apply: raw.apply as ProviderEntry['apply'],
-        ...(Array.isArray(raw.required) ? { required: raw.required } : {}),
-        ...(Array.isArray(raw.cookiePaths) ? { cookiePaths: raw.cookiePaths } : {}),
         ...(typeof raw.ttl === 'string' ? { ttl: raw.ttl } : {}),
         ...(typeof raw.networkProxy === 'string' ? { networkProxy: raw.networkProxy } : {}),
         ...(raw.oauth2 && typeof raw.oauth2 === 'object'
@@ -365,9 +347,6 @@ function parseProviderEntry(raw: Record<string, unknown>): ProviderEntry {
             : {}),
         ...(Array.isArray(raw.loginUrlPatterns)
             ? { loginUrlPatterns: raw.loginUrlPatterns as string[] }
-            : {}),
-        ...(typeof raw.waitUntil === 'string'
-            ? { waitUntil: raw.waitUntil as ProviderEntry['waitUntil'] }
             : {}),
         ...(typeof raw.validateRule === 'string' ? { validateRule: raw.validateRule } : {}),
     };

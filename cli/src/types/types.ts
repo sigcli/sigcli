@@ -37,11 +37,8 @@ export interface ProviderConfig {
 
     extract: ExtractRule[];
     apply: ApplyRule[];
-    required?: string[];
-    cookiePaths?: string[];
     ttl?: string;
     loginUrlPatterns?: string[];
-    waitUntil?: string;
     validateRule?: string; // JS expression evaluated against response: "res.body.status_code === 0"
 }
 
@@ -80,12 +77,6 @@ export interface Cookie {
     httpOnly: boolean;
     secure: boolean;
     sameSite?: 'Strict' | 'Lax' | 'None';
-}
-
-export interface BrowserLaunchOptions {
-    headless?: boolean;
-    timeout?: number;
-    args?: string[];
 }
 
 // ============================================================================

@@ -13,7 +13,6 @@ export type {
     StoredCredential,
     StoredEntry,
     ProviderStatus,
-    BrowserLaunchOptions,
     ILogger,
     AuthDiagnostics,
     ExtractRule,
@@ -55,7 +54,6 @@ export type { IBrowserExtractor } from './types/index.js';
 // Apply engine
 export { ApplyEngine } from './apply/apply-engine.js';
 export type { ApplyResult } from './apply/apply-engine.js';
-export { checkRequired } from './strategies/browser/required-checker.js';
 
 // Strategies
 export { BrowserStrategy } from './strategies/browser/index.js';
@@ -108,7 +106,6 @@ export {
     RemoteSubcommand,
     SyncSubcommand,
     WatchSubcommand,
-    WaitUntil,
     CredentialTypeName,
     LOGIN_URL_PATTERNS,
     HttpHeader,
@@ -118,7 +115,6 @@ export {
     SIG_DIR,
     CONFIG_FILENAME,
 } from './types/index.js';
-export type { WaitUntilValue } from './types/index.js';
 
 // Logger
 export { createConsoleLogger, createOperationalLogger, createNoopLogger } from './utils/logger.js';
