@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* eslint-env node */
+/* eslint-disable no-undef */
 /**
  * discover-validate-url.mjs
  *
@@ -18,7 +18,6 @@ import { spawn } from 'child_process';
 import { readFileSync } from 'fs';
 import { homedir } from 'os';
 import { resolve } from 'path';
-import { createInterface } from 'readline/promises';
 
 // --- Config ---
 const TARGET_URL = process.argv[2];
@@ -142,7 +141,7 @@ await send('Page.reload');
 await new Promise((r) => setTimeout(r, 8000));
 
 console.log(`\n--- Discovered GET API endpoints ---`);
-for (const [path, entry] of apiRequests) {
+for (const [, entry] of apiRequests) {
     console.log(`  [${entry.status}] ${entry.url}`);
 }
 
