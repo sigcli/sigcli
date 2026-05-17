@@ -87,7 +87,6 @@ Authentication:
     --client-id <id>                OAuth2 client ID
     --client-secret <secret>        OAuth2 client secret
     --scope <scopes>                OAuth2 scopes (space-separated)
-    --force                         Skip stored credentials, force re-auth
     --mode <mode>                   Login mode: headless|visible|auto (default: auto)
     --network-proxy <url>           Proxy for browser or token requests
   logout [provider]                 Clear credentials (all if none specified)
