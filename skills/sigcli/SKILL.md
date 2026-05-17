@@ -25,24 +25,24 @@ These are the most common mistakes. Read them FIRST.
 
 ## Command Reference
 
-| Command      | Usage                                  | Key Flags                                                                                                                                       |
-| ------------ | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `init`       | `sig init`                             | `--remote`, `--yes`, `--force`                                                                                                                  |
-| `doctor`     | `sig doctor`                           | —                                                                                                                                               |
-| `login`      | `sig login <provider>`                 | `--strategy oauth2`, `--token-url`, `--client-id`, `--client-secret`, `--scope`, `--force`, `--mode auto\|headless\|visible`, `--network-proxy` |
-| `logout`     | `sig logout [provider]`                | —                                                                                                                                               |
-| `get`        | `sig get <provider>`                   | `--format json\|header\|value`, `--no-redaction`                                                                                                |
-| `request`    | `sig request <url>`                    | `--method`, `--body`, `--header "K: V"`, `--format json\|body\|headers`                                                                         |
-| `status`     | `sig status [provider]`                | `--format json\|yaml\|table\|plain`                                                                                                             |
-| `providers`  | `sig providers`                        | `--format json\|yaml\|table\|plain`                                                                                                             |
-| `rename`     | `sig rename <old> <new>`               | —                                                                                                                                               |
-| `remove`     | `sig remove <provider>`                | `--keep-config`, `--force`                                                                                                                      |
-| `remote`     | `sig remote add\|remove\|list`         | **add:** `<name> <host>` `--user`, `--path`, `--ssh-key`                                                                                        |
-| `sync`       | `sig sync push\|pull [remote]`         | `--provider`, `--force`                                                                                                                         |
-| `watch`      | `sig watch add\|remove\|set-interval`  | **add:** `<provider>` `--auto-sync`                                                                                                             |
-| `proxy`      | `sig proxy start\|stop\|status\|trust` | **start:** `--port`                                                                                                                             |
-| `run`        | `sig run [providers...] -- <cmd>`      | `--expand-cookies`, `--mount <path>`, `--mount-format env\|json`                                                                                |
-| `completion` | `sig completion <shell>`               | bash, zsh, fish                                                                                                                                 |
+| Command      | Usage                                  | Key Flags                                                                                                                                         |
+| ------------ | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `init`       | `sig init`                             | `--remote`, `--yes`, `--force`                                                                                                                    |
+| `doctor`     | `sig doctor`                           | —                                                                                                                                                 |
+| `login`      | `sig login <provider>`                 | `--as <id>`, `--strategy oauth2`, `--token-url`, `--client-id`, `--client-secret`, `--scope`, `--mode auto\|headless\|visible`, `--network-proxy` |
+| `logout`     | `sig logout [provider]`                | —                                                                                                                                                 |
+| `get`        | `sig get <provider>`                   | `--format json\|header\|value`, `--no-redaction`                                                                                                  |
+| `request`    | `sig request <url>`                    | `--method`, `--body`, `--header "K: V"`, `--format json\|body\|headers`                                                                           |
+| `status`     | `sig status [provider]`                | `--format json\|yaml\|table\|plain`                                                                                                               |
+| `providers`  | `sig providers`                        | `--format json\|yaml\|table\|plain`                                                                                                               |
+| `rename`     | `sig rename <old> <new>`               | —                                                                                                                                                 |
+| `remove`     | `sig remove <provider>`                | `--keep-config`, `--force`                                                                                                                        |
+| `remote`     | `sig remote add\|remove\|list`         | **add:** `<name> <host>` `--user`, `--path`, `--ssh-key`                                                                                          |
+| `sync`       | `sig sync push\|pull [remote]`         | `--provider`, `--force`                                                                                                                           |
+| `watch`      | `sig watch add\|remove\|set-interval`  | **add:** `<provider>` `--auto-sync`                                                                                                               |
+| `proxy`      | `sig proxy start\|stop\|status\|trust` | **start:** `--port`                                                                                                                               |
+| `run`        | `sig run [providers...] -- <cmd>`      | `--expand-cookies`, `--mount <path>`, `--mount-format env\|json`                                                                                  |
+| `completion` | `sig completion <shell>`               | bash, zsh, fish                                                                                                                                   |
 
 Global: `--verbose`, `--help`
 
@@ -75,7 +75,7 @@ sig login <provider>                 # auto mode (headless first, then visible)
 sig login <provider> --mode visible  # force open browser — USE THIS for first-time public site login
 ```
 
-Note: Do NOT use `--force` unless you specifically want to discard existing credentials and re-authenticate from scratch. Without `--force`, `sig login` reuses existing valid credentials if available.
+Note: `sig login` reuses existing valid credentials if available — it only re-authenticates when credentials are expired or missing.
 
 ### Make an authenticated request
 
