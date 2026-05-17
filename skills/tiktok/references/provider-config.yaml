@@ -1,0 +1,30 @@
+# sigcli provider config for TikTok
+# Add to ~/.sig/config.yaml under `providers:`
+#
+# Prerequisites:
+#   npm install -g @sigcli/cli
+#   sig init
+#
+# Login:
+#   sig login tiktok
+#
+# NOTE: TikTok is blocked in China. You need a proxy to access it.
+# Set networkProxy in the config below to your proxy URL.
+
+tiktok:
+    domains:
+        - www.tiktok.com
+    entryUrl: https://www.tiktok.com/
+    validateUrl: https://www.tiktok.com/setting
+    strategy: browser
+    networkProxy: socks5://127.0.0.1:3333
+    loginMode: visible
+    ttl: 2h
+    extract:
+        - from: cookies
+          as: cookie
+          match: '*'
+    apply:
+        - in: header
+          name: Cookie
+          value: ${cookie}
