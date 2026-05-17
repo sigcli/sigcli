@@ -10,7 +10,6 @@ export interface InitOptions {
     credentialsDir: string;
     headlessTimeout: number;
     visibleTimeout: number;
-    waitUntil: string;
 }
 
 /**
@@ -34,7 +33,6 @@ browser:
   execPath: '${options.execPath}'
   headlessTimeout: ${options.headlessTimeout}
   visibleTimeout: ${options.visibleTimeout}
-  waitUntil: ${options.waitUntil}
 
 storage:
   credentialsDir: ${options.credentialsDir}
@@ -57,13 +55,10 @@ storage:
 #         name: Cookie
 #         value: "\${session}"
 #     # ttl: 2h                             # Approximate credential lifetime (default: 2h)
-#     # waitUntil: networkidle           # Optional: load|networkidle|domcontentloaded|commit
 #     # loginUrlPatterns:                   # Optional: custom URL patterns to detect login pages
 #     #   - /login
 #     #   - /auth/sso
 #     # validateRule: "res.body.status_code === 0"  # Optional: JS expression for custom login detection
-#     # required:                        # Optional: wait for specific cookies
-#     #   - session.my_cookie
 providers: {}
 `;
 }

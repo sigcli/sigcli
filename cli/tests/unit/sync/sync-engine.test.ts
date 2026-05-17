@@ -62,7 +62,6 @@ const testConfig: SigConfig = {
         execPath: '',
         headlessTimeout: 30000,
         visibleTimeout: 120000,
-        waitUntil: 'load',
     },
     storage: {
         credentialsDir: '~/.sig/credentials',
@@ -94,7 +93,6 @@ browser:
   execPath: ""
   headlessTimeout: 30000
   visibleTimeout: 120000
-  waitUntil: load
 storage:
   credentialsDir: ~/.sig/credentials
 providers:
@@ -121,7 +119,6 @@ browser:
   execPath: ""
   headlessTimeout: 30000
   visibleTimeout: 120000
-  waitUntil: load
 storage:
   credentialsDir: ~/.sig/credentials
 providers:

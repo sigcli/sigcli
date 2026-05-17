@@ -6,7 +6,6 @@ export type {
     ProviderConfig,
     StoredCredential,
     StoredEntry,
-    BrowserLaunchOptions,
     ProviderStatus,
     ILogger,
     AuthDiagnostics,
@@ -45,7 +44,6 @@ export {
     SyncSubcommand,
     WatchSubcommand,
     ProxySubcommand,
-    WaitUntil,
     CredentialTypeName,
     LOGIN_URL_PATTERNS,
     HttpHeader,
@@ -56,7 +54,7 @@ export {
     SIG_DIR,
     CONFIG_FILENAME,
 } from './constants.js';
-export type { WaitUntilValue, OutputFormatValue } from './constants.js';
+export type { OutputFormatValue } from './constants.js';
 
 export type { IStrategy, ExtractedCredentials } from './interfaces/strategy.js';
 export type { IBrowserExtractor } from './interfaces/browser-extractor.js';
