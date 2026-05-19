@@ -9,57 +9,42 @@ Search notes, read note details, view comments, browse user profiles, and get th
 
 ## Skill Directory
 
-`<SKILL_DIR>` is the directory containing this SKILL.md file. After installation it is one of:
+`<SKILL_DIR>` is the directory containing this SKILL.md file. Determine it ONCE at the start and reuse it.
 
-- Claude Code: `~/.claude/skills/xiaohongshu`
-- Cursor: `~/.cursor/skills/xiaohongshu`
-- Windsurf: `~/.windsurf/skills/xiaohongshu`
-- Cline: `~/.cline/skills/xiaohongshu`
+## Setup (run FIRST — every time, before any operation)
 
-Resolve it once at the start of any session and reuse.
-
-## First-Time Install (one-time per machine)
-
-If `<SKILL_DIR>` does not exist yet, do these four steps in order. Re-running any step is safe (idempotent).
-
-### 1. Install sigcli
+You MUST complete this setup before running any script. Do NOT skip.
 
 ```bash
-npm install -g @sigcli/cli
-sig init                              # creates ~/.sig/config.yaml
+sig status xiaohongshu 2>&1
 ```
 
-Verify: `command -v sig && sig --version` prints a version.
+Check the JSON output fields `configured` and `valid`:
 
-### 2. Install the xiaohongshu skill
+- **`configured: false`** → run Provider Setup below.
+- **`valid: false` (but configured: true)** → run `sig login xiaohongshu`, then re-check.
+- **`valid: true`** → run Vendor Setup (one-time per machine), then execute the user's request.
 
-From the [sigcli repo](https://github.com/pylonai/sigcli):
+### Provider Setup
 
-```bash
-git clone https://github.com/pylonai/sigcli.git
-cd sigcli/skills
-./install.sh                          # auto-detects your agent (Claude/Cursor/...)
-# or: ./install.sh --agent claude
-```
+1. Read `<SKILL_DIR>/references/provider-config.yaml`
+2. Append the provider block to `~/.sig/config.yaml` under `providers:`
+3. Run `sig login xiaohongshu` — a browser opens; scan the QR code with the Xiaohongshu app
+4. Verify: `sig status xiaohongshu` should show `valid: true`
 
-This copies the skill (including `vendor/`) to `<SKILL_DIR>`, **excluding** `node_modules/` (you install that next, locally).
+### Vendor Setup (one-time per machine)
 
-Verify: `test -f <SKILL_DIR>/SKILL.md && test -f <SKILL_DIR>/vendor/static/xhs_rap.js`.
-
-### 3. Install runtime dependencies
-
-XHS request signing requires Node.js 18+ to evaluate the bundled JS files via PyExecJS.
+Unlike most skills, xiaohongshu signs every request via JS files at `<SKILL_DIR>/vendor/static/`, evaluated through PyExecJS. The skill ships those source files but not their npm/pip deps — install them once:
 
 ```bash
-node --version                        # must be >= 18; install from https://nodejs.org if missing
-
-cd <SKILL_DIR>/vendor && npm install  # installs crypto-js, jsdom into vendor/node_modules
-pip install --user -r <SKILL_DIR>/requirements.txt
+node --version                          # must be >= 18; install from https://nodejs.org if missing
+cd <SKILL_DIR>/vendor && npm install    # installs crypto-js, jsdom
+pip install --user -r <SKILL_DIR>/requirements.txt   # PyExecJS, requests, loguru, retry
 ```
 
 If `pip` complains about externally-managed Python (PEP 668 on macOS/Debian), use a venv or `pipx`.
 
-Verify with the sign-only smoke test (no network, no cookie needed):
+Smoke-test signing (no network, no cookie needed):
 
 ```bash
 cd <SKILL_DIR>/vendor && python3 -c "
@@ -72,32 +57,6 @@ print('OK' if xs and rap else 'FAIL')
 ```
 
 Expect `OK`. If it fails, see Error Handling.
-
-### 4. Configure the sigcli provider and login
-
-```bash
-# 4a. Append the provider block to ~/.sig/config.yaml under `providers:`
-cat <SKILL_DIR>/references/provider-config.yaml >> ~/.sig/config.yaml
-
-# 4b. Browser login (a window opens; scan the QR code with the Xiaohongshu app)
-sig login xiaohongshu
-```
-
-Verify with the pre-flight check below.
-
-## Pre-flight Check (run before every session)
-
-```bash
-sig status xiaohongshu
-```
-
-Inspect the JSON `configured` and `valid` fields:
-
-| State                            | Meaning                                                       | Action                       |
-| -------------------------------- | ------------------------------------------------------------- | ---------------------------- |
-| `configured: false`              | Skill is installed but provider isn't in `~/.sig/config.yaml` | Step 4a above                |
-| `configured: true, valid: false` | Cookie expired or never logged in                             | `sig login xiaohongshu`      |
-| `configured: true, valid: true`  | Ready                                                         | Proceed to "Running Scripts" |
 
 ## Running Scripts
 
