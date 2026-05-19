@@ -259,6 +259,7 @@ See the [full skills catalog](skills/README.md) for details.
 Full docs, configuration, SDK, and AI agent integration guide at **[sigcli.ai](https://sigcli.ai)**.
 
 ## Issues
+
 Report an issue https://github.com/sigcli/sigcli/issues
 
 Or contact me: syncviip@gmail.com
