@@ -1,140 +1,224 @@
 ---
 name: xiaohongshu
-description: 'Interact with Xiaohongshu (小红书, RED, Little Red Book) — search notes, read note details, view comments, browse user profiles and posts, get home feed, like, favorite, comment, and follow. Use this skill whenever the user mentions Xiaohongshu, 小红书, RED, RedNote, Little Red Book, wants to search for lifestyle/beauty/travel content, read XHS discussions, look up XHS users, or browse trending notes. Also trigger when the user pastes a xiaohongshu.com URL (e.g. xiaohongshu.com/explore/noteid) or mentions an XHS note ID.'
+description: 'Interact with Xiaohongshu (小红书, RED, Little Red Book) — search notes, read note details, view comments, browse user profiles and posts, get home feed. Use this skill whenever the user mentions Xiaohongshu, 小红书, RED, RedNote, Little Red Book, wants to search for lifestyle/beauty/travel content, read XHS discussions, look up XHS users, or browse trending notes. Also trigger when the user pastes a xiaohongshu.com URL (e.g. xiaohongshu.com/explore/noteid) or mentions an XHS note ID.'
 ---
 
-# Xiaohongshu Skill
+# Xiaohongshu
 
-This skill provides authentication for Xiaohongshu (小红书) via sigcli, combined with [XhsSkills](https://github.com/cv-cat/XhsSkills) for API access.
+Search notes, read note details, view comments, browse user profiles, and get the home feed from Xiaohongshu (小红书).
 
-## Architecture
+## Skill Directory
 
-```
-sigcli (cookie producer) ──► XhsSkills (API consumer)
-  sig login xiaohongshu        xhs_api_tool.py call pc <method> --params '{"cookies_str": "..."}'
-```
+`<SKILL_DIR>` is the directory containing this SKILL.md file. After installation it is one of:
 
-- **sigcli** handles browser login and cookie extraction
-- **XhsSkills** (cv-cat/XhsSkills) handles API signing (x-s, x-s-common, x-t, x-rap-param) and requests
+- Claude Code: `~/.claude/skills/xiaohongshu`
+- Cursor: `~/.cursor/skills/xiaohongshu`
+- Windsurf: `~/.windsurf/skills/xiaohongshu`
+- Cline: `~/.cline/skills/xiaohongshu`
 
-## Setup
+Resolve it once at the start of any session and reuse.
 
-### 1. Configure sigcli provider
+## First-Time Install (one-time per machine)
 
-Add the config from `references/provider-config.yaml` to `~/.sig/config.yaml` under `providers:`.
+If `<SKILL_DIR>` does not exist yet, do these four steps in order. Re-running any step is safe (idempotent).
 
-### 2. Login
+### 1. Install sigcli
 
 ```bash
+npm install -g @sigcli/cli
+sig init                              # creates ~/.sig/config.yaml
+```
+
+Verify: `command -v sig && sig --version` prints a version.
+
+### 2. Install the xiaohongshu skill
+
+From the [sigcli repo](https://github.com/pylonai/sigcli):
+
+```bash
+git clone https://github.com/pylonai/sigcli.git
+cd sigcli/skills
+./install.sh                          # auto-detects your agent (Claude/Cursor/...)
+# or: ./install.sh --agent claude
+```
+
+This copies the skill (including `vendor/`) to `<SKILL_DIR>`, **excluding** `node_modules/` (you install that next, locally).
+
+Verify: `test -f <SKILL_DIR>/SKILL.md && test -f <SKILL_DIR>/vendor/static/xhs_rap.js`.
+
+### 3. Install runtime dependencies
+
+XHS request signing requires Node.js 18+ to evaluate the bundled JS files via PyExecJS.
+
+```bash
+node --version                        # must be >= 18; install from https://nodejs.org if missing
+
+cd <SKILL_DIR>/vendor && npm install  # installs crypto-js, jsdom into vendor/node_modules
+pip install --user -r <SKILL_DIR>/requirements.txt
+```
+
+If `pip` complains about externally-managed Python (PEP 668 on macOS/Debian), use a venv or `pipx`.
+
+Verify with the sign-only smoke test (no network, no cookie needed):
+
+```bash
+cd <SKILL_DIR>/vendor && python3 -c "
+import sys; sys.path.insert(0, '.')
+from xhs_utils.xhs_util import generate_x_rap_param, generate_xs_xs_common
+xs, xt, xsc = generate_xs_xs_common('a1=test', '/api/sns/web/v1/feed', '', 'POST')
+rap = generate_x_rap_param('/api/sns/web/v1/user_posted', '')
+print('OK' if xs and rap else 'FAIL')
+"
+```
+
+Expect `OK`. If it fails, see Error Handling.
+
+### 4. Configure the sigcli provider and login
+
+```bash
+# 4a. Append the provider block to ~/.sig/config.yaml under `providers:`
+cat <SKILL_DIR>/references/provider-config.yaml >> ~/.sig/config.yaml
+
+# 4b. Browser login (a window opens; scan the QR code with the Xiaohongshu app)
 sig login xiaohongshu
 ```
 
-This opens a browser. Scan the QR code with your Xiaohongshu app to login.
+Verify with the pre-flight check below.
 
-### 3. Verify
+## Pre-flight Check (run before every session)
 
 ```bash
 sig status xiaohongshu
-# Should show: configured: true, valid: true
 ```
 
-### 4. Install XhsSkills
+Inspect the JSON `configured` and `valid` fields:
+
+| State                            | Meaning                                                       | Action                       |
+| -------------------------------- | ------------------------------------------------------------- | ---------------------------- |
+| `configured: false`              | Skill is installed but provider isn't in `~/.sig/config.yaml` | Step 4a above                |
+| `configured: true, valid: false` | Cookie expired or never logged in                             | `sig login xiaohongshu`      |
+| `configured: true, valid: true`  | Ready                                                         | Proceed to "Running Scripts" |
+
+## Running Scripts
+
+All scripts output JSON to stdout. Read operations need a cookie (the public site does not allow anonymous access to most endpoints).
+
+**Recommended — `sig run` injects the cookie as `SIG_XIAOHONGSHU_COOKIE`:**
 
 ```bash
-git clone https://github.com/cv-cat/XhsSkills.git
-cd XhsSkills
-pip install -r skills/xhs-apis/scripts/requirements.txt
-cd skills/xhs-apis/scripts && npm install
+sig run xiaohongshu -- bash -c 'python3 <SKILL_DIR>/scripts/xiaohongshu_search_note.py --keyword "AI" --page 1'
 ```
 
-## Usage
-
-### Get cookie from sigcli
+**Alternative — pass `--cookie` explicitly:**
 
 ```bash
-# Get the full cookie string
 COOKIE=$(sig get xiaohongshu --no-redaction --format value)
+python3 <SKILL_DIR>/scripts/xiaohongshu_search_note.py --keyword "AI" --cookie "$COOKIE"
 ```
 
-Or use `sig run` to inject as environment variable:
+## Scripts Reference
 
-```bash
-sig run xiaohongshu -- bash -c 'echo $SIG_XIAOHONGSHU_COOKIE'
-```
+All scripts are in this skill's `scripts/` directory. Output is JSON to stdout.
 
-### Call XHS APIs via XhsSkills
+| Script                             | Purpose                              | Auth   |
+| ---------------------------------- | ------------------------------------ | ------ |
+| `xiaohongshu_search_note.py`       | Search notes by keyword              | Cookie |
+| `xiaohongshu_get_note_info.py`     | Get full note detail by URL          | Cookie |
+| `xiaohongshu_get_note_comments.py` | Get top-level comments on a note     | Cookie |
+| `xiaohongshu_get_user_info.py`     | Get a user's profile                 | Cookie |
+| `xiaohongshu_get_user_notes.py`    | Get notes published by a user (page) | Cookie |
+| `xiaohongshu_get_homefeed.py`      | Get home feed recommendations (page) | Cookie |
 
-```bash
-# List available methods
-python3 XhsSkills/skills/xhs-apis/scripts/xhs_api_tool.py list
+## Script Arguments
 
-# Search notes
-sig run xiaohongshu -- bash -c 'python3 XhsSkills/skills/xhs-apis/scripts/xhs_api_tool.py call pc search_note --params "{\"cookies_str\": \"$SIG_XIAOHONGSHU_COOKIE\", \"keyword\": \"AI\", \"page\": 1, \"page_size\": 20, \"sort\": \"general\", \"note_type\": 0}"'
+### `xiaohongshu_search_note.py`
 
-# Get note detail
-sig run xiaohongshu -- bash -c 'python3 XhsSkills/skills/xhs-apis/scripts/xhs_api_tool.py call pc get_note_info --params "{\"cookies_str\": \"$SIG_XIAOHONGSHU_COOKIE\", \"url\": \"https://www.xiaohongshu.com/explore/NOTE_ID?xsec_token=TOKEN\"}"'
+- `--keyword` (required) — search keyword
+- `--page` — page number, default `1`
+- `--sort` — `0` general (default), `1` newest, `2` most-liked, `3` most-commented, `4` most-collected
+- `--note-type` — `0` any (default), `1` video, `2` image
+- `--cookie` — override env var
 
-# Get home feed
-sig run xiaohongshu -- bash -c 'python3 XhsSkills/skills/xhs-apis/scripts/xhs_api_tool.py call pc get_homefeed_recommend --params "{\"cookies_str\": \"$SIG_XIAOHONGSHU_COOKIE\", \"category\": \"homefeed_recommend\", \"cursor_score\": \"\", \"refresh_type\": 1, \"note_index\": 0}"'
+### `xiaohongshu_get_note_info.py`
 
-# Get user notes
-sig run xiaohongshu -- bash -c 'python3 XhsSkills/skills/xhs-apis/scripts/xhs_api_tool.py call pc get_user_notes --params "{\"cookies_str\": \"$SIG_XIAOHONGSHU_COOKIE\", \"user_id\": \"USER_ID\"}"'
+- `--url` (required) — full note URL like `https://www.xiaohongshu.com/explore/<id>?xsec_token=...&xsec_source=pc_search`
+- `--cookie`
 
-# Get comments
-sig run xiaohongshu -- bash -c 'python3 XhsSkills/skills/xhs-apis/scripts/xhs_api_tool.py call pc get_note_comments --params "{\"cookies_str\": \"$SIG_XIAOHONGSHU_COOKIE\", \"note_id\": \"NOTE_ID\", \"xsec_token\": \"TOKEN\"}"'
-```
+### `xiaohongshu_get_note_comments.py`
 
-## Available API Methods
+- `--note-id` (required)
+- `--xsec-token` (required) — comes from a search/feed result
+- `--cursor` — pagination, default empty
+- `--cookie`
 
-### PC namespace (public site)
+### `xiaohongshu_get_user_info.py`
 
-| Method                     | Description                |
-| -------------------------- | -------------------------- |
-| `search_note`              | Search notes by keyword    |
-| `search_user`              | Search users               |
-| `get_note_info`            | Get note detail by URL     |
-| `get_note_comments`        | Get comments for a note    |
-| `get_note_sub_comments`    | Get sub-comments (replies) |
-| `get_user_info`            | Get user profile           |
-| `get_user_notes`           | Get user's published notes |
-| `get_homefeed_recommend`   | Get recommended feed       |
-| `get_homefeed_all_channel` | Get all feed channels      |
-| `like_note`                | Like a note                |
-| `like_comment`             | Like a comment             |
-| `collect_note`             | Favorite a note            |
-| `uncollect_note`           | Unfavorite a note          |
-| `comment_note`             | Post a comment             |
-| `comment_user`             | Reply to a comment         |
-| `follow_user`              | Follow a user              |
-| `unfollow_user`            | Unfollow a user            |
+- `--user-id` (required)
+- `--cookie`
 
-### Creator namespace (creator platform)
+### `xiaohongshu_get_user_notes.py`
 
-| Method                | Description               |
-| --------------------- | ------------------------- |
-| `search_topic`        | Search topics for tagging |
-| `search_location`     | Search locations          |
-| `upload_media`        | Upload image/video        |
-| `post_note`           | Publish a note            |
-| `get_published_notes` | Get your published notes  |
-| `get_file_info`       | Get uploaded file info    |
+- `--user-id` (required)
+- `--cursor` — pagination, default empty
+- `--xsec-token`, `--xsec-source` — pass through if available
+- `--cookie`
 
-## Environment Variables
+### `xiaohongshu_get_homefeed.py`
 
-When using `sig run xiaohongshu`, the following environment variables are injected:
-
-| Variable                 | Description                         |
-| ------------------------ | ----------------------------------- |
-| `SIG_XIAOHONGSHU_COOKIE` | Full cookie string for API requests |
-
-## Error Handling
-
-- If API returns "登录已过期" or session errors: run `sig login xiaohongshu` to refresh
-- If CAPTCHA triggered (461): wait a few minutes before retrying
-- If account abnormal (300011): wait 24h or use a different network
+- `--category` — channel id, default `homefeed_recommend`
+- `--cursor-score` — pagination
+- `--refresh-type`, `--note-index` — feed iteration state
+- `--cookie`
 
 ## Key Concepts
 
-- **xsec_token**: Per-note security token, obtained from search results or note URLs. Required for note detail and comments.
-- **cookies_str**: Full cookie string from sig. Pass directly to XhsSkills methods.
-- **Signing**: All handled internally by XhsSkills (x-s, x-s-common, x-t, x-rap-param). You only provide cookies.
+- **xsec_token / xsec_source**: per-note security tokens issued by the search/feed endpoints. To call `get_note_info` or `get_note_comments`, you must first call `search_note` to obtain these tokens (they are embedded in the note URL returned).
+- **Why Node.js?** XHS signs every request with `x-s`, `x-t`, `x-s-common`, `x-rap-param`, and `x-xray-traceid` derived from JSVMP-obfuscated JavaScript. The skill ships those JS files (`<SKILL_DIR>/vendor/static/`) and runs them via PyExecJS, which shells out to `node`. Pure-Python signing libraries (e.g. xhshow) currently miss `x-rap-param` and fail on data APIs with HTTP 406.
+
+## Error Handling
+
+| Error                  | Meaning                                  | Fix                                               |
+| ---------------------- | ---------------------------------------- | ------------------------------------------------- |
+| `AUTH_REQUIRED`        | No cookie available                      | `sig login xiaohongshu`                           |
+| `VENDOR_MISSING`       | `<SKILL_DIR>/vendor/` not populated      | Run `<SKILL_DIR>/scripts/sync-vendor.sh`          |
+| `NODE_MODULES_MISSING` | `vendor/node_modules/` missing           | `cd <SKILL_DIR>/vendor && npm install`            |
+| `API_ERROR` + `461`    | CAPTCHA / risk control triggered         | Wait several minutes; reduce request frequency    |
+| `API_ERROR` + `300011` | Account marked abnormal                  | Wait 24h; switch network; use a different account |
+| `API_ERROR` + `406`    | Signing rejected (algorithm out of date) | `<SKILL_DIR>/scripts/sync-vendor.sh` to refresh   |
+| `HTTP_<code>`          | Network / transport failure              | Check connectivity                                |
+
+## Workflow Examples
+
+### Find a topic and read the top result with comments
+
+```bash
+# 1. Search — output is JSON with a list of notes
+sig run xiaohongshu -- bash -c \
+  'python3 <SKILL_DIR>/scripts/xiaohongshu_search_note.py --keyword "城市探索" --sort 2' \
+  > /tmp/xhs_search.json
+
+# 2. Extract note_id + xsec_token from the first result.
+#    Path: items[0].id  and  items[0].xsec_token
+NOTE_ID=$(jq -r '.items[0].id' /tmp/xhs_search.json)
+XSEC=$(jq -r '.items[0].xsec_token' /tmp/xhs_search.json)
+URL="https://www.xiaohongshu.com/explore/${NOTE_ID}?xsec_token=${XSEC}&xsec_source=pc_search"
+
+# 3. Get full detail
+sig run xiaohongshu -- bash -c \
+  "python3 <SKILL_DIR>/scripts/xiaohongshu_get_note_info.py --url '$URL'"
+
+# 4. Get comments
+sig run xiaohongshu -- bash -c \
+  "python3 <SKILL_DIR>/scripts/xiaohongshu_get_note_comments.py --note-id '$NOTE_ID' --xsec-token '$XSEC'"
+```
+
+## Vendoring
+
+This skill bundles a minimal slice of [cv-cat/Spider_XHS](https://github.com/cv-cat/Spider_XHS) (MIT) at `<SKILL_DIR>/vendor/`. To bump the vendored version:
+
+```bash
+<SKILL_DIR>/scripts/sync-vendor.sh           # latest master
+<SKILL_DIR>/scripts/sync-vendor.sh <ref>     # specific commit/tag
+```
+
+License and upstream metadata are in `<SKILL_DIR>/vendor/LICENSE` and `<SKILL_DIR>/vendor/UPSTREAM.md`.
