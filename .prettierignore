@@ -12,3 +12,5 @@ website/src/routeTree.gen.ts
 .pytest_cache/
 __pycache__/
 *.pyc
+skills/*/vendor/
+packages/skills/data/

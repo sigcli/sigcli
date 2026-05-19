@@ -38,19 +38,20 @@ npx @sigcli/skills --uninstall         # Uninstall
 
 ## Available Skills
 
-| Skill        | Platform     | Read                            | Write                       | Auth   |
-| ------------ | ------------ | ------------------------------- | --------------------------- | ------ |
-| `outlook`    | Email        | Inbox, search, folders          | Send, reply, forward        | OAuth2 |
-| `msteams`    | Chat         | Messages, channels, calendar    | Send messages               | OAuth2 |
-| `slack`      | Chat         | Channels, search, users         | Send messages, reactions    | Cookie |
-| `v2ex`       | Forum        | Hot, search, topics, users      | Post, reply, favorite       | Cookie |
-| `zhihu`      | Q&A          | Hot, search, answers, users     | Read-only (anti-crawler)    | Cookie |
-| `reddit`     | Forum        | Hot, search, posts, users       | Post, comment, vote, save   | Cookie |
-| `bilibili`   | Video        | Hot, ranking, search, subtitles | Like, coin, favorite        | Cookie |
-| `youtube`    | Video        | Search, channels, comments      | Like, subscribe             | Cookie |
-| `x`          | Social       | Profiles, tweets, trending      | Post, like, retweet, follow | Cookie |
-| `hackernews` | Forum        | Top, ask, show, jobs, search    | Submit, comment, vote       | Cookie |
-| `linkedin`   | Professional | Profiles, feed, jobs, search    | Post, like, comment, follow | Cookie |
+| Skill         | Platform     | Read                                 | Write                       | Auth   |
+| ------------- | ------------ | ------------------------------------ | --------------------------- | ------ |
+| `outlook`     | Email        | Inbox, search, folders               | Send, reply, forward        | OAuth2 |
+| `msteams`     | Chat         | Messages, channels, calendar         | Send messages               | OAuth2 |
+| `slack`       | Chat         | Channels, search, users              | Send messages, reactions    | Cookie |
+| `v2ex`        | Forum        | Hot, search, topics, users           | Post, reply, favorite       | Cookie |
+| `zhihu`       | Q&A          | Hot, search, answers, users          | Read-only (anti-crawler)    | Cookie |
+| `reddit`      | Forum        | Hot, search, posts, users            | Post, comment, vote, save   | Cookie |
+| `bilibili`    | Video        | Hot, ranking, search, subtitles      | Like, coin, favorite        | Cookie |
+| `youtube`     | Video        | Search, channels, comments           | Like, subscribe             | Cookie |
+| `x`           | Social       | Profiles, tweets, trending           | Post, like, retweet, follow | Cookie |
+| `hackernews`  | Forum        | Top, ask, show, jobs, search         | Submit, comment, vote       | Cookie |
+| `linkedin`    | Professional | Profiles, feed, jobs, search         | Post, like, comment, follow | Cookie |
+| `xiaohongshu` | Lifestyle    | Search, notes, comments, users, feed | Read-only                   | Cookie |
 
 ## Build Your Own
 
@@ -76,3 +77,7 @@ Register in `install.sh` by adding the directory name to `ALL_SKILLS`.
 pip install requests beautifulsoup4 pytest responses
 python -m pytest -v
 ```
+
+## Acknowledgments
+
+The `xiaohongshu` skill bundles a minimal slice of [cv-cat/Spider_XHS](https://github.com/cv-cat/Spider_XHS) (MIT) under `xiaohongshu/vendor/`, used for XHS request signing. License and upstream metadata are preserved in `xiaohongshu/vendor/LICENSE` and `xiaohongshu/vendor/UPSTREAM.md`.
