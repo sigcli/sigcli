@@ -1,0 +1,4 @@
+PyExecJS>=1.5.1
+requests>=2.28.0
+loguru>=0.7.0
+retry>=0.9.2
