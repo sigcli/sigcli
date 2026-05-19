@@ -16,6 +16,8 @@ export default tseslint.config(
             '.tanstack/',
             'website/',
             'sdk/python/',
+            'skills/*/vendor/',
+            'packages/skills/data/',
         ],
     },
 
