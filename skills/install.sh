@@ -12,7 +12,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ALL_SKILLS="outlook msteams slack v2ex zhihu reddit bilibili youtube x hackernews linkedin"
+ALL_SKILLS="outlook msteams slack v2ex zhihu reddit bilibili youtube x hackernews linkedin xiaohongshu"
 
 # --- Agent detection ---
 
@@ -132,12 +132,22 @@ cmd_install() {
         if [ -d "$src" ]; then
             rm -rf "$DEST/$skill"
             if command -v rsync >/dev/null 2>&1; then
-                rsync -a --exclude='tests/' --exclude='__pycache__/' "$src/" "$DEST/$skill/"
+                rsync -a --exclude='tests/' --exclude='__pycache__/' --exclude='node_modules/' "$src/" "$DEST/$skill/"
             else
                 cp -R "$src" "$DEST/$skill"
-                rm -rf "$DEST/$skill/tests" "$DEST/$skill"/__pycache__
+                rm -rf "$DEST/$skill/tests" "$DEST/$skill"/__pycache__ "$DEST/$skill"/vendor/node_modules
             fi
             echo "  + $skill"
+
+            # Per-skill post-install notes
+            if [ "$skill" = "xiaohongshu" ]; then
+                if ! command -v node >/dev/null 2>&1; then
+                    echo "    ⚠️  xiaohongshu requires Node.js 18+ — install from https://nodejs.org"
+                fi
+                if [ -d "$DEST/$skill/vendor" ] && [ ! -d "$DEST/$skill/vendor/node_modules" ]; then
+                    echo "    ℹ️  one-time: cd $DEST/$skill/vendor && npm install"
+                fi
+            fi
         else
             echo "  ! $skill not found, skipping"
         fi
