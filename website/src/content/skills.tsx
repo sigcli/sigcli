@@ -81,8 +81,8 @@ const skills = [
     {
         name: 'Xiaohongshu',
         platform: 'Social',
-        read: 'Feed, search, notes',
-        write: 'Like, favorite',
+        read: 'Search, notes, comments, users, feed',
+        write: 'Read-only',
         auth: 'Cookie',
     },
 ];
@@ -151,28 +151,54 @@ export function SkillsPage() {
                     </p>
                 </section>
 
-                {/* Demo GIF */}
+                {/* Demo GIFs */}
                 <section className="max-w-4xl mx-auto px-6 pb-12">
-                    <div
-                        className="rounded-lg overflow-hidden"
-                        style={{ border: '1px solid var(--page-border)' }}
-                    >
-                        <img
-                            src="/x-demo.gif"
-                            alt="X (Twitter) skill demo: searching tweets and replying from the terminal"
-                            style={{ width: '100%', display: 'block' }}
-                        />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <div
+                                className="rounded-lg overflow-hidden"
+                                style={{ border: '1px solid var(--page-border)' }}
+                            >
+                                <img
+                                    src="/x-demo.gif"
+                                    alt="X (Twitter) skill demo: searching tweets and replying from the terminal"
+                                    style={{ width: '100%', display: 'block' }}
+                                />
+                            </div>
+                            <p
+                                className="mt-2 text-center"
+                                style={{
+                                    fontSize: '0.85rem',
+                                    fontWeight: 475,
+                                    color: 'var(--text-tertiary)',
+                                }}
+                            >
+                                X (Twitter) — search and reply from your terminal
+                            </p>
+                        </div>
+                        <div>
+                            <div
+                                className="rounded-lg overflow-hidden"
+                                style={{ border: '1px solid var(--page-border)' }}
+                            >
+                                <img
+                                    src="/xiaohongshu-demo.gif"
+                                    alt="Xiaohongshu skill demo: searching notes and reading content from the terminal"
+                                    style={{ width: '100%', display: 'block' }}
+                                />
+                            </div>
+                            <p
+                                className="mt-2 text-center"
+                                style={{
+                                    fontSize: '0.85rem',
+                                    fontWeight: 475,
+                                    color: 'var(--text-tertiary)',
+                                }}
+                            >
+                                Xiaohongshu — search notes and read content from your terminal
+                            </p>
+                        </div>
                     </div>
-                    <p
-                        className="mt-2 text-center"
-                        style={{
-                            fontSize: '0.85rem',
-                            fontWeight: 475,
-                            color: 'var(--text-tertiary)',
-                        }}
-                    >
-                        X (Twitter) skill — search and reply from your terminal
-                    </p>
                 </section>
 
                 {/* Install */}
