@@ -171,6 +171,15 @@ async function handleInstall(positionals, flags) {
             },
         });
         process.stderr.write(`  + ${skill}\n`);
+
+        // Per-skill post-install hints
+        if (skill === 'xiaohongshu') {
+            if (!existsSync(join(target, 'vendor', 'node_modules'))) {
+                process.stderr.write(
+                    `    ℹ️  one-time: cd ${join(target, 'vendor')} && npm install\n`,
+                );
+            }
+        }
     }
 
     process.stderr.write(`\nInstalled ${selected.length} skill(s) to ${dest}\n`);
