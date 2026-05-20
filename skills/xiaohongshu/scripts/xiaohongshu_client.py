@@ -108,10 +108,23 @@ class XiaohongshuClient:
 
     @staticmethod
     def _unwrap(success: bool, msg: str, res_json: dict | None) -> dict:
-        if not success:
-            raise XiaohongshuApiError("API_ERROR", msg or "request failed")
-        if res_json is None:
-            raise XiaohongshuApiError("API_ERROR", "empty response")
+        # On any failure, surface what we know (HTTP code from response if any)
+        # and tell the user the only reliable next step: re-login. We do NOT
+        # try to guess the root cause (captcha, expired session, account
+        # flagged, vendor schema drift, network blip, etc.) — too many things
+        # can land here, and a misleading guess is worse than none.
+        if not success or res_json is None:
+            code = res_json.get("code") if isinstance(res_json, dict) else None
+            parts = []
+            if code is not None:
+                parts.append(f"code={code}")
+            if msg:
+                parts.append(f"msg={msg!r}")
+            detail = ", ".join(parts) if parts else "request failed"
+            raise XiaohongshuApiError(
+                "API_ERROR",
+                f"{detail}. Try: sig logout xiaohongshu && sig login xiaohongshu --mode visible",
+            )
         # Spider_XHS returns the full envelope {success, msg, code, data}.
         # Return just the `data` payload to match other skills' shape.
         return res_json.get("data", res_json)

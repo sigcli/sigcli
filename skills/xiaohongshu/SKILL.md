@@ -30,7 +30,7 @@ Check the JSON output fields `configured` and `valid`:
 1. Read `<SKILL_DIR>/references/provider-config.yaml`
 2. Append the provider block to `~/.sig/config.yaml` under `providers:`
 3. Run `sig login xiaohongshu` — a browser opens; scan the QR code with the Xiaohongshu app
-4. Verify: `sig status xiaohongshu` should show `valid: true`
+4. Verify: `sig status xiaohongshu` should show `valid: true`. The provider config uses `validateRule` to probe `/api/sns/web/unread_count` — if the captcha was not solved, validation will fail here instead of silently passing.
 
 ### Vendor Setup (one-time per machine)
 
@@ -136,15 +136,13 @@ All scripts are in this skill's `scripts/` directory. Output is JSON to stdout.
 
 ## Error Handling
 
-| Error                  | Meaning                                  | Fix                                               |
-| ---------------------- | ---------------------------------------- | ------------------------------------------------- |
-| `AUTH_REQUIRED`        | No cookie available                      | `sig login xiaohongshu`                           |
-| `VENDOR_MISSING`       | `<SKILL_DIR>/vendor/` not populated      | Run `<SKILL_DIR>/scripts/sync-vendor.sh`          |
-| `NODE_MODULES_MISSING` | `vendor/node_modules/` missing           | `cd <SKILL_DIR>/vendor && npm install`            |
-| `API_ERROR` + `461`    | CAPTCHA / risk control triggered         | Wait several minutes; reduce request frequency    |
-| `API_ERROR` + `300011` | Account marked abnormal                  | Wait 24h; switch network; use a different account |
-| `API_ERROR` + `406`    | Signing rejected (algorithm out of date) | `<SKILL_DIR>/scripts/sync-vendor.sh` to refresh   |
-| `HTTP_<code>`          | Network / transport failure              | Check connectivity                                |
+| Error                  | Meaning                                                                                                                                                                                        | Fix                                                                                                                                                                                                          |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `AUTH_REQUIRED`        | No cookie available                                                                                                                                                                            | `sig login xiaohongshu --mode visible`                                                                                                                                                                       |
+| `VENDOR_MISSING`       | `<SKILL_DIR>/vendor/` not populated                                                                                                                                                            | Run `<SKILL_DIR>/scripts/sync-vendor.sh`                                                                                                                                                                     |
+| `NODE_MODULES_MISSING` | `vendor/node_modules/` missing                                                                                                                                                                 | `cd <SKILL_DIR>/vendor && npm install`                                                                                                                                                                       |
+| `API_ERROR`            | Any other failure from Xiaohongshu (expired session, signing rejected, account flagged, network blip, etc.). The error message includes the raw `code`/`msg` from the response when available. | `sig logout xiaohongshu && sig login xiaohongshu --mode visible`. If it persists after re-login, capture the full error and consider running `<SKILL_DIR>/scripts/sync-vendor.sh` to refresh the signing JS. |
+| `HTTP_<code>`          | Network / transport failure                                                                                                                                                                    | Check connectivity                                                                                                                                                                                           |
 
 ## Workflow Examples
 
