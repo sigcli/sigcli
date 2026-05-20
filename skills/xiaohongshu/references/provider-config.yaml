@@ -13,7 +13,8 @@ xiaohongshu:
         - www.xiaohongshu.com
         - edith.xiaohongshu.com
     entryUrl: https://www.xiaohongshu.com/explore
-    validateUrl: https://www.xiaohongshu.com/notifications
+    validateUrl: https://edith.xiaohongshu.com/api/sns/web/unread_count
+    validateRule: 'res.body.code === 0 && res.body.success === true'
     strategy: browser
     ttl: 2h
     extract:
