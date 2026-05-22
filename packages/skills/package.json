@@ -1,6 +1,6 @@
 {
     "name": "@sigcli/skills",
-    "version": "1.2.1",
+    "version": "1.2.2",
     "description": "AI agent skills for authenticated web access via sigcli",
     "type": "module",
     "bin": {
