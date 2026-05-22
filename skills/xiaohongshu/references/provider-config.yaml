@@ -5,8 +5,20 @@
 #   npm install -g @sigcli/cli
 #   sig init
 #
-# Login:
-#   sig login xiaohongshu
+# Login (visible mode is required — Xiaohongshu shows a slider/image captcha
+# that must be solved by a human before the session is fully authenticated):
+#   sig login xiaohongshu --mode visible
+#
+# Why the elaborate validateRule below:
+#   /unread_count returns three different shapes:
+#     1. Fully authenticated:  {code:0, success:true, data:{unread_count:N, likes:N, ...}}
+#     2. Captcha not solved:   {code:0, success:true, data:{}}      ← looks valid, isn't!
+#     3. Logged out / expired: {code:-101, success:false, msg:"无登录信息"}
+#   Naive rule `code===0 && success===true` accepts state #2 — sigcli writes a
+#   half-cooked cookie and exits before the human finishes the captcha. Later
+#   API calls then return empty data and the vendor parser crashes.
+#   The rule below requires `data` to be a non-empty object, which is only true
+#   in state #1.
 
 xiaohongshu:
     domains:
@@ -14,7 +26,7 @@ xiaohongshu:
         - edith.xiaohongshu.com
     entryUrl: https://www.xiaohongshu.com/explore
     validateUrl: https://edith.xiaohongshu.com/api/sns/web/unread_count
-    validateRule: 'res.body.code === 0 && res.body.success === true'
+    validateRule: 'res.status === 200 && res.body.code === 0 && res.body.success === true && res.body.data && typeof res.body.data === "object" && Object.keys(res.body.data).length > 0'
     strategy: browser
     ttl: 2h
     extract:
