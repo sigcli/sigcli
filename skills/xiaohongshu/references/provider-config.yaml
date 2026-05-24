@@ -5,20 +5,35 @@
 #   npm install -g @sigcli/cli
 #   sig init
 #
-# Login (visible mode is required — Xiaohongshu shows a slider/image captcha
-# that must be solved by a human before the session is fully authenticated):
+# Login (visible mode is required — first-time login needs QR scan, and XHS
+# may show a slider/image captcha that must be solved by a human):
 #   sig login xiaohongshu --mode visible
 #
 # Why the elaborate validateRule below:
-#   /unread_count returns three different shapes:
-#     1. Fully authenticated:  {code:0, success:true, data:{unread_count:N, likes:N, ...}}
-#     2. Captcha not solved:   {code:0, success:true, data:{}}      ← looks valid, isn't!
-#     3. Logged out / expired: {code:-101, success:false, msg:"无登录信息"}
+#   /unread_count is a permissive endpoint — it returns success even with a
+#   "partially expired" cookie that no longer works for stricter APIs (search,
+#   homefeed, etc.). Three response shapes:
+#     1. Healthy cookie:       {code:0, success:true, data:{unread_count:N, likes:N, ...}}
+#     2. Cookie partially gone: {code:0, success:true, data:{}}    ← wrote new fix to reject
+#     3. Cookie fully gone:    {code:-101, success:false, msg:"无登录信息"}
 #   Naive rule `code===0 && success===true` accepts state #2 — sigcli writes a
-#   half-cooked cookie and exits before the human finishes the captcha. Later
-#   API calls then return empty data and the vendor parser crashes.
-#   The rule below requires `data` to be a non-empty object, which is only true
-#   in state #1.
+#   half-cooked cookie and exits. Search APIs (which require fresher session
+#   tokens) then fail with empty data, and the vendor parser crashes.
+#   The rule below requires `data` to be a non-empty object, which only state #1
+#   produces.
+#
+# IMPORTANT — what this rule does NOT catch:
+#   `unread_count` is more permissive than the search/feed endpoints. Even a
+#   cookie that passes this rule (state #1) may still fail on search if the
+#   risk-control / session-token portion has aged out. If you see search
+#   returning empty data while sig status shows valid:true, the cookie has
+#   reached this gray zone — re-login is the only fix. See SKILL.md > Diagnosis.
+#
+# loginUrlPatterns — captcha interception. While the URL contains
+# "/website-login" (XHS's actual captcha path is /website-login/captcha),
+# sigcli skips validate so a partial cookie can't pass before the user
+# finishes the human verification. Requires sigcli with the loginUrlPatterns
+# precedence fix.
 
 xiaohongshu:
     domains:
@@ -28,6 +43,9 @@ xiaohongshu:
     validateUrl: https://edith.xiaohongshu.com/api/sns/web/unread_count
     validateRule: 'res.status === 200 && res.body.code === 0 && res.body.success === true && res.body.data && typeof res.body.data === "object" && Object.keys(res.body.data).length > 0'
     strategy: browser
+    loginMode: visible
+    loginUrlPatterns:
+        - /website-login
     ttl: 2h
     extract:
         - from: cookies
