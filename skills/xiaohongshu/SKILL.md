@@ -32,17 +32,19 @@ Check the JSON output fields `configured` and `valid`:
 3. Run `sig login xiaohongshu --mode visible` — a browser opens; scan the QR code with the Xiaohongshu app **and complete the slider/image captcha if prompted**
 4. Verify: `sig status xiaohongshu` should show `valid: true`
 
-### Why captcha matters — three response shapes
+### Why the validateRule is so picky — three response shapes
 
-XHS hides a "captcha not solved" state behind what looks like a successful response. The provider's `validateRule` is built specifically to reject it:
+`/api/sns/web/unread_count` is a permissive endpoint that hides a "partially expired cookie" state behind what looks like a successful response. The provider's `validateRule` is built specifically to reject it:
 
-| State                  | `/api/sns/web/unread_count` returns                           | Detected as                                   |
-| ---------------------- | ------------------------------------------------------------- | --------------------------------------------- |
-| Fully authenticated    | `{code:0, success:true, data:{unread_count:N, likes:N, ...}}` | ✅ valid                                      |
-| **Captcha not solved** | `{code:0, success:true, data:{}}`                             | ❌ rejected by `Object.keys(data).length > 0` |
-| Logged out / expired   | `{code:-101, success:false, msg:"无登录信息"}`                | ❌ rejected by `code === 0`                   |
+| State                             | `/api/sns/web/unread_count` returns                           | Detected as                                   |
+| --------------------------------- | ------------------------------------------------------------- | --------------------------------------------- |
+| Healthy cookie                    | `{code:0, success:true, data:{unread_count:N, likes:N, ...}}` | ✅ valid                                      |
+| **Cookie partially expired**      | `{code:0, success:true, data:{}}`                             | ❌ rejected by `Object.keys(data).length > 0` |
+| Cookie fully expired / logged out | `{code:-101, success:false, msg:"无登录信息"}`                | ❌ rejected by `code === 0`                   |
 
-If `sig login` exits without prompting you, but later API calls fail with empty data — the captcha was bypassed by a stale rule. Re-pull `references/provider-config.yaml` and refresh the rule in `~/.sig/config.yaml`, then re-login.
+If `sig login` exits without prompting you, but later API calls fail with empty data — the partially-expired-cookie state was bypassed by a stale rule. Re-pull `references/provider-config.yaml` and refresh the rule in `~/.sig/config.yaml`, then re-login.
+
+> **What this rule does NOT catch.** `unread_count` is more permissive than search/feed APIs. A cookie that passes the rule (state #1) may still fail on search if the risk-control / session-token portion has aged out. If `sig status` shows `valid:true` but search keeps returning empty data, you're in this gray zone — the only fix is `sig logout xiaohongshu && sig login xiaohongshu --mode visible`. See **Diagnosis** below for how to confirm.
 
 ### Vendor Setup (one-time per machine)
 
@@ -148,15 +150,15 @@ All scripts are in this skill's `scripts/` directory. Output is JSON to stdout.
 
 ## Error Handling
 
-| Error                          | Meaning                                                                                                                                                                     | Fix                                                                                                                                                                                                                                                                                                                                                                      |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `AUTH_REQUIRED`                | No cookie available                                                                                                                                                         | `sig login xiaohongshu --mode visible`                                                                                                                                                                                                                                                                                                                                   |
-| `VENDOR_MISSING`               | `<SKILL_DIR>/vendor/` not populated                                                                                                                                         | Run `<SKILL_DIR>/scripts/sync-vendor.sh`                                                                                                                                                                                                                                                                                                                                 |
-| `NODE_MODULES_MISSING`         | `vendor/node_modules/` missing                                                                                                                                              | `cd <SKILL_DIR>/vendor && npm install`                                                                                                                                                                                                                                                                                                                                   |
-| `API_ERROR` with `msg="'msg'"` | Vendor parser hit `KeyError: 'msg'` because the API returned `{code:0, success:true, data:{}}`. This is the **captcha-not-solved soft-reject** — the cookie is half-cooked. | `sig logout xiaohongshu && sig login xiaohongshu --mode visible`, **then complete the captcha in the browser**. Verify with `sig status xiaohongshu` showing `valid: true` _after_ the captcha. The validateRule in `references/provider-config.yaml` should detect this state — if `sig status` already showed valid:true, your local config drifted; refresh the rule. |
-| `API_ERROR` with `code=-101`   | `无登录信息` — session is gone                                                                                                                                              | `sig login xiaohongshu --mode visible`                                                                                                                                                                                                                                                                                                                                   |
-| `API_ERROR` (other)            | Account flagged, vendor schema drift, etc.                                                                                                                                  | `sig logout xiaohongshu && sig login xiaohongshu --mode visible`. If it persists after re-login, run `<SKILL_DIR>/scripts/sync-vendor.sh` to refresh the signing JS.                                                                                                                                                                                                     |
-| `HTTP_<code>`                  | Network / transport failure                                                                                                                                                 | Check connectivity                                                                                                                                                                                                                                                                                                                                                       |
+| Error                          | Meaning                                                                                                                                                                                                                                                                                                                | Fix                                                                                                                                                                                                                              |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AUTH_REQUIRED`                | No cookie available                                                                                                                                                                                                                                                                                                    | `sig login xiaohongshu --mode visible`                                                                                                                                                                                           |
+| `VENDOR_MISSING`               | `<SKILL_DIR>/vendor/` not populated                                                                                                                                                                                                                                                                                    | Run `<SKILL_DIR>/scripts/sync-vendor.sh`                                                                                                                                                                                         |
+| `NODE_MODULES_MISSING`         | `vendor/node_modules/` missing                                                                                                                                                                                                                                                                                         | `cd <SKILL_DIR>/vendor && npm install`                                                                                                                                                                                           |
+| `API_ERROR` with `msg="'msg'"` | Vendor parser hit `KeyError: 'msg'` because the API returned `{code:0, success:true, data:{}}`. **The cookie has expired enough to fail on search even though `unread_count` may still pass.** This is the most common failure mode in normal use — sessions age out faster than `unread_count`'s acceptance criteria. | `sig logout xiaohongshu && sig login xiaohongshu --mode visible`. If `sig login` exits immediately without prompting (because the old `unread_count`-passing cookie is still present), check `Diagnosis` below first to confirm. |
+| `API_ERROR` with `code=-101`   | `无登录信息` — session is gone                                                                                                                                                                                                                                                                                         | `sig login xiaohongshu --mode visible`                                                                                                                                                                                           |
+| `API_ERROR` (other)            | Account flagged, vendor schema drift, etc.                                                                                                                                                                                                                                                                             | `sig logout xiaohongshu && sig login xiaohongshu --mode visible`. If it persists after re-login, run `<SKILL_DIR>/scripts/sync-vendor.sh` to refresh the signing JS.                                                             |
+| `HTTP_<code>`                  | Network / transport failure                                                                                                                                                                                                                                                                                            | Check connectivity                                                                                                                                                                                                               |
 
 ## Workflow Examples
 
@@ -183,7 +185,35 @@ sig run xiaohongshu -- bash -c \
   "python3 <SKILL_DIR>/scripts/xiaohongshu_get_note_comments.py --note-id '$NOTE_ID' --xsec-token '$XSEC'"
 ```
 
-## Self-Test
+## Diagnosis: when search fails, do NOT jump to conclusions
+
+`sig status xiaohongshu` showing `valid: true` is **necessary but not sufficient** for search to work. The validateUrl is permissive on purpose (so it can run without XHS request signing), which means a cookie that has aged out enough to fail on search may still pass validation. Before re-logging in or "fixing" anything, triangulate with three probes:
+
+```bash
+# Probe 1 — what sig itself thinks
+sig status xiaohongshu
+
+# Probe 2 — what the validateUrl says (permissive endpoint)
+sig run xiaohongshu -- bash -c \
+  'curl -sL -H "Cookie: $SIG_XIAOHONGSHU_COOKIE" -H "User-Agent: Mozilla/5.0" \
+   https://edith.xiaohongshu.com/api/sns/web/unread_count'
+
+# Probe 3 — what a stricter authenticated endpoint says
+sig run xiaohongshu -- bash -c \
+  'curl -sL -H "Cookie: $SIG_XIAOHONGSHU_COOKIE" -H "User-Agent: Mozilla/5.0" \
+   https://edith.xiaohongshu.com/api/sns/web/v2/user/me'
+```
+
+Read the three answers together:
+
+| sig status  | unread_count            | v2/user/me                 | Most likely cause                                                                                                                                       | Fix                                                                                                 |
+| ----------- | ----------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| valid:true  | code:0 + non-empty data | code:0 + your real user_id | Cookie is healthy. **Search itself is failing for another reason** — vendor schema drift, transient network, account-level flag. Do NOT re-login first. | Re-run `sync-vendor.sh`, retry once, only re-login if that doesn't help                             |
+| valid:true  | code:0 + non-empty data | code:0 + `guest:false`     | Cookie passes the rule but search still fails                                                                                                           | Cookie has aged into the gray zone. `sig logout && sig login --mode visible`                        |
+| valid:true  | code:0 + `data:{}`      | code:-1 / 401              | Local config has the old loose validateRule — sigcli accepted a half-cooked cookie                                                                      | Refresh `~/.sig/config.yaml` from `references/provider-config.yaml`, then `sig logout && sig login` |
+| valid:false | —                       | —                          | Cookie fully expired or never written                                                                                                                   | `sig login xiaohongshu --mode visible`                                                              |
+
+The mistake the previous version of this skill encouraged: see `KeyError: 'msg'` → assume captcha → tell the user to re-login + solve captcha. Most of the time captcha never appears, the real cause is cookie aging, and re-login _does_ fix it — but for the wrong reason. Document the right reason so the next debugger doesn't get misled.
 
 Two-tier verification. Run tier 1 unconditionally; tier 2 only after tier 1 passes.
 
