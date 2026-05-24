@@ -28,6 +28,12 @@
 #   risk-control / session-token portion has aged out. If you see search
 #   returning empty data while sig status shows valid:true, the cookie has
 #   reached this gray zone — re-login is the only fix. See SKILL.md > Diagnosis.
+#
+# loginUrlPatterns — captcha interception. While the URL contains
+# "/website-login" (XHS's actual captcha path is /website-login/captcha),
+# sigcli skips validate so a partial cookie can't pass before the user
+# finishes the human verification. Requires sigcli with the loginUrlPatterns
+# precedence fix.
 
 xiaohongshu:
     domains:
@@ -37,6 +43,9 @@ xiaohongshu:
     validateUrl: https://edith.xiaohongshu.com/api/sns/web/unread_count
     validateRule: 'res.status === 200 && res.body.code === 0 && res.body.success === true && res.body.data && typeof res.body.data === "object" && Object.keys(res.body.data).length > 0'
     strategy: browser
+    loginMode: visible
+    loginUrlPatterns:
+        - /website-login
     ttl: 2h
     extract:
         - from: cookies

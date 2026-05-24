@@ -225,23 +225,42 @@ export class BrowserStrategy implements IStrategy {
                 continue;
             }
 
+            // Check login/captcha pages BEFORE validate. A permissive validateUrl can
+            // pass while the user is still on a login or captcha page (e.g. xhs /captcha),
+            // producing a half-cooked cookie. loginUrlPatterns prevents this by gating
+            // validation: if we are on a login page, skip validate entirely this iteration.
+            const onLoginPage = this.isLoginUrl(url, provider.loginUrlPatterns);
+
+            if (onLoginPage) {
+                if (exitOnLoginPage) {
+                    // Headless cascade: settle then bail so visible mode takes over.
+                    loginPageSince = this.checkLoginPageSettled(
+                        url,
+                        provider.loginUrlPatterns,
+                        loginPageSince,
+                    );
+                    if (loginPageSince && Date.now() - loginPageSince > LOGIN_PAGE_SETTLE_MS) {
+                        this.logger.info(
+                            `${provider.id}: login page settled, needs user interaction`,
+                        );
+                        return null;
+                    }
+                }
+                // Visible mode (or pre-settle headless): wait for user to finish, do NOT validate.
+                if (sessionId)
+                    await cdp.send('Target.detachFromTarget', { sessionId }).catch(() => {});
+                await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+                continue;
+            }
+
+            // Not on a login page — reset settle counter and proceed with validation.
+            loginPageSince = null;
+
             const [credentials, expiry] = await this.runExtractors(cdp, provider);
 
             if (await validate(provider, credentials)) {
                 this.logger.info(`${provider.id}: credentials validated`);
                 return { credentials, expiresAt: this.computeExpiresAt(provider, expiry) };
-            }
-
-            if (exitOnLoginPage) {
-                loginPageSince = this.checkLoginPageSettled(
-                    url,
-                    provider.loginUrlPatterns,
-                    loginPageSince,
-                );
-                if (loginPageSince && Date.now() - loginPageSince > LOGIN_PAGE_SETTLE_MS) {
-                    this.logger.info(`${provider.id}: login page settled, needs user interaction`);
-                    return null;
-                }
             }
 
             if (sessionId) await cdp.send('Target.detachFromTarget', { sessionId }).catch(() => {});
