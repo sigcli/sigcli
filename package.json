@@ -42,7 +42,11 @@
         "onlyBuiltDependencies": [
             "esbuild",
             "lightningcss"
-        ]
+        ],
+        "overrides": {
+            "vite@7": "^7.3.5",
+            "esbuild@0.27": "^0.28.1"
+        }
     },
     "repository": {
         "type": "git",
