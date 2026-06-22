@@ -45,7 +45,20 @@
         ],
         "overrides": {
             "vite@7": "^7.3.5",
-            "esbuild@0.27": "^0.28.1"
+            "esbuild@0.27": "^0.28.1",
+            "hono": "^4.12.25",
+            "fast-uri": "^3.1.2",
+            "ws": "^8.21.0",
+            "qs": "^6.15.2",
+            "ip-address": "^10.1.1",
+            "js-yaml": "^4.2.0",
+            "shell-quote": "^1.8.4",
+            "launch-editor": "^2.14.1",
+            "@babel/core": "^7.29.6",
+            "@tanstack/start-server-core": "^1.167.30",
+            "brace-expansion": "^5.0.6",
+            "@tanstack/start-plugin-core": "^1.171.0",
+            "@tanstack/react-start": "^1.168.0"
         }
     },
     "repository": {
