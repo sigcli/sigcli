@@ -34,7 +34,7 @@
         "@types/proper-lockfile": "^4.1.4",
         "prettier": "^3.8.3",
         "reflect-metadata": "^0.2.2",
-        "vitest": "^3.2.6"
+        "vitest": "^4.1.9"
     },
     "keywords": [
         "cli",
