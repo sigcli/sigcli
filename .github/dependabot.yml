@@ -1,30 +1,53 @@
 version: 2
+
+# Goal: keep security fixes flowing, but suppress non-security version-bump noise.
+#
+# Strategy:
+#   - group everything aggressively so weekly runs produce 1–3 PRs, not 13
+#   - ignore major version bumps (handle them by hand when there's a reason)
+#   - keep open-pull-requests-limit low; security PRs bypass the limit anyway
+
 updates:
-    # npm dependencies across all workspaces
+    # npm — root workspace (all sigcli packages share one lockfile)
     - package-ecosystem: npm
       directory: /
       schedule:
           interval: weekly
           day: monday
-      open-pull-requests-limit: 10
+      open-pull-requests-limit: 3
       groups:
-          dev-dependencies:
-              dependency-type: development
+          # One PR for every non-major dependency update
+          all-deps:
+              patterns:
+                  - '*'
               update-types:
                   - minor
                   - patch
-          production-dependencies:
-              dependency-type: production
-              update-types:
-                  - patch
+      ignore:
+          # Don't touch major versions automatically — they routinely have
+          # breaking changes that need manual review.
+          - dependency-name: '*'
+            update-types:
+                - version-update:semver-major
 
-    # GitHub Actions (keeps SHA-pinned action versions fresh)
+    # GitHub Actions — keeps SHA-pinned action versions fresh
     - package-ecosystem: github-actions
       directory: /
       schedule:
           interval: weekly
           day: monday
-      open-pull-requests-limit: 5
+      open-pull-requests-limit: 2
+      groups:
+          actions:
+              patterns:
+                  - '*'
+              update-types:
+                  - minor
+                  - patch
+      ignore:
+          - dependency-name: '*'
+            update-types:
+                - version-update:semver-major
 
     # Python SDK
     - package-ecosystem: pip
@@ -32,4 +55,15 @@ updates:
       schedule:
           interval: weekly
           day: monday
-      open-pull-requests-limit: 5
+      open-pull-requests-limit: 2
+      groups:
+          python-deps:
+              patterns:
+                  - '*'
+              update-types:
+                  - minor
+                  - patch
+      ignore:
+          - dependency-name: '*'
+            update-types:
+                - version-update:semver-major
