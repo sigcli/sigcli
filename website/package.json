@@ -15,7 +15,7 @@
         "@base-ui/react": "^1.4.0",
         "@fontsource-variable/geist": "^5.2.8",
         "@orama/orama": "^3.1.18",
-        "@tailwindcss/vite": "^4.1.18",
+        "@tailwindcss/vite": "^4.3.1",
         "@tanstack/react-devtools": "latest",
         "@tanstack/react-router": "latest",
         "@tanstack/react-router-devtools": "latest",
