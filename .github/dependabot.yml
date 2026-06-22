@@ -1,0 +1,35 @@
+version: 2
+updates:
+    # npm dependencies across all workspaces
+    - package-ecosystem: npm
+      directory: /
+      schedule:
+          interval: weekly
+          day: monday
+      open-pull-requests-limit: 10
+      groups:
+          dev-dependencies:
+              dependency-type: development
+              update-types:
+                  - minor
+                  - patch
+          production-dependencies:
+              dependency-type: production
+              update-types:
+                  - patch
+
+    # GitHub Actions (keeps SHA-pinned action versions fresh)
+    - package-ecosystem: github-actions
+      directory: /
+      schedule:
+          interval: weekly
+          day: monday
+      open-pull-requests-limit: 5
+
+    # Python SDK
+    - package-ecosystem: pip
+      directory: /sdk/python
+      schedule:
+          interval: weekly
+          day: monday
+      open-pull-requests-limit: 5
