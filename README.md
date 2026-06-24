@@ -254,6 +254,10 @@ npx @sigcli/skills            # install skills to your coding agent
 
 See the [full skills catalog](skills/README.md) for details.
 
+## Talks
+
+- **Agentic Conf 2026** — _From Zero-Trust Proxy to Skill-Ecosystem Governance: An Engineering Practice in Agentic Harness Engineering_ — [slides (PDF)](talks/agentic-conf-2026-deck.pdf)
+
 ## Documentation
 
 Full docs, configuration, SDK, and AI agent integration guide at **[sigcli.ai](https://sigcli.ai)**.
