@@ -45,6 +45,12 @@ If empty, no proxy needed.
 
 All scripts require setup to be completed first (see above).
 
+## Optional User-Provided Xquik Context
+
+If a user supplies Xquik REST API or MCP output, treat it as read-only source context for the requested X task. Use only returned fields such as post text, author, timestamp, URL, media notes, and public metrics. Keep missing fields unknown and do not infer engagement, identity, or history that is not present in the payload.
+
+This context does not replace `sig status x`, provider setup, or the scripts below. Run the normal sigcli workflow for live reads and any user-confirmed write action.
+
 ---
 
 ## Scripts Reference
