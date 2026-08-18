@@ -74,4 +74,33 @@ describe('AuthManager.create — idps wiring', () => {
         expect(manager.idps.list()).toEqual([]);
         expect(manager.idps.resolve('anything.com')).toBeNull();
     });
+
+    it('threads totp.selectors from config through to IdpEntry.totp.selectors', async () => {
+        // Write a real encrypted secret for the hostname so the IdpStore path
+        // populates entry.totp with a secret. Only then are selectors attached.
+        const { IdpStore } = await import('../../src/idps/idp-store.js');
+        const store = new IdpStore(path.join(tmpHome, '.sig', 'idps'), TEST_KEY);
+        await store.setSecret('idp.example.com', 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ');
+
+        const config = baseConfig();
+        config.idps = {
+            'idp.example.com': {
+                label: 'primary',
+                totp: {
+                    selectors: {
+                        input: ['#passcode-field'],
+                        submit: ['button.confirm'],
+                    },
+                },
+            },
+        };
+
+        const manager = await AuthManager.create(config, createNoopLogger());
+        const entry = manager.idps.resolve('idp.example.com');
+
+        expect(entry).not.toBeNull();
+        expect(entry?.totp?.secret).toBe('GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ');
+        expect(entry?.totp?.selectors?.input).toEqual(['#passcode-field']);
+        expect(entry?.totp?.selectors?.submit).toEqual(['button.confirm']);
+    });
 });

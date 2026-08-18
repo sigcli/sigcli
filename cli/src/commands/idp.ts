@@ -4,8 +4,14 @@
  * Metadata (hostname, label, totp presence) lives in ~/.sig/config.yaml.
  * The TOTP secret lives encrypted at ~/.sig/idps/<hostname>.json.
  * Secrets are NEVER printed by list/show — only their presence is reported.
+ *
+ * Custom OTP form selectors (totp.selectors.input / totp.selectors.submit) are
+ * NOT exposed via CLI flags — edit ~/.sig/config.yaml directly to configure
+ * them. `sig idp add` preserves any hand-configured selectors on an existing
+ * entry when rotating the secret.
  */
 
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -14,7 +20,7 @@ import { loadEncryptionKey } from '../crypto/encryption.js';
 import { ExitCode } from '../utils/exit-codes.js';
 import { formatJson, formatTable } from '../utils/formatters.js';
 import { promptSecret } from '../utils/prompt.js';
-import { computeTotp } from '../utils/totp.js';
+import { computeTotp, isValidBase32 } from '../utils/totp.js';
 import { getIdpMetaEntries, removeIdpMetaEntry, setIdpMetaEntry } from '../idps/idp-config.js';
 import { IdpStore } from '../idps/idp-store.js';
 import type { IdpMetaEntry } from '../idps/types.js';
@@ -28,7 +34,22 @@ Subcommands:
   list [--format json|table]       List configured IdPs (secrets redacted)
   show <hostname>                  Show a single IdP entry (secret redacted)
   remove <hostname>                Remove an IdP entry (metadata + secret)
+
+Custom OTP form selectors are configured by hand-editing ~/.sig/config.yaml
+under idps.<hostname>.totp.selectors.{input,submit}.
 `;
+
+function configPath(): string {
+    return path.join(os.homedir(), '.sig', 'config.yaml');
+}
+
+function requireConfig(): boolean {
+    const p = configPath();
+    if (fs.existsSync(p)) return true;
+    process.stderr.write(`Config not found at ${p}. Run \`sig init\` first.\n`);
+    process.exitCode = ExitCode.GENERAL_ERROR;
+    return false;
+}
 
 function idpDir(): string {
     return path.join(os.homedir(), '.sig', 'idps');
@@ -75,6 +96,8 @@ async function runAdd(
         return;
     }
 
+    if (!requireConfig()) return;
+
     let secret: string | undefined;
     if (typeof flags['totp-secret'] === 'string') {
         secret = flags['totp-secret'];
@@ -89,6 +112,16 @@ async function runAdd(
     // Normalize: strip spaces (authenticator apps often show them in groups).
     secret = secret.replace(/\s+/g, '');
 
+    if (!isValidBase32(secret)) {
+        process.stderr.write(
+            'Error: invalid TOTP secret. Must be base32 (A-Z, 2-7) and at least 16 characters.\n',
+        );
+        process.exitCode = ExitCode.GENERAL_ERROR;
+        return;
+    }
+
+    // Sanity check that otpauth also accepts it (defensive — isValidBase32
+    // already covers the alphabet, so this should never trip in practice).
     try {
         computeTotp(secret);
     } catch (e) {
@@ -97,11 +130,17 @@ async function runAdd(
         return;
     }
 
-    const label = typeof flags.label === 'string' ? flags.label : undefined;
+    // Preserve unrelated fields from an existing entry — label (if not
+    // re-supplied) and any hand-configured totp.selectors.
+    const existing = (await getIdpMetaEntries())[hostname];
+    const label = typeof flags.label === 'string' ? flags.label : existing?.label;
+    const selectors = existing?.totp?.selectors;
 
     const meta: IdpMetaEntry = {
-        ...(label ? { label } : {}),
-        totp: {},
+        ...(label !== undefined ? { label } : {}),
+        totp: {
+            ...(selectors ? { selectors } : {}),
+        },
     };
 
     await setIdpMetaEntry(hostname, meta);
@@ -181,6 +220,7 @@ async function runRemove(positionals: string[]): Promise<void> {
         process.exitCode = ExitCode.GENERAL_ERROR;
         return;
     }
+    if (!requireConfig()) return;
     const removed = await removeIdpMetaEntry(hostname);
     const store = await asyncIdpStore();
     await store.deleteSecret(hostname);

@@ -111,7 +111,10 @@ export class AuthManager {
                 const entry: IdpEntry = { hostname };
                 if (meta.label) entry.label = meta.label;
                 if (secret) {
-                    entry.totp = { secret };
+                    entry.totp = {
+                        secret,
+                        ...(meta.totp?.selectors ? { selectors: meta.totp.selectors } : {}),
+                    };
                 }
                 return entry;
             }),

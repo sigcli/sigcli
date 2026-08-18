@@ -10,7 +10,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { computeTotp } from '../../../src/utils/totp.js';
+import { computeTotp, isValidBase32 } from '../../../src/utils/totp.js';
 
 const SECRET_BASE32 = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
 
@@ -67,5 +67,52 @@ describe('computeTotp — invalid input', () => {
     it('throws on invalid base32 secret', () => {
         // '1' and '0' are not valid base32 alphabet characters (base32 is A-Z, 2-7).
         expect(() => computeTotp('!!!not-base32!!!')).toThrow();
+    });
+});
+
+describe('isValidBase32', () => {
+    it('accepts a 16-char real base32 secret', () => {
+        expect(isValidBase32('GEZDGNBVGY3TQOJQ')).toBe(true);
+    });
+
+    it('accepts a 32-char real base32 secret', () => {
+        expect(isValidBase32('GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ')).toBe(true);
+    });
+
+    it('rejects a 7-char string even if in alphabet', () => {
+        // "garbage" is 7 chars, below the 16-char minimum
+        expect(isValidBase32('garbage')).toBe(false);
+    });
+
+    it('rejects a 16-char string containing "0" (not in base32 alphabet)', () => {
+        expect(isValidBase32('HELLOWORLDHELLO0')).toBe(false);
+    });
+
+    it('rejects a 16-char string containing "1" (not in base32 alphabet)', () => {
+        expect(isValidBase32('HELLOWORLDHELLO1')).toBe(false);
+    });
+
+    it('accepts whitespace-normalized 32-char base32 secret', () => {
+        expect(isValidBase32('GEZD GNBV GY3T QOJQ GEZD GNBV GY3T QOJQ')).toBe(true);
+    });
+
+    it('accepts a lowercase base32 secret (uppercased before check)', () => {
+        expect(isValidBase32('gezdgnbvgy3tqojq')).toBe(true);
+    });
+
+    it('rejects an empty string', () => {
+        expect(isValidBase32('')).toBe(false);
+    });
+
+    it('accepts a 16-char string composed entirely of valid alphabet chars', () => {
+        expect(isValidBase32('AAAAAAAAAAAAAAAA')).toBe(true);
+    });
+
+    it('accepts padding characters after the payload', () => {
+        expect(isValidBase32('GEZDGNBVGY3TQOJQ==')).toBe(true);
+    });
+
+    it('rejects a secret with non-alphabet punctuation', () => {
+        expect(isValidBase32('!!!not-base32!!!')).toBe(false);
     });
 });

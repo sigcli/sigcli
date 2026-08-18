@@ -170,6 +170,30 @@ export function validateConfig(raw: Record<string, unknown>): Result<SigConfig, 
                                 `IdP "${hostname}": totp.secret must not be stored in config.yaml — use "sig idp add"`,
                             );
                         }
+                        if (t.selectors !== undefined && t.selectors !== null) {
+                            if (typeof t.selectors !== 'object') {
+                                errors.push(`IdP "${hostname}": totp.selectors must be an object`);
+                            } else {
+                                const s = t.selectors as Record<string, unknown>;
+                                for (const field of ['input', 'submit'] as const) {
+                                    if (s[field] === undefined) continue;
+                                    if (!Array.isArray(s[field])) {
+                                        errors.push(
+                                            `IdP "${hostname}": totp.selectors.${field} must be an array of strings`,
+                                        );
+                                        continue;
+                                    }
+                                    for (const v of s[field] as unknown[]) {
+                                        if (typeof v !== 'string') {
+                                            errors.push(
+                                                `IdP "${hostname}": totp.selectors.${field} entries must be strings`,
+                                            );
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -251,7 +275,15 @@ export function validateConfig(raw: Record<string, unknown>): Result<SigConfig, 
             const meta: IdpMetaEntry = {};
             if (typeof e.label === 'string') meta.label = e.label;
             if (e.totp && typeof e.totp === 'object') {
+                const t = e.totp as Record<string, unknown>;
                 meta.totp = {};
+                if (t.selectors && typeof t.selectors === 'object') {
+                    const s = t.selectors as Record<string, unknown>;
+                    const selectors: { input?: string[]; submit?: string[] } = {};
+                    if (Array.isArray(s.input)) selectors.input = s.input as string[];
+                    if (Array.isArray(s.submit)) selectors.submit = s.submit as string[];
+                    if (selectors.input || selectors.submit) meta.totp.selectors = selectors;
+                }
             }
             idps[hostname] = meta;
         }

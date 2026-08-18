@@ -322,7 +322,10 @@ export class BrowserStrategy implements IStrategy {
             return { filled: false };
         }
 
-        const outcome = await injectTotpFill(cdp, sessionId, { code }).catch(() => ({
+        const outcome = await injectTotpFill(cdp, sessionId, {
+            code,
+            ...(idp.totp.selectors ? { selectors: idp.totp.selectors } : {}),
+        }).catch(() => ({
             filled: false,
             submitted: false,
             reason: 'error' as const,

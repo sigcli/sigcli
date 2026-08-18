@@ -238,6 +238,61 @@ app-slack:
 
 Full guide with debugging tips at **[sigcli.ai](https://sigcli.ai)**.
 
+## Identity Providers (2FA auto-fill)
+
+If a provider redirects through an IdP that challenges you for a 6-digit TOTP code (Authenticator-style), sig can fill and submit it for you. Configure the IdP once by hostname:
+
+```bash
+sig idp add idp.example.com --totp-secret JBSWY3DPEHPK3PXP --label corp
+```
+
+- Secret is validated (base32, ≥16 chars) and stored **encrypted** at `~/.sig/idps/<hostname>.json`. It never appears in `config.yaml`.
+- The hostname is matched with a **strict suffix rule** — `idp.example.com` matches itself and `*.idp.example.com`, but NOT `evil-idp.example.com`.
+- On the next `sig login <provider>`, when the browser lands on the IdP page, sig types the current code and submits the form. Non-IdP pages are untouched.
+
+Manage IdPs:
+
+```bash
+sig idp list                             # secrets always redacted
+sig idp show idp.example.com
+sig idp remove idp.example.com
+```
+
+### Custom selectors (when defaults don't fit)
+
+sig's built-in list covers common OTP inputs (`#otp`, `input[name=code|passcode|otp]`, `input[autocomplete=one-time-code]`, `input[type=tel][maxlength=6]`, `input[inputmode=numeric]`). If your IdP page uses different markup — or the defaults match the wrong element (e.g. a phone-number field on the same host) — override on a per-IdP basis by hand-editing `~/.sig/config.yaml`:
+
+```yaml
+idps:
+    idp.example.com:
+        label: corp
+        totp:
+            selectors:
+                input: # tried BEFORE the built-in list
+                    - '#passcode-field'
+                    - 'input[data-testid=otp]'
+                submit: # optional; tried BEFORE form.requestSubmit()
+                    - 'button.confirm'
+```
+
+Rules:
+
+- All fields are optional. Omit `totp.selectors` entirely to use the defaults.
+- User `input` selectors are tried first; the built-in list is a fallback.
+- User `submit` selectors are `.click()`-ed on first visible match. If none match, sig falls back to `form.requestSubmit()`.
+- Secrets are never accepted in YAML — `secret` / `totpSecret` / `totp.secret` fields (case-insensitive) are rejected by the validator. Use `sig idp add` for the secret.
+- `sig idp add <existing-host>` merges into the existing entry: `--label` and hand-configured `selectors` are preserved on secret rotation.
+
+### Debugging
+
+Run login with `--verbose` and watch stderr:
+
+```bash
+sig login <provider> --mode visible --verbose
+```
+
+Look for `TOTP filled on <hostname> (submit=true)`. If the line is absent, the current page hostname didn't match any configured IdP. If `submit=false`, the input was filled but no form / submit selector was found — configure `totp.selectors.submit` for that IdP.
+
 ## AI Agent Skills
 
 Pre-built Python scripts that let AI agents operate 14+ web services — email, chat, forums, video platforms, social networks, and more. Each skill includes scripts + documentation that agents read and execute autonomously.

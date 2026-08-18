@@ -74,6 +74,12 @@ describe('sig idp', () => {
         currentYaml = '';
         vi.clearAllMocks();
 
+        // The `requireConfig()` guard checks that ~/.sig/config.yaml exists.
+        // Tests here mock the YAML doc via document.js, so we create a
+        // touch-file on disk to satisfy the existence check.
+        await fs.mkdir(path.join(tmpHome, '.sig'), { recursive: true });
+        await fs.writeFile(path.join(tmpHome, '.sig', 'config.yaml'), '', 'utf-8');
+
         stderrChunks = [];
         stdoutChunks = [];
         originalExitCode = process.exitCode;
@@ -150,6 +156,79 @@ describe('sig idp', () => {
             expect(process.exitCode).not.toBe(0);
             const stderr = stderrChunks.join('');
             expect(stderr).toContain('sig idp add');
+        });
+
+        it('refuses to write when ~/.sig/config.yaml is missing', async () => {
+            // Remove the touch-file set up in beforeEach.
+            await fs.rm(path.join(tmpHome, '.sig', 'config.yaml'), { force: true });
+
+            await runIdp(['add', 'idp.example.com'], { 'totp-secret': VALID_SECRET });
+
+            expect(process.exitCode).not.toBe(undefined);
+            expect(process.exitCode).not.toBe(0);
+            const stderr = stderrChunks.join('');
+            expect(stderr).toContain('Config not found');
+            expect(stderr).toContain('sig init');
+
+            // YAML doc was never touched by the command.
+            expect(currentYaml).toBe('');
+            // No encrypted file, and the idps/ dir was never created.
+            const idpDir = path.join(tmpHome, '.sig', 'idps');
+            await expect(fs.readdir(idpDir)).rejects.toThrow();
+        });
+
+        it('rejects a short but alphabet-valid secret with a clean error', async () => {
+            // 8 chars, all in base32 alphabet — otpauth would silently accept
+            // this without isValidBase32.
+            await runIdp(['add', 'idp.example.com'], { 'totp-secret': 'GEZDGNBV' });
+
+            expect(process.exitCode).not.toBe(undefined);
+            expect(process.exitCode).not.toBe(0);
+            const stderr = stderrChunks.join('');
+            expect(stderr.toLowerCase()).toContain('invalid totp secret');
+            expect(stderr).toContain('at least 16');
+
+            // No YAML write, no encrypted file.
+            expect(currentYaml).toBe('');
+            const idpDir = path.join(tmpHome, '.sig', 'idps');
+            await expect(fs.readdir(idpDir)).rejects.toThrow();
+        });
+
+        it('preserves existing label when rotating the secret without --label', async () => {
+            await runIdp(['add', 'idp.example.com'], {
+                'totp-secret': VALID_SECRET,
+                label: 'primary',
+            });
+            expect(currentYaml).toContain('label: primary');
+
+            stderrChunks.length = 0;
+            await runIdp(['add', 'idp.example.com'], { 'totp-secret': VALID_SECRET });
+
+            // label survives the rotation
+            expect(currentYaml).toContain('label: primary');
+        });
+
+        it('preserves hand-configured totp.selectors across a secret rotation', async () => {
+            // Simulate a user who hand-edited config.yaml to add selectors.
+            currentYaml = [
+                'idps:',
+                '  idp.example.com:',
+                '    label: primary',
+                '    totp:',
+                '      selectors:',
+                '        input:',
+                '          - "#passcode-field"',
+                '        submit:',
+                '          - button.confirm',
+                '',
+            ].join('\n');
+
+            await runIdp(['add', 'idp.example.com'], { 'totp-secret': VALID_SECRET });
+
+            // Rotation must NOT drop the hand-configured selectors.
+            expect(currentYaml).toContain('#passcode-field');
+            expect(currentYaml).toContain('button.confirm');
+            expect(currentYaml).toContain('label: primary');
         });
     });
 

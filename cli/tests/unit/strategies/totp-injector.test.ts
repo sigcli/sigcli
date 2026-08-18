@@ -79,8 +79,15 @@ class ShimForm extends ShimElement {
  * That's enough for the totp-injector's fallback list.
  */
 function matchesSelector(el: ShimElement, selector: string): boolean {
-    // #id
+    // #id (may be followed by nothing else in our test selectors)
     if (selector.startsWith('#')) return el.attrs.id === selector.slice(1);
+    // tag.class — split off leading class portion
+    const classMatch = selector.match(/^([a-zA-Z]+)\.([a-zA-Z][a-zA-Z0-9_-]*)$/);
+    if (classMatch) {
+        const [, tag, cls] = classMatch;
+        if (el.tagName !== tag.toUpperCase()) return false;
+        return (el.attrs.class ?? '').split(/\s+/).includes(cls);
+    }
     // input[attr="val"]... — split into tag + bracketed conditions
     const bracketRegex = /\[([a-zA-Z-]+)="([^"]+)"\]/g;
     const tagMatch = selector.match(/^([a-zA-Z]+)/);
@@ -247,6 +254,108 @@ describe('buildFillScript', () => {
         expect(result.filled).toBe(true);
         expect(result.submitted).toBe(false);
         expect(result.reason).toBe('no-form');
+    });
+
+    it('user input selector matches BEFORE the built-in defaults', () => {
+        // Two inputs: one that would match a built-in selector, and one that
+        // only matches the user-provided selector. The user's must win.
+        const builtinTarget = makeInput({ name: 'otp' });
+        const userTarget = makeInput({ id: 'passcode-field' });
+        const sandbox = makeSandbox([builtinTarget, userTarget]);
+        const script = buildFillScript({
+            code: '654321',
+            selectors: { input: ['#passcode-field'] },
+        });
+        const result = runScript(script, sandbox) as { filled: boolean };
+
+        expect(result.filled).toBe(true);
+        expect(userTarget.value).toBe('654321');
+        expect(builtinTarget.value).toBe(''); // never touched
+    });
+
+    it('falls through to the built-in list when all user input selectors miss', () => {
+        const input = makeInput({ name: 'otp' });
+        const sandbox = makeSandbox([input]);
+        const script = buildFillScript({
+            code: '123456',
+            selectors: { input: ['#nonexistent-a', '#nonexistent-b'] },
+        });
+        const result = runScript(script, sandbox) as { filled: boolean };
+
+        expect(result.filled).toBe(true);
+        expect(input.value).toBe('123456');
+    });
+
+    it('clicks a user-provided submit selector before falling back to form.submit', () => {
+        const input = makeInput({ name: 'otp' });
+        const button = new ShimElement('BUTTON');
+        button.attrs = { class: 'confirm' };
+        let clicked = false;
+        (button as ShimElement & { click: () => void }).click = () => {
+            clicked = true;
+        };
+        // Attach a form so we can verify submit was NOT invoked when the
+        // button was clicked.
+        const form = new ShimForm();
+        input.form = form;
+        input._parent = form;
+        let submitFired = false;
+        form.addEventListener('submit', () => {
+            submitFired = true;
+        });
+
+        const sandbox = makeSandbox([input, button]);
+        const script = buildFillScript({
+            code: '111222',
+            selectors: { submit: ['button.confirm'] },
+        });
+        const result = runScript(script, sandbox) as { filled: boolean; submitted: boolean };
+
+        expect(clicked).toBe(true);
+        expect(submitFired).toBe(false);
+        expect(result.filled).toBe(true);
+        expect(result.submitted).toBe(true);
+    });
+
+    it('falls back to form.requestSubmit when all user submit selectors miss', () => {
+        const form = new ShimForm();
+        const input = makeInput({ name: 'otp' });
+        input.form = form;
+        input._parent = form;
+        let submitFired = false;
+        form.addEventListener('submit', () => {
+            submitFired = true;
+        });
+
+        const sandbox = makeSandbox([input]);
+        const script = buildFillScript({
+            code: '333444',
+            selectors: { submit: ['button.does-not-exist'] },
+        });
+        const result = runScript(script, sandbox) as { filled: boolean; submitted: boolean };
+
+        expect(submitFired).toBe(true);
+        expect(result.submitted).toBe(true);
+    });
+
+    it('safely escapes user-supplied selector strings — quotes/backslashes cannot break the script', () => {
+        // Feed a selector with embedded quotes/backslashes. buildFillScript
+        // uses JSON.stringify on the array, so this must still produce a
+        // syntactically valid IIFE that safely no-ops the malicious selector.
+        const evil = `#a"]; alert(1); //`;
+        const input = makeInput({ name: 'otp' });
+        const sandbox = makeSandbox([input]);
+        const script = buildFillScript({
+            code: '123456',
+            selectors: { input: [evil], submit: [evil] },
+        });
+
+        expect(() => new Function(`return ${script};`)).not.toThrow();
+        const result = runScript(script, sandbox) as { filled: boolean };
+        // The evil selector doesn't match anything (our shim ignores it), so
+        // the built-in fallback fills input[name=otp].
+        expect(result.filled).toBe(true);
+        expect(input.value).toBe('123456');
     });
 
     it('safely escapes the code — malicious quotes in the code cannot break out of the string literal', () => {

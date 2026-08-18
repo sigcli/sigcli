@@ -147,6 +147,7 @@ Identity providers (2FA/MFA auto-fill during login):
     --format json|table          Output format
   idp show <hostname>          Show a single IdP entry (secret redacted)
   idp remove <hostname>        Remove an IdP entry (metadata + secret)
+  Custom OTP form selectors: edit idps.<host>.totp.selectors in ~/.sig/config.yaml
 
 Setup:
   init                         Create ~/.sig/config.yaml

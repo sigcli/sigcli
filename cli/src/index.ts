@@ -56,7 +56,7 @@ export type { IIdpRegistry } from './types/index.js';
 export { IdpRegistry } from './idps/idp-registry.js';
 export { IdpStore } from './idps/idp-store.js';
 export { hostnameMatches } from './idps/hostname-match.js';
-export type { IdpEntry, IdpMetaEntry, IdpTotpConfig } from './idps/types.js';
+export type { IdpEntry, IdpMetaEntry, IdpTotpConfig, IdpTotpSelectors } from './idps/types.js';
 
 // Apply engine
 export { ApplyEngine } from './apply/apply-engine.js';

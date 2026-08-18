@@ -123,6 +123,98 @@ describe('idp-config', () => {
         });
     });
 
+    describe('totp.selectors round-trip', () => {
+        it('preserves totp.selectors.input from YAML', async () => {
+            currentYaml = [
+                'idps:',
+                '  idp.example.com:',
+                '    label: IDP1',
+                '    totp:',
+                '      selectors:',
+                '        input:',
+                '          - "#passcode-field"',
+                '          - input[data-testid=otp]',
+                '',
+            ].join('\n');
+            const entries = await getIdpMetaEntries();
+            const selectors = entries['idp.example.com'].totp?.selectors;
+            expect(selectors?.input).toEqual(['#passcode-field', 'input[data-testid=otp]']);
+        });
+
+        it('preserves totp.selectors.submit from YAML', async () => {
+            currentYaml = [
+                'idps:',
+                '  idp.example.com:',
+                '    totp:',
+                '      selectors:',
+                '        submit:',
+                '          - button.confirm',
+                '          - form[data-testid=otp] button[type=submit]',
+                '',
+            ].join('\n');
+            const entries = await getIdpMetaEntries();
+            const selectors = entries['idp.example.com'].totp?.selectors;
+            expect(selectors?.submit).toEqual([
+                'button.confirm',
+                'form[data-testid=otp] button[type=submit]',
+            ]);
+        });
+    });
+
+    describe('validator: selector shape', () => {
+        const BASE = {
+            browser: { browserDataDir: '/tmp/browser' },
+            storage: { credentialsDir: '/tmp/creds' },
+        };
+
+        it('accepts valid string-array selectors', () => {
+            const raw = {
+                ...BASE,
+                idps: {
+                    'idp.example.com': {
+                        totp: {
+                            selectors: {
+                                input: ['#passcode-field'],
+                                submit: ['button.confirm'],
+                            },
+                        },
+                    },
+                },
+            };
+            const result = validateConfig(raw);
+            expect(isErr(result)).toBe(false);
+        });
+
+        it('rejects non-array selectors.input', () => {
+            const raw = {
+                ...BASE,
+                idps: {
+                    'idp.example.com': {
+                        totp: { selectors: { input: '#passcode' } },
+                    },
+                },
+            };
+            const result = validateConfig(raw);
+            expect(isErr(result)).toBe(true);
+            if (isErr(result)) {
+                expect(result.error.message).toContain('totp.selectors.input');
+            }
+        });
+
+        it('rejects non-string entries inside selectors.submit', () => {
+            const raw = {
+                ...BASE,
+                idps: {
+                    'idp.example.com': {
+                        totp: { selectors: { submit: ['button.confirm', 42] } },
+                    },
+                },
+            };
+            const result = validateConfig(raw);
+            expect(isErr(result)).toBe(true);
+        });
+    });
+
     describe('comment preservation', () => {
         it('preserves comments inside the idps: block across set/save', async () => {
             currentYaml = [

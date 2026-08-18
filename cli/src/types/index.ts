@@ -62,4 +62,4 @@ export type { IBrowserExtractor } from './interfaces/browser-extractor.js';
 export type { IStorage } from './interfaces/storage.js';
 export type { IProviderRegistry } from './interfaces/provider.js';
 export type { IIdpRegistry } from './interfaces/idp.js';
-export type { IdpEntry, IdpMetaEntry, IdpTotpConfig } from '../idps/types.js';
+export type { IdpEntry, IdpMetaEntry, IdpTotpConfig, IdpTotpSelectors } from '../idps/types.js';
