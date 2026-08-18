@@ -28,6 +28,7 @@ export const Command = {
     COMPLETION: 'completion',
     RUN: 'run',
     PROXY: 'proxy',
+    IDP: 'idp',
     HELP: 'help',
 } as const;
 
@@ -65,6 +66,16 @@ export const ProxySubcommand = {
     STOP: 'stop',
     STATUS: 'status',
     TRUST: 'trust',
+} as const;
+
+/**
+ * Subcommands for the 'idp' command.
+ */
+export const IdpSubcommand = {
+    ADD: 'add',
+    LIST: 'list',
+    SHOW: 'show',
+    REMOVE: 'remove',
 } as const;
 
 /**

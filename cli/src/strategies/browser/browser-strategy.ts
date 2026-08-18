@@ -10,6 +10,7 @@ import {
     type AuthError,
     type ExtractedCredentials,
     type IBrowserExtractor,
+    type IIdpRegistry,
     type ILogger,
     type IStrategy,
     type ProviderConfig,
@@ -21,16 +22,27 @@ import { parseDuration } from '../../utils/duration.js';
 import { createNoopLogger } from '../../utils/logger.js';
 import { expandHome } from '../../utils/path.js';
 import { killProcess } from '../../utils/process-kill.js';
+import { computeTotp } from '../../utils/totp.js';
 import { findFreePort, waitForBrowserReady } from './browser-lifecycle.js';
 import { acquireBrowser, releaseBrowser } from './cdp-state.js';
 import { attachToPageTarget, connectCdpWs, type CdpWsClient } from './cdp-ws.js';
 import { CdpCookieExtractor } from './extractors/cdp-cookie.js';
 import { CdpStorageExtractor } from './extractors/cdp-storage.js';
+import { injectTotpFill } from './totp-injector.js';
 
 const TRACKING_COOKIE_TTL_MS = 60_000;
 const EXISTING_STATE_TIMEOUT = 5000;
 const LOGIN_PAGE_SETTLE_MS = 5000;
 const POLL_INTERVAL_MS = 3000;
+
+function safeHostname(url: string): string | null {
+    if (!url) return null;
+    try {
+        return new URL(url).hostname;
+    } catch {
+        return null;
+    }
+}
 
 interface CookieExpiry {
     name: string;
@@ -50,10 +62,12 @@ export class BrowserStrategy implements IStrategy {
     private readonly extractors: Map<string, IBrowserExtractor>;
     private readonly config: BrowserConfig;
     private readonly logger: ILogger;
+    private readonly idps?: IIdpRegistry;
 
-    constructor(browserConfig: BrowserConfig, _?: unknown, logger?: ILogger) {
+    constructor(browserConfig: BrowserConfig, _?: unknown, logger?: ILogger, idps?: IIdpRegistry) {
         this.config = browserConfig;
         this.logger = logger ?? createNoopLogger();
+        this.idps = idps;
         this.extractors = new Map<string, IBrowserExtractor>();
         this.extractors.set('cookies', new CdpCookieExtractor());
         this.extractors.set('localStorage', new CdpStorageExtractor());
@@ -217,6 +231,18 @@ export class BrowserStrategy implements IStrategy {
             const sessionId = await attachToPageTarget(cdp).catch(() => null);
             const url = await this.getPageUrl(cdp, sessionId);
 
+            // IdP TOTP auto-fill: if the current page's hostname matches a
+            // configured IdP with a TOTP secret, try to fill the OTP input
+            // BEFORE the off-domain check. IdP pages are legitimately on a
+            // different hostname than the entry URL and would otherwise be
+            // skipped by the off-domain branch. After filling, the form
+            // submits and navigates; the next poll iteration will detect the
+            // redirect back to the entry domain and proceed with validation.
+            if (sessionId) {
+                const { filled } = await this.tryFillTotp(cdp, sessionId, url, provider.id);
+                if (filled) loginPageSince = null;
+            }
+
             if (this.isOffDomain(url, entryHostname)) {
                 this.logger.info(`${provider.id}: waiting for redirect back to ${entryHostname}`);
                 if (sessionId)
@@ -268,6 +294,46 @@ export class BrowserStrategy implements IStrategy {
         }
 
         return null;
+    }
+
+    // =========================================================================
+    // TOTP auto-fill — resolve current-host IdP, compute code, inject into page
+    // =========================================================================
+
+    private async tryFillTotp(
+        cdp: CdpWsClient,
+        sessionId: string,
+        url: string,
+        providerId: string,
+    ): Promise<{ filled: boolean }> {
+        if (!this.idps) return { filled: false };
+        const currentHost = safeHostname(url);
+        if (!currentHost) return { filled: false };
+        const idp = this.idps.resolve(currentHost);
+        if (!idp?.totp) return { filled: false };
+
+        let code: string;
+        try {
+            code = computeTotp(idp.totp.secret);
+        } catch (e) {
+            this.logger.warn(
+                `${providerId}: invalid TOTP secret for ${idp.hostname}: ${(e as Error).message}`,
+            );
+            return { filled: false };
+        }
+
+        const outcome = await injectTotpFill(cdp, sessionId, { code }).catch(() => ({
+            filled: false,
+            submitted: false,
+            reason: 'error' as const,
+        }));
+
+        if (outcome.filled) {
+            this.logger.info(
+                `${providerId}: TOTP filled on ${currentHost} (submit=${outcome.submitted})`,
+            );
+        }
+        return { filled: outcome.filled };
     }
 
     // =========================================================================

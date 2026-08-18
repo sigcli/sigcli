@@ -44,6 +44,7 @@ export {
     SyncSubcommand,
     WatchSubcommand,
     ProxySubcommand,
+    IdpSubcommand,
     CredentialTypeName,
     LOGIN_URL_PATTERNS,
     HttpHeader,
@@ -60,3 +61,5 @@ export type { IStrategy, ExtractedCredentials } from './interfaces/strategy.js';
 export type { IBrowserExtractor } from './interfaces/browser-extractor.js';
 export type { IStorage } from './interfaces/storage.js';
 export type { IProviderRegistry } from './interfaces/provider.js';
+export type { IIdpRegistry } from './interfaces/idp.js';
+export type { IdpEntry, IdpMetaEntry, IdpTotpConfig } from '../idps/types.js';

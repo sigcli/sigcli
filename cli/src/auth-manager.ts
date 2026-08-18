@@ -1,3 +1,6 @@
+import os from 'node:os';
+import path from 'node:path';
+
 import {
     err,
     isOk,
@@ -6,6 +9,7 @@ import {
     type ApplyRule,
     type AuthError,
     type ExtractedCredentials,
+    type IIdpRegistry,
     type ILogger,
     type IProviderRegistry,
     type IStorage,
@@ -28,6 +32,9 @@ import { ApplyEngine, type ApplyResult } from './apply/apply-engine.js';
 import { parseDuration } from './utils/duration.js';
 import { createNoopLogger, createOperationalLogger } from './utils/logger.js';
 import { expandHome } from './utils/path.js';
+import { IdpRegistry } from './idps/idp-registry.js';
+import { IdpStore } from './idps/idp-store.js';
+import type { IdpEntry } from './idps/types.js';
 
 /**
  * Central orchestrator for authentication lifecycle.
@@ -39,6 +46,7 @@ export class AuthManager {
     readonly config: SigConfig;
     readonly browserAvailable: boolean;
     readonly logger: ILogger;
+    readonly idps: IIdpRegistry;
 
     private readonly providers: IProviderRegistry;
     private readonly browserConfig: BrowserConfig;
@@ -50,6 +58,7 @@ export class AuthManager {
         browserConfig: BrowserConfig,
         config: SigConfig,
         logger: ILogger,
+        idps: IIdpRegistry,
     ) {
         this.storage = storage;
         this.providers = providers;
@@ -57,6 +66,7 @@ export class AuthManager {
         this.config = config;
         this.browserAvailable = config.mode !== 'browserless';
         this.logger = logger;
+        this.idps = idps;
     }
 
     static async create(config: SigConfig, logger?: ILogger): Promise<AuthManager> {
@@ -91,10 +101,34 @@ export class AuthManager {
             ttlMs: 5000,
         });
 
-        const manager = new AuthManager(storage, providerRegistry, config.browser, config, log);
+        // IdP registry — metadata from config.yaml, secrets from ~/.sig/idps/.
+        const sigDir = path.join(os.homedir(), '.sig');
+        const idpStore = new IdpStore(path.join(sigDir, 'idps'), encryptionKey);
+        const idpMeta = config.idps ?? {};
+        const idpEntries: IdpEntry[] = await Promise.all(
+            Object.entries(idpMeta).map(async ([hostname, meta]) => {
+                const secret = await idpStore.getSecret(hostname).catch(() => null);
+                const entry: IdpEntry = { hostname };
+                if (meta.label) entry.label = meta.label;
+                if (secret) {
+                    entry.totp = { secret };
+                }
+                return entry;
+            }),
+        );
+        const idps = new IdpRegistry(idpEntries);
+
+        const manager = new AuthManager(
+            storage,
+            providerRegistry,
+            config.browser,
+            config,
+            log,
+            idps,
+        );
 
         if (manager.browserAvailable) {
-            manager.registerStrategy(new BrowserStrategy(config.browser, undefined, log));
+            manager.registerStrategy(new BrowserStrategy(config.browser, undefined, log, idps));
         }
         manager.registerStrategy(new PromptStrategy());
         manager.registerStrategy(new OAuth2Strategy());

@@ -8,6 +8,7 @@ import { AuthManager } from './auth-manager.js';
 import { runCompletion } from './commands/completion.js';
 import { runDoctor } from './commands/doctor.js';
 import { runGet } from './commands/get.js';
+import { runIdp } from './commands/idp.js';
 import { runInit } from './commands/init.js';
 import { runLogin } from './commands/login.js';
 import { runLogout } from './commands/logout.js';
@@ -138,6 +139,15 @@ Watch:
   watch remove <provider>      Remove provider from watch list
   watch set-interval <dur>     Set default check interval
 
+Identity providers (2FA/MFA auto-fill during login):
+  idp add <hostname>           Configure per-hostname TOTP secret
+    --totp-secret <secret>       Base32 TOTP secret (prompted if omitted)
+    --label <name>               Friendly name
+  idp list                     List configured IdPs (secrets redacted)
+    --format json|table          Output format
+  idp show <hostname>          Show a single IdP entry (secret redacted)
+  idp remove <hostname>        Remove an IdP entry (metadata + secret)
+
 Setup:
   init                         Create ~/.sig/config.yaml
     --remote                     Headless machine setup (mode: browserless)
@@ -245,6 +255,9 @@ export async function run(args: string[]): Promise<void> {
             break;
         case Command.REMOTE:
             await runRemote(positionals, flags);
+            break;
+        case Command.IDP:
+            await runIdp(positionals, flags);
             break;
         case Command.SYNC:
             await runSync(positionals, flags, auth as AuthManager);
