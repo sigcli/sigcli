@@ -7,6 +7,7 @@
  */
 
 import { ConfigError, err, ok, type AuthError, type Result } from '../types/index.js';
+import type { IdpMetaEntry } from '../idps/types.js';
 import type {
     BrowserConfig,
     ProviderEntry,
@@ -138,6 +139,46 @@ export function validateConfig(raw: Record<string, unknown>): Result<SigConfig, 
         }
     }
 
+    // --- idps section (optional) ---
+    if (raw.idps !== undefined && raw.idps !== null) {
+        if (typeof raw.idps !== 'object') {
+            errors.push('"idps" must be an object');
+        } else {
+            const idps = raw.idps as Record<string, unknown>;
+            for (const [hostname, entry] of Object.entries(idps)) {
+                if (entry === null || entry === undefined) continue;
+                if (typeof entry !== 'object') {
+                    errors.push(`IdP "${hostname}": must be an object`);
+                    continue;
+                }
+                const e = entry as Record<string, unknown>;
+                if (e.label !== undefined && typeof e.label !== 'string') {
+                    errors.push(`IdP "${hostname}": label must be a string`);
+                }
+                if (Object.keys(e).some((k) => /^(secret|totpSecret)$/i.test(k))) {
+                    errors.push(
+                        `IdP "${hostname}": secrets must not be stored in config.yaml — use "sig idp add"`,
+                    );
+                }
+                if (e.totp !== undefined && e.totp !== null) {
+                    if (typeof e.totp !== 'object') {
+                        errors.push(`IdP "${hostname}": totp must be an object`);
+                    } else {
+                        const t = e.totp as Record<string, unknown>;
+                        if (Object.keys(t).some((k) => /^secret$/i.test(k))) {
+                            errors.push(
+                                `IdP "${hostname}": totp.secret must not be stored in config.yaml — use "sig idp add"`,
+                            );
+                        }
+                        if (t.autoSubmit !== undefined && typeof t.autoSubmit !== 'boolean') {
+                            errors.push(`IdP "${hostname}": totp.autoSubmit must be a boolean`);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     if (errors.length > 0) {
         return err(new ConfigError(`Config validation failed:\n  - ${errors.join('\n  - ')}`));
     }
@@ -204,6 +245,26 @@ export function validateConfig(raw: Record<string, unknown>): Result<SigConfig, 
         };
     }
 
+    let idps: Record<string, IdpMetaEntry> | undefined;
+    if (raw.idps && typeof raw.idps === 'object') {
+        idps = {};
+        for (const [hostname, entry] of Object.entries(raw.idps as Record<string, unknown>)) {
+            if (entry === null || entry === undefined || typeof entry !== 'object') continue;
+            const e = entry as Record<string, unknown>;
+            const meta: IdpMetaEntry = {};
+            if (typeof e.label === 'string') meta.label = e.label;
+            if (e.totp && typeof e.totp === 'object') {
+                const t = e.totp as Record<string, unknown>;
+                if (typeof t.autoSubmit === 'boolean') {
+                    meta.totp = { autoSubmit: t.autoSubmit };
+                } else {
+                    meta.totp = {};
+                }
+            }
+            idps[hostname] = meta;
+        }
+    }
+
     const config: SigConfig = {
         mode,
         browser,
@@ -211,6 +272,7 @@ export function validateConfig(raw: Record<string, unknown>): Result<SigConfig, 
         providers,
         ...(remotes ? { remotes } : {}),
         ...(watch ? { watch } : {}),
+        ...(idps ? { idps } : {}),
     };
 
     return ok(config);

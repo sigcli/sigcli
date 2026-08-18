@@ -3,6 +3,8 @@
  * All config lives in ~/.sig/config.yaml — no cascade, no env vars.
  */
 
+import type { IdpMetaEntry } from '../idps/types.js';
+
 // ============================================================================
 // Top-level Config Sections
 // ============================================================================
@@ -52,6 +54,7 @@ export interface SigConfig {
     remotes?: Record<string, RemoteEntry>;
     providers: Record<string, ProviderEntry>;
     watch?: WatchEntry;
+    idps?: Record<string, IdpMetaEntry>;
 }
 
 // ============================================================================

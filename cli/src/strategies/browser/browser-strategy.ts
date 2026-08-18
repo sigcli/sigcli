@@ -10,6 +10,7 @@ import {
     type AuthError,
     type ExtractedCredentials,
     type IBrowserExtractor,
+    type IIdpRegistry,
     type ILogger,
     type IStrategy,
     type ProviderConfig,
@@ -21,16 +22,27 @@ import { parseDuration } from '../../utils/duration.js';
 import { createNoopLogger } from '../../utils/logger.js';
 import { expandHome } from '../../utils/path.js';
 import { killProcess } from '../../utils/process-kill.js';
+import { computeTotp } from '../../utils/totp.js';
 import { findFreePort, waitForBrowserReady } from './browser-lifecycle.js';
 import { acquireBrowser, releaseBrowser } from './cdp-state.js';
 import { attachToPageTarget, connectCdpWs, type CdpWsClient } from './cdp-ws.js';
 import { CdpCookieExtractor } from './extractors/cdp-cookie.js';
 import { CdpStorageExtractor } from './extractors/cdp-storage.js';
+import { injectTotpFill } from './totp-injector.js';
 
 const TRACKING_COOKIE_TTL_MS = 60_000;
 const EXISTING_STATE_TIMEOUT = 5000;
 const LOGIN_PAGE_SETTLE_MS = 5000;
 const POLL_INTERVAL_MS = 3000;
+
+function safeHostname(url: string): string | null {
+    if (!url) return null;
+    try {
+        return new URL(url).hostname;
+    } catch {
+        return null;
+    }
+}
 
 interface CookieExpiry {
     name: string;
@@ -50,10 +62,12 @@ export class BrowserStrategy implements IStrategy {
     private readonly extractors: Map<string, IBrowserExtractor>;
     private readonly config: BrowserConfig;
     private readonly logger: ILogger;
+    private readonly idps?: IIdpRegistry;
 
-    constructor(browserConfig: BrowserConfig, _?: unknown, logger?: ILogger) {
+    constructor(browserConfig: BrowserConfig, _?: unknown, logger?: ILogger, idps?: IIdpRegistry) {
         this.config = browserConfig;
         this.logger = logger ?? createNoopLogger();
+        this.idps = idps;
         this.extractors = new Map<string, IBrowserExtractor>();
         this.extractors.set('cookies', new CdpCookieExtractor());
         this.extractors.set('localStorage', new CdpStorageExtractor());
@@ -216,6 +230,38 @@ export class BrowserStrategy implements IStrategy {
         while (Date.now() < deadline) {
             const sessionId = await attachToPageTarget(cdp).catch(() => null);
             const url = await this.getPageUrl(cdp, sessionId);
+
+            // IdP TOTP auto-fill: if the current page's hostname matches a
+            // configured IdP with a TOTP secret, try to fill the OTP input
+            // BEFORE the off-domain check. IdP pages are legitimately on a
+            // different hostname than the entry URL and would otherwise be
+            // skipped by the off-domain branch. After filling, the form
+            // submits and navigates; the next poll iteration will detect the
+            // redirect back to the entry domain and proceed with validation.
+            if (sessionId && this.idps) {
+                const currentHost = safeHostname(url);
+                const idp = currentHost ? this.idps.resolve(currentHost) : null;
+                if (idp?.totp) {
+                    let code: string | null = null;
+                    try {
+                        code = computeTotp(idp.totp.secret);
+                    } catch (e) {
+                        this.logger.warn(
+                            `${provider.id}: invalid TOTP secret for ${idp.hostname}: ${(e as Error).message}`,
+                        );
+                    }
+                    if (code) {
+                        const autoSubmit = idp.totp.autoSubmit ?? true;
+                        const outcome = await injectTotpFill(cdp, sessionId, { code, autoSubmit });
+                        if (outcome.filled) {
+                            this.logger.info(
+                                `${provider.id}: TOTP filled on ${currentHost} (submit=${outcome.submitted})`,
+                            );
+                            loginPageSince = null;
+                        }
+                    }
+                }
+            }
 
             if (this.isOffDomain(url, entryHostname)) {
                 this.logger.info(`${provider.id}: waiting for redirect back to ${entryHostname}`);

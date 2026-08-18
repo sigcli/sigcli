@@ -50,6 +50,13 @@ export type { IStorage } from './types/index.js';
 export type { IProviderRegistry } from './types/index.js';
 export type { IStrategy, ExtractedCredentials } from './types/index.js';
 export type { IBrowserExtractor } from './types/index.js';
+export type { IIdpRegistry } from './types/index.js';
+
+// IdP registry
+export { IdpRegistry } from './idps/idp-registry.js';
+export { IdpStore } from './idps/idp-store.js';
+export { hostnameMatches } from './idps/hostname-match.js';
+export type { IdpEntry, IdpMetaEntry, IdpTotpConfig } from './idps/types.js';
 
 // Apply engine
 export { ApplyEngine } from './apply/apply-engine.js';
@@ -106,6 +113,7 @@ export {
     RemoteSubcommand,
     SyncSubcommand,
     WatchSubcommand,
+    IdpSubcommand,
     CredentialTypeName,
     LOGIN_URL_PATTERNS,
     HttpHeader,
@@ -125,6 +133,7 @@ export { parseDuration, formatDuration } from './utils/duration.js';
 export { buildUserAgent } from './utils/http.js';
 export { sanitizeId } from './utils/sanitize.js';
 export { expandHome } from './utils/path.js';
+export { computeTotp } from './utils/totp.js';
 
 // Crypto
 export {
