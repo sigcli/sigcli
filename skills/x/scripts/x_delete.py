@@ -15,10 +15,17 @@ def delete_tweet(cookie: str, tweet_id: str) -> dict:
     client.require_cookie()
 
     variables = {"tweet_id": tweet_id, "dark_request": False}
-    client.graphql_post("DeleteTweet", variables)
+    data = client.graphql_post("DeleteTweet", variables)
+    result = ((data.get("data") or {}).get("delete_tweet") or {}).get("tweet_results", {}).get("result")
+    if not isinstance(result, dict) or not result:
+        raise XApiError(
+            "DELETE_FAILED",
+            "Tweet deletion failed. Check the response or try again",
+        )
+
     return {
         "success": True,
-        "tweet_id": tweet_id,
+        "tweet_id": result.get("rest_id") or tweet_id,
         "message": "Tweet deleted successfully",
     }
 
