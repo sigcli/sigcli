@@ -258,6 +258,15 @@ sig idp show idp.example.com
 sig idp remove idp.example.com
 ```
 
+If you have many accounts, export them from your authenticator app and bulk-import:
+
+```bash
+sig idp import ~/Downloads/authenticator.txt        # one otpauth://totp/ URI per line
+sig idp import ~/Downloads/authenticator.txt --force # overwrite existing entries
+```
+
+The file format is one `otpauth://totp/` URI per line (the standard export format from Google Authenticator and most other TOTP apps). The hostname is derived from the `issuer` parameter, falling back to the label prefix before `:`. Blank lines and lines not starting with `otpauth://totp/` are skipped.
+
 ### Custom selectors (when defaults don't fit)
 
 sig's built-in list covers common OTP inputs (`#otp`, `input[name=code|passcode|otp]`, `input[autocomplete=one-time-code]`, `input[type=tel][maxlength=6]`, `input[inputmode=numeric]`). If your IdP page uses different markup — or the defaults match the wrong element (e.g. a phone-number field on the same host) — override on a per-IdP basis by hand-editing `~/.sig/config.yaml`:

@@ -76,6 +76,7 @@ export const IdpSubcommand = {
     LIST: 'list',
     SHOW: 'show',
     REMOVE: 'remove',
+    IMPORT: 'import',
 } as const;
 
 /**

@@ -12,6 +12,7 @@
  */
 
 import fs from 'node:fs';
+import fsPromises from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -34,6 +35,8 @@ Subcommands:
   list [--format json|table]       List configured IdPs (secrets redacted)
   show <hostname>                  Show a single IdP entry (secret redacted)
   remove <hostname>                Remove an IdP entry (metadata + secret)
+  import <file>                    Bulk-import from otpauth URI file (one per line)
+    --force                          Overwrite existing entries
 
 Custom OTP form selectors are configured by hand-editing ~/.sig/config.yaml
 under idps.<hostname>.totp.selectors.{input,submit}.
@@ -79,6 +82,8 @@ export async function runIdp(
             return runShow(positionals);
         case IdpSubcommand.REMOVE:
             return runRemove(positionals);
+        case IdpSubcommand.IMPORT:
+            return runImport(positionals, flags);
         default:
             process.stderr.write(USAGE);
             process.exitCode = ExitCode.GENERAL_ERROR;
@@ -229,4 +234,104 @@ async function runRemove(positionals: string[]): Promise<void> {
     } else {
         process.stderr.write(`IdP "${hostname}" not found in config\n`);
     }
+}
+
+async function runImport(
+    positionals: string[],
+    flags: Record<string, string | boolean | string[]>,
+): Promise<void> {
+    const filePath = positionals[1];
+    if (!filePath) {
+        process.stderr.write('Usage: sig idp import <file> [--force]\n');
+        process.exitCode = ExitCode.GENERAL_ERROR;
+        return;
+    }
+    if (!requireConfig()) return;
+
+    const force = flags['force'] === true;
+
+    let raw: string;
+    try {
+        raw = await fsPromises.readFile(filePath, 'utf-8');
+    } catch (e) {
+        process.stderr.write(`Error reading file: ${(e as Error).message}\n`);
+        process.exitCode = ExitCode.GENERAL_ERROR;
+        return;
+    }
+
+    const store = await asyncIdpStore();
+    const lines = raw
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l.startsWith('otpauth://totp/'));
+
+    if (lines.length === 0) {
+        process.stderr.write('No otpauth://totp/ URIs found in file.\n');
+        return;
+    }
+
+    let added = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    for (const line of lines) {
+        let url: URL;
+        try {
+            url = new URL(line);
+        } catch {
+            process.stderr.write(`  SKIP (invalid URI): ${line}\n`);
+            failed++;
+            continue;
+        }
+
+        const secret = url.searchParams.get('secret');
+        if (!secret) {
+            process.stderr.write(`  SKIP (no secret): ${line}\n`);
+            failed++;
+            continue;
+        }
+
+        const normalized = secret.replace(/\s+/g, '').toUpperCase();
+        if (!isValidBase32(normalized)) {
+            process.stderr.write(`  SKIP (invalid base32 secret): ${line}\n`);
+            failed++;
+            continue;
+        }
+
+        // Derive hostname: prefer issuer param, fall back to label prefix before ':'
+        const issuer = url.searchParams.get('issuer') ?? '';
+        const label = decodeURIComponent(url.pathname.slice(1)); // strip leading '/'
+        const hostname = (issuer || label.split(':')[0] || label)
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, '-');
+
+        if (!hostname) {
+            process.stderr.write(`  SKIP (cannot derive hostname): ${line}\n`);
+            failed++;
+            continue;
+        }
+
+        const existingMeta = (await getIdpMetaEntries())[hostname];
+        if (existingMeta && !force) {
+            process.stderr.write(`  SKIP (exists): ${hostname}\n`);
+            skipped++;
+            continue;
+        }
+
+        const labelText = label || issuer || undefined;
+        const meta: IdpMetaEntry = {
+            ...(labelText !== undefined ? { label: labelText } : {}),
+            totp: {},
+        };
+
+        await setIdpMetaEntry(hostname, meta);
+        await store.setSecret(hostname, normalized);
+        process.stderr.write(`  ADDED: ${hostname}${labelText ? ` (${labelText})` : ''}\n`);
+        added++;
+    }
+
+    process.stderr.write(
+        `\nImport complete: ${added} added, ${skipped} skipped, ${failed} failed\n`,
+    );
 }

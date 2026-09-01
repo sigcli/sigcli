@@ -306,4 +306,124 @@ describe('sig idp', () => {
             expect(stderr).toContain('not found in config');
         });
     });
+
+    // -----------------------------------------------------------------------
+    // import
+    // -----------------------------------------------------------------------
+
+    describe('import', () => {
+        let importFile: string;
+
+        beforeEach(async () => {
+            importFile = path.join(tmpHome, 'authenticator.txt');
+        });
+
+        it('imports valid otpauth URIs from a file', async () => {
+            await fs.writeFile(
+                importFile,
+                [
+                    'otpauth://totp/GitHub:alice?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=GitHub',
+                    'otpauth://totp/corp-idp.example.com:user?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=corp-idp.example.com',
+                ].join('\n'),
+                'utf-8',
+            );
+
+            await runIdp(['import', importFile], {});
+
+            const stderr = stderrChunks.join('');
+            expect(stderr).toContain('ADDED: github');
+            expect(stderr).toContain('ADDED: corp-idp.example.com');
+            expect(stderr).toContain('2 added');
+            expect(stderr).toContain('0 skipped');
+
+            // Secrets must not appear in YAML
+            expect(currentYaml.includes('GEZDGNBVGY3TQOJQ')).toBe(false);
+
+            // Encrypted files must exist
+            const gitHubFile = path.join(tmpHome, '.sig', 'idps', 'github.json');
+            await expect(fs.access(gitHubFile)).resolves.toBeUndefined();
+        });
+
+        it('skips duplicate entries without --force', async () => {
+            await fs.writeFile(
+                importFile,
+                'otpauth://totp/GitHub:alice?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=GitHub',
+                'utf-8',
+            );
+
+            await runIdp(['import', importFile], {});
+            stderrChunks.length = 0;
+            await runIdp(['import', importFile], {});
+
+            const stderr = stderrChunks.join('');
+            expect(stderr).toContain('SKIP (exists): github');
+            expect(stderr).toContain('0 added');
+            expect(stderr).toContain('1 skipped');
+        });
+
+        it('overwrites duplicates with --force', async () => {
+            await fs.writeFile(
+                importFile,
+                'otpauth://totp/GitHub:alice?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=GitHub',
+                'utf-8',
+            );
+
+            await runIdp(['import', importFile], {});
+            stderrChunks.length = 0;
+            await runIdp(['import', importFile], { force: true });
+
+            const stderr = stderrChunks.join('');
+            expect(stderr).toContain('ADDED: github');
+            expect(stderr).toContain('1 added');
+            expect(stderr).toContain('0 skipped');
+        });
+
+        it('skips blank lines and non-otpauth lines', async () => {
+            await fs.writeFile(
+                importFile,
+                [
+                    '',
+                    '# this is a comment',
+                    'not-a-uri',
+                    'otpauth://totp/GitHub:alice?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=GitHub',
+                ].join('\n'),
+                'utf-8',
+            );
+
+            await runIdp(['import', importFile], {});
+
+            const stderr = stderrChunks.join('');
+            expect(stderr).toContain('1 added');
+        });
+
+        it('counts invalid URIs as failed', async () => {
+            await fs.writeFile(
+                importFile,
+                'otpauth://totp/GitHub:alice?secret=TOOSHORT&issuer=GitHub',
+                'utf-8',
+            );
+
+            await runIdp(['import', importFile], {});
+
+            const stderr = stderrChunks.join('');
+            expect(stderr).toContain('0 added');
+            expect(stderr).toContain('1 failed');
+        });
+
+        it('errors when file path is missing', async () => {
+            await runIdp(['import'], {});
+            expect(process.exitCode).not.toBe(undefined);
+            expect(process.exitCode).not.toBe(0);
+            const stderr = stderrChunks.join('');
+            expect(stderr).toContain('sig idp import');
+        });
+
+        it('errors when file does not exist', async () => {
+            await runIdp(['import', '/nonexistent/path/file.txt'], {});
+            expect(process.exitCode).not.toBe(undefined);
+            expect(process.exitCode).not.toBe(0);
+            const stderr = stderrChunks.join('');
+            expect(stderr).toContain('Error reading file');
+        });
+    });
 });
