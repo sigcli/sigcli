@@ -84,10 +84,26 @@ export async function addProviderToConfig(id: string, entry: ProviderEntry): Pro
     } catch {
         return; // No config file — nothing to update
     }
+
+    // Backup before writing (timestamped, in dedicated folder)
+    const backupDir = path.join(path.dirname(CONFIG_PATH), 'backups');
+    await fs.mkdir(backupDir, { recursive: true });
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    await fs.copyFile(CONFIG_PATH, path.join(backupDir, `config.${ts}.yaml`));
+
     const doc = YAML.parseDocument(content);
     if (!doc.getIn(['providers'])) {
         doc.setIn(['providers'], doc.createNode({}));
     }
+
+    // Warn if overwriting existing entry
+    const existing = doc.getIn(['providers', id]);
+    if (existing !== undefined) {
+        process.stderr.write(
+            `[sig] config: overwriting provider "${id}" (backup in ${backupDir})\n`,
+        );
+    }
+
     const providersNode = doc.getIn(['providers'], true);
     if (isCollection(providersNode)) providersNode.flow = false;
     const providerNode = doc.createNode(entry);
