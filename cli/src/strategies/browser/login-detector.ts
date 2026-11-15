@@ -1,4 +1,4 @@
-import { LOGIN_URL_PATTERNS } from '../../types/index.js';
+import { isLoginUrl } from '../../utils/login-url.js';
 
 /**
  * Function type for evaluating JS in a page context.
@@ -25,11 +25,7 @@ const LOGIN_DOM_CHECK = `(() => {
 
 export class LoginPageDetector implements ILoginPageDetector {
     isLoginUrl(url: string, customPatterns?: string[]): boolean {
-        const lower = url.toLowerCase();
-        const patterns = customPatterns
-            ? [...LOGIN_URL_PATTERNS, ...customPatterns]
-            : LOGIN_URL_PATTERNS;
-        return patterns.some((p) => lower.includes(p.toLowerCase()));
+        return isLoginUrl(url, customPatterns);
     }
 
     async isLoginDom(evaluate: DomEvaluateFn): Promise<boolean> {
