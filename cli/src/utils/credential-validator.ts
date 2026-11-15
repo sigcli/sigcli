@@ -3,6 +3,7 @@ import { fetch } from 'undici';
 
 import {
     HttpHeader,
+    LOGIN_URL_PATTERNS,
     type ExtractedCredentials,
     type ProviderConfig,
     type StoredCredential,
@@ -10,7 +11,6 @@ import {
 import { ApplyEngine } from '../apply/apply-engine.js';
 import { parseDuration } from './duration.js';
 import { buildUserAgent, createProxyDispatcher } from './http.js';
-import { isLoginUrl } from './login-url.js';
 
 const AUTH_FAILURE_STATUSES = [401, 403, 406, 429];
 
@@ -86,13 +86,8 @@ export function isAuthenticatedResponse(
 
     if (res.status >= 300 && res.status < 400) {
         if (validateUrl) return false;
-        const location = res.headers['location'] ?? '';
-        try {
-            new URL(location, 'https://relative.invalid');
-        } catch {
-            return false;
-        }
-        return !isLoginUrl(location);
+        const location = (res.headers['location'] ?? '').toLowerCase();
+        return !LOGIN_URL_PATTERNS.some((p) => location.includes(p));
     }
 
     if (res.body && res.body.length < 4096 && hasJsRedirect(res.body)) return false;
