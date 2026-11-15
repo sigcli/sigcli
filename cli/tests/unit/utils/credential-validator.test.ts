@@ -142,6 +142,43 @@ describe('validate — JS redirect detection', () => {
     });
 });
 
+describe('validate — redirect URL components', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it.each([
+        'https://login.example.test/dashboard',
+        'https://auth.example.test/dashboard',
+        'https://app.example.test/dashboard?next=/login',
+        '/dashboard?next=/login',
+    ])('accepts a non-login redirect without incidental matches: %s', async (location) => {
+        mockFetch.mockResolvedValue(mockResponse(302, '', { location }) as any);
+        expect(await validate(makeProvider(), { cookie: 'session=example' })).toBe(true);
+    });
+
+    it.each([
+        '/login',
+        'https://app.example.test/#/login',
+        'https://accounts.google.com/',
+        'http://[/login',
+    ])('rejects genuine login redirects and malformed locations: %s', async (location) => {
+        mockFetch.mockResolvedValue(mockResponse(302, '', { location }) as any);
+        expect(await validate(makeProvider(), { cookie: 'session=example' })).toBe(false);
+    });
+
+    it('still rejects all redirects when an explicit validation endpoint is configured', async () => {
+        mockFetch.mockResolvedValue(
+            mockResponse(302, '', { location: 'https://login.example.test/dashboard' }) as any,
+        );
+        expect(
+            await validate(makeProvider({ validateUrl: 'https://app.example.test/profile' }), {
+                cookie: 'session=example',
+            }),
+        ).toBe(false);
+    });
+});
+
 describe('validate — validateRule custom expression', () => {
     beforeEach(() => {
         vi.clearAllMocks();
