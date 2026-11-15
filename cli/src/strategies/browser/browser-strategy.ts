@@ -5,6 +5,7 @@ import {
     BrowserError,
     BrowserTimeoutError,
     err,
+    LOGIN_URL_PATTERNS,
     ok,
     type AuthError,
     type ExtractedCredentials,
@@ -19,7 +20,6 @@ import type { ExtractionResult } from '../../types/interfaces/strategy.js';
 import { validate } from '../../utils/credential-validator.js';
 import { parseDuration } from '../../utils/duration.js';
 import { createNoopLogger } from '../../utils/logger.js';
-import { isLoginUrl } from '../../utils/login-url.js';
 import { expandHome } from '../../utils/path.js';
 import { killProcess } from '../../utils/process-kill.js';
 import { computeTotp } from '../../utils/totp.js';
@@ -448,7 +448,12 @@ export class BrowserStrategy implements IStrategy {
     }
 
     private isLoginUrl(url: string, customPatterns?: string[]): boolean {
-        return isLoginUrl(url, customPatterns);
+        if (!url) return false;
+        const lower = url.toLowerCase();
+        const patterns = customPatterns
+            ? [...LOGIN_URL_PATTERNS, ...customPatterns]
+            : LOGIN_URL_PATTERNS;
+        return patterns.some((p) => lower.includes(p));
     }
 
     private computeExpiresAt(provider: ProviderConfig, results: RuleExpiry[]): string | undefined {
