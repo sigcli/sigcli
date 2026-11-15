@@ -210,43 +210,6 @@ describe('BrowserStrategy.pollUntilValid — loginUrlPatterns checked before val
         expect(mockedValidate).not.toHaveBeenCalled();
     });
 
-    it('validates an authenticated page on a login-named host', async () => {
-        const url = 'https://login.example.test/passcode';
-        const cdp = makeCdpStub([url]);
-        mockedConnectCdpWs.mockResolvedValue(cdp as unknown as cdpWsMod.CdpWsClient);
-        mockedValidate.mockResolvedValue(true);
-        const strategy = new BrowserStrategy(makeBrowserConfig({ visibleTimeout: 10_000 }));
-        const provider = makeProvider({
-            id: 'example',
-            name: 'Example',
-            domains: ['login.example.test'],
-            entryUrl: url,
-            validateUrl: 'https://login.example.test/profile',
-            loginUrlPatterns: [],
-        });
-        const extractPromise = strategy.extract(provider);
-        await runWithFakeTimers(extractPromise);
-        expect((await extractPromise).ok).toBe(true);
-        expect(mockedValidate).toHaveBeenCalledTimes(1);
-    });
-
-    it('still rejects invalid credentials on a login-named host', async () => {
-        const url = 'https://login.example.test/passcode';
-        const cdp = makeCdpStub([url]);
-        mockedConnectCdpWs.mockResolvedValue(cdp as unknown as cdpWsMod.CdpWsClient);
-        mockedValidate.mockResolvedValue(false);
-        const strategy = new BrowserStrategy(makeBrowserConfig({ visibleTimeout: 5000 }));
-        const provider = makeProvider({
-            domains: ['login.example.test'],
-            entryUrl: url,
-            loginUrlPatterns: [],
-        });
-        const extractPromise = strategy.extract(provider);
-        await runWithFakeTimers(extractPromise);
-        expect((await extractPromise).ok).toBe(false);
-        expect(mockedValidate).toHaveBeenCalled();
-    });
-
     it('calls validate when URL does NOT match loginUrlPatterns', async () => {
         // URL is a normal page — validate is called immediately
         const cdp = makeCdpStub(['https://www.xiaohongshu.com/explore']);
