@@ -41,7 +41,7 @@ describe('validateConfig — extract rule field names', () => {
                         from: 'localStorage',
                         as: 'token',
                         match: 'localConfig_v2',
-                        jsonPath: 'teams.E7RBBBXHB.token',
+                        jsonPath: 'teams.T0123ABCD.token',
                     },
                 ]),
             });
