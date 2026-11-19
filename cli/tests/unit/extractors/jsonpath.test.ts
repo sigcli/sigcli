@@ -43,14 +43,14 @@ describe('jsonPath behavior in storage extractors', () => {
     });
 
     describe('nested path', () => {
-        it('resolves "teams.E7RBBBXHB.token" on deeply nested object', () => {
+        it('resolves "teams.T0123ABCD.token" on deeply nested object', () => {
             const payload = {
                 teams: {
-                    E7RBBBXHB: { token: 'xoxc-secret-team-token' },
+                    T0123ABCD: { token: 'xoxc-secret-team-token' },
                     OTHER: { token: 'xoxc-other' },
                 },
             };
-            const result = resolveJsonPath(JSON.stringify(payload), 'teams.E7RBBBXHB.token');
+            const result = resolveJsonPath(JSON.stringify(payload), 'teams.T0123ABCD.token');
             expect(result).toBe('xoxc-secret-team-token');
         });
 

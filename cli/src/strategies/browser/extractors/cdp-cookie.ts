@@ -56,7 +56,7 @@ export class CdpCookieExtractor implements IBrowserExtractor {
             return domains.some((d) => {
                 // Exact match
                 if (cookieDomain === d) return true;
-                // Cookie domain is parent of provider domain (e.g. slack.com matches sap.enterprise.slack.com)
+                // Cookie domain is parent of provider domain (e.g. slack.com matches acme.enterprise.slack.com)
                 if (d.endsWith('.' + cookieDomain)) return true;
                 // Cookie domain is subdomain of provider domain
                 if (cookieDomain.endsWith('.' + d)) return true;

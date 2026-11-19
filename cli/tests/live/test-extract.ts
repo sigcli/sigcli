@@ -25,25 +25,25 @@ const TEST_PROVIDERS: Record<
         apply: ApplyRule[];
     }
 > = {
-    'sap-jira': {
-        domains: ['jira.tools.sap'],
-        entryUrl: 'https://jira.tools.sap/',
+    'corp-jira': {
+        domains: ['jira.example.com'],
+        entryUrl: 'https://jira.example.com/',
         source: 'browser',
         ttl: '10d',
         extract: [{ from: 'cookies', name: 'session', key: '*' }],
         apply: [{ in: 'header', name: 'Cookie', value: '${session}' }],
     },
-    'sap-wiki': {
-        domains: ['wiki.one.int.sap'],
-        entryUrl: 'https://wiki.one.int.sap/',
+    'corp-wiki': {
+        domains: ['wiki.example.com'],
+        entryUrl: 'https://wiki.example.com/',
         source: 'browser',
         ttl: '12h',
         extract: [{ from: 'cookies', name: 'session', key: '*' }],
         apply: [{ in: 'header', name: 'Cookie', value: '${session}' }],
     },
     'app-slack': {
-        domains: ['sap.enterprise.slack.com'],
-        entryUrl: 'https://app.slack.com/client/E7RBBBXHB',
+        domains: ['acme.enterprise.slack.com'],
+        entryUrl: 'https://app.slack.com/client/T0123ABCD',
         source: 'browser',
         ttl: '7d',
         required: ['session.d', 'xoxc-token'],
@@ -52,7 +52,7 @@ const TEST_PROVIDERS: Record<
             {
                 from: 'localStorage',
                 name: 'xoxc-token',
-                key: 'localConfig_v2.teams.E7RBBBXHB.token',
+                key: 'localConfig_v2.teams.T0123ABCD.token',
             },
         ],
         apply: [
