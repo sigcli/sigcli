@@ -103,7 +103,6 @@ export const LOGIN_URL_PATTERNS: readonly string[] = [
     '/saml/',
     'login.microsoftonline.com',
     'accounts.google.com',
-    'accounts.example.com',
 ] as const;
 
 /**
