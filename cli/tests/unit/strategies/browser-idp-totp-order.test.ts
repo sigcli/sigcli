@@ -197,4 +197,74 @@ describe('BrowserStrategy.pollUntilValid — TOTP hook runs before off-domain ch
         // Registry was consulted with the off-domain hostname
         expect(idps.resolve).toHaveBeenCalledWith('sub.idp.example.com');
     });
+    it.each(['submitted', 'lost-response', 'auto-submit'])(
+        'caps %s attempts across repeated extractions and sibling IdP hosts',
+        async (outcome) => {
+            const cdp = makeCdpStub(['https://a.idp.example.com/otp']);
+            mockedConnectCdpWs.mockResolvedValue(cdp as unknown as cdpWsMod.CdpWsClient);
+            mockedValidate.mockResolvedValue(false);
+            mockedInjectTotpFill.mockResolvedValue(
+                outcome === 'lost-response'
+                    ? { filled: false, submitted: false, reason: 'error' }
+                    : { filled: true, submitted: outcome === 'submitted' },
+            );
+            const strategy = new BrowserStrategy(
+                makeBrowserConfig({ visibleTimeout: 100_000 }),
+                undefined,
+                undefined,
+                makeIdpRegistry({
+                    hostname: 'idp.example.com',
+                    totp: { secret: 'JBSWY3DPEHPK3PXP' },
+                }),
+            );
+            const first = strategy.extract(makeProvider());
+            await vi.advanceTimersByTimeAsync(110_000);
+            await first;
+            expect(mockedInjectTotpFill).toHaveBeenCalledTimes(2);
+
+            const sibling = makeCdpStub(['https://b.idp.example.com/otp']);
+            mockedConnectCdpWs.mockResolvedValue(sibling as unknown as cdpWsMod.CdpWsClient);
+            const second = strategy.extract(makeProvider({ id: 'another-service' }));
+            await vi.advanceTimersByTimeAsync(110_000);
+            await second;
+            expect(mockedInjectTotpFill).toHaveBeenCalledTimes(2);
+        },
+    );
+
+    it('does not spend the budget before an OTP input exists', async () => {
+        const cdp = makeCdpStub(['https://idp.example.com/otp']);
+        mockedConnectCdpWs.mockResolvedValue(cdp as unknown as cdpWsMod.CdpWsClient);
+        mockedValidate.mockResolvedValue(false);
+        mockedInjectTotpFill
+            .mockResolvedValueOnce({ filled: false, submitted: false, reason: 'no-input' })
+            .mockResolvedValueOnce({ filled: false, submitted: false, reason: 'no-input' });
+        const strategy = new BrowserStrategy(
+            makeBrowserConfig({ visibleTimeout: 100_000 }),
+            undefined,
+            undefined,
+            makeIdpRegistry({ hostname: 'idp.example.com', totp: { secret: 'JBSWY3DPEHPK3PXP' } }),
+        );
+        const pending = strategy.extract(makeProvider());
+        await vi.advanceTimersByTimeAsync(110_000);
+        await pending;
+        expect(mockedInjectTotpFill).toHaveBeenCalledTimes(4);
+    });
+
+    it('waits at least 35 seconds before filling again', async () => {
+        const cdp = makeCdpStub(['https://idp.example.com/otp']);
+        mockedConnectCdpWs.mockResolvedValue(cdp as unknown as cdpWsMod.CdpWsClient);
+        mockedValidate.mockResolvedValue(false);
+        const strategy = new BrowserStrategy(
+            makeBrowserConfig({ visibleTimeout: 50_000 }),
+            undefined,
+            undefined,
+            makeIdpRegistry({ hostname: 'idp.example.com', totp: { secret: 'JBSWY3DPEHPK3PXP' } }),
+        );
+        const pending = strategy.extract(makeProvider());
+        await vi.advanceTimersByTimeAsync(34_000);
+        expect(mockedInjectTotpFill).toHaveBeenCalledTimes(1);
+        await vi.advanceTimersByTimeAsync(20_000);
+        await pending;
+        expect(mockedInjectTotpFill).toHaveBeenCalledTimes(2);
+    });
 });
