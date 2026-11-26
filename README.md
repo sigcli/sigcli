@@ -249,6 +249,7 @@ sig idp add idp.example.com --totp-secret JBSWY3DPEHPK3PXP --label corp
 - Secret is validated (base32, ≥16 chars) and stored **encrypted** at `~/.sig/idps/<hostname>.json`. It never appears in `config.yaml`.
 - The hostname is matched with a **strict suffix rule** — `idp.example.com` matches itself and `*.idp.example.com`, but NOT `evil-idp.example.com`.
 - On the next `sig login <provider>`, when the browser lands on the IdP page, sig types the current code and submits the form. Non-IdP pages are untouched.
+- Automatic TOTP filling is limited to **two attempts per configured IdP per browser-strategy instance**, at least 35 seconds apart. Headless/visible mode changes, sibling subdomains and repeated authentications using the same instance share this budget. Missing OTP inputs do not consume it; uncertain CDP outcomes do, because the page may already have submitted. After the limit, correct the secret or enter the code manually. Restarting sig creates a fresh budget: do not repeatedly restart with an incorrect secret. This limits automatic submissions; it cannot guarantee an account will not lock if it already has failed attempts.
 
 Manage IdPs:
 

@@ -34,6 +34,8 @@ const TRACKING_COOKIE_TTL_MS = 60_000;
 const EXISTING_STATE_TIMEOUT = 5000;
 const LOGIN_PAGE_SETTLE_MS = 5000;
 const POLL_INTERVAL_MS = 3000;
+const TOTP_MAX_ATTEMPTS = 2;
+const TOTP_RETRY_DELAY_MS = 35_000;
 
 function safeHostname(url: string): string | null {
     if (!url) return null;
@@ -63,6 +65,8 @@ export class BrowserStrategy implements IStrategy {
     private readonly config: BrowserConfig;
     private readonly logger: ILogger;
     private readonly idps?: IIdpRegistry;
+    // Shared across polls, browser modes and providers using this strategy.
+    private readonly totpAttempts = new Map<string, { count: number; lastAttemptAt: number }>();
 
     constructor(browserConfig: BrowserConfig, _?: unknown, logger?: ILogger, idps?: IIdpRegistry) {
         this.config = browserConfig;
@@ -311,6 +315,15 @@ export class BrowserStrategy implements IStrategy {
         if (!currentHost) return { filled: false };
         const idp = this.idps.resolve(currentHost);
         if (!idp?.totp) return { filled: false };
+        const key = idp.hostname.toLowerCase().replace(/\.$/, '');
+        const previous = this.totpAttempts.get(key);
+        if (
+            previous &&
+            (previous.count >= TOTP_MAX_ATTEMPTS ||
+                Date.now() - previous.lastAttemptAt < TOTP_RETRY_DELAY_MS)
+        ) {
+            return { filled: false };
+        }
 
         let code: string;
         try {
@@ -322,6 +335,10 @@ export class BrowserStrategy implements IStrategy {
             return { filled: false };
         }
 
+        // Reserve before CDP evaluation: navigation can lose the response after
+        // submission, and concurrent extractions must not bypass the limit.
+        const attempt = { count: (previous?.count ?? 0) + 1, lastAttemptAt: Date.now() };
+        this.totpAttempts.set(key, attempt);
         const outcome = await injectTotpFill(cdp, sessionId, {
             code,
             ...(idp.totp.selectors ? { selectors: idp.totp.selectors } : {}),
@@ -330,6 +347,15 @@ export class BrowserStrategy implements IStrategy {
             submitted: false,
             reason: 'error' as const,
         }));
+        if (outcome.reason === 'no-input') {
+            // Only this result proves the page was not modified or submitted.
+            if (previous) this.totpAttempts.set(key, previous);
+            else this.totpAttempts.delete(key);
+        } else if (attempt.count >= TOTP_MAX_ATTEMPTS) {
+            this.logger.warn(
+                `${providerId}: TOTP auto-fill disabled for ${idp.hostname} after ${TOTP_MAX_ATTEMPTS} attempts; check the IdP secret or enter the code manually`,
+            );
+        }
 
         if (outcome.filled) {
             this.logger.info(
